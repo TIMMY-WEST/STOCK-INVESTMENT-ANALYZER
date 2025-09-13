@@ -1,0 +1,24 @@
+import pytest
+import json
+
+
+def test_index_route(client):
+    """トップページのテスト"""
+    response = client.get('/')
+    assert response.status_code == 200
+    assert b'株価データ取得システム' in response.data
+
+
+def test_fetch_data_api_structure(client):
+    """API基本構造のテスト（実際のAPIアクセス無し）"""
+    # API エンドポイントの存在確認
+    response = client.post('/api/fetch-data',
+                          data=json.dumps({"symbol": "TEST", "period": "1mo"}),
+                          content_type='application/json')
+
+    # レスポンスの基本構造確認
+    assert response.status_code in [200, 400, 502]  # 正常, バリデーションエラー, 外部API エラーのいずれか
+
+    data = json.loads(response.data)
+    assert 'success' in data
+    assert 'message' in data
