@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, jsonify
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 import yfinance as yf
+from models import Base, StockDaily
 
 # 環境変数読み込み
 load_dotenv()
@@ -12,10 +14,37 @@ app = Flask(__name__)
 # データベース接続設定
 DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# テーブル作成
+Base.metadata.create_all(bind=engine)
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/test-connection', methods=['GET'])
+def test_connection():
+    """データベース接続テスト用エンドポイント"""
+    from sqlalchemy import text
+    try:
+        # データベース接続テスト
+        session = SessionLocal()
+        session.execute(text("SELECT 1"))
+        session.close()
+
+        return jsonify({
+            "success": True,
+            "message": "データベース接続が正常に動作しています",
+            "database": os.getenv('DB_NAME'),
+            "user": os.getenv('DB_USER')
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "DATABASE_CONNECTION_ERROR",
+            "message": f"データベース接続に失敗しました: {str(e)}"
+        }), 500
 
 @app.route('/api/fetch-data', methods=['POST'])
 def fetch_data():
