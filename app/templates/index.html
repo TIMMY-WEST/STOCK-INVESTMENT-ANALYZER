@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>株価データ取得システム</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>株価データ取得システム</h1>
+
+        <div>
+            <label>銘柄コード:</label>
+            <input type="text" id="symbol" value="7203.T" placeholder="例: 7203.T">
+
+            <label>期間:</label>
+            <select id="period">
+                <option value="1mo">1ヶ月</option>
+                <option value="3mo">3ヶ月</option>
+                <option value="6mo">6ヶ月</option>
+                <option value="1y">1年</option>
+            </select>
+
+            <button onclick="fetchData()">データ取得</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            const symbol = document.getElementById('symbol').value;
+            const period = document.getElementById('period').value;
+            const resultDiv = document.getElementById('result');
+
+            resultDiv.innerHTML = '<p>データ取得中...</p>';
+
+            try {
+                const response = await fetch('/api/fetch-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ symbol, period })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>取得成功</h3>
+                        <p><strong>銘柄:</strong> ${data.data.symbol}</p>
+                        <p><strong>レコード数:</strong> ${data.data.records_count}</p>
+                        <p><strong>期間:</strong> ${data.data.date_range.start} ～ ${data.data.date_range.end}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>エラー</h3>
+                        <p><strong>エラーコード:</strong> ${data.error}</p>
+                        <p><strong>メッセージ:</strong> ${data.message}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>通信エラー</h3>
+                    <p>サーバーとの通信に失敗しました: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
