@@ -1,1 +1,2 @@
 # STOCK-INVESTMENT-ANALYZER
+Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存するWebアプリケーション。FlaskベースのMVP優先設計で、シンプルな構成から段階的に機能拡張できる株価データ収集・分析システム。
