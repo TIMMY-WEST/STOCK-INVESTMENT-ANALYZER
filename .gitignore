@@ -166,7 +166,6 @@ secrets.ini
 .env.production
 
 # Database dumps
-*.sql
 *.dump
 
 # Application specific
