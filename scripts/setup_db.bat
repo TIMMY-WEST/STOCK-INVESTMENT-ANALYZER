@@ -11,11 +11,35 @@ echo PostgreSQL データベースセットアップ開始
 echo ========================================
 echo.
 
-REM 設定値
-set DB_NAME=stock_data_system
-set DB_USER=stock_user
-set DB_PASSWORD=stock_password
+REM .envファイルから設定値を読み込み
+echo .envファイルから設定を読み込み中...
+if not exist "%~dp0..\.env" (
+    echo エラー: .envファイルが見つかりません
+    echo プロジェクトルートに.envファイルを作成してください
+    pause
+    exit /b 1
+)
+
+REM .envファイルの読み込み
+for /f "tokens=1,2 delims==" %%i in ('findstr /v "^#" "%~dp0..\.env"') do (
+    if "%%i"=="DB_NAME" set DB_NAME=%%j
+    if "%%i"=="DB_USER" set DB_USER=%%j
+    if "%%i"=="DB_PASSWORD" set DB_PASSWORD=%%j
+    if "%%i"=="POSTGRES_PASSWORD" set POSTGRES_PASSWORD=%%j
+)
+
+REM デフォルト値設定
+if not defined POSTGRES_PASSWORD set POSTGRES_PASSWORD=postgres
 set POSTGRES_USER=postgres
+
+REM 環境変数PGPASSWORD設定（パスワード入力を回避）
+set PGPASSWORD=%POSTGRES_PASSWORD%
+
+echo 設定値確認:
+echo   データベース名: %DB_NAME%
+echo   ユーザー名: %DB_USER%
+echo   PostgreSQLパスワード: [設定済み]
+echo.
 
 REM PostgreSQLがインストールされているかチェック
 echo [1/6] PostgreSQL インストール確認中...
@@ -51,7 +75,8 @@ echo PostgreSQL サービスは稼働中です
 REM データベース作成
 echo.
 echo [3/6] データベース作成中...
-echo パスワードの入力を求められたら postgres ユーザーのパスワードを入力してください
+REM postgresユーザーのパスワードを環境変数に設定
+set PGPASSWORD=%POSTGRES_PASSWORD%
 psql -U %POSTGRES_USER% -h localhost -c "SELECT 1;" >nul 2>&1
 if errorlevel 1 (
     echo エラー: postgres ユーザーでの接続に失敗しました
@@ -62,6 +87,8 @@ if errorlevel 1 (
 
 REM データベース作成スクリプト実行
 echo データベース作成スクリプト実行中...
+REM postgresユーザーのパスワードを環境変数に設定
+set PGPASSWORD=%POSTGRES_PASSWORD%
 psql -U %POSTGRES_USER% -h localhost -f "%~dp0create_database.sql"
 if errorlevel 1 (
     echo エラー: データベース作成に失敗しました
@@ -73,7 +100,8 @@ echo データベース作成完了
 REM テーブル作成
 echo.
 echo [4/6] テーブル作成中...
-echo パスワードの入力を求められたら '%DB_PASSWORD%' を入力してください
+REM stock_userのパスワードを環境変数に設定
+set PGPASSWORD=%DB_PASSWORD%
 psql -U %DB_USER% -d %DB_NAME% -h localhost -f "%~dp0create_tables.sql"
 if errorlevel 1 (
     echo エラー: テーブル作成に失敗しました
@@ -86,6 +114,8 @@ REM サンプルデータ投入
 echo.
 echo [5/6] 初期データ投入中...
 if exist "%~dp0insert_sample_data.sql" (
+    REM stock_userのパスワードを環境変数に設定
+    set PGPASSWORD=%DB_PASSWORD%
     psql -U %DB_USER% -d %DB_NAME% -h localhost -f "%~dp0insert_sample_data.sql"
     if errorlevel 1 (
         echo 警告: サンプルデータ投入に一部失敗しました
@@ -99,6 +129,8 @@ if exist "%~dp0insert_sample_data.sql" (
 REM 接続テスト
 echo.
 echo [6/6] データベース接続テスト中...
+REM stock_userのパスワードを環境変数に設定
+set PGPASSWORD=%DB_PASSWORD%
 psql -U %DB_USER% -d %DB_NAME% -h localhost -c "\dt"
 if errorlevel 1 (
     echo エラー: データベース接続テストに失敗しました
