@@ -8,7 +8,7 @@
 
 ## 🏗️ マイルストン 1: 環境構築・基盤整備 関連Issue
 
-### Issue #1: Python環境とプロジェクト構造のセットアップ
+### Issue : Python環境とプロジェクト構造のセットアップ
 **Labels**: `feature`, `infrastructure`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🏗️ マイルストン 1: 環境構築・基盤整備 関連Issue`  
@@ -41,7 +41,7 @@ Python 3.12.8環境のセットアップとプロジェクトディレクトリ�
 
 ---
 
-### Issue #2: PostgreSQL環境構築とデータベース接続設定
+### Issue: PostgreSQL環境構築とデータベース接続設定
 **Labels**: `feature`, `database`, `infrastructure`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🏗️ マイルストン 1: 環境構築・基盤整備 関連Issue`  
@@ -78,7 +78,7 @@ PostgreSQLのローカル環境構築とアプリケーションからの接続�
 
 ## 💾 マイルストン 2: データベース実装 関連Issue
 
-### Issue #3: PostgreSQL データベース・テーブル作成スクリプト実装
+### Issue : PostgreSQL データベース・テーブル作成スクリプト実装
 **Labels**: `feature`, `database`, `infrastructure`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `💾 マイルストン 2: データベース実装 関連Issue`  
@@ -115,7 +115,7 @@ PostgreSQLデータベースとstocks_dailyテーブルを作成するSQLスク�
 
 ---
 
-### Issue #4: stocks_dailyテーブル作成と制約設定
+### Issue: stocks_dailyテーブル作成と制約設定
 **Labels**: `feature`, `database`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `💾 マイルストン 2: データベース実装 関連Issue`  
@@ -150,7 +150,7 @@ PostgreSQLデータベースとstocks_dailyテーブルを作成するSQLスク�
 
 ---
 
-### Issue #5: SQLAlchemyモデル実装とCRUD操作
+### Issue: SQLAlchemyモデル実装とCRUD操作
 **Labels**: `feature`, `backend`, `database`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `💾 マイルストン 2: データベース実装 関連Issue`  
@@ -187,7 +187,7 @@ SQLAlchemyを使用したStockDailyモデルの実装と基本的なCRUD操作�
 
 ## ⚙️ マイルストン 3: バックエンドAPI実装 関連Issue
 
-### Issue #6: Flaskアプリケーション基盤とデータベース接続設定
+### Issue: Flaskアプリケーション基盤とデータベース接続設定
 **Labels**: `feature`, `backend`, `infrastructure`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `⚙️ マイルストン 3: バックエンドAPI実装 関連Issue`  
@@ -222,7 +222,7 @@ Flaskアプリケーションの基盤となる`app.py`の作成とデータベ�
 
 ---
 
-### Issue #7: 株価データ取得API実装（POST /api/fetch-data）
+### Issue: 株価データ取得API実装（POST /api/fetch-data）
 **Labels**: `feature`, `backend`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `⚙️ マイルストン 3: バックエンドAPI実装 関連Issue`  
@@ -260,7 +260,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ---
 
-### Issue #8: 保存済み株価データ取得API実装（GET /api/stocks）
+### Issue: 保存済み株価データ取得API実装（GET /api/stocks）
 **Labels**: `feature`, `backend`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `⚙️ マイルストン 3: バックエンドAPI実装 関連Issue`  
@@ -300,7 +300,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ## 🎨 マイルストン 4: フロントエンド実装 関連Issue
 
-### Issue #9: HTMLテンプレートとCSS基盤実装
+### Issue: HTMLテンプレートとCSS基盤実装
 **Labels**: `feature`, `frontend`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🎨 マイルストン 4: フロントエンド実装 関連Issue`   
@@ -336,7 +336,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ---
 
-### Issue #10: データ取得フォーム機能実装
+### Issue: データ取得フォーム機能実装
 **Labels**: `feature`, `frontend`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🎨 マイルストン 4: フロントエンド実装 関連Issue` 
@@ -372,7 +372,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ---
 
-### Issue #11: JavaScript実装とAPI連携機能
+### Issue: JavaScript実装とAPI連携機能
 **Labels**: `feature`, `frontend`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🎨 マイルストン 4: フロントエンド実装 関連Issue` 
@@ -409,7 +409,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ---
 
-### Issue #12: 株価データテーブル表示機能実装
+### Issue: 株価データテーブル表示機能実装
 **Labels**: `feature`, `frontend`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🎨 マイルストン 4: フロントエンド実装 関連Issue` 
@@ -446,7 +446,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ## 🧪 マイルストン 5: 統合テスト・動作確認 関連Issue
 
-### Issue #13: エンドツーエンド動作確認テスト
+### Issue: エンドツーエンド動作確認テスト
 **Labels**: `feature`, `testing`, `priority:high`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🧪 マイルストン 5: 統合テスト・動作確認 関連Issue` 
@@ -481,7 +481,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ---
 
-### Issue #14: エラーケース・例外処理テスト
+### Issue: エラーケース・例外処理テスト
 **Labels**: `feature`, `testing`, `priority:medium`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🧪 マイルストン 5: 統合テスト・動作確認 関連Issue` 
@@ -516,7 +516,7 @@ Yahoo Finance（yfinance）から株価データを取得してデータベー�
 
 ---
 
-### Issue #15: ブラウザ互換性・レスポンシブデザイン確認
+### Issue: ブラウザ互換性・レスポンシブデザイン確認
 **Labels**: `feature`, `testing`, `frontend`, `priority:medium`  
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
 **Milestone**: `🧪 マイルストン 5: 統合テスト・動作確認 関連Issue` 
