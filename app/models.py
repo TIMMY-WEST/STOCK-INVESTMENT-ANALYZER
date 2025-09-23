@@ -121,7 +121,7 @@ class StockDailyCRUD:
             raise DatabaseError(f"データベースエラー: {str(e)}")
 
     @staticmethod
-    def get_by_symbol(session: Session, symbol: str, limit: Optional[int] = None,
+    def get_by_symbol(session: Session, symbol: str, limit: Optional[int] = None, offset: Optional[int] = None,
                      start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[StockDaily]:
         """銘柄コードで株価データを取得（日付降順）"""
         try:
@@ -134,6 +134,34 @@ class StockDailyCRUD:
 
             query = query.order_by(StockDaily.date.desc())
 
+            if offset:
+                query = query.offset(offset)
+            if limit:
+                query = query.limit(limit)
+
+            return query.all()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def get_with_filters(session: Session, symbol: Optional[str] = None, limit: Optional[int] = None, 
+                        offset: Optional[int] = None, start_date: Optional[date] = None, 
+                        end_date: Optional[date] = None) -> List[StockDaily]:
+        """フィルタ条件に基づく株価データを取得（日付降順）"""
+        try:
+            query = session.query(StockDaily)
+            
+            if symbol:
+                query = query.filter(StockDaily.symbol == symbol)
+            if start_date:
+                query = query.filter(StockDaily.date >= start_date)
+            if end_date:
+                query = query.filter(StockDaily.date <= end_date)
+                
+            query = query.order_by(StockDaily.date.desc(), StockDaily.symbol)
+
+            if offset:
+                query = query.offset(offset)
             if limit:
                 query = query.limit(limit)
 
@@ -227,5 +255,31 @@ class StockDailyCRUD:
                 StockDaily.symbol == symbol
             ).order_by(StockDaily.date.desc()).first()
             return result[0] if result else None
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def count_all(session: Session) -> int:
+        """全ての株価データ件数を取得"""
+        try:
+            return session.query(StockDaily).count()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def count_with_filters(session: Session, symbol: Optional[str] = None,
+                          start_date: Optional[date] = None, end_date: Optional[date] = None) -> int:
+        """フィルタ条件に基づく株価データ件数を取得"""
+        try:
+            query = session.query(StockDaily)
+            
+            if symbol:
+                query = query.filter(StockDaily.symbol == symbol)
+            if start_date:
+                query = query.filter(StockDaily.date >= start_date)
+            if end_date:
+                query = query.filter(StockDaily.date <= end_date)
+                
+            return query.count()
         except SQLAlchemyError as e:
             raise DatabaseError(f"データベースエラー: {str(e)}")

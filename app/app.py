@@ -208,9 +208,10 @@ def get_stock_by_id(stock_id):
 def get_stocks():
     """株価データを取得（クエリパラメータに応じて）"""
     try:
+        # クエリパラメータの取得
         symbol = request.args.get('symbol')
-        limit = request.args.get('limit', type=int)
-        offset = request.args.get('offset', type=int)
+        limit = request.args.get('limit', 100, type=int)
+        offset = request.args.get('offset', 0, type=int)
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
 
@@ -237,18 +238,44 @@ def get_stocks():
                     "message": "end_date の形式が正しくありません (YYYY-MM-DD)"
                 }), 400
 
+        # バリデーション
+        if limit <= 0:
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": "limit は1以上の値を指定してください"
+            }), 400
+
+        if offset < 0:
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": "offset は0以上の値を指定してください"
+            }), 400
+
         with get_db_session() as session:
-            if symbol:
-                stocks = StockDailyCRUD.get_by_symbol(
-                    session, symbol, limit, parsed_start_date, parsed_end_date
-                )
-            else:
-                stocks = StockDailyCRUD.get_all(session, limit, offset)
+            # データ取得
+            stocks = StockDailyCRUD.get_with_filters(
+                session, symbol, limit, offset, parsed_start_date, parsed_end_date
+            )
+            
+            # 総件数取得
+            total_count = StockDailyCRUD.count_with_filters(
+                session, symbol, parsed_start_date, parsed_end_date
+            )
+
+            # ページネーション情報
+            has_next = (offset + len(stocks)) < total_count
 
             return jsonify({
                 "success": True,
                 "data": [stock.to_dict() for stock in stocks],
-                "count": len(stocks)
+                "pagination": {
+                    "total": total_count,
+                    "limit": limit,
+                    "offset": offset,
+                    "has_next": has_next
+                }
             })
 
     except DatabaseError as e:
