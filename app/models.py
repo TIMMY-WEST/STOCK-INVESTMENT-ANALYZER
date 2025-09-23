@@ -1,8 +1,25 @@
-from sqlalchemy import Column, Integer, String, Date, Numeric, BigInteger, DateTime, UniqueConstraint, CheckConstraint, Index
+from sqlalchemy import Column, Integer, String, Date, Numeric, BigInteger, DateTime, UniqueConstraint, CheckConstraint, Index, create_engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import func
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from typing import List, Optional, Dict, Any
+from datetime import date, datetime
+from contextlib import contextmanager
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 Base = declarative_base()
+
+class DatabaseError(Exception):
+    """データベース操作エラーの基底クラス"""
+    pass
+
+class StockDataError(DatabaseError):
+    """株価データ関連エラー"""
+    pass
 
 class StockDaily(Base):
     __tablename__ = 'stocks_daily'
@@ -32,3 +49,183 @@ class StockDaily(Base):
 
     def __repr__(self):
         return f"<StockDaily(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """モデルインスタンスを辞書形式に変換"""
+        return {
+            'id': self.id,
+            'symbol': self.symbol,
+            'date': self.date.isoformat() if self.date else None,
+            'open': float(self.open) if self.open else None,
+            'high': float(self.high) if self.high else None,
+            'low': float(self.low) if self.low else None,
+            'close': float(self.close) if self.close else None,
+            'volume': self.volume,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+# データベース設定
+DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+@contextmanager
+def get_db_session():
+    """データベースセッションのコンテキストマネージャー"""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+class StockDailyCRUD:
+    """StockDailyモデルのCRUD操作クラス"""
+
+    @staticmethod
+    def create(session: Session, **kwargs) -> StockDaily:
+        """新しい株価データを作成"""
+        try:
+            stock_data = StockDaily(**kwargs)
+            session.add(stock_data)
+            session.flush()
+            return stock_data
+        except IntegrityError as e:
+            if "uk_stocks_daily_symbol_date" in str(e):
+                raise StockDataError(f"銘柄 {kwargs.get('symbol')} の日付 {kwargs.get('date')} のデータは既に存在します")
+            raise DatabaseError(f"データベース制約違反: {str(e)}")
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def get_by_id(session: Session, stock_id: int) -> Optional[StockDaily]:
+        """IDで株価データを取得"""
+        try:
+            return session.query(StockDaily).filter(StockDaily.id == stock_id).first()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def get_by_symbol_and_date(session: Session, symbol: str, date: date) -> Optional[StockDaily]:
+        """銘柄コードと日付で株価データを取得"""
+        try:
+            return session.query(StockDaily).filter(
+                StockDaily.symbol == symbol,
+                StockDaily.date == date
+            ).first()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def get_by_symbol(session: Session, symbol: str, limit: Optional[int] = None,
+                     start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[StockDaily]:
+        """銘柄コードで株価データを取得（日付降順）"""
+        try:
+            query = session.query(StockDaily).filter(StockDaily.symbol == symbol)
+
+            if start_date:
+                query = query.filter(StockDaily.date >= start_date)
+            if end_date:
+                query = query.filter(StockDaily.date <= end_date)
+
+            query = query.order_by(StockDaily.date.desc())
+
+            if limit:
+                query = query.limit(limit)
+
+            return query.all()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def get_all(session: Session, limit: Optional[int] = None, offset: Optional[int] = None) -> List[StockDaily]:
+        """全ての株価データを取得（日付降順）"""
+        try:
+            query = session.query(StockDaily).order_by(StockDaily.date.desc(), StockDaily.symbol)
+
+            if offset:
+                query = query.offset(offset)
+            if limit:
+                query = query.limit(limit)
+
+            return query.all()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def update(session: Session, stock_id: int, **kwargs) -> Optional[StockDaily]:
+        """株価データを更新"""
+        try:
+            stock_data = session.query(StockDaily).filter(StockDaily.id == stock_id).first()
+            if not stock_data:
+                return None
+
+            for key, value in kwargs.items():
+                if hasattr(stock_data, key):
+                    setattr(stock_data, key, value)
+
+            stock_data.updated_at = datetime.utcnow()
+            session.flush()
+            return stock_data
+        except IntegrityError as e:
+            if "uk_stocks_daily_symbol_date" in str(e):
+                raise StockDataError(f"銘柄コードと日付の組み合わせが既に存在します")
+            raise DatabaseError(f"データベース制約違反: {str(e)}")
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def delete(session: Session, stock_id: int) -> bool:
+        """株価データを削除"""
+        try:
+            stock_data = session.query(StockDaily).filter(StockDaily.id == stock_id).first()
+            if not stock_data:
+                return False
+
+            session.delete(stock_data)
+            session.flush()
+            return True
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def bulk_create(session: Session, stock_data_list: List[Dict[str, Any]]) -> List[StockDaily]:
+        """複数の株価データを一括作成"""
+        try:
+            stock_objects = []
+            for data in stock_data_list:
+                stock_data = StockDaily(**data)
+                stock_objects.append(stock_data)
+
+            session.add_all(stock_objects)
+            session.flush()
+            return stock_objects
+        except IntegrityError as e:
+            if "uk_stocks_daily_symbol_date" in str(e):
+                raise StockDataError("一括作成中に重複データが検出されました")
+            raise DatabaseError(f"データベース制約違反: {str(e)}")
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def count_by_symbol(session: Session, symbol: str) -> int:
+        """銘柄のデータ件数を取得"""
+        try:
+            return session.query(StockDaily).filter(StockDaily.symbol == symbol).count()
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
+
+    @staticmethod
+    def get_latest_date_by_symbol(session: Session, symbol: str) -> Optional[date]:
+        """銘柄の最新データ日付を取得"""
+        try:
+            result = session.query(StockDaily.date).filter(
+                StockDaily.symbol == symbol
+            ).order_by(StockDaily.date.desc()).first()
+            return result[0] if result else None
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"データベースエラー: {str(e)}")
