@@ -219,8 +219,14 @@ const UIComponents = {
 const StockFetchManager = {
     init: () => {
         const form = document.getElementById('fetch-form');
+        const resetBtn = document.getElementById('reset-btn');
+
         if (form) {
             form.addEventListener('submit', StockFetchManager.handleSubmit);
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', StockFetchManager.handleReset);
         }
     },
 
@@ -232,8 +238,10 @@ const StockFetchManager = {
         const symbol = document.getElementById('symbol')?.value?.trim();
         const period = document.getElementById('period')?.value;
 
-        if (!symbol) {
-            UIComponents.showResult('result-container', 'error', 'エラー', '銘柄コードを入力してください');
+        // Enhanced client-side validation
+        const validationResult = StockFetchManager.validateForm(symbol, period);
+        if (!validationResult.isValid) {
+            StockFetchManager.showValidationErrors(validationResult.errors);
             return;
         }
 
@@ -245,17 +253,22 @@ const StockFetchManager = {
 
             if (response.success) {
                 const { data } = response;
-                UIComponents.showResult(
-                    'result-container',
-                    'success',
-                    '取得成功',
-                    `銘柄: ${data.symbol} | レコード数: ${Utils.formatNumber(data.records_count)} | 保存件数: ${Utils.formatNumber(data.saved_records)} | 期間: ${data.date_range.start} ～ ${data.date_range.end}`
-                );
 
-                // Refresh data table if visible
-                if (document.getElementById('data-table-body').children.length > 1) {
-                    StockDataManager.loadData();
+                // Complete progress bar
+                const progressBar = document.getElementById('fetch-progress');
+                if (progressBar) {
+                    progressBar.style.width = '100%';
                 }
+
+                // Show enhanced success message
+                setTimeout(() => {
+                    StockFetchManager.showSuccessMessage(data);
+
+                    // Refresh data table if visible
+                    if (document.getElementById('data-table-body').children.length > 1) {
+                        StockDataManager.loadData();
+                    }
+                }, 500);
             } else {
                 UIComponents.showResult(
                     'result-container',
@@ -281,11 +294,249 @@ const StockFetchManager = {
         const btn = document.getElementById('fetch-btn');
         const btnText = btn?.querySelector('.btn-text');
         const spinner = document.getElementById('loading-spinner');
+        const resetBtn = document.getElementById('reset-btn');
+        const resultContainer = document.getElementById('result-container');
 
         if (btn && btnText && spinner) {
             btn.disabled = loading;
             btnText.textContent = loading ? 'データ取得中...' : 'データ取得';
             spinner.style.display = loading ? 'inline-block' : 'none';
+
+            // Enhanced button loading animation
+            if (loading) {
+                btn.classList.add('loading');
+            } else {
+                btn.classList.remove('loading');
+            }
+        }
+
+        if (resetBtn) {
+            resetBtn.disabled = loading;
+        }
+
+        // Show progress container during loading
+        if (loading) {
+            StockFetchManager.showProgressBar(resultContainer);
+        } else {
+            StockFetchManager.hideProgressBar();
+        }
+    },
+
+    showProgressBar: (container) => {
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <div class="alert-title">
+                    <span class="loading" aria-hidden="true"></span>
+                    データ取得中
+                </div>
+                <div>Yahoo Finance APIからデータを取得しています...</div>
+                <div class="progress-container mt-2">
+                    <div class="progress-bar" id="fetch-progress"></div>
+                </div>
+            </div>
+        `;
+
+        // Simulate progress
+        const progressBar = document.getElementById('fetch-progress');
+        if (progressBar) {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 85) progress = 85; // Don't go to 100% until actual completion
+                progressBar.style.width = progress + '%';
+            }, 300);
+
+            // Store interval ID for cleanup
+            container.dataset.progressInterval = interval;
+        }
+    },
+
+    hideProgressBar: () => {
+        const container = document.getElementById('result-container');
+        if (container && container.dataset.progressInterval) {
+            clearInterval(container.dataset.progressInterval);
+            delete container.dataset.progressInterval;
+        }
+    },
+
+    handleReset: () => {
+        const form = document.getElementById('fetch-form');
+        const resultContainer = document.getElementById('result-container');
+
+        if (form) {
+            // Reset form to default values
+            document.getElementById('symbol').value = '7203.T';
+            document.getElementById('period').value = '1mo';
+
+            // Clear any validation errors
+            StockFetchManager.clearValidationErrors();
+        }
+
+        if (resultContainer) {
+            resultContainer.innerHTML = '';
+        }
+    },
+
+    validateForm: (symbol, period) => {
+        const errors = [];
+
+        // Validate symbol
+        if (!symbol) {
+            errors.push({
+                field: 'symbol',
+                message: '銘柄コードを入力してください'
+            });
+        } else if (!symbol.match(/^[0-9]{4}\.T$/)) {
+            errors.push({
+                field: 'symbol',
+                message: '正しい銘柄コード形式で入力してください（例: 7203.T）'
+            });
+        }
+
+        // Validate period
+        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y'];
+        if (!validPeriods.includes(period)) {
+            errors.push({
+                field: 'period',
+                message: '有効な期間を選択してください'
+            });
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    },
+
+    showValidationErrors: (errors) => {
+        // Clear previous errors
+        StockFetchManager.clearValidationErrors();
+
+        errors.forEach(error => {
+            const field = document.getElementById(error.field);
+            if (field) {
+                field.classList.add('form-control-error');
+
+                // Create error element if it doesn't exist
+                let errorElement = field.parentNode.querySelector('.field-error');
+                if (!errorElement) {
+                    errorElement = document.createElement('div');
+                    errorElement.className = 'field-error text-danger mt-1';
+                    field.parentNode.appendChild(errorElement);
+                }
+
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+            }
+        });
+
+        // Show summary error in result container
+        const summaryMessage = errors.map(e => e.message).join(', ');
+        UIComponents.showResult('result-container', 'error', 'バリデーションエラー', summaryMessage);
+    },
+
+    clearValidationErrors: () => {
+        // Remove error classes from form controls
+        document.querySelectorAll('.form-control-error').forEach(element => {
+            element.classList.remove('form-control-error');
+        });
+
+        // Hide error messages
+        document.querySelectorAll('.field-error').forEach(element => {
+            element.style.display = 'none';
+        });
+    },
+
+    showSuccessMessage: (data) => {
+        const container = document.getElementById('result-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="alert alert-success">
+                <div class="alert-title">
+                    ✅ データ取得完了
+                </div>
+                <div class="success-details mt-2">
+                    <div class="row">
+                        <div class="col">
+                            <strong>銘柄:</strong> ${Utils.escapeHtml(data.symbol)}
+                        </div>
+                        <div class="col">
+                            <strong>取得レコード数:</strong> ${Utils.formatNumber(data.records_count)}
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col">
+                            <strong>保存件数:</strong> ${Utils.formatNumber(data.saved_records)}
+                        </div>
+                        <div class="col">
+                            <strong>取得期間:</strong> ${data.date_range.start} ～ ${data.date_range.end}
+                        </div>
+                    </div>
+                </div>
+                <div class="success-actions mt-3">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="StockDataManager.loadData()">
+                        データテーブルを更新
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add confetti animation for success
+        StockFetchManager.showSuccessAnimation();
+    },
+
+    showSuccessAnimation: () => {
+        // Simple confetti-like animation
+        const container = document.getElementById('result-container');
+        if (!container) return;
+
+        const colors = ['#28a745', '#007bff', '#ffc107', '#17a2b8'];
+
+        for (let i = 0; i < 15; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.style.cssText = `
+                    position: absolute;
+                    width: 8px;
+                    height: 8px;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 1000;
+                    left: ${Math.random() * 100}%;
+                    top: 0;
+                    opacity: 0.8;
+                    animation: confettiFall 2s ease-out forwards;
+                `;
+
+                // Add confetti CSS animation if not exists
+                if (!document.getElementById('confetti-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'confetti-styles';
+                    style.textContent = `
+                        @keyframes confettiFall {
+                            to {
+                                transform: translateY(100vh) rotate(360deg);
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                container.style.position = 'relative';
+                container.appendChild(confetti);
+
+                // Remove confetti after animation
+                setTimeout(() => {
+                    if (confetti.parentNode) {
+                        confetti.parentNode.removeChild(confetti);
+                    }
+                }, 2000);
+            }, i * 100);
         }
     }
 };

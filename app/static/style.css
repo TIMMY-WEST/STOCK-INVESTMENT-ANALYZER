@@ -178,6 +178,49 @@ body {
     opacity: 1;
 }
 
+.form-control-error {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.field-error {
+    color: var(--error-color);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.text-danger {
+    color: var(--error-color) !important;
+}
+
+/* Success message styling */
+.success-details .row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.success-details .col {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.success-actions {
+    text-align: center;
+}
+
+/* Row utility for success message */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -0.5rem;
+}
+
+.col {
+    flex: 1;
+    padding: 0 0.5rem;
+}
+
 .form-row {
     display: flex;
     gap: 1rem;
@@ -359,6 +402,51 @@ body {
 .loading-text {
     color: var(--medium-gray);
     font-style: italic;
+}
+
+/* Progress bar for data fetching */
+.progress-container {
+    margin-top: 1rem;
+    background-color: var(--light-gray);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    height: 0.5rem;
+    transition: var(--transition);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressPulse 2s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Enhanced button loading state */
+.btn.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
 /* Utility Classes */

@@ -63,6 +63,7 @@
                                 <label for="period" class="form-label">取得期間</label>
                                 <select id="period" name="period" class="form-control" aria-describedby="period-help">
                                     <option value="5d">5日間</option>
+                                    <option value="1wk">1週間</option>
                                     <option value="1mo" selected>1ヶ月</option>
                                     <option value="3mo">3ヶ月</option>
                                     <option value="6mo">6ヶ月</option>
@@ -78,6 +79,9 @@
                                 <button type="submit" id="fetch-btn" class="btn btn-primary">
                                     <span class="btn-text">データ取得</span>
                                     <span class="loading" id="loading-spinner" style="display: none;" aria-hidden="true"></span>
+                                </button>
+                                <button type="button" id="reset-btn" class="btn btn-secondary mt-2">
+                                    リセット
                                 </button>
                             </div>
                         </div>
