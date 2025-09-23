@@ -56,18 +56,60 @@ def fetch_data():
                 "message": "指定された銘柄コードのデータが取得できません"
             }), 400
 
+        # データベースに保存
+        with get_db_session() as session:
+            saved_records = []
+            skipped_records = 0
+
+            for date_index, row in hist.iterrows():
+                try:
+                    # 日付をdate型に変換
+                    stock_date = date_index.date()
+
+                    # 既存データの確認
+                    existing_data = StockDailyCRUD.get_by_symbol_and_date(session, symbol, stock_date)
+                    if existing_data:
+                        skipped_records += 1
+                        continue
+
+                    # 新しいデータを作成
+                    stock_data = StockDailyCRUD.create(
+                        session,
+                        symbol=symbol,
+                        date=stock_date,
+                        open=float(row['Open']),
+                        high=float(row['High']),
+                        low=float(row['Low']),
+                        close=float(row['Close']),
+                        volume=int(row['Volume'])
+                    )
+                    saved_records.append(stock_data)
+
+                except (StockDataError, DatabaseError):
+                    # 重複データの場合はスキップ
+                    skipped_records += 1
+                    continue
+
         return jsonify({
             "success": True,
-            "message": "データを正常に取得しました",
+            "message": "データを正常に取得し、データベースに保存しました",
             "data": {
                 "symbol": symbol,
                 "records_count": len(hist),
+                "saved_records": len(saved_records),
+                "skipped_records": skipped_records,
                 "date_range": {
                     "start": hist.index[0].strftime('%Y-%m-%d'),
                     "end": hist.index[-1].strftime('%Y-%m-%d')
                 }
             }
         })
+    except DatabaseError as e:
+        return jsonify({
+            "success": False,
+            "error": "DATABASE_ERROR",
+            "message": f"データベース保存に失敗しました: {str(e)}"
+        }), 500
     except Exception as e:
         return jsonify({
             "success": False,
