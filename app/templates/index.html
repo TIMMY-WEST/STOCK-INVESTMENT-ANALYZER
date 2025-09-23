@@ -3,82 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>株価データ取得システム</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .result { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
-        .success { background-color: #d4edda; border-color: #c3e6cb; }
-        .error { background-color: #f8d7da; border-color: #f5c6cb; }
-    </style>
+    <meta name="description" content="株価データの取得・管理・分析を行うWebアプリケーション">
+    <title>株価データ管理システム</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>株価データ取得システム</h1>
+    <!-- Skip to main content link for accessibility -->
+    <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
 
-        <div>
-            <label>銘柄コード:</label>
-            <input type="text" id="symbol" value="7203.T" placeholder="例: 7203.T">
-
-            <label>期間:</label>
-            <select id="period">
-                <option value="1mo">1ヶ月</option>
-                <option value="3mo">3ヶ月</option>
-                <option value="6mo">6ヶ月</option>
-                <option value="1y">1年</option>
-            </select>
-
-            <button onclick="fetchData()">データ取得</button>
+    <!-- Header and Navigation -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav" role="navigation" aria-label="メインナビゲーション">
+                <a href="/" class="nav-brand">株価データ管理システム</a>
+                <ul class="nav-links">
+                    <li><a href="/" class="nav-link" aria-current="page">ホーム</a></li>
+                    <li><a href="#data-management" class="nav-link">データ管理</a></li>
+                    <li><a href="#analytics" class="nav-link">分析</a></li>
+                    <li><a href="#help" class="nav-link">ヘルプ</a></li>
+                </ul>
+            </nav>
         </div>
+    </header>
 
-        <div id="result"></div>
-    </div>
+    <!-- Main Content -->
+    <main id="main-content" class="main">
+        <div class="container">
+            <!-- Page Header -->
+            <section class="page-header">
+                <h1 class="page-title">株価データ管理システム</h1>
+                <p class="page-subtitle">Yahoo Finance APIから株価データを取得し、データベースに保存・管理できます</p>
+            </section>
 
-    <script>
-        async function fetchData() {
-            const symbol = document.getElementById('symbol').value;
-            const period = document.getElementById('period').value;
-            const resultDiv = document.getElementById('result');
+            <!-- Data Fetch Section -->
+            <section id="data-fetch" class="card">
+                <header class="card-header">
+                    <h2 class="card-title">株価データ取得</h2>
+                </header>
+                <div class="card-body">
+                    <form id="fetch-form" class="fetch-form" role="form" aria-labelledby="fetch-title">
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label for="symbol" class="form-label">銘柄コード</label>
+                                <input
+                                    type="text"
+                                    id="symbol"
+                                    name="symbol"
+                                    class="form-control"
+                                    value="7203.T"
+                                    placeholder="例: 7203.T"
+                                    aria-describedby="symbol-help"
+                                    required
+                                >
+                                <div id="symbol-help" class="form-text mt-1">
+                                    <small>東証の場合は銘柄コードの後に「.T」を付けてください（例: 7203.T）</small>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <label for="period" class="form-label">取得期間</label>
+                                <select id="period" name="period" class="form-control" aria-describedby="period-help">
+                                    <option value="5d">5日間</option>
+                                    <option value="1mo" selected>1ヶ月</option>
+                                    <option value="3mo">3ヶ月</option>
+                                    <option value="6mo">6ヶ月</option>
+                                    <option value="1y">1年</option>
+                                    <option value="2y">2年</option>
+                                    <option value="5y">5年</option>
+                                </select>
+                                <div id="period-help" class="form-text mt-1">
+                                    <small>取得するデータの期間を選択してください</small>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <button type="submit" id="fetch-btn" class="btn btn-primary">
+                                    <span class="btn-text">データ取得</span>
+                                    <span class="loading" id="loading-spinner" style="display: none;" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
 
-            resultDiv.innerHTML = '<p>データ取得中...</p>';
+                    <!-- Results Section -->
+                    <div id="result-container" role="region" aria-live="polite" aria-label="処理結果"></div>
+                </div>
+            </section>
 
-            try {
-                const response = await fetch('/api/fetch-data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ symbol, period })
-                });
+            <!-- Data Management Section -->
+            <section id="data-management" class="card">
+                <header class="card-header">
+                    <h2 class="card-title">データ管理</h2>
+                </header>
+                <div class="card-body">
+                    <!-- Data View Controls -->
+                    <div class="form-row mb-3">
+                        <div class="form-col">
+                            <label for="view-symbol" class="form-label">銘柄フィルタ</label>
+                            <input
+                                type="text"
+                                id="view-symbol"
+                                name="view-symbol"
+                                class="form-control"
+                                placeholder="銘柄コードで絞り込み"
+                            >
+                        </div>
+                        <div class="form-col">
+                            <label for="view-limit" class="form-label">表示件数</label>
+                            <select id="view-limit" name="view-limit" class="form-control">
+                                <option value="10">10件</option>
+                                <option value="25" selected>25件</option>
+                                <option value="50">50件</option>
+                                <option value="100">100件</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <button type="button" id="load-data-btn" class="btn btn-secondary">
+                                データ読み込み
+                            </button>
+                        </div>
+                    </div>
 
-                const data = await response.json();
+                    <!-- Data Table -->
+                    <div class="table-container">
+                        <table id="data-table" class="table table-striped" role="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">銘柄コード</th>
+                                    <th scope="col">日付</th>
+                                    <th scope="col">始値</th>
+                                    <th scope="col">高値</th>
+                                    <th scope="col">安値</th>
+                                    <th scope="col">終値</th>
+                                    <th scope="col">出来高</th>
+                                    <th scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body">
+                                <tr>
+                                    <td colspan="9" class="text-center loading-text">
+                                        「データ読み込み」ボタンをクリックしてデータを表示してください
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                if (data.success) {
-                    resultDiv.className = 'result success';
-                    resultDiv.innerHTML = `
-                        <h3>取得成功</h3>
-                        <p><strong>銘柄:</strong> ${data.data.symbol}</p>
-                        <p><strong>レコード数:</strong> ${data.data.records_count}</p>
-                        <p><strong>期間:</strong> ${data.data.date_range.start} ～ ${data.data.date_range.end}</p>
-                    `;
-                } else {
-                    resultDiv.className = 'result error';
-                    resultDiv.innerHTML = `
-                        <h3>エラー</h3>
-                        <p><strong>エラーコード:</strong> ${data.error}</p>
-                        <p><strong>メッセージ:</strong> ${data.message}</p>
-                    `;
-                }
-            } catch (error) {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `
-                    <h3>通信エラー</h3>
-                    <p>サーバーとの通信に失敗しました: ${error.message}</p>
-                `;
-            }
-        }
-    </script>
+                    <!-- Pagination -->
+                    <div id="pagination" class="d-flex justify-content-between align-items-center mt-3" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="pagination-text">表示中: 1-25 / 全 0 件</span>
+                        </div>
+                        <div class="pagination-controls gap-2">
+                            <button type="button" id="prev-page-btn" class="btn btn-secondary btn-sm" disabled>前へ</button>
+                            <button type="button" id="next-page-btn" class="btn btn-secondary btn-sm" disabled>次へ</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Connection Test Section -->
+            <section id="system-status" class="card">
+                <header class="card-header">
+                    <h2 class="card-title">システム状態</h2>
+                </header>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p>データベース接続テストを実行して、システムの動作状況を確認できます。</p>
+                        </div>
+                        <button type="button" id="test-connection-btn" class="btn btn-secondary">
+                            接続テスト実行
+                        </button>
+                    </div>
+                    <div id="connection-result" role="region" aria-live="polite"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-5" style="background-color: var(--light-gray); padding: 2rem 0; border-top: 1px solid var(--border-color);">
+        <div class="container text-center">
+            <p>&copy; 2024 株価データ管理システム. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
