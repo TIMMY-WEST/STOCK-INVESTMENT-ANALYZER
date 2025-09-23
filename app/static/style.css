@@ -43,6 +43,92 @@ body {
     --transition: all 0.2s ease-in-out;
 }
 
+/* Alert Styles for script.js */
+.alert {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+}
+
+.alert-success {
+    color: var(--success-color);
+    background-color: var(--success-bg);
+    border-color: var(--success-border);
+}
+
+.alert-error {
+    color: var(--error-color);
+    background-color: var(--error-bg);
+    border-color: var(--error-border);
+}
+
+.alert-info {
+    color: var(--info-color);
+    background-color: var(--info-bg);
+    border-color: var(--info-border);
+}
+
+.alert-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.alert-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.success-details {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.success-details > div {
+    margin-bottom: 0.25rem;
+}
+
+.form-control-error {
+    border-color: var(--error-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.field-error {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--error-color);
+}
+
+.loading-content,
+.error-content,
+.no-data-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
 /* Container and Layout */
 .container {
     max-width: 1200px;
