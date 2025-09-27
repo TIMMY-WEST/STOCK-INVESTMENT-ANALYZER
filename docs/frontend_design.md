@@ -1244,3 +1244,389 @@ function formatDate(dateString) {
 - **理解しやすいコード**: 後から改修・拡張が容易
 
 このアプローチにより、**確実に動作するUI**を素早く構築し、**ユーザーのフィードバックに基づいて進化**させることができます。
+
+---
+
+## v2.0.0 マイルストン3: UI/UX改善・バグ修正 仕様追加
+
+### 13. ページネーション機能修正
+
+#### 13.1 現在の問題点
+- **NaN表示の修正**: 「表示中: NaN-NaN / 全 2836 件」の表示エラー
+- **ボタン動作修正**: 「前へ」「次へ」ボタンが正常に機能していない
+- **状態管理改善**: ページネーション状態の正確な管理
+
+#### 13.2 修正後の仕様
+
+##### ページネーション状態管理
+```javascript
+// ページネーション状態オブジェクト
+const PaginationState = {
+  currentPage: 1,
+  itemsPerPage: 25,
+  totalItems: 0,
+  totalPages: 0,
+
+  // 状態計算
+  getStartIndex() {
+    return (this.currentPage - 1) * this.itemsPerPage + 1;
+  },
+
+  getEndIndex() {
+    const end = this.currentPage * this.itemsPerPage;
+    return Math.min(end, this.totalItems);
+  },
+
+  // 状態更新
+  update(totalItems, currentPage = 1) {
+    this.totalItems = totalItems;
+    this.totalPages = Math.ceil(totalItems / this.itemsPerPage);
+    this.currentPage = Math.max(1, Math.min(currentPage, this.totalPages));
+  }
+};
+```
+
+##### HTML修正
+```html
+<!-- ページネーション表示（修正版） -->
+<div id="pagination" class="pagination-container">
+  <div class="pagination-info">
+    <span id="pagination-text">表示中: <span id="start-index">1</span>-<span id="end-index">25</span> / 全 <span id="total-items">0</span> 件</span>
+  </div>
+  <div class="pagination-controls">
+    <button type="button" id="prev-page-btn" class="btn btn-secondary btn-sm">前へ</button>
+    <span id="page-info" class="page-info">ページ <span id="current-page">1</span> / <span id="total-pages">1</span></span>
+    <button type="button" id="next-page-btn" class="btn btn-secondary btn-sm">次へ</button>
+  </div>
+</div>
+```
+
+##### JavaScript修正
+```javascript
+// ページネーション更新関数
+function updatePagination(totalItems, currentPage = 1) {
+  PaginationState.update(totalItems, currentPage);
+
+  // 表示要素を更新
+  document.getElementById('start-index').textContent = PaginationState.getStartIndex();
+  document.getElementById('end-index').textContent = PaginationState.getEndIndex();
+  document.getElementById('total-items').textContent = PaginationState.totalItems;
+  document.getElementById('current-page').textContent = PaginationState.currentPage;
+  document.getElementById('total-pages').textContent = PaginationState.totalPages;
+
+  // ボタン状態更新
+  const prevBtn = document.getElementById('prev-page-btn');
+  const nextBtn = document.getElementById('next-page-btn');
+
+  prevBtn.disabled = PaginationState.currentPage <= 1;
+  nextBtn.disabled = PaginationState.currentPage >= PaginationState.totalPages;
+
+  // ページネーション表示/非表示
+  const paginationContainer = document.getElementById('pagination');
+  paginationContainer.style.display = PaginationState.totalItems > 0 ? 'flex' : 'none';
+}
+
+// ページ移動ハンドラー
+function handlePageNavigation(direction) {
+  let newPage = PaginationState.currentPage;
+
+  if (direction === 'prev' && newPage > 1) {
+    newPage--;
+  } else if (direction === 'next' && newPage < PaginationState.totalPages) {
+    newPage++;
+  }
+
+  if (newPage !== PaginationState.currentPage) {
+    loadStockData(null, newPage);
+  }
+}
+```
+
+### 14. システム状態表示機能実装
+
+#### 14.1 システム状態監視コンポーネント
+
+##### HTML構造
+```html
+<!-- システム状態表示セクション -->
+<section id="system-status" class="card system-status-section">
+  <header class="card-header">
+    <h2 class="card-title">システム状態</h2>
+    <button type="button" id="refresh-status-btn" class="btn btn-secondary btn-sm">更新</button>
+  </header>
+  <div class="card-body">
+    <!-- 接続テスト -->
+    <div class="status-item">
+      <div class="status-header">
+        <span class="status-label">データベース接続</span>
+        <span id="db-status" class="status-indicator status-unknown">確認中</span>
+      </div>
+      <button type="button" id="test-db-connection-btn" class="btn btn-secondary btn-sm">接続テスト実行</button>
+    </div>
+
+    <!-- Yahoo Finance API状態 -->
+    <div class="status-item">
+      <div class="status-header">
+        <span class="status-label">Yahoo Finance API</span>
+        <span id="api-status" class="status-indicator status-unknown">確認中</span>
+      </div>
+      <button type="button" id="test-api-connection-btn" class="btn btn-secondary btn-sm">API テスト実行</button>
+    </div>
+
+    <!-- システム稼働状況 -->
+    <div class="status-item">
+      <div class="status-header">
+        <span class="status-label">システム稼働状況</span>
+        <span id="system-status" class="status-indicator status-unknown">確認中</span>
+      </div>
+      <div id="system-info" class="system-info">
+        <small class="text-muted">最終確認: <span id="last-check-time">未確認</span></small>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+##### CSS追加
+```css
+/* システム状態表示 */
+.system-status-section .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.status-item:last-child {
+  border-bottom: none;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.status-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.status-indicator {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-indicator.status-healthy {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-indicator.status-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-indicator.status-unknown {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.system-info {
+  margin-top: 0.5rem;
+}
+```
+
+##### JavaScript実装
+```javascript
+// システム状態管理
+const SystemStatus = {
+  checkDatabaseConnection: async function() {
+    try {
+      const response = await fetch('/api/system/connection-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+
+      this.updateStatusIndicator('db-status', result.success ? 'healthy' : 'error');
+      return result;
+    } catch (error) {
+      this.updateStatusIndicator('db-status', 'error');
+      return { success: false, message: error.message };
+    }
+  },
+
+  checkApiConnection: async function() {
+    try {
+      const response = await fetch('/api/system/api-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: '7203.T' })
+      });
+      const result = await response.json();
+
+      this.updateStatusIndicator('api-status', result.success ? 'healthy' : 'error');
+      return result;
+    } catch (error) {
+      this.updateStatusIndicator('api-status', 'error');
+      return { success: false, message: error.message };
+    }
+  },
+
+  updateStatusIndicator: function(elementId, status) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    // クラスリセット
+    element.className = 'status-indicator';
+
+    // 新しいステータス設定
+    switch (status) {
+      case 'healthy':
+        element.classList.add('status-healthy');
+        element.textContent = '正常';
+        break;
+      case 'error':
+        element.classList.add('status-error');
+        element.textContent = 'エラー';
+        break;
+      default:
+        element.classList.add('status-unknown');
+        element.textContent = '確認中';
+    }
+  },
+
+  updateLastCheckTime: function() {
+    const element = document.getElementById('last-check-time');
+    if (element) {
+      element.textContent = new Date().toLocaleString('ja-JP');
+    }
+  },
+
+  runFullStatusCheck: async function() {
+    this.updateLastCheckTime();
+
+    const [dbResult, apiResult] = await Promise.all([
+      this.checkDatabaseConnection(),
+      this.checkApiConnection()
+    ]);
+
+    // システム全体のステータス判定
+    const systemHealthy = dbResult.success && apiResult.success;
+    this.updateStatusIndicator('system-status', systemHealthy ? 'healthy' : 'error');
+
+    return { database: dbResult, api: apiResult };
+  }
+};
+```
+
+### 15. データ表示機能改善
+
+#### 15.1 データ読み込み時の初期表示修正
+
+##### 改善内容
+- **ローディング状態の改善**: データ読み込み中の適切な表示
+- **初期表示の最適化**: ページ読み込み時の空白状態解消
+- **レスポンシブデザイン向上**: モバイル・タブレット対応強化
+
+##### HTML修正
+```html
+<!-- データ管理セクション（改善版） -->
+<section id="data-management" class="card">
+  <header class="card-header">
+    <h2 class="card-title">データ管理</h2>
+    <div class="data-actions">
+      <button type="button" id="refresh-data-btn" class="btn btn-secondary btn-sm">
+        <span class="btn-icon">🔄</span>
+        更新
+      </button>
+    </div>
+  </header>
+  <div class="card-body">
+    <!-- データ表示コントロール -->
+    <div class="data-controls">
+      <div class="control-group">
+        <label for="view-symbol" class="form-label">銘柄フィルタ</label>
+        <input type="text" id="view-symbol" class="form-control" placeholder="銘柄コードで絞り込み">
+      </div>
+      <div class="control-group">
+        <label for="view-limit" class="form-label">表示件数</label>
+        <select id="view-limit" class="form-control">
+          <option value="25" selected>25件</option>
+          <option value="50">50件</option>
+          <option value="100">100件</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <button type="button" id="load-data-btn" class="btn btn-primary">データ読み込み</button>
+      </div>
+    </div>
+
+    <!-- データ表示エリア -->
+    <div class="data-display-area">
+      <!-- ローディング表示 -->
+      <div id="data-loading" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">データを読み込み中...</span>
+      </div>
+
+      <!-- データテーブル -->
+      <div class="table-responsive">
+        <table id="data-table" class="table table-striped">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col" class="sortable" data-sort="symbol">銘柄コード <span class="sort-icon">↕️</span></th>
+              <th scope="col" class="sortable" data-sort="date">日付 <span class="sort-icon">↕️</span></th>
+              <th scope="col" class="sortable" data-sort="open">始値 <span class="sort-icon">↕️</span></th>
+              <th scope="col" class="sortable" data-sort="high">高値 <span class="sort-icon">↕️</span></th>
+              <th scope="col" class="sortable" data-sort="low">安値 <span class="sort-icon">↕️</span></th>
+              <th scope="col" class="sortable" data-sort="close">終値 <span class="sort-icon">↕️</span></th>
+              <th scope="col" class="sortable" data-sort="volume">出来高 <span class="sort-icon">↕️</span></th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody id="data-table-body">
+            <tr class="no-data-row">
+              <td colspan="9" class="text-center">
+                <div class="no-data-message">
+                  <span class="no-data-icon">📊</span>
+                  <p>「データ読み込み」ボタンをクリックしてデータを表示してください</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+### 16. 実装チェックリスト
+
+#### 16.1 マイルストン3完了条件
+
+- [ ] **ページネーション修正**
+  - [ ] NaN表示の修正完了
+  - [ ] 「前へ」「次へ」ボタンの正常動作
+  - [ ] ページ状態の正確な管理
+
+- [ ] **システム状態表示**
+  - [ ] 「接続テスト実行」ボタンの実装
+  - [ ] データベース接続状態表示
+  - [ ] Yahoo Finance API接続状態表示
+  - [ ] システム稼働状況の可視化
+
+- [ ] **データ表示機能改善**
+  - [ ] データ読み込み時の初期表示修正
+  - [ ] テーブル表示の最適化
+  - [ ] レスポンシブデザインの向上

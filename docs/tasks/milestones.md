@@ -24,6 +24,12 @@ MVP（v1.0.0）の完成を受けて、より実用的で拡張性の高い株�
   - [ ] 既存の`stocks_daily`テーブルを`stocks_1d`として維持
   - [ ] 各足専用テーブルの作成・インデックス最適化
   - [ ] テーブル間での統一された構造設計
+  - [ ] **データベース初期化スクリプト修正**（scriptsディレクトリ）
+    - [ ] `create_tables.sql`を8テーブル対応に更新
+    - [ ] `insert_sample_data.sql`を複数時間軸対応に更新
+    - [ ] `setup_db.bat`/`setup_db.sh`を新テーブル対応に更新
+    - [ ] 既存データマイグレーション用スクリプト追加
+    - [ ] README.mdを新しいテーブル構成で更新
 
 ### ✅ 完了条件
 - [ ] 全期間（max含む）でのデータ取得が正常に動作する
@@ -32,8 +38,9 @@ MVP（v1.0.0）の完成を受けて、より実用的で拡張性の高い株�
 - [ ] パフォーマンスが著しく劣化していない
 
 ### 📚 参考仕様書
-- [`database_design.md`](./database_design.md) - データベース設計（v2.0時間軸対応追記）
-- [`api_specification.md`](./api_specification.md) - API仕様（v2.0拡張機能追記）
+- [`database_design.md`](../database_design.md) - データベース設計（v2.0時間軸対応追記）
+- [`api_specification.md`](../api_specification.md) - API仕様（v2.0拡張機能追記）
+- [`scripts/README.md`](../../scripts/README.md) - データベース初期化スクリプト（修正必要）
 
 ---
 
