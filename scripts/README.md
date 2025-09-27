@@ -104,13 +104,27 @@ SELECT * FROM stocks_daily LIMIT 5;
 
 ### テーブル構成
 
-#### stocks_daily テーブル（日足データ）
+#### 8つの時間軸別テーブル
+
+| テーブル名    | 時間軸 | 時間カラム | 説明                     |
+| ------------- | ------ | ---------- | ------------------------ |
+| `stocks_1d`   | 日足   | `date`     | 日次株価データ           |
+| `stocks_1m`   | 1分足  | `datetime` | 1分間隔の株価データ      |
+| `stocks_5m`   | 5分足  | `datetime` | 5分間隔の株価データ      |
+| `stocks_15m`  | 15分足 | `datetime` | 15分間隔の株価データ     |
+| `stocks_30m`  | 30分足 | `datetime` | 30分間隔の株価データ     |
+| `stocks_1h`   | 1時間足| `datetime` | 1時間間隔の株価データ    |
+| `stocks_1wk`  | 週足   | `date`     | 週次株価データ           |
+| `stocks_1mo`  | 月足   | `date`     | 月次株価データ           |
+
+#### 共通カラム構成
 
 | カラム名     | データ型                 | 説明                     |
 | ------------ | ------------------------ | ------------------------ |
 | `id`         | SERIAL PRIMARY KEY       | レコードID（自動採番）   |
 | `symbol`     | VARCHAR(20) NOT NULL     | 銘柄コード（例：7203.T） |
-| `date`       | DATE NOT NULL            | 取引日                   |
+| `date`       | DATE NOT NULL            | 取引日（日足・週足・月足）|
+| `datetime`   | TIMESTAMP NOT NULL       | 取引日時（分足・時間足） |
 | `open`       | DECIMAL(10,2) NOT NULL   | 始値                     |
 | `high`       | DECIMAL(10,2) NOT NULL   | 高値                     |
 | `low`        | DECIMAL(10,2) NOT NULL   | 安値                     |
@@ -121,14 +135,19 @@ SELECT * FROM stocks_daily LIMIT 5;
 
 ### インデックス
 
-- `idx_stocks_daily_symbol`: 銘柄コード検索用
-- `idx_stocks_daily_date`: 日付検索用
-- `idx_stocks_daily_symbol_date_desc`: 銘柄別最新データ取得用
-- `idx_stocks_daily_date_desc`: 日付降順検索用
+各テーブルに以下のインデックスが作成されます：
+
+- **主キーインデックス**: `id`（自動作成）
+- **ユニーク制約インデックス**: `(symbol, date/datetime)`（自動作成）
+- **銘柄検索用**: `idx_{table_name}_symbol`
+- **時間検索用**: `idx_{table_name}_date` または `idx_{table_name}_datetime`
+- **複合検索用**: `idx_{table_name}_symbol_date_desc` または `idx_{table_name}_symbol_datetime_desc`
 
 ### 制約
 
-- **ユニーク制約**: `(symbol, date)` - 同一銘柄の同一日付データ重複防止
+- **ユニーク制約**: 
+  - 日足・週足・月足: `(symbol, date)` - 同一銘柄の同一日付データ重複防止
+  - 分足・時間足: `(symbol, datetime)` - 同一銘柄の同一日時データ重複防止
 - **チェック制約**: 価格・出来高の負数チェック、価格論理チェック
 
 ## 📊 サンプルデータ
