@@ -396,7 +396,7 @@ const StockFetchManager = {
         }
 
         // Validate period
-        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y'];
+        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
         if (!validPeriods.includes(period)) {
             errors.push({
                 field: 'period',
@@ -594,30 +594,33 @@ const StockDataManager = {
             }
 
             const filters = {
-                symbol: symbolFilter || undefined,
-                limit: limit,
-                offset: AppState.currentPage * limit
+                page: AppState.currentPage,
+                limit: limit
             };
+
+            if (symbolFilter) {
+                filters.symbol = symbolFilter;
+                AppState.currentSymbol = symbolFilter;
+            }
 
             const response = await ApiService.getStocks(filters);
 
             if (response.success) {
-                AppState.currentSymbol = symbolFilter;
-                AppState.currentLimit = limit;
-                AppState.totalRecords = response.pagination.total;
+                const { data, pagination } = response;
+                AppState.totalRecords = pagination.total;
 
-                StockDataManager.renderTable(response.data);
+                StockDataManager.renderTable(data);
                 UIComponents.updatePagination(
-                    AppState.currentPage,
-                    response.pagination.total,
-                    response.pagination.limit,
-                    response.pagination.has_next
+                    pagination.page,
+                    pagination.total,
+                    pagination.limit,
+                    pagination.has_next
                 );
             } else {
                 if (tableBody) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="9" class="text-center error">
+                            <td colspan="9" class="text-center text-danger">
                                 データの読み込みに失敗しました: ${Utils.escapeHtml(response.message)}
                             </td>
                         </tr>
@@ -629,7 +632,7 @@ const StockDataManager = {
             if (tableBody) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="text-center error">
+                        <td colspan="9" class="text-center text-danger">
                             エラーが発生しました: ${Utils.escapeHtml(error.message)}
                         </td>
                     </tr>
@@ -647,7 +650,7 @@ const StockDataManager = {
         if (stocks.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="text-center loading-text">
+                    <td colspan="9" class="text-center text-muted">
                         データが見つかりませんでした
                     </td>
                 </tr>
@@ -655,16 +658,11 @@ const StockDataManager = {
             return;
         }
 
-        tableBody.innerHTML = stocks.map(stock =>
-            UIComponents.createStockTableRow(stock)
-        ).join('');
+        tableBody.innerHTML = stocks.map(stock => UIComponents.createStockTableRow(stock)).join('');
     },
 
     changePage: (direction) => {
-        const newPage = AppState.currentPage + direction;
-        if (newPage < 0) return;
-
-        AppState.currentPage = newPage;
+        AppState.currentPage = Math.max(0, AppState.currentPage + direction);
         StockDataManager.loadData();
     },
 
@@ -683,21 +681,24 @@ const StockDataManager = {
                     row.remove();
                 }
 
+                // Show success message
                 UIComponents.showResult(
                     'result-container',
                     'success',
                     '削除完了',
-                    response.message
+                    'データが正常に削除されました'
                 );
 
                 // Reload data to update pagination
-                StockDataManager.loadData();
+                setTimeout(() => {
+                    StockDataManager.loadData();
+                }, 1000);
             } else {
                 UIComponents.showResult(
                     'result-container',
                     'error',
                     '削除エラー',
-                    response.message
+                    `削除に失敗しました: ${response.message}`
                 );
             }
         } catch (error) {
@@ -705,7 +706,7 @@ const StockDataManager = {
                 'result-container',
                 'error',
                 '削除エラー',
-                `削除に失敗しました: ${error.message}`
+                `削除処理中にエラーが発生しました: ${error.message}`
             );
         }
     }
@@ -715,6 +716,7 @@ const StockDataManager = {
 const SystemStatusManager = {
     init: () => {
         const testBtn = document.getElementById('test-connection-btn');
+
         if (testBtn) {
             testBtn.addEventListener('click', SystemStatusManager.testConnection);
         }
@@ -722,82 +724,111 @@ const SystemStatusManager = {
 
     testConnection: async () => {
         const btn = document.getElementById('test-connection-btn');
-        const resultContainer = document.getElementById('connection-result');
+        const statusContainer = document.getElementById('connection-status');
 
-        if (!btn || !resultContainer) return;
+        if (!btn || !statusContainer) return;
 
         try {
             btn.disabled = true;
-            btn.textContent = 'テスト実行中...';
-            resultContainer.innerHTML = '';
+            btn.textContent = 'テスト中...';
 
             const response = await ApiService.testConnection();
 
             if (response.success) {
-                const alert = UIComponents.createAlert(
-                    'success',
-                    '接続成功',
-                    `${response.message} (データベース: ${response.database}, ユーザー: ${response.user})`
-                );
-                resultContainer.appendChild(alert);
+                statusContainer.innerHTML = `
+                    <div class="alert alert-success">
+                        <div class="alert-title">✅ 接続成功</div>
+                        <div>データベースへの接続が正常に確立されました</div>
+                        <div class="mt-2">
+                            <small>
+                                <strong>データベース:</strong> ${Utils.escapeHtml(response.database_info.name)}<br>
+                                <strong>テーブル数:</strong> ${response.database_info.tables}<br>
+                                <strong>レコード数:</strong> ${Utils.formatNumber(response.database_info.total_records)}
+                            </small>
+                        </div>
+                    </div>
+                `;
             } else {
-                const alert = UIComponents.createAlert(
-                    'error',
-                    '接続失敗',
-                    response.message
-                );
-                resultContainer.appendChild(alert);
+                statusContainer.innerHTML = `
+                    <div class="alert alert-error">
+                        <div class="alert-title">❌ 接続失敗</div>
+                        <div>${Utils.escapeHtml(response.message)}</div>
+                    </div>
+                `;
             }
         } catch (error) {
-            const alert = UIComponents.createAlert(
-                'error',
-                '接続エラー',
-                `接続テストに失敗しました: ${error.message}`
-            );
-            resultContainer.appendChild(alert);
+            statusContainer.innerHTML = `
+                <div class="alert alert-error">
+                    <div class="alert-title">❌ 接続エラー</div>
+                    <div>サーバーとの通信に失敗しました: ${Utils.escapeHtml(error.message)}</div>
+                </div>
+            `;
         } finally {
             btn.disabled = false;
-            btn.textContent = '接続テスト実行';
+            btn.textContent = '接続テスト';
         }
     }
 };
 
-// Accessibility enhancements
+// Accessibility Manager
 const AccessibilityManager = {
     init: () => {
-        // Add keyboard navigation for buttons
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && event.target.classList.contains('btn')) {
-                event.target.click();
-            }
-        });
+        // Add keyboard navigation support
+        document.addEventListener('keydown', AccessibilityManager.handleKeydown);
 
-        // Improve focus management
-        document.addEventListener('focusin', (event) => {
-            if (event.target.classList.contains('form-control')) {
-                event.target.setAttribute('aria-expanded', 'false');
-            }
-        });
+        // Add focus management for modals and alerts
+        AccessibilityManager.setupFocusManagement();
 
-        // Add skip links functionality
-        const skipLink = document.querySelector('.skip-link');
-        if (skipLink) {
-            skipLink.addEventListener('click', (event) => {
-                event.preventDefault();
-                const target = document.querySelector(skipLink.getAttribute('href'));
-                if (target) {
-                    target.focus();
-                    target.scrollIntoView();
+        // Add ARIA live regions for dynamic content
+        AccessibilityManager.setupLiveRegions();
+    },
+
+    handleKeydown: (event) => {
+        // ESC key to close alerts
+        if (event.key === 'Escape') {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.style.display !== 'none') {
+                    alert.remove();
                 }
             });
         }
+    },
+
+    setupFocusManagement: () => {
+        // Ensure proper focus management for dynamic content
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('alert')) {
+                            // Focus on new alerts for screen readers
+                            node.setAttribute('tabindex', '-1');
+                            node.focus();
+                        }
+                    });
+                }
+            });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+    },
+
+    setupLiveRegions: () => {
+        // Create ARIA live region for status updates
+        const liveRegion = document.createElement('div');
+        liveRegion.setAttribute('aria-live', 'polite');
+        liveRegion.setAttribute('aria-atomic', 'true');
+        liveRegion.className = 'sr-only';
+        liveRegion.id = 'live-region';
+        document.body.appendChild(liveRegion);
     }
 };
 
-// Application initialization
+// Main App Initialization
 const App = {
     init: () => {
-        // Wait for DOM to be ready
+        // Wait for DOM to be fully loaded
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', App.initializeApp);
         } else {
@@ -806,17 +837,13 @@ const App = {
     },
 
     initializeApp: () => {
-        try {
-            // Initialize all managers
-            StockFetchManager.init();
-            StockDataManager.init();
-            SystemStatusManager.init();
-            AccessibilityManager.init();
+        // Initialize all managers
+        StockFetchManager.init();
+        StockDataManager.init();
+        SystemStatusManager.init();
+        AccessibilityManager.init();
 
-            console.log('Stock Data Management System initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize application:', error);
-        }
+        console.log('Stock Investment Analyzer - Application initialized successfully');
     }
 };
 
@@ -833,7 +860,7 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
 });
 
-// Export for potential testing or external access
+// Export for testing (if in Node.js environment)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         AppState,
