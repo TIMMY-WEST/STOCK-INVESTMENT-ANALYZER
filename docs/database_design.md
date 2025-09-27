@@ -73,14 +73,14 @@
 
 ## テーブル設計
 
-### 1. stocks_daily テーブル（日足データ）
+### 1. stocks_1d テーブル（日足データ）
 
-日足株価データを格納するメインテーブルです。
+日足株価データを格納するメインテーブルです。（旧stocks_dailyテーブルを統一命名規則でstocks_1dに変更）
 
 #### テーブル定義
 
 ```sql
-CREATE TABLE stocks_daily (
+CREATE TABLE stocks_1d (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(20) NOT NULL,
     date DATE NOT NULL,
@@ -94,7 +94,132 @@ CREATE TABLE stocks_daily (
 );
 ```
 
-#### カラム定義
+### 2. stocks_1m テーブル（1分足データ）
+
+1分足株価データを格納するテーブルです。
+
+#### テーブル定義
+
+```sql
+CREATE TABLE stocks_1m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 3. stocks_5m テーブル（5分足データ）
+
+```sql
+CREATE TABLE stocks_5m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 4. stocks_15m テーブル（15分足データ）
+
+```sql
+CREATE TABLE stocks_15m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 5. stocks_30m テーブル（30分足データ）
+
+```sql
+CREATE TABLE stocks_30m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 6. stocks_1h テーブル（1時間足データ）
+
+```sql
+CREATE TABLE stocks_1h (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 7. stocks_1wk テーブル（1週間足データ）
+
+```sql
+CREATE TABLE stocks_1wk (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    date DATE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 8. stocks_1mo テーブル（1ヶ月足データ）
+
+```sql
+CREATE TABLE stocks_1mo (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    date DATE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 共通カラム定義
+
+**日足・週足・月足テーブル共通**
 
 | カラム名     | データ型                 | NULL     | デフォルト        | 説明                     |
 | ------------ | ------------------------ | -------- | ----------------- | ------------------------ |
@@ -109,85 +234,218 @@ CREATE TABLE stocks_daily (
 | `created_at` | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時         |
 | `updated_at` | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時         |
 
-#### 制約
+**分足・時間足テーブル共通**
 
-##### 主キー制約
+| カラム名     | データ型                 | NULL     | デフォルト        | 説明                     |
+| ------------ | ------------------------ | -------- | ----------------- | ------------------------ |
+| `id`         | SERIAL                   | NOT NULL | AUTO_INCREMENT    | 主キー、自動採番         |
+| `symbol`     | VARCHAR(20)              | NOT NULL | -                 | 銘柄コード（例：7203.T） |
+| `datetime`   | TIMESTAMP WITH TIME ZONE | NOT NULL | -                 | 取引日時（精密な時刻）   |
+| `open`       | DECIMAL(10,2)            | NOT NULL | -                 | 始値                     |
+| `high`       | DECIMAL(10,2)            | NOT NULL | -                 | 高値                     |
+| `low`        | DECIMAL(10,2)            | NOT NULL | -                 | 安値                     |
+| `close`      | DECIMAL(10,2)            | NOT NULL | -                 | 終値                     |
+| `volume`     | BIGINT                   | NOT NULL | -                 | 出来高                   |
+| `created_at` | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時         |
+| `updated_at` | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時         |
+
+#### 制約設計
+
+##### 主キー制約（全テーブル共通）
 ```sql
-CONSTRAINT pk_stocks_daily PRIMARY KEY (id)
+CONSTRAINT pk_stocks_{interval} PRIMARY KEY (id)
 ```
 
 ##### ユニーク制約
-```sql
-CONSTRAINT uk_stocks_daily_symbol_date UNIQUE (symbol, date)
-```
-- 同一銘柄の同一日付のデータの重複を防ぐ
 
-##### チェック制約
+**日足・週足・月足テーブル**
 ```sql
-CONSTRAINT ck_stocks_daily_prices CHECK (
+CONSTRAINT uk_stocks_{interval}_symbol_date UNIQUE (symbol, date)
+```
+
+**分足・時間足テーブル**
+```sql
+CONSTRAINT uk_stocks_{interval}_symbol_datetime UNIQUE (symbol, datetime)
+```
+
+##### チェック制約（全テーブル共通）
+```sql
+CONSTRAINT ck_stocks_{interval}_prices CHECK (
     open >= 0 AND high >= 0 AND low >= 0 AND close >= 0
 ),
-CONSTRAINT ck_stocks_daily_volume CHECK (volume >= 0),
-CONSTRAINT ck_stocks_daily_price_logic CHECK (
-    high >= low AND 
-    high >= open AND 
-    high >= close AND 
-    low <= open AND 
+CONSTRAINT ck_stocks_{interval}_volume CHECK (volume >= 0),
+CONSTRAINT ck_stocks_{interval}_price_logic CHECK (
+    high >= low AND
+    high >= open AND
+    high >= close AND
+    low <= open AND
     low <= close
+)
+```
+
+**制約例：stocks_1d テーブル**
+```sql
+-- 主キー制約
+CONSTRAINT pk_stocks_1d PRIMARY KEY (id),
+-- ユニーク制約
+CONSTRAINT uk_stocks_1d_symbol_date UNIQUE (symbol, date),
+-- チェック制約
+CONSTRAINT ck_stocks_1d_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+CONSTRAINT ck_stocks_1d_volume CHECK (volume >= 0),
+CONSTRAINT ck_stocks_1d_price_logic CHECK (
+    high >= low AND high >= open AND high >= close AND low <= open AND low <= close
 )
 ```
 
 ## インデックス設計
 
+### 基本設計方針
+
+各時間軸テーブルで統一されたインデックス命名規則を採用します。
+
 ### 1. 主キーインデックス（自動作成）
 ```sql
--- 自動作成されるため明示的な作成不要
--- CREATE UNIQUE INDEX idx_stocks_daily_pk ON stocks_daily (id);
+-- 全テーブル共通：自動作成されるため明示的な作成不要
+-- CREATE UNIQUE INDEX idx_stocks_{interval}_pk ON stocks_{interval} (id);
 ```
 
 ### 2. ユニーク制約インデックス（自動作成）
 ```sql
--- ユニーク制約により自動作成されるため明示的な作成不要
--- CREATE UNIQUE INDEX idx_stocks_daily_symbol_date ON stocks_daily (symbol, date);
+-- 日足・週足・月足：自動作成
+-- CREATE UNIQUE INDEX idx_stocks_{interval}_symbol_date ON stocks_{interval} (symbol, date);
+
+-- 分足・時間足：自動作成
+-- CREATE UNIQUE INDEX idx_stocks_{interval}_symbol_datetime ON stocks_{interval} (symbol, datetime);
 ```
 
-### 3. 検索用インデックス
+### 3. 検索用インデックス設計
 
-#### 銘柄コード検索インデックス
+#### 銘柄コード検索インデックス（全テーブル共通）
 ```sql
-CREATE INDEX idx_stocks_daily_symbol ON stocks_daily (symbol);
+CREATE INDEX idx_stocks_{interval}_symbol ON stocks_{interval} (symbol);
 ```
-- **用途**: 特定銘柄のデータ検索
-- **対象クエリ**: `SELECT * FROM stocks_daily WHERE symbol = '7203.T'`
 
-#### 日付検索インデックス
-```sql
-CREATE INDEX idx_stocks_daily_date ON stocks_daily (date);
-```
-- **用途**: 特定日付・期間のデータ検索
-- **対象クエリ**: `SELECT * FROM stocks_daily WHERE date >= '2024-01-01'`
+#### 時間検索インデックス
 
-#### 複合インデックス（銘柄+日付降順）
+**日足・週足・月足テーブル**
 ```sql
-CREATE INDEX idx_stocks_daily_symbol_date_desc ON stocks_daily (symbol, date DESC);
+CREATE INDEX idx_stocks_{interval}_date ON stocks_{interval} (date);
 ```
-- **用途**: 銘柄別の最新データ取得
-- **対象クエリ**: `SELECT * FROM stocks_daily WHERE symbol = '7203.T' ORDER BY date DESC LIMIT 30`
+
+**分足・時間足テーブル**
+```sql
+CREATE INDEX idx_stocks_{interval}_datetime ON stocks_{interval} (datetime);
+```
+
+#### 複合インデックス（パフォーマンス最適化）
+
+**日足・週足・月足テーブル**
+```sql
+CREATE INDEX idx_stocks_{interval}_symbol_date_desc ON stocks_{interval} (symbol, date DESC);
+```
+
+**分足・時間足テーブル**
+```sql
+CREATE INDEX idx_stocks_{interval}_symbol_datetime_desc ON stocks_{interval} (symbol, datetime DESC);
+```
+
+### 4. 各テーブルのインデックス例
+
+#### stocks_1d テーブル
+```sql
+CREATE INDEX idx_stocks_1d_symbol ON stocks_1d (symbol);
+CREATE INDEX idx_stocks_1d_date ON stocks_1d (date);
+CREATE INDEX idx_stocks_1d_symbol_date_desc ON stocks_1d (symbol, date DESC);
+```
+
+#### stocks_1m テーブル
+```sql
+CREATE INDEX idx_stocks_1m_symbol ON stocks_1m (symbol);
+CREATE INDEX idx_stocks_1m_datetime ON stocks_1m (datetime);
+CREATE INDEX idx_stocks_1m_symbol_datetime_desc ON stocks_1m (symbol, datetime DESC);
+```
+
+#### stocks_5m テーブル
+```sql
+CREATE INDEX idx_stocks_5m_symbol ON stocks_5m (symbol);
+CREATE INDEX idx_stocks_5m_datetime ON stocks_5m (datetime);
+CREATE INDEX idx_stocks_5m_symbol_datetime_desc ON stocks_5m (symbol, datetime DESC);
+```
+
+#### stocks_15m テーブル
+```sql
+CREATE INDEX idx_stocks_15m_symbol ON stocks_15m (symbol);
+CREATE INDEX idx_stocks_15m_datetime ON stocks_15m (datetime);
+CREATE INDEX idx_stocks_15m_symbol_datetime_desc ON stocks_15m (symbol, datetime DESC);
+```
+
+#### stocks_30m テーブル
+```sql
+CREATE INDEX idx_stocks_30m_symbol ON stocks_30m (symbol);
+CREATE INDEX idx_stocks_30m_datetime ON stocks_30m (datetime);
+CREATE INDEX idx_stocks_30m_symbol_datetime_desc ON stocks_30m (symbol, datetime DESC);
+```
+
+#### stocks_1h テーブル
+```sql
+CREATE INDEX idx_stocks_1h_symbol ON stocks_1h (symbol);
+CREATE INDEX idx_stocks_1h_datetime ON stocks_1h (datetime);
+CREATE INDEX idx_stocks_1h_symbol_datetime_desc ON stocks_1h (symbol, datetime DESC);
+```
+
+#### stocks_1wk テーブル
+```sql
+CREATE INDEX idx_stocks_1wk_symbol ON stocks_1wk (symbol);
+CREATE INDEX idx_stocks_1wk_date ON stocks_1wk (date);
+CREATE INDEX idx_stocks_1wk_symbol_date_desc ON stocks_1wk (symbol, date DESC);
+```
+
+#### stocks_1mo テーブル
+```sql
+CREATE INDEX idx_stocks_1mo_symbol ON stocks_1mo (symbol);
+CREATE INDEX idx_stocks_1mo_date ON stocks_1mo (date);
+CREATE INDEX idx_stocks_1mo_symbol_date_desc ON stocks_1mo (symbol, date DESC);
+```
+
+### 5. インデックス利用想定クエリ
+
+#### 特定銘柄のデータ検索
+```sql
+SELECT * FROM stocks_1d WHERE symbol = '7203.T';
+```
+
+#### 期間指定でのデータ検索
+```sql
+SELECT * FROM stocks_1d WHERE date >= '2024-01-01' AND date <= '2024-12-31';
+```
+
+#### 銘柄別最新データ取得
+```sql
+SELECT * FROM stocks_1d WHERE symbol = '7203.T' ORDER BY date DESC LIMIT 30;
+```
+
+#### 分足データでの時間範囲検索
+```sql
+SELECT * FROM stocks_1m WHERE symbol = '7203.T'
+AND datetime >= '2024-01-01 09:00:00+09:00'
+AND datetime <= '2024-01-01 15:00:00+09:00';
+```
 
 ## SQLAlchemy モデル定義
 
 ### Python実装例
 
 ```python
-from sqlalchemy import Column, Integer, String, Date, Numeric, BigInteger, DateTime, UniqueConstraint, CheckConstraint, Index
+from sqlalchemy import Column, Integer, String, Date, DateTime, Numeric, BigInteger, UniqueConstraint, CheckConstraint, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 
 Base = declarative_base()
 
-class StockDaily(Base):
-    __tablename__ = 'stocks_daily'
-    
+# 日足データモデル
+class Stock1d(Base):
+    __tablename__ = 'stocks_1d'
+
     # カラム定義
     id = Column(Integer, primary_key=True, autoincrement=True)
     symbol = Column(String(20), nullable=False)
@@ -199,25 +457,216 @@ class StockDaily(Base):
     volume = Column(BigInteger, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
+
     # 制約定義
     __table_args__ = (
-        # ユニーク制約
-        UniqueConstraint('symbol', 'date', name='uk_stocks_daily_symbol_date'),
-        
-        # チェック制約
-        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_daily_prices'),
-        CheckConstraint('volume >= 0', name='ck_stocks_daily_volume'),
-        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_daily_price_logic'),
-        
-        # インデックス
-        Index('idx_stocks_daily_symbol', 'symbol'),
-        Index('idx_stocks_daily_date', 'date'),
-        Index('idx_stocks_daily_symbol_date_desc', 'symbol', 'date', postgresql_desc=True),
+        UniqueConstraint('symbol', 'date', name='uk_stocks_1d_symbol_date'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1d_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1d_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1d_price_logic'),
+        Index('idx_stocks_1d_symbol', 'symbol'),
+        Index('idx_stocks_1d_date', 'date'),
+        Index('idx_stocks_1d_symbol_date_desc', 'symbol', 'date', postgresql_desc=True),
     )
-    
+
     def __repr__(self):
-        return f"<StockDaily(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+        return f"<Stock1d(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+
+# 1分足データモデル
+class Stock1m(Base):
+    __tablename__ = 'stocks_1m'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False)
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    open = Column(Numeric(10, 2), nullable=False)
+    high = Column(Numeric(10, 2), nullable=False)
+    low = Column(Numeric(10, 2), nullable=False)
+    close = Column(Numeric(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_1m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1m_price_logic'),
+        Index('idx_stocks_1m_symbol', 'symbol'),
+        Index('idx_stocks_1m_datetime', 'datetime'),
+        Index('idx_stocks_1m_symbol_datetime_desc', 'symbol', 'datetime', postgresql_desc=True),
+    )
+
+    def __repr__(self):
+        return f"<Stock1m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 5分足データモデル
+class Stock5m(Base):
+    __tablename__ = 'stocks_5m'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False)
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    open = Column(Numeric(10, 2), nullable=False)
+    high = Column(Numeric(10, 2), nullable=False)
+    low = Column(Numeric(10, 2), nullable=False)
+    close = Column(Numeric(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_5m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_5m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_5m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_5m_price_logic'),
+        Index('idx_stocks_5m_symbol', 'symbol'),
+        Index('idx_stocks_5m_datetime', 'datetime'),
+        Index('idx_stocks_5m_symbol_datetime_desc', 'symbol', 'datetime', postgresql_desc=True),
+    )
+
+    def __repr__(self):
+        return f"<Stock5m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 15分足データモデル
+class Stock15m(Base):
+    __tablename__ = 'stocks_15m'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False)
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    open = Column(Numeric(10, 2), nullable=False)
+    high = Column(Numeric(10, 2), nullable=False)
+    low = Column(Numeric(10, 2), nullable=False)
+    close = Column(Numeric(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_15m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_15m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_15m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_15m_price_logic'),
+        Index('idx_stocks_15m_symbol', 'symbol'),
+        Index('idx_stocks_15m_datetime', 'datetime'),
+        Index('idx_stocks_15m_symbol_datetime_desc', 'symbol', 'datetime', postgresql_desc=True),
+    )
+
+    def __repr__(self):
+        return f"<Stock15m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 30分足データモデル
+class Stock30m(Base):
+    __tablename__ = 'stocks_30m'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False)
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    open = Column(Numeric(10, 2), nullable=False)
+    high = Column(Numeric(10, 2), nullable=False)
+    low = Column(Numeric(10, 2), nullable=False)
+    close = Column(Numeric(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_30m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_30m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_30m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_30m_price_logic'),
+        Index('idx_stocks_30m_symbol', 'symbol'),
+        Index('idx_stocks_30m_datetime', 'datetime'),
+        Index('idx_stocks_30m_symbol_datetime_desc', 'symbol', 'datetime', postgresql_desc=True),
+    )
+
+    def __repr__(self):
+        return f"<Stock30m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 1時間足データモデル
+class Stock1h(Base):
+    __tablename__ = 'stocks_1h'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False)
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    open = Column(Numeric(10, 2), nullable=False)
+    high = Column(Numeric(10, 2), nullable=False)
+    low = Column(Numeric(10, 2), nullable=False)
+    close = Column(Numeric(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_1h_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1h_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1h_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1h_price_logic'),
+        Index('idx_stocks_1h_symbol', 'symbol'),
+        Index('idx_stocks_1h_datetime', 'datetime'),
+        Index('idx_stocks_1h_symbol_datetime_desc', 'symbol', 'datetime', postgresql_desc=True),
+    )
+
+    def __repr__(self):
+        return f"<Stock1h(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 週足データモデル
+class Stock1wk(Base):
+    __tablename__ = 'stocks_1wk'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False)
+    date = Column(Date, nullable=False)
+    open = Column(Numeric(10, 2), nullable=False)
+    high = Column(Numeric(10, 2), nullable=False)
+    low = Column(Numeric(10, 2), nullable=False)
+    close = Column(Numeric(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'date', name='uk_stocks_1wk_symbol_date'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1wk_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1wk_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1wk_price_logic'),
+        Index('idx_stocks_1wk_symbol', 'symbol'),
+        Index('idx_stocks_1wk_date', 'date'),
+        Index('idx_stocks_1wk_symbol_date_desc', 'symbol', 'date', postgresql_desc=True),
+    )
+
+    def __repr__(self):
+        return f"<Stock1wk(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+
+# 月足データモデル
+class Stock1mo(Base):
+    __tablename__ = 'stocks_1mo'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), nullable=False)
+    date = Column(Date, nullable=False)
+    open = Column(Numeric(10, 2), nullable=False)
+    high = Column(Numeric(10, 2), nullable=False)
+    low = Column(Numeric(10, 2), nullable=False)
+    close = Column(Numeric(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'date', name='uk_stocks_1mo_symbol_date'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1mo_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1mo_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1mo_price_logic'),
+        Index('idx_stocks_1mo_symbol', 'symbol'),
+        Index('idx_stocks_1mo_date', 'date'),
+        Index('idx_stocks_1mo_symbol_date_desc', 'symbol', 'date', postgresql_desc=True),
+    )
+
+    def __repr__(self):
+        return f"<Stock1mo(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
 ```
 
 ## データベース初期化
@@ -233,11 +682,13 @@ CREATE USER stock_user WITH PASSWORD 'stock_password';
 GRANT ALL PRIVILEGES ON DATABASE stock_data_system TO stock_user;
 ```
 
-### 2. テーブル作成
+### 2. 全テーブル作成スクリプト
 
 ```sql
--- stocks_daily テーブル作成（日足データ）
-CREATE TABLE stocks_daily (
+-- ====================================
+-- 日足データテーブル (stocks_1d)
+-- ====================================
+CREATE TABLE stocks_1d (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(20) NOT NULL,
     date DATE NOT NULL,
@@ -248,24 +699,223 @@ CREATE TABLE stocks_daily (
     volume BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- 制約
-    CONSTRAINT uk_stocks_daily_symbol_date UNIQUE (symbol, date),
-    CONSTRAINT ck_stocks_daily_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
-    CONSTRAINT ck_stocks_daily_volume CHECK (volume >= 0),
-    CONSTRAINT ck_stocks_daily_price_logic CHECK (
-        high >= low AND 
-        high >= open AND 
-        high >= close AND 
-        low <= open AND 
-        low <= close
+    CONSTRAINT uk_stocks_1d_symbol_date UNIQUE (symbol, date),
+    CONSTRAINT ck_stocks_1d_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_1d_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_1d_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
     )
 );
 
 -- インデックス作成
-CREATE INDEX idx_stocks_daily_symbol ON stocks_daily (symbol);
-CREATE INDEX idx_stocks_daily_date ON stocks_daily (date);
-CREATE INDEX idx_stocks_daily_symbol_date_desc ON stocks_daily (symbol, date DESC);
+CREATE INDEX idx_stocks_1d_symbol ON stocks_1d (symbol);
+CREATE INDEX idx_stocks_1d_date ON stocks_1d (date);
+CREATE INDEX idx_stocks_1d_symbol_date_desc ON stocks_1d (symbol, date DESC);
+
+-- ====================================
+-- 1分足データテーブル (stocks_1m)
+-- ====================================
+CREATE TABLE stocks_1m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_stocks_1m_symbol_datetime UNIQUE (symbol, datetime),
+    CONSTRAINT ck_stocks_1m_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_1m_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_1m_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+    )
+);
+
+CREATE INDEX idx_stocks_1m_symbol ON stocks_1m (symbol);
+CREATE INDEX idx_stocks_1m_datetime ON stocks_1m (datetime);
+CREATE INDEX idx_stocks_1m_symbol_datetime_desc ON stocks_1m (symbol, datetime DESC);
+
+-- ====================================
+-- 5分足データテーブル (stocks_5m)
+-- ====================================
+CREATE TABLE stocks_5m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_stocks_5m_symbol_datetime UNIQUE (symbol, datetime),
+    CONSTRAINT ck_stocks_5m_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_5m_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_5m_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+    )
+);
+
+CREATE INDEX idx_stocks_5m_symbol ON stocks_5m (symbol);
+CREATE INDEX idx_stocks_5m_datetime ON stocks_5m (datetime);
+CREATE INDEX idx_stocks_5m_symbol_datetime_desc ON stocks_5m (symbol, datetime DESC);
+
+-- ====================================
+-- 15分足データテーブル (stocks_15m)
+-- ====================================
+CREATE TABLE stocks_15m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_stocks_15m_symbol_datetime UNIQUE (symbol, datetime),
+    CONSTRAINT ck_stocks_15m_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_15m_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_15m_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+    )
+);
+
+CREATE INDEX idx_stocks_15m_symbol ON stocks_15m (symbol);
+CREATE INDEX idx_stocks_15m_datetime ON stocks_15m (datetime);
+CREATE INDEX idx_stocks_15m_symbol_datetime_desc ON stocks_15m (symbol, datetime DESC);
+
+-- ====================================
+-- 30分足データテーブル (stocks_30m)
+-- ====================================
+CREATE TABLE stocks_30m (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_stocks_30m_symbol_datetime UNIQUE (symbol, datetime),
+    CONSTRAINT ck_stocks_30m_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_30m_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_30m_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+    )
+);
+
+CREATE INDEX idx_stocks_30m_symbol ON stocks_30m (symbol);
+CREATE INDEX idx_stocks_30m_datetime ON stocks_30m (datetime);
+CREATE INDEX idx_stocks_30m_symbol_datetime_desc ON stocks_30m (symbol, datetime DESC);
+
+-- ====================================
+-- 1時間足データテーブル (stocks_1h)
+-- ====================================
+CREATE TABLE stocks_1h (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_stocks_1h_symbol_datetime UNIQUE (symbol, datetime),
+    CONSTRAINT ck_stocks_1h_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_1h_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_1h_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+    )
+);
+
+CREATE INDEX idx_stocks_1h_symbol ON stocks_1h (symbol);
+CREATE INDEX idx_stocks_1h_datetime ON stocks_1h (datetime);
+CREATE INDEX idx_stocks_1h_symbol_datetime_desc ON stocks_1h (symbol, datetime DESC);
+
+-- ====================================
+-- 週足データテーブル (stocks_1wk)
+-- ====================================
+CREATE TABLE stocks_1wk (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    date DATE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_stocks_1wk_symbol_date UNIQUE (symbol, date),
+    CONSTRAINT ck_stocks_1wk_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_1wk_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_1wk_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+    )
+);
+
+CREATE INDEX idx_stocks_1wk_symbol ON stocks_1wk (symbol);
+CREATE INDEX idx_stocks_1wk_date ON stocks_1wk (date);
+CREATE INDEX idx_stocks_1wk_symbol_date_desc ON stocks_1wk (symbol, date DESC);
+
+-- ====================================
+-- 月足データテーブル (stocks_1mo)
+-- ====================================
+CREATE TABLE stocks_1mo (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    date DATE NOT NULL,
+    open DECIMAL(10,2) NOT NULL,
+    high DECIMAL(10,2) NOT NULL,
+    low DECIMAL(10,2) NOT NULL,
+    close DECIMAL(10,2) NOT NULL,
+    volume BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_stocks_1mo_symbol_date UNIQUE (symbol, date),
+    CONSTRAINT ck_stocks_1mo_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_1mo_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_1mo_price_logic CHECK (
+        high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+    )
+);
+
+CREATE INDEX idx_stocks_1mo_symbol ON stocks_1mo (symbol);
+CREATE INDEX idx_stocks_1mo_date ON stocks_1mo (date);
+CREATE INDEX idx_stocks_1mo_symbol_date_desc ON stocks_1mo (symbol, date DESC);
+```
+
+### 3. データ移行（既存のstocks_dailyテーブルがある場合）
+
+既存のstocks_dailyテーブルのデータをstocks_1dに移行する手順：
+
+```sql
+-- 既存データの移行
+INSERT INTO stocks_1d (symbol, date, open, high, low, close, volume, created_at, updated_at)
+SELECT symbol, date, open, high, low, close, volume, created_at, updated_at
+FROM stocks_daily;
+
+-- 移行確認後、既存テーブルを削除（バックアップ推奨）
+-- DROP TABLE stocks_daily;
 ```
 
 ## パフォーマンス考慮事項
@@ -349,17 +999,43 @@ INSERT INTO stocks_daily (symbol, date, open, high, low, close, volume) VALUES
 - レプリケーション
 - アーカイブ機能
 
-## 複数時間軸対応（将来拡張）
+## マイルストーン1対応：複数時間軸とmax期間対応
 
-### yfinanceで対応可能な時間軸
+### yfinanceで対応可能な時間軸とテーブル対応表
 
-| 時間軸 | yfinance interval | テーブル名予定 | 実装優先度    |
-| ------ | ----------------- | -------------- | ------------- |
-| 分足   | 1m, 5m, 15m, 30m  | stocks_minute  | 低            |
-| 時間足 | 1h                | stocks_hourly  | 低            |
-| 日足   | 1d                | stocks_daily   | **高（MVP）** |
-| 週足   | 1wk               | stocks_weekly  | 中            |
-| 月足   | 1mo               | stocks_monthly | 中            |
+| 時間軸   | yfinance interval | テーブル名   | 実装優先度        | 備考              |
+| -------- | ----------------- | ------------ | ----------------- | ----------------- |
+| 1分足    | 1m                | stocks_1m    | **高（M1必須）**  | 大容量注意        |
+| 5分足    | 5m                | stocks_5m    | **高（M1必須）**  | 効率的分析        |
+| 15分足   | 15m               | stocks_15m   | **高（M1必須）**  | スイング向け      |
+| 30分足   | 30m               | stocks_30m   | **高（M1必須）**  | 中期分析          |
+| 1時間足  | 1h                | stocks_1h    | **高（M1必須）**  | デイトレード      |
+| 日足     | 1d                | stocks_1d    | **高（M1必須）**  | 既存からリネーム  |
+| 週足     | 1wk               | stocks_1wk   | **高（M1必須）**  | 中長期分析        |
+| 月足     | 1mo               | stocks_1mo   | **高（M1必須）**  | 長期投資          |
+
+### yfinanceで対応可能な期間（period）
+
+| period | 説明                 | 対応状況           | 備考                     |
+| ------ | -------------------- | ------------------ | ------------------------ |
+| 1d     | 過去1日              | ✅ 既存対応        | -                        |
+| 5d     | 過去5日              | ✅ 既存対応        | -                        |
+| 1mo    | 過去1ヶ月            | ✅ 既存対応        | -                        |
+| 3mo    | 過去3ヶ月            | ✅ 既存対応        | -                        |
+| 6mo    | 過去6ヶ月            | ✅ 既存対応        | -                        |
+| 1y     | 過去1年              | ✅ 既存対応        | -                        |
+| 2y     | 過去2年              | ✅ 既存対応        | -                        |
+| 5y     | 過去5年              | ✅ 既存対応        | -                        |
+| 10y    | 過去10年             | ✅ 既存対応        | -                        |
+| ytd    | 年初来               | ✅ 既存対応        | -                        |
+| **max** | **利用可能な全期間** | **🆕 M1で追加**   | **マイルストーン1必須** |
+
+### period=maxの仕様
+
+- **yfinanceのmaxパラメータ**：銘柄が上場してから現在までの全データを取得
+- **データ量への影響**：銘柄によっては10年以上のデータとなり大容量
+- **パフォーマンス考慮**：初回取得時間が長くなる可能性あり
+- **実装上の注意**：タイムアウト設定とプログレス表示が必要
 
 ### 将来のテーブル設計案
 
