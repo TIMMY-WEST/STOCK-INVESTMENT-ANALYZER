@@ -43,6 +43,13 @@ body {
     --transition: all 0.2s ease-in-out;
 }
 
+/* IE11 CSS Variables fallback */
+.ie11-fallback {
+    /* Define fallback colors for browsers that don't support CSS variables */
+    color: #333;
+    background-color: #f8f9fa;
+}
+
 /* Alert Styles for script.js */
 .alert {
     padding: 0.75rem 1rem;
@@ -175,11 +182,17 @@ body {
 @media (max-width: 768px) {
     .table-container {
         font-size: 0.875rem;
+        /* Improved horizontal scroll for better touch interaction */
+        -webkit-overflow-scrolling: touch;
+        overflow-x: auto;
     }
 
     .table th,
     .table td {
         padding: 0.5rem 0.25rem;
+        /* Ensure text doesn't break awkwardly */
+        word-break: keep-all;
+        white-space: nowrap;
     }
 
     /* Hide less important columns on mobile */
@@ -201,6 +214,12 @@ body {
     .table th:nth-child(3), /* 日付 */
     .table td:nth-child(3) {
         min-width: 90px;
+    }
+
+    /* Improve button touch targets */
+    .btn {
+        min-height: 44px; /* iOS Human Interface Guidelines */
+        min-width: 44px;
     }
 }
 
@@ -502,6 +521,8 @@ body {
     display: flex;
     gap: 1rem;
     align-items: end;
+    /* IE11 fallback */
+    align-items: flex-end;
 }
 
 .form-col {
