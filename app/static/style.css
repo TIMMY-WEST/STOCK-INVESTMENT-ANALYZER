@@ -98,8 +98,199 @@ body {
 .field-error {
     display: block;
     margin-top: 0.25rem;
-    font-size: 0.875rem;
     color: var(--error-color);
+    font-size: 0.875rem;
+}
+
+/* Table Sorting Styles */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: var(--transition);
+}
+
+.sortable:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.sortable.sort-asc .sort-icon::before {
+    content: "🔼";
+}
+
+.sortable.sort-desc .sort-icon::before {
+    content: "🔽";
+}
+
+.sort-icon {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+.sortable:hover .sort-icon {
+    opacity: 1;
+}
+
+/* Responsive Table Enhancements */
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: white;
+}
+
+.table {
+    margin-bottom: 0;
+    min-width: 800px;
+}
+
+.table th {
+    background-color: var(--light-gray);
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0.75rem;
+}
+
+.table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.025);
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .table-container {
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem 0.25rem;
+    }
+
+    /* Hide less important columns on mobile */
+    .table th:nth-child(1), /* ID */
+    .table td:nth-child(1),
+    .table th:nth-child(4), /* 始値 */
+    .table td:nth-child(4),
+    .table th:nth-child(6), /* 安値 */
+    .table td:nth-child(6) {
+        display: none;
+    }
+
+    /* Make important columns wider on mobile */
+    .table th:nth-child(2), /* 銘柄コード */
+    .table td:nth-child(2) {
+        min-width: 80px;
+    }
+
+    .table th:nth-child(3), /* 日付 */
+    .table td:nth-child(3) {
+        min-width: 90px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .form-col {
+        width: 100%;
+    }
+
+    .card {
+        margin: 0.5rem;
+        padding: 1rem;
+    }
+
+    /* Stack mobile table vertically */
+    .table-container {
+        border: none;
+        background: transparent;
+    }
+
+    .table,
+    .table thead,
+    .table tbody,
+    .table th,
+    .table td,
+    .table tr {
+        display: block;
+    }
+
+    .table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    .table tr {
+        border: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 0.75rem;
+    }
+
+    .table td {
+        border: none;
+        position: relative;
+        padding: 0.5rem 0;
+        text-align: left !important;
+    }
+
+    .table td:before {
+        content: attr(data-label) ": ";
+        font-weight: 600;
+        color: var(--medium-gray);
+        margin-right: 0.5rem;
+    }
+}
+
+/* Loading and Error States */
+.loading-content,
+.error-content,
+.no-data-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    color: var(--medium-gray);
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.error-content {
+    color: var(--error-color);
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
 }
 
 .loading-content,
