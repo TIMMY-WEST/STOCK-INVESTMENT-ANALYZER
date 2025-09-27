@@ -132,13 +132,34 @@
                             <thead>
                                 <tr>
                                     <th scope="col">ID</th>
-                                    <th scope="col">銘柄コード</th>
-                                    <th scope="col">日付</th>
-                                    <th scope="col">始値</th>
-                                    <th scope="col">高値</th>
-                                    <th scope="col">安値</th>
-                                    <th scope="col">終値</th>
-                                    <th scope="col">出来高</th>
+                                    <th scope="col" class="sortable" data-sort="symbol">
+                                        銘柄コード
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="date">
+                                        日付
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="open">
+                                        始値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="high">
+                                        高値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="low">
+                                        安値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="close">
+                                        終値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="volume">
+                                        出来高
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
                                     <th scope="col">操作</th>
                                 </tr>
                             </thead>

@@ -22,6 +22,12 @@ function initApp() {
         loadDataBtn.addEventListener('click', loadStockData);
     }
 
+    // テーブルソート機能設定
+    initTableSorting();
+
+    // ページネーション機能設定
+    initPagination();
+
     // 初期データ読み込み
     loadExistingData();
 }
@@ -224,11 +230,17 @@ function showError(message) {
 }
 
 // 株価データ読み込み (GET /api/stocks への非同期リクエスト)
-async function loadStockData() {
+async function loadStockData(page = null) {
     try {
         const tableBody = document.getElementById('data-table-body');
         const symbolFilter = document.getElementById('view-symbol')?.value?.trim();
         const limit = parseInt(document.getElementById('view-limit')?.value) || 25;
+
+        // ページが指定されている場合は使用、そうでなければ現在のページを使用
+        if (page !== null) {
+            currentPage = page;
+        }
+        currentLimit = limit;
 
         if (tableBody) {
             showLoadingInTable(tableBody);
@@ -236,8 +248,8 @@ async function loadStockData() {
 
         // URLパラメータ構築
         const params = new URLSearchParams({
-            limit: limit,
-            offset: 0
+            limit: currentLimit,
+            offset: currentPage * currentLimit
         });
 
         if (symbolFilter) {
@@ -248,8 +260,10 @@ async function loadStockData() {
         const result = await response.json();
 
         if (result.success) {
+            totalRecords = result.pagination.total;
             updateDataTable(result.data);
-            updateDataSummary(symbolFilter, result.data.length, result.pagination.total);
+            updatePagination();
+            updateDataSummary(symbolFilter, result.data.length, totalRecords);
         } else {
             showErrorInTable(tableBody, result.message || 'データの読み込みに失敗しました');
         }
@@ -296,6 +310,9 @@ function updateDataTable(stockData) {
     const tableBody = document.getElementById('data-table-body');
     if (!tableBody) return;
 
+    // 現在のストックデータを保存（ソート機能で使用）
+    currentStockData = [...stockData];
+
     if (stockData.length === 0) {
         tableBody.innerHTML = `
             <tr>
@@ -312,15 +329,15 @@ function updateDataTable(stockData) {
 
     const rows = stockData.map(stock => `
         <tr>
-            <td>${stock.id}</td>
-            <td>${escapeHtml(stock.symbol)}</td>
-            <td>${formatDate(stock.date)}</td>
-            <td class="text-right">${formatCurrency(stock.open)}</td>
-            <td class="text-right">${formatCurrency(stock.high)}</td>
-            <td class="text-right">${formatCurrency(stock.low)}</td>
-            <td class="text-right">${formatCurrency(stock.close)}</td>
-            <td class="text-right">${formatNumber(stock.volume)}</td>
-            <td>
+            <td data-label="ID">${stock.id}</td>
+            <td data-label="銘柄コード">${escapeHtml(stock.symbol)}</td>
+            <td data-label="日付">${formatDate(stock.date)}</td>
+            <td data-label="始値" class="text-right">${formatCurrency(stock.open)}</td>
+            <td data-label="高値" class="text-right">${formatCurrency(stock.high)}</td>
+            <td data-label="安値" class="text-right">${formatCurrency(stock.low)}</td>
+            <td data-label="終値" class="text-right">${formatCurrency(stock.close)}</td>
+            <td data-label="出来高" class="text-right">${formatNumber(stock.volume)}</td>
+            <td data-label="操作">
                 <button type="button" class="btn btn-danger btn-sm" onclick="deleteStock(${stock.id})">
                     削除
                 </button>
@@ -428,3 +445,144 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // グローバル関数として削除機能を公開
 window.deleteStock = deleteStock;
+
+// テーブルソート機能
+let currentStockData = [];
+let currentSortColumn = null;
+let currentSortDirection = 'asc';
+
+// ページネーション機能
+let currentPage = 0;
+let currentLimit = 25;
+let totalRecords = 0;
+
+// テーブルソート機能初期化
+function initTableSorting() {
+    const table = document.getElementById('data-table');
+    if (!table) return;
+
+    // ソート可能なヘッダーにクリックイベントを追加
+    const sortableHeaders = table.querySelectorAll('.sortable');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortColumn = this.dataset.sort;
+            sortTable(sortColumn);
+        });
+    });
+}
+
+// テーブルソート実行
+function sortTable(column) {
+    if (currentStockData.length === 0) return;
+
+    // ソート方向を決定
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortDirection = 'asc';
+        currentSortColumn = column;
+    }
+
+    // データをソート
+    const sortedData = [...currentStockData].sort((a, b) => {
+        let aValue = a[column];
+        let bValue = b[column];
+
+        // 日付の場合は Date オブジェクトに変換
+        if (column === 'date') {
+            aValue = new Date(aValue);
+            bValue = new Date(bValue);
+        }
+        // 数値の場合は数値に変換
+        else if (['open', 'high', 'low', 'close', 'volume'].includes(column)) {
+            aValue = parseFloat(aValue) || 0;
+            bValue = parseFloat(bValue) || 0;
+        }
+        // 文字列の場合は小文字で比較
+        else if (typeof aValue === 'string') {
+            aValue = aValue.toLowerCase();
+            bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) {
+            return currentSortDirection === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+            return currentSortDirection === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+
+    // ソートされたデータでテーブルを更新
+    updateDataTable(sortedData);
+    updateSortIcons(column, currentSortDirection);
+}
+
+// ソートアイコンを更新
+function updateSortIcons(activeColumn, direction) {
+    const table = document.getElementById('data-table');
+    if (!table) return;
+
+    // 全てのソートアイコンをリセット
+    const sortableHeaders = table.querySelectorAll('.sortable');
+    sortableHeaders.forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+    });
+
+    // アクティブなカラムにソート方向を設定
+    const activeHeader = table.querySelector(`[data-sort="${activeColumn}"]`);
+    if (activeHeader) {
+        activeHeader.classList.add(`sort-${direction}`);
+    }
+}
+
+// ページネーション機能初期化
+function initPagination() {
+    const prevBtn = document.getElementById('prev-page-btn');
+    const nextBtn = document.getElementById('next-page-btn');
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 0) {
+                loadStockData(currentPage - 1);
+            }
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(totalRecords / currentLimit);
+            if (currentPage < totalPages - 1) {
+                loadStockData(currentPage + 1);
+            }
+        });
+    }
+}
+
+// ページネーション情報を更新
+function updatePagination() {
+    const paginationContainer = document.getElementById('pagination');
+    const paginationText = document.getElementById('pagination-text');
+    const prevBtn = document.getElementById('prev-page-btn');
+    const nextBtn = document.getElementById('next-page-btn');
+
+    if (!paginationContainer || !paginationText || !prevBtn || !nextBtn) return;
+
+    const totalPages = Math.ceil(totalRecords / currentLimit);
+    const startRecord = currentPage * currentLimit + 1;
+    const endRecord = Math.min((currentPage + 1) * currentLimit, totalRecords);
+
+    // ページネーション情報テキストを更新
+    paginationText.textContent = `表示中: ${startRecord}-${endRecord} / 全 ${totalRecords} 件`;
+
+    // ボタンの有効/無効を設定
+    prevBtn.disabled = currentPage === 0;
+    nextBtn.disabled = currentPage >= totalPages - 1;
+
+    // ページネーションコンテナの表示/非表示
+    if (totalRecords > currentLimit) {
+        paginationContainer.style.display = 'flex';
+    } else {
+        paginationContainer.style.display = 'none';
+    }
+}
