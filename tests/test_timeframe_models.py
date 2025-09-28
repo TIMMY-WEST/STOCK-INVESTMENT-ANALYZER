@@ -38,9 +38,20 @@ def engine():
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)
-    # テストファイルを削除
-    if os.path.exists("test_timeframe.db"):
-        os.remove("test_timeframe.db")
+    engine.dispose()  # エンジンを明示的に閉じる
+    
+    # テストファイルを削除（エラーハンドリング付き）
+    import time
+    db_file = "test_timeframe.db"
+    if os.path.exists(db_file):
+        try:
+            # 少し待ってからファイル削除を試行
+            time.sleep(0.1)
+            os.remove(db_file)
+        except PermissionError:
+            # Windowsでファイルが使用中の場合は警告のみ出力
+            import warnings
+            warnings.warn(f"テストデータベースファイル {db_file} を削除できませんでした。手動で削除してください。")
 
 @pytest.fixture(scope="function")
 def session(engine):
