@@ -31,6 +31,9 @@ function initApp() {
     // 初期状態のページネーション表示を設定
     updatePagination();
 
+    // Issue #67: 時間軸選択UI機能初期化
+    initTimeframeSelector();
+
     // 初期データ読み込み
     loadExistingData();
 }
@@ -607,5 +610,302 @@ function updatePagination() {
         paginationContainer.style.display = 'flex';
     } else {
         paginationContainer.style.display = 'none';
+    }
+}
+
+// Issue #67: 時間軸選択UI実装 - Enhanced Timeframe Selector Functions
+
+/**
+ * 時間軸選択機能の初期化
+ */
+function initTimeframeSelector() {
+    console.log('時間軸選択UI機能を初期化中...');
+    
+    const timeframeSelector = document.getElementById('period');
+    const timeframeIndicator = document.getElementById('timeframe-indicator');
+    
+    if (!timeframeSelector || !timeframeIndicator) {
+        console.warn('時間軸選択要素が見つかりません');
+        return;
+    }
+
+    // 初期状態の設定
+    updateTimeframeIndicator(timeframeSelector.value);
+    
+    // イベントリスナーの設定
+    timeframeSelector.addEventListener('change', handleTimeframeChange);
+    timeframeSelector.addEventListener('blur', validateTimeframeSelection);
+    
+    // フォーカス時のアクセシビリティ向上
+    timeframeSelector.addEventListener('focus', handleTimeframeFocus);
+    
+    console.log('時間軸選択UI機能の初期化が完了しました');
+}
+
+/**
+ * 時間軸選択変更時のハンドラ
+ * @param {Event} event - 変更イベント
+ */
+function handleTimeframeChange(event) {
+    const selectedValue = event.target.value;
+    
+    // バリデーション実行
+    const isValid = validateTimeframeSelection(event);
+    
+    if (isValid) {
+        // インジケーター更新
+        updateTimeframeIndicator(selectedValue);
+        
+        // フォームの状態を有効に設定
+        setTimeframeSelectorState(event.target, 'valid');
+        
+        // アクセシビリティ: 選択内容をアナウンス
+        announceTimeframeSelection(selectedValue);
+    }
+}
+
+/**
+ * 時間軸選択のバリデーション
+ * @param {Event} event - イベントオブジェクト
+ * @returns {boolean} バリデーション結果
+ */
+function validateTimeframeSelection(event) {
+    const timeframeSelector = event.target;
+    const selectedValue = timeframeSelector.value;
+    const errorElement = document.getElementById('period-error');
+    
+    // エラーメッセージをクリア
+    clearTimeframeError();
+    
+    // 必須チェック
+    if (!selectedValue || selectedValue.trim() === '') {
+        showTimeframeError('期間を選択してください');
+        setTimeframeSelectorState(timeframeSelector, 'invalid');
+        return false;
+    }
+    
+    // 有効な期間値のチェック
+    const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
+    if (!validPeriods.includes(selectedValue)) {
+        showTimeframeError('無効な期間が選択されています');
+        setTimeframeSelectorState(timeframeSelector, 'invalid');
+        return false;
+    }
+    
+    // バリデーション成功
+    setTimeframeSelectorState(timeframeSelector, 'valid');
+    return true;
+}
+
+/**
+ * 時間軸インジケーターの更新
+ * @param {string} selectedValue - 選択された期間値
+ */
+function updateTimeframeIndicator(selectedValue) {
+    const indicator = document.getElementById('timeframe-indicator');
+    const indicatorText = indicator.querySelector('.indicator-text');
+    
+    if (!indicator || !indicatorText) {
+        return;
+    }
+    
+    // 既存のクラスをクリア
+    indicator.className = 'timeframe-indicator';
+    
+    // 期間に応じたメッセージとスタイルを設定
+    const timeframeConfig = getTimeframeConfig(selectedValue);
+    
+    indicatorText.textContent = timeframeConfig.message;
+    indicator.classList.add(timeframeConfig.className);
+    
+    // アニメーション効果
+    indicator.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        indicator.style.transform = 'scale(1)';
+    }, 150);
+}
+
+/**
+ * 期間設定の取得
+ * @param {string} value - 期間値
+ * @returns {Object} 期間設定オブジェクト
+ */
+function getTimeframeConfig(value) {
+    const configs = {
+        '5d': {
+            message: '5日間のデータを取得します（短期分析向け）',
+            className: 'short-term'
+        },
+        '1wk': {
+            message: '1週間のデータを取得します（短期分析向け）',
+            className: 'short-term'
+        },
+        '1mo': {
+            message: '1ヶ月のデータを取得します（中期分析向け）',
+            className: 'medium-term'
+        },
+        '3mo': {
+            message: '3ヶ月のデータを取得します（中期分析向け）',
+            className: 'medium-term'
+        },
+        '6mo': {
+            message: '6ヶ月のデータを取得します（中期分析向け）',
+            className: 'medium-term'
+        },
+        '1y': {
+            message: '1年間のデータを取得します（長期分析向け）',
+            className: 'long-term'
+        },
+        '2y': {
+            message: '2年間のデータを取得します（長期分析向け）',
+            className: 'long-term'
+        },
+        '5y': {
+            message: '5年間のデータを取得します（長期分析向け）',
+            className: 'long-term'
+        },
+        'max': {
+            message: '利用可能な全期間のデータを取得します（包括的分析向け）',
+            className: 'max-term'
+        }
+    };
+    
+    return configs[value] || {
+        message: '期間を選択してください',
+        className: 'medium-term'
+    };
+}
+
+/**
+ * 時間軸選択器の状態設定
+ * @param {HTMLElement} element - 選択器要素
+ * @param {string} state - 状態 ('valid', 'invalid', 'neutral')
+ */
+function setTimeframeSelectorState(element, state) {
+    // 既存の状態クラスをクリア
+    element.classList.remove('is-valid', 'is-invalid');
+    
+    // 新しい状態クラスを追加
+    if (state === 'valid') {
+        element.classList.add('is-valid');
+    } else if (state === 'invalid') {
+        element.classList.add('is-invalid');
+    }
+}
+
+/**
+ * 時間軸選択エラーの表示
+ * @param {string} message - エラーメッセージ
+ */
+function showTimeframeError(message) {
+    const errorElement = document.getElementById('period-error');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.classList.add('show');
+        
+        // アクセシビリティ: エラーをアナウンス
+        errorElement.setAttribute('aria-live', 'assertive');
+    }
+}
+
+/**
+ * 時間軸選択エラーのクリア
+ */
+function clearTimeframeError() {
+    const errorElement = document.getElementById('period-error');
+    if (errorElement) {
+        errorElement.textContent = '';
+        errorElement.classList.remove('show');
+        errorElement.setAttribute('aria-live', 'polite');
+    }
+}
+
+/**
+ * フォーカス時のハンドラ
+ * @param {Event} event - フォーカスイベント
+ */
+function handleTimeframeFocus(event) {
+    // フォーカス時にエラーをクリア
+    clearTimeframeError();
+    setTimeframeSelectorState(event.target, 'neutral');
+}
+
+/**
+ * 選択内容のアナウンス（アクセシビリティ向上）
+ * @param {string} selectedValue - 選択された値
+ */
+function announceTimeframeSelection(selectedValue) {
+    const config = getTimeframeConfig(selectedValue);
+    
+    // スクリーンリーダー用の一時的な要素を作成
+    const announcement = document.createElement('div');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.setAttribute('aria-atomic', 'true');
+    announcement.style.position = 'absolute';
+    announcement.style.left = '-10000px';
+    announcement.style.width = '1px';
+    announcement.style.height = '1px';
+    announcement.style.overflow = 'hidden';
+    
+    announcement.textContent = `期間が選択されました: ${config.message}`;
+    
+    document.body.appendChild(announcement);
+    
+    // 短時間後に要素を削除
+    setTimeout(() => {
+        if (announcement.parentNode) {
+            announcement.parentNode.removeChild(announcement);
+        }
+    }, 1000);
+}
+
+/**
+ * 既存のバリデーション関数を拡張
+ */
+const originalValidateForm = validateForm;
+function validateForm(formData) {
+    const errors = originalValidateForm(formData);
+    
+    // 時間軸選択のバリデーションを追加
+    const period = formData.get('period');
+    if (!period || period.trim() === '') {
+        errors.period = '期間を選択してください';
+    } else {
+        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
+        if (!validPeriods.includes(period)) {
+            errors.period = '無効な期間が選択されています';
+        }
+    }
+    
+    return errors;
+}
+
+/**
+ * 既存のフィールドエラー表示関数を拡張
+ */
+const originalShowFieldError = showFieldError;
+function showFieldError(fieldName, message) {
+    if (fieldName === 'period') {
+        showTimeframeError(message);
+        const timeframeSelector = document.getElementById('period');
+        if (timeframeSelector) {
+            setTimeframeSelectorState(timeframeSelector, 'invalid');
+        }
+    } else {
+        originalShowFieldError(fieldName, message);
+    }
+}
+
+/**
+ * 既存のフィールドエラークリア関数を拡張
+ */
+const originalClearFieldErrors = clearFieldErrors;
+function clearFieldErrors() {
+    originalClearFieldErrors();
+    clearTimeframeError();
+    
+    const timeframeSelector = document.getElementById('period');
+    if (timeframeSelector) {
+        setTimeframeSelectorState(timeframeSelector, 'neutral');
     }
 }

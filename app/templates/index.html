@@ -62,21 +62,47 @@
                                 </div>
                             </div>
                             <div class="form-col">
-                                <label for="period" class="form-label">取得期間</label>
-                                <select id="period" name="period" class="form-control" aria-describedby="period-help">
-                                    <option value="5d">5日間</option>
-                                    <option value="1wk">1週間</option>
-                                    <option value="1mo" selected>1ヶ月</option>
-                                    <option value="3mo">3ヶ月</option>
-                                    <option value="6mo">6ヶ月</option>
-                                    <option value="1y">1年</option>
-                                    <option value="2y">2年</option>
-                                    <option value="5y">5年</option>
-                                    <option value="max">最大期間（全期間）</option>
-                                </select>
-                                <div id="period-help" class="form-text mt-1">
-                                    <small>取得するデータの期間を選択してください</small>
+                                <label for="period" class="form-label">
+                                    取得期間
+                                    <span class="required-indicator" aria-label="必須項目">*</span>
+                                </label>
+                                <div class="timeframe-selector-container">
+                                    <select 
+                                        id="period" 
+                                        name="period" 
+                                        class="form-control timeframe-selector" 
+                                        aria-describedby="period-help period-error"
+                                        aria-label="データ取得期間を選択"
+                                        required
+                                        data-validation="timeframe"
+                                    >
+                                        <option value="">期間を選択してください</option>
+                                        <optgroup label="短期間">
+                                            <option value="5d">5日間</option>
+                                            <option value="1wk">1週間</option>
+                                        </optgroup>
+                                        <optgroup label="中期間">
+                                            <option value="1mo" selected>1ヶ月</option>
+                                            <option value="3mo">3ヶ月</option>
+                                            <option value="6mo">6ヶ月</option>
+                                        </optgroup>
+                                        <optgroup label="長期間">
+                                            <option value="1y">1年</option>
+                                            <option value="2y">2年</option>
+                                            <option value="5y">5年</option>
+                                        </optgroup>
+                                        <optgroup label="超長期間">
+                                            <option value="max">最大期間（全期間）</option>
+                                        </optgroup>
+                                    </select>
+                                    <div class="timeframe-indicator" id="timeframe-indicator">
+                                        <span class="indicator-text">1ヶ月のデータを取得します</span>
+                                    </div>
                                 </div>
+                                <div id="period-help" class="form-text mt-1">
+                                    <small>取得するデータの期間を選択してください。期間が長いほど取得に時間がかかります。</small>
+                                </div>
+                                <div id="period-error" class="field-error" role="alert" aria-live="polite"></div>
                             </div>
                             <div class="form-col">
                                 <button type="submit" id="fetch-btn" class="btn btn-primary">

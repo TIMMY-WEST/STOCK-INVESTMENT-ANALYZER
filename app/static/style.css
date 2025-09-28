@@ -902,3 +902,245 @@ body {
 @media (prefers-color-scheme: dark) {
     /* Dark mode styles can be added here for future enhancement */
 }
+
+/* Issue #67: 時間軸選択UI実装 - Enhanced Timeframe Selector Styles */
+
+/* Required indicator for form labels */
+.required-indicator {
+    color: var(--error-color);
+    font-weight: bold;
+    margin-left: 0.25rem;
+}
+
+/* Timeframe selector container */
+.timeframe-selector-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Enhanced timeframe selector styling */
+.timeframe-selector {
+    position: relative;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    transition: var(--transition);
+    border: 2px solid var(--border-color);
+}
+
+.timeframe-selector:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    outline: none;
+}
+
+.timeframe-selector:hover {
+    border-color: var(--primary-hover);
+}
+
+/* Optgroup styling */
+.timeframe-selector optgroup {
+    font-weight: 600;
+    color: var(--dark-gray);
+    background-color: var(--light-gray);
+    padding: 0.25rem 0;
+}
+
+.timeframe-selector option {
+    padding: 0.5rem 1rem;
+    color: var(--dark-gray);
+}
+
+.timeframe-selector option:hover,
+.timeframe-selector option:focus {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Timeframe indicator */
+.timeframe-indicator {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, var(--info-bg) 0%, #e3f2fd 100%);
+    border: 1px solid var(--info-border);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    color: var(--info-color);
+    transition: var(--transition);
+    min-height: 2.5rem;
+}
+
+.timeframe-indicator::before {
+    content: "📊";
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+.indicator-text {
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* Timeframe indicator states */
+.timeframe-indicator.short-term {
+    background: linear-gradient(135deg, var(--success-bg) 0%, #e8f5e8 100%);
+    border-color: var(--success-border);
+    color: var(--success-color);
+}
+
+.timeframe-indicator.short-term::before {
+    content: "⚡";
+}
+
+.timeframe-indicator.medium-term {
+    background: linear-gradient(135deg, var(--warning-bg) 0%, #fff8e1 100%);
+    border-color: var(--warning-border);
+    color: #e65100;
+}
+
+.timeframe-indicator.medium-term::before {
+    content: "📈";
+}
+
+.timeframe-indicator.long-term {
+    background: linear-gradient(135deg, var(--info-bg) 0%, #e3f2fd 100%);
+    border-color: var(--info-border);
+    color: var(--info-color);
+}
+
+.timeframe-indicator.long-term::before {
+    content: "📊";
+}
+
+.timeframe-indicator.max-term {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    border-color: #ce93d8;
+    color: #7b1fa2;
+}
+
+.timeframe-indicator.max-term::before {
+    content: "🔍";
+}
+
+/* Field error styling for timeframe selector */
+.field-error {
+    color: var(--error-color);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    padding: 0.25rem 0;
+    display: none;
+    font-weight: 500;
+}
+
+.field-error.show {
+    display: block;
+    animation: fadeInError 0.3s ease-in-out;
+}
+
+@keyframes fadeInError {
+    from {
+        opacity: 0;
+        transform: translateY(-0.25rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Form validation states */
+.timeframe-selector.is-invalid {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.timeframe-selector.is-valid {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Loading state for timeframe selector */
+.timeframe-selector:disabled {
+    background-color: var(--light-gray);
+    color: var(--medium-gray);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Responsive design for timeframe selector */
+@media (max-width: 768px) {
+    .timeframe-selector-container {
+        gap: 0.75rem;
+    }
+    
+    .timeframe-indicator {
+        padding: 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .timeframe-indicator::before {
+        font-size: 0.9rem;
+    }
+    
+    .timeframe-selector {
+        font-size: 1rem;
+        padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-row {
+        flex-direction: column;
+    }
+    
+    .form-col {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .timeframe-indicator {
+        text-align: center;
+    }
+    
+    .indicator-text {
+        font-size: 0.875rem;
+    }
+}
+
+/* High contrast mode support for timeframe selector */
+@media (prefers-contrast: high) {
+    .timeframe-selector {
+        border: 3px solid #000;
+    }
+    
+    .timeframe-indicator {
+        border: 2px solid #000;
+        background: #fff;
+        color: #000;
+    }
+    
+    .field-error {
+        font-weight: 700;
+    }
+}
+
+/* Reduced motion support for timeframe selector */
+@media (prefers-reduced-motion: reduce) {
+    .timeframe-selector,
+    .timeframe-indicator,
+    .field-error {
+        transition: none;
+    }
+    
+    @keyframes fadeInError {
+        from, to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
