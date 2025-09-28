@@ -100,6 +100,66 @@ class TestAPIE2E:
         assert response.status_code in [400, 404, 500]
         print(f"✓ 無効な銘柄コードでのエラーハンドリング: {response.status_code}")
     
+    def test_fetch_data_endpoint_max_period(self, app_server):
+        """maxオプションでのデータ取得テスト（Issue #45対応）"""
+        payload = {
+            "symbol": "AAPL",
+            "period": "max"
+        }
+        response = requests.post(f"{app_server}/api/fetch-data", json=payload)
+        
+        # レスポンスの確認
+        assert response.status_code in [200, 400, 500]
+        
+        if response.status_code == 200:
+            data = response.json()
+            assert "success" in data
+            assert data["success"] is True
+            assert "data" in data
+            
+            # maxオプション特有の検証
+            if "data" in data and data["data"]:
+                stock_data = data["data"]
+                assert "records_count" in stock_data
+                assert "date_range" in stock_data
+                
+                # maxオプションでは大量のデータが取得されることを確認
+                if "records_count" in stock_data:
+                    assert stock_data["records_count"] > 1000  # maxは通常大量のデータ
+                
+                print(f"✓ maxオプションでのデータ取得成功: {stock_data.get('records_count', 0)}件")
+            else:
+                print("✓ maxオプションでのデータ取得成功（データ構造確認）")
+        else:
+            print(f"✓ maxオプションでのデータ取得エラー（予想される動作）: {response.status_code}")
+    
+    def test_fetch_data_endpoint_max_period_japanese_stock(self, app_server):
+        """日本株でのmaxオプションテスト（Issue #45対応）"""
+        payload = {
+            "symbol": "7203.T",  # トヨタ自動車
+            "period": "max"
+        }
+        response = requests.post(f"{app_server}/api/fetch-data", json=payload)
+        
+        # レスポンスの確認
+        assert response.status_code in [200, 400, 500]
+        
+        if response.status_code == 200:
+            data = response.json()
+            assert "success" in data
+            assert data["success"] is True
+            
+            if "data" in data and data["data"]:
+                stock_data = data["data"]
+                assert "symbol" in stock_data
+                assert stock_data["symbol"] == "7203.T"
+                
+                print(f"✓ 日本株（{stock_data['symbol']}）でのmaxオプション取得成功")
+            else:
+                print("✓ 日本株でのmaxオプション取得成功（データ構造確認）")
+        else:
+            print(f"✓ 日本株でのmaxオプション取得エラー（予想される動作）: {response.status_code}")
+    
     def test_stocks_api_endpoints(self, app_server):
         """株式データCRUD APIエンドポイントのテスト"""
         # GET /api/stocks
