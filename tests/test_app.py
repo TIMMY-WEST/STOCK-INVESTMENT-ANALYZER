@@ -6,7 +6,7 @@ def test_index_route(client):
     """トップページのテスト"""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'株価データ取得システム' in response.data
+    assert '株価データ管理システム'.encode('utf-8') in response.data
 
 
 def test_fetch_data_api_structure(client):
