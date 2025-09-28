@@ -4,7 +4,7 @@ from decimal import Decimal
 
 def test_stock_daily_model_import():
     """StockDailyモデルのインポートテスト"""
-    from app.models import StockDaily, Base
+    from models import StockDaily, Base
 
     # モデルクラスの基本チェック
     assert StockDaily.__tablename__ == 'stocks_daily'
@@ -20,7 +20,7 @@ def test_stock_daily_model_import():
 
 def test_stock_daily_repr():
     """StockDailyモデルの文字列表現テスト"""
-    from app.models import StockDaily
+    from models import StockDaily
 
     stock = StockDaily()
     stock.symbol = "7203.T"

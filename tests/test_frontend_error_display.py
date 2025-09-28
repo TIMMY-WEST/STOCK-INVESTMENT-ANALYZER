@@ -125,7 +125,7 @@ class TestFrontendErrorDisplay:
     def test_security_no_sensitive_info_leak(self, client):
         """エラーメッセージに機密情報が含まれないことを確認"""
         # データベースエラーをシミュレート
-        with patch('app.models.get_db_session') as mock_session:
+        with patch('models.get_db_session') as mock_session:
             mock_session.side_effect = Exception("Database password: secret123")
 
             response = client.get('/api/stocks')

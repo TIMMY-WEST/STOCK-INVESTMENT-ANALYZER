@@ -7,7 +7,7 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 import yfinance as yf
-from app.models import DatabaseError, StockDataError
+from models import DatabaseError, StockDataError
 
 
 class TestErrorHandling:
@@ -85,7 +85,7 @@ class TestErrorHandling:
     def test_fetch_data_database_error(self, client):
         """データベース接続エラー時の動作確認テスト"""
         # SQLAlchemyレベルでエラーを発生させる
-        with patch('app.models.StockDailyCRUD.create') as mock_create:
+        with patch('models.StockDailyCRUD.create') as mock_create:
             mock_create.side_effect = DatabaseError("Database connection failed")
 
             # 正常なyfinanceレスポンスを設定
@@ -173,7 +173,7 @@ class TestErrorHandling:
 
     def test_get_stocks_database_error(self, client):
         """GET /api/stocks でのデータベースエラー時の動作確認テスト"""
-        with patch('app.models.StockDailyCRUD.get_with_filters') as mock_get:
+        with patch('models.StockDailyCRUD.get_with_filters') as mock_get:
             mock_get.side_effect = DatabaseError("Database query failed")
 
             response = client.get('/api/stocks')
