@@ -3,7 +3,12 @@ from dotenv import load_dotenv
 import os
 import yfinance as yf
 from datetime import datetime, date
-from models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, DatabaseError, StockDataError
+from models import (
+    Base, StockDaily, StockDailyCRUD, get_db_session, engine, 
+    DatabaseError, StockDataError, TimeframeCRUD, 
+    get_model_by_timeframe, get_table_name_by_timeframe,
+    TIMEFRAME_MODELS
+)
 
 # 環境変数読み込み
 load_dotenv()
@@ -44,10 +49,25 @@ def fetch_data():
         data = request.get_json()
         symbol = data.get('symbol', '7203.T')
         period = data.get('period', '1mo')
+        timeframe = data.get('timeframe', '1d')  # デフォルトは1日足
 
+        # timeframeの妥当性チェック
+        if timeframe not in TIMEFRAME_MODELS:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_TIMEFRAME",
+                "message": f"サポートされていない時間軸です。利用可能な時間軸: {list(TIMEFRAME_MODELS.keys())}"
+            }), 400
+
+        # 時間軸に応じた適切なperiodの設定
+        if timeframe in ['1m', '5m', '15m', '30m', '1h']:
+            # 分足・時間足は過去7日間のみ取得可能
+            if period not in ['1d', '5d', '7d']:
+                period = '7d'
+        
         # Yahoo Financeからデータ取得
         ticker = yf.Ticker(symbol)
-        hist = ticker.history(period=period)
+        hist = ticker.history(period=period, interval=timeframe)
 
         if hist.empty:
             return jsonify({
@@ -56,33 +76,86 @@ def fetch_data():
                 "message": "指定された銘柄コードのデータが取得できません"
             }), 400
 
+        # 対応するモデルクラスを取得
+        model_class = get_model_by_timeframe(timeframe)
+        table_name = get_table_name_by_timeframe(timeframe)
+
         # データベースに保存
         with get_db_session() as session:
             saved_records = []
             skipped_records = 0
-
+            
             for date_index, row in hist.iterrows():
                 try:
-                    # 日付をdate型に変換
-                    stock_date = date_index.date()
+                    # タイムスタンプを適切な形式に変換
+                    if timeframe == '1d':
+                        # 日足の場合は日付のみ
+                        timestamp = date_index.date()
+                    else:
+                        # その他の時間軸はタイムスタンプ
+                        timestamp = date_index.to_pydatetime()
 
-                    # 既存データの確認
-                    existing_data = StockDailyCRUD.get_by_symbol_and_date(session, symbol, stock_date)
-                    if existing_data:
+                    # 既存データのチェック（重複回避）
+                    if TimeframeCRUD.check_existing_data(session, timeframe, symbol, timestamp):
                         skipped_records += 1
                         continue
 
-                    # 新しいデータを作成
-                    stock_data = StockDailyCRUD.create(
-                        session,
-                        symbol=symbol,
-                        date=stock_date,
-                        open=float(row['Open']),
-                        high=float(row['High']),
-                        low=float(row['Low']),
-                        close=float(row['Close']),
-                        volume=int(row['Volume'])
-                    )
+                    # 新しいデータを作成（時間軸に応じて適切なフィールド名を使用）
+                    if timeframe in ['1m', '5m', '15m', '30m', '1h']:
+                        # 分足・時間足の場合
+                        stock_data = TimeframeCRUD.create(
+                            session,
+                            timeframe=timeframe,
+                            symbol=symbol,
+                            datetime=timestamp,
+                            open=float(row['Open']),
+                            high=float(row['High']),
+                            low=float(row['Low']),
+                            close=float(row['Close']),
+                            volume=int(row['Volume'])
+                        )
+                    elif timeframe == '1d':
+                        # 日足の場合
+                        stock_data = TimeframeCRUD.create(
+                            session,
+                            timeframe=timeframe,
+                            symbol=symbol,
+                            date=timestamp,
+                            open=float(row['Open']),
+                            high=float(row['High']),
+                            low=float(row['Low']),
+                            close=float(row['Close']),
+                            volume=int(row['Volume'])
+                        )
+                    elif timeframe == '1wk':
+                        # 週足の場合
+                        stock_data = TimeframeCRUD.create(
+                            session,
+                            timeframe=timeframe,
+                            symbol=symbol,
+                            week_start_date=timestamp,
+                            open=float(row['Open']),
+                            high=float(row['High']),
+                            low=float(row['Low']),
+                            close=float(row['Close']),
+                            volume=int(row['Volume'])
+                        )
+                    elif timeframe == '1mo':
+                        # 月足の場合
+                        if isinstance(timestamp, datetime):
+                            timestamp = timestamp.date()
+                        stock_data = TimeframeCRUD.create(
+                            session,
+                            timeframe=timeframe,
+                            symbol=symbol,
+                            year=timestamp.year,
+                            month=timestamp.month,
+                            open=float(row['Open']),
+                            high=float(row['High']),
+                            low=float(row['Low']),
+                            close=float(row['Close']),
+                            volume=int(row['Volume'])
+                        )
                     saved_records.append(stock_data)
 
                 except (StockDataError, DatabaseError):
@@ -92,15 +165,17 @@ def fetch_data():
 
         return jsonify({
             "success": True,
-            "message": "データを正常に取得し、データベースに保存しました",
+            "message": f"データを正常に取得し、{table_name}テーブルに保存しました",
             "data": {
                 "symbol": symbol,
+                "timeframe": timeframe,
+                "table_name": table_name,
                 "records_count": len(hist),
                 "saved_records": len(saved_records),
                 "skipped_records": skipped_records,
                 "date_range": {
-                    "start": hist.index[0].strftime('%Y-%m-%d'),
-                    "end": hist.index[-1].strftime('%Y-%m-%d')
+                    "start": hist.index[0].strftime('%Y-%m-%d %H:%M:%S'),
+                    "end": hist.index[-1].strftime('%Y-%m-%d %H:%M:%S')
                 }
             }
         })
