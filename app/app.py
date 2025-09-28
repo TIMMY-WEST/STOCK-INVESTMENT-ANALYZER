@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 import os
 import yfinance as yf
 from datetime import datetime, date
-from models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, DatabaseError, StockDataError
-from services.stock_data_service import StockDataService
+from app.models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, DatabaseError, StockDataError
+from app.services.stock_data_service import StockDataService
 
 # 環境変数読み込み
 load_dotenv()

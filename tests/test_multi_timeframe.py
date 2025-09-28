@@ -13,14 +13,14 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'app'))
 
-from app import app
-from models import (
+from app.app import app
+from app.models import (
     get_db_session, 
     StockDaily, StockIntraday, StockWeekly, StockMonthly,
     StockDailyCRUD, StockIntradayCRUD, StockWeeklyCRUD, StockMonthlyCRUD,
     TIMEFRAME_MODELS
 )
-from services.stock_data_service import StockDataService
+from app.services.stock_data_service import StockDataService
 
 
 class TestMultiTimeframeAPI:
