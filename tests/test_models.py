@@ -2,6 +2,8 @@ import pytest
 from datetime import date
 from decimal import Decimal
 
+pytestmark = pytest.mark.unit
+
 def test_stock_daily_model_import():
     """StockDailyモデルのインポートテスト"""
     from models import StockDaily, Base

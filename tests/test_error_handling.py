@@ -9,6 +9,8 @@ from unittest.mock import patch, MagicMock
 import yfinance as yf
 from models import DatabaseError, StockDataError
 
+pytestmark = pytest.mark.integration
+
 
 class TestErrorHandling:
     """エラーハンドリングテストクラス"""

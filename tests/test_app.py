@@ -1,6 +1,8 @@
 import pytest
 import json
 
+pytestmark = pytest.mark.unit
+
 
 def test_index_route(client):
     """トップページのテスト"""

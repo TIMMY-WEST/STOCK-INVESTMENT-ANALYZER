@@ -27,6 +27,9 @@ function initApp() {
 
     // ページネーション機能設定
     initPagination();
+    
+    // 初期状態のページネーション表示を設定
+    updatePagination();
 
     // 初期データ読み込み
     loadExistingData();
@@ -265,6 +268,8 @@ async function loadStockData(page = null) {
             updatePagination();
             updateDataSummary(symbolFilter, result.data.length, totalRecords);
         } else {
+            // エラーの場合もページネーションを更新（totalRecordsは0のまま）
+            updatePagination();
             showErrorInTable(tableBody, result.message || 'データの読み込みに失敗しました');
         }
 
@@ -272,6 +277,8 @@ async function loadStockData(page = null) {
         console.error('データ読み込みエラー:', error);
         const tableBody = document.getElementById('data-table-body');
         if (tableBody) {
+            // ネットワークエラーの場合もページネーションを更新
+            updatePagination();
             showErrorInTable(tableBody, 'ネットワークエラーが発生しました: ' + error.message);
         }
     }
@@ -568,12 +575,28 @@ function updatePagination() {
 
     if (!paginationContainer || !paginationText || !prevBtn || !nextBtn) return;
 
-    const totalPages = Math.ceil(totalRecords / currentLimit);
-    const startRecord = currentPage * currentLimit + 1;
-    const endRecord = Math.min((currentPage + 1) * currentLimit, totalRecords);
+    // 変数の安全性チェック
+    const safeTotalRecords = isNaN(totalRecords) || totalRecords < 0 ? 0 : totalRecords;
+    const safeCurrentPage = isNaN(currentPage) || currentPage < 0 ? 0 : currentPage;
+    const safeCurrentLimit = isNaN(currentLimit) || currentLimit <= 0 ? 25 : currentLimit;
+
+    // データが存在しない場合の処理
+    if (safeTotalRecords === 0) {
+        paginationText.textContent = '表示中: 0-0 / 全 0 件';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        paginationContainer.style.display = 'none';
+        return;
+    }
+
+    const totalPages = Math.ceil(safeTotalRecords / safeCurrentLimit);
+    const startRecord = safeCurrentPage * safeCurrentLimit + 1;
+    const endRecord = Math.min((safeCurrentPage + 1) * safeCurrentLimit, safeTotalRecords);
+
+
 
     // ページネーション情報テキストを更新
-    paginationText.textContent = `表示中: ${startRecord}-${endRecord} / 全 ${totalRecords} 件`;
+    paginationText.textContent = `表示中: ${startRecord}-${endRecord} / 全 ${safeTotalRecords} 件`;
 
     // ボタンの有効/無効を設定
     prevBtn.disabled = currentPage === 0;

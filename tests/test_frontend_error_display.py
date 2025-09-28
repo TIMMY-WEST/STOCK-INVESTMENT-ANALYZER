@@ -7,6 +7,8 @@ import json
 import pytest
 from unittest.mock import patch
 
+pytestmark = pytest.mark.unit
+
 
 class TestFrontendErrorDisplay:
     """フロントエンドエラー表示テストクラス"""
