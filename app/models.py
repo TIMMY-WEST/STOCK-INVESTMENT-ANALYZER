@@ -21,13 +21,13 @@ class StockDataError(DatabaseError):
     """株価データ関連エラー"""
     pass
 
-class StockDaily(Base):
-    __tablename__ = 'stocks_daily'
-
-    # カラム定義
+# ベースクラス：共通のカラムと制約を定義
+class StockDataBase:
+    """株価データの共通カラムと制約を定義するベースクラス"""
+    
+    # 共通カラム
     id = Column(Integer, primary_key=True, autoincrement=True)
     symbol = Column(String(20), nullable=False)
-    date = Column(Date, nullable=False)
     open = Column(Numeric(10, 2), nullable=False)
     high = Column(Numeric(10, 2), nullable=False)
     low = Column(Numeric(10, 2), nullable=False)
@@ -36,26 +36,11 @@ class StockDaily(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # 制約定義
-    __table_args__ = (
-        UniqueConstraint('symbol', 'date', name='uk_stocks_daily_symbol_date'),
-        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_daily_prices'),
-        CheckConstraint('volume >= 0', name='ck_stocks_daily_volume'),
-        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_daily_price_logic'),
-        Index('idx_stocks_daily_symbol', 'symbol'),
-        Index('idx_stocks_daily_date', 'date'),
-        Index('idx_stocks_daily_symbol_date_desc', 'symbol', 'date'),
-    )
-
-    def __repr__(self):
-        return f"<StockDaily(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
-
     def to_dict(self) -> Dict[str, Any]:
         """モデルインスタンスを辞書形式に変換"""
-        return {
+        result = {
             'id': self.id,
             'symbol': self.symbol,
-            'date': self.date.isoformat() if self.date else None,
             'open': float(self.open) if self.open else None,
             'high': float(self.high) if self.high else None,
             'low': float(self.low) if self.low else None,
@@ -64,6 +49,169 @@ class StockDaily(Base):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+        
+        # 日付またはdatetimeフィールドを追加
+        if hasattr(self, 'date'):
+            result['date'] = self.date.isoformat() if self.date else None
+        if hasattr(self, 'datetime'):
+            result['datetime'] = self.datetime.isoformat() if self.datetime else None
+            
+        return result
+
+# 1分足データテーブル
+class Stocks1m(Base, StockDataBase):
+    __tablename__ = 'stocks_1m'
+    
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_1m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1m_price_logic'),
+        Index('idx_stocks_1m_symbol', 'symbol'),
+        Index('idx_stocks_1m_datetime', 'datetime'),
+        Index('idx_stocks_1m_symbol_datetime_desc', 'symbol', 'datetime'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks1m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 5分足データテーブル
+class Stocks5m(Base, StockDataBase):
+    __tablename__ = 'stocks_5m'
+    
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_5m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_5m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_5m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_5m_price_logic'),
+        Index('idx_stocks_5m_symbol', 'symbol'),
+        Index('idx_stocks_5m_datetime', 'datetime'),
+        Index('idx_stocks_5m_symbol_datetime_desc', 'symbol', 'datetime'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks5m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 15分足データテーブル
+class Stocks15m(Base, StockDataBase):
+    __tablename__ = 'stocks_15m'
+    
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_15m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_15m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_15m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_15m_price_logic'),
+        Index('idx_stocks_15m_symbol', 'symbol'),
+        Index('idx_stocks_15m_datetime', 'datetime'),
+        Index('idx_stocks_15m_symbol_datetime_desc', 'symbol', 'datetime'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks15m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 30分足データテーブル
+class Stocks30m(Base, StockDataBase):
+    __tablename__ = 'stocks_30m'
+    
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_30m_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_30m_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_30m_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_30m_price_logic'),
+        Index('idx_stocks_30m_symbol', 'symbol'),
+        Index('idx_stocks_30m_datetime', 'datetime'),
+        Index('idx_stocks_30m_symbol_datetime_desc', 'symbol', 'datetime'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks30m(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 1時間足データテーブル
+class Stocks1h(Base, StockDataBase):
+    __tablename__ = 'stocks_1h'
+    
+    datetime = Column(DateTime(timezone=True), nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'datetime', name='uk_stocks_1h_symbol_datetime'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1h_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1h_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1h_price_logic'),
+        Index('idx_stocks_1h_symbol', 'symbol'),
+        Index('idx_stocks_1h_datetime', 'datetime'),
+        Index('idx_stocks_1h_symbol_datetime_desc', 'symbol', 'datetime'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks1h(symbol='{self.symbol}', datetime='{self.datetime}', close={self.close})>"
+
+# 日足データテーブル（既存のstocks_dailyをstocks_1dに変更）
+class Stocks1d(Base, StockDataBase):
+    __tablename__ = 'stocks_1d'
+    
+    date = Column(Date, nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'date', name='uk_stocks_1d_symbol_date'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1d_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1d_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1d_price_logic'),
+        Index('idx_stocks_1d_symbol', 'symbol'),
+        Index('idx_stocks_1d_date', 'date'),
+        Index('idx_stocks_1d_symbol_date_desc', 'symbol', 'date'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks1d(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+
+# 週足データテーブル
+class Stocks1wk(Base, StockDataBase):
+    __tablename__ = 'stocks_1wk'
+    
+    date = Column(Date, nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'date', name='uk_stocks_1wk_symbol_date'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1wk_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1wk_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1wk_price_logic'),
+        Index('idx_stocks_1wk_symbol', 'symbol'),
+        Index('idx_stocks_1wk_date', 'date'),
+        Index('idx_stocks_1wk_symbol_date_desc', 'symbol', 'date'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks1wk(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+
+# 月足データテーブル
+class Stocks1mo(Base, StockDataBase):
+    __tablename__ = 'stocks_1mo'
+    
+    date = Column(Date, nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('symbol', 'date', name='uk_stocks_1mo_symbol_date'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1mo_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1mo_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1mo_price_logic'),
+        Index('idx_stocks_1mo_symbol', 'symbol'),
+        Index('idx_stocks_1mo_date', 'date'),
+        Index('idx_stocks_1mo_symbol_date_desc', 'symbol', 'date'),
+    )
+
+    def __repr__(self):
+        return f"<Stocks1mo(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+
+# 既存のStockDailyクラスは後方互換性のためにStocks1dのエイリアスとして残す
+StockDaily = Stocks1d
 
 # データベース設定
 DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
