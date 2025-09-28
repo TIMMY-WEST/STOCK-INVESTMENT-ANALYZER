@@ -1,2 +1,0 @@
-Final test for pre-commit hook functionality.
-This file will be used to verify that tests run successfully before commit.
