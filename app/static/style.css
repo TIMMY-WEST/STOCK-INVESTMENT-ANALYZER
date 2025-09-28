@@ -902,3 +902,146 @@ body {
 @media (prefers-color-scheme: dark) {
     /* Dark mode styles can be added here for future enhancement */
 }
+
+/* Timeframe Selector Styles - Issue #36 */
+#interval {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+#interval:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.interval-group {
+    position: relative;
+}
+
+.interval-group .form-label {
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 0.5rem;
+}
+
+.interval-group .form-label i {
+    color: var(--primary-color);
+}
+
+#interval-validation {
+    background-color: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+#interval-validation.show {
+    display: block !important;
+}
+
+#interval-validation i {
+    color: var(--warning-color);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Timeframe validation states */
+.form-control.interval-warning {
+    border-color: var(--warning-color);
+    background-color: var(--warning-bg);
+}
+
+.form-control.interval-error {
+    border-color: var(--error-color);
+    background-color: var(--error-bg);
+}
+
+/* Responsive adjustments for timeframe selector */
+@media (max-width: 576px) {
+    #interval {
+        font-size: 0.9rem;
+        padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+    }
+    
+    #interval-help,
+    #interval-validation {
+        font-size: 0.8rem;
+    }
+}
+
+/* Enhanced form group styling for better UX */
+.form-group-enhanced {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.form-group-enhanced .form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 0.75rem;
+}
+
+.form-group-enhanced .form-control {
+    transition: var(--transition);
+    border: 2px solid var(--border-color);
+}
+
+.form-group-enhanced .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.form-group-enhanced .form-text {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--medium-gray);
+}
+
+/* Timeframe combination indicator */
+.timeframe-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.timeframe-indicator.valid {
+    background-color: var(--success-bg);
+    color: var(--success-color);
+    border: 1px solid var(--success-border);
+}
+
+.timeframe-indicator.warning {
+    background-color: var(--warning-bg);
+    color: var(--warning-color);
+    border: 1px solid var(--warning-border);
+}
+
+.timeframe-indicator.invalid {
+    background-color: var(--error-bg);
+    color: var(--error-color);
+    border: 1px solid var(--error-border);
+}

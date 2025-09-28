@@ -28,6 +28,9 @@ function initApp() {
     // ページネーション機能設定
     initPagination();
 
+    // 時間軸選択機能設定 - Issue #36
+    initTimeframeSelector();
+
     // 初期データ読み込み
     loadExistingData();
 }
@@ -585,4 +588,168 @@ function updatePagination() {
     } else {
         paginationContainer.style.display = 'none';
     }
+}
+
+// 時間軸選択機能 - Issue #36
+function initTimeframeSelector() {
+    const intervalSelect = document.getElementById('interval');
+    const periodSelect = document.getElementById('period');
+    const validationDiv = document.getElementById('interval-validation');
+
+    if (!intervalSelect || !periodSelect || !validationDiv) return;
+
+    // 時間軸と期間の組み合わせバリデーション設定
+    const validCombinations = {
+        '1min': ['5d', '1w'],
+        '5min': ['5d', '1w', '1mo'],
+        '15min': ['5d', '1w', '1mo'],
+        '30min': ['5d', '1w', '1mo', '3mo'],
+        '1h': ['1w', '1mo', '3mo', '6mo'],
+        '4h': ['1mo', '3mo', '6mo', '1y'],
+        '1d': ['1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'],
+        '1wk': ['6mo', '1y', '2y', '5y', 'max'],
+        '1mo': ['1y', '2y', '5y', 'max'],
+        '3mo': ['2y', '5y', 'max']
+    };
+
+    // 時間軸変更時のイベントリスナー
+    intervalSelect.addEventListener('change', function() {
+        validateTimeframeCombination();
+        updatePeriodOptions();
+    });
+
+    // 期間変更時のイベントリスナー
+    periodSelect.addEventListener('change', function() {
+        validateTimeframeCombination();
+    });
+
+    // 時間軸と期間の組み合わせをバリデーション
+    function validateTimeframeCombination() {
+        const selectedInterval = intervalSelect.value;
+        const selectedPeriod = periodSelect.value;
+
+        // デフォルト値の場合はバリデーションをスキップ
+        if (!selectedInterval || !selectedPeriod) {
+            hideValidationMessage();
+            return true;
+        }
+
+        const validPeriods = validCombinations[selectedInterval];
+        
+        if (!validPeriods || !validPeriods.includes(selectedPeriod)) {
+            showValidationMessage(selectedInterval, selectedPeriod, validPeriods);
+            return false;
+        } else {
+            hideValidationMessage();
+            return true;
+        }
+    }
+
+    // バリデーションメッセージを表示
+    function showValidationMessage(interval, period, validPeriods) {
+        const intervalNames = {
+            '1min': '1分足',
+            '5min': '5分足',
+            '15min': '15分足',
+            '30min': '30分足',
+            '1h': '1時間足',
+            '4h': '4時間足',
+            '1d': '日足',
+            '1wk': '週足',
+            '1mo': '月足',
+            '3mo': '3ヶ月足'
+        };
+
+        const periodNames = {
+            '5d': '5日',
+            '1w': '1週間',
+            '1mo': '1ヶ月',
+            '3mo': '3ヶ月',
+            '6mo': '6ヶ月',
+            '1y': '1年',
+            '2y': '2年',
+            '5y': '5年',
+            'max': '最大期間'
+        };
+
+        const validPeriodNames = validPeriods ? validPeriods.map(p => periodNames[p]).join('、') : '';
+        
+        validationDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>${intervalNames[interval]}</strong>と<strong>${periodNames[period]}</strong>の組み合わせは推奨されません。<br>
+            ${intervalNames[interval]}では以下の期間を推奨します: <strong>${validPeriodNames}</strong>
+        `;
+        
+        validationDiv.style.display = 'block';
+        validationDiv.classList.add('show');
+        
+        // フォームコントロールにwarningクラスを追加
+        intervalSelect.classList.add('interval-warning');
+        periodSelect.classList.add('interval-warning');
+    }
+
+    // バリデーションメッセージを非表示
+    function hideValidationMessage() {
+        validationDiv.style.display = 'none';
+        validationDiv.classList.remove('show');
+        
+        // warningクラスを削除
+        intervalSelect.classList.remove('interval-warning', 'interval-error');
+        periodSelect.classList.remove('interval-warning', 'interval-error');
+    }
+
+    // 期間オプションを時間軸に応じて更新（推奨表示）
+    function updatePeriodOptions() {
+        const selectedInterval = intervalSelect.value;
+        const validPeriods = validCombinations[selectedInterval];
+        
+        if (!validPeriods) return;
+
+        // 全ての期間オプションをリセット
+        Array.from(periodSelect.options).forEach(option => {
+            if (option.value) {
+                const isRecommended = validPeriods.includes(option.value);
+                if (isRecommended) {
+                    option.textContent = option.textContent.replace(' (推奨)', '') + ' (推奨)';
+                    option.style.fontWeight = 'bold';
+                    option.style.color = '#28a745';
+                } else {
+                    option.textContent = option.textContent.replace(' (推奨)', '');
+                    option.style.fontWeight = 'normal';
+                    option.style.color = '#6c757d';
+                }
+            }
+        });
+    }
+
+    // 初期化時にバリデーションを実行
+    validateTimeframeCombination();
+}
+
+// フォーム送信時の時間軸バリデーション
+function validateTimeframeOnSubmit() {
+    const intervalSelect = document.getElementById('interval');
+    const periodSelect = document.getElementById('period');
+    
+    if (!intervalSelect || !periodSelect) return true;
+
+    const selectedInterval = intervalSelect.value;
+    const selectedPeriod = periodSelect.value;
+
+    // 時間軸が選択されていない場合はデフォルト値を設定
+    if (!selectedInterval) {
+        intervalSelect.value = '1d'; // デフォルトは日足
+    }
+
+    return true; // バリデーション警告があっても送信は許可
+}
+
+// 既存のhandleFetchSubmit関数を拡張
+const originalHandleFetchSubmit = handleFetchSubmit;
+async function handleFetchSubmit(event) {
+    // 時間軸バリデーションを実行
+    validateTimeframeOnSubmit();
+    
+    // 元の処理を実行
+    return await originalHandleFetchSubmit(event);
 }
