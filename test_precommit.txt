@@ -1,0 +1,2 @@
+This is a test file to verify pre-commit hook functionality.
+Created to test that tests run before commit.
