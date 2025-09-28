@@ -4,6 +4,7 @@ import os
 import yfinance as yf
 from datetime import datetime, date
 from models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, DatabaseError, StockDataError
+from services.stock_data_service import StockDataService
 
 # 環境変数読み込み
 load_dotenv()
@@ -40,82 +41,48 @@ def test_connection():
 
 @app.route('/api/fetch-data', methods=['POST'])
 def fetch_data():
+    """yfinanceから株価データを取得してデータベースに保存（各時間軸対応）"""
     try:
         data = request.get_json()
-        symbol = data.get('symbol', '7203.T')
-        period = data.get('period', '1mo')
-
-        # Yahoo Financeからデータ取得
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period=period)
-
-        if hist.empty:
+        
+        # 必須パラメータの確認
+        if not data or 'symbol' not in data:
             return jsonify({
                 "success": False,
-                "error": "INVALID_SYMBOL",
-                "message": "指定された銘柄コードのデータが取得できません"
+                "error": "VALIDATION_ERROR",
+                "message": "銘柄コード (symbol) が必要です"
             }), 400
 
-        # データベースに保存
-        with get_db_session() as session:
-            saved_records = []
-            skipped_records = 0
+        symbol = data['symbol']
+        period = data.get('period', '1mo')  # デフォルト: 1ヶ月
+        interval = data.get('interval', '1d')  # デフォルト: 日足
 
-            for date_index, row in hist.iterrows():
-                try:
-                    # 日付をdate型に変換
-                    stock_date = date_index.date()
+        # 時間軸の妥当性確認
+        if not StockDataService.validate_interval(interval):
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": f"サポートされていない時間軸です: {interval}. サポート対象: {StockDataService.get_supported_intervals()}"
+            }), 400
 
-                    # 既存データの確認
-                    existing_data = StockDailyCRUD.get_by_symbol_and_date(session, symbol, stock_date)
-                    if existing_data:
-                        skipped_records += 1
-                        continue
+        # 新しいサービスクラスを使用してデータ取得・保存
+        result = StockDataService.fetch_and_save_data(symbol, period, interval)
+        
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            # エラーの種類に応じてステータスコードを決定
+            if 'データが取得できませんでした' in result['message']:
+                return jsonify(result), 404
+            else:
+                return jsonify(result), 502
 
-                    # 新しいデータを作成
-                    stock_data = StockDailyCRUD.create(
-                        session,
-                        symbol=symbol,
-                        date=stock_date,
-                        open=float(row['Open']),
-                        high=float(row['High']),
-                        low=float(row['Low']),
-                        close=float(row['Close']),
-                        volume=int(row['Volume'])
-                    )
-                    saved_records.append(stock_data)
-
-                except (StockDataError, DatabaseError):
-                    # 重複データの場合はスキップ
-                    skipped_records += 1
-                    continue
-
-        return jsonify({
-            "success": True,
-            "message": "データを正常に取得し、データベースに保存しました",
-            "data": {
-                "symbol": symbol,
-                "records_count": len(hist),
-                "saved_records": len(saved_records),
-                "skipped_records": skipped_records,
-                "date_range": {
-                    "start": hist.index[0].strftime('%Y-%m-%d'),
-                    "end": hist.index[-1].strftime('%Y-%m-%d')
-                }
-            }
-        })
-    except DatabaseError as e:
-        return jsonify({
-            "success": False,
-            "error": "DATABASE_ERROR",
-            "message": f"データベース保存に失敗しました: {str(e)}"
-        }), 500
     except Exception as e:
         return jsonify({
             "success": False,
-            "error": "EXTERNAL_API_ERROR",
-            "message": f"データ取得に失敗しました: {str(e)}"
-        }), 502
+            "error": "INTERNAL_ERROR",
+            "message": f"内部エラーが発生しました: {str(e)}"
+        }), 500
 
 # CRUD API エンドポイント
 
@@ -431,6 +398,73 @@ def create_test_data():
             "success": False,
             "error": "INTERNAL_SERVER_ERROR",
             "message": f"予期しないエラーが発生しました: {str(e)}"
+        }), 500
+
+# 新しい時間軸対応のAPIエンドポイント
+
+@app.route('/api/intervals', methods=['GET'])
+def get_supported_intervals():
+    """サポートされている時間軸のリストを取得"""
+    try:
+        intervals = StockDataService.get_supported_intervals()
+        return jsonify({
+            "success": True,
+            "intervals": intervals,
+            "message": "サポートされている時間軸のリストを取得しました"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "INTERNAL_ERROR",
+            "message": f"時間軸リスト取得中にエラーが発生しました: {str(e)}"
+        }), 500
+
+@app.route('/api/data-summary', methods=['POST'])
+def get_data_summary():
+    """指定された銘柄・時間軸のデータサマリーを取得"""
+    try:
+        data = request.get_json()
+        
+        # 必須パラメータの確認
+        if not data or 'symbol' not in data:
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": "銘柄コード (symbol) が必要です"
+            }), 400
+        
+        symbol = data['symbol']
+        interval = data.get('interval', '1d')
+        
+        # 時間軸の妥当性確認
+        if not StockDataService.validate_interval(interval):
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": f"サポートされていない時間軸です: {interval}"
+            }), 400
+        
+        # データサマリー取得
+        summary = StockDataService.get_data_summary(symbol, interval)
+        
+        if 'error' in summary:
+            return jsonify({
+                "success": False,
+                "error": "DATA_ERROR",
+                "message": summary['error']
+            }), 400
+        
+        return jsonify({
+            "success": True,
+            "data": summary,
+            "message": "データサマリーを取得しました"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "INTERNAL_ERROR",
+            "message": f"データサマリー取得中にエラーが発生しました: {str(e)}"
         }), 500
 
 if __name__ == '__main__':
