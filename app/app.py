@@ -44,10 +44,20 @@ def fetch_data():
         data = request.get_json()
         symbol = data.get('symbol', '7203.T')
         period = data.get('period', '1mo')
+        interval = data.get('interval', '1d')
+
+        # intervalパラメータのバリデーション
+        valid_intervals = ['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo']
+        if interval not in valid_intervals:
+            return jsonify({
+                "success": False,
+                "error": "INVALID_INTERVAL",
+                "message": f"無効な足種別です。有効な値: {', '.join(valid_intervals)}"
+            }), 400
 
         # Yahoo Financeからデータ取得
         ticker = yf.Ticker(symbol)
-        hist = ticker.history(period=period)
+        hist = ticker.history(period=period, interval=interval)
 
         if hist.empty:
             return jsonify({
@@ -95,6 +105,8 @@ def fetch_data():
             "message": "データを正常に取得し、データベースに保存しました",
             "data": {
                 "symbol": symbol,
+                "period": period,
+                "interval": interval,
                 "records_count": len(hist),
                 "saved_records": len(saved_records),
                 "skipped_records": skipped_records,

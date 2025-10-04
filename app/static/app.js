@@ -97,10 +97,10 @@ const ApiService = {
     },
 
     // Fetch stock data from Yahoo Finance
-    fetchStockData: async (symbol, period) => {
+    fetchStockData: async (symbol, period, interval = '1d') => {
         return ApiService.request('/api/fetch-data', {
             method: 'POST',
-            body: JSON.stringify({ symbol, period })
+            body: JSON.stringify({ symbol, period, interval })
         });
     },
 
@@ -237,6 +237,7 @@ const StockFetchManager = {
 
         const symbol = document.getElementById('symbol')?.value?.trim();
         const period = document.getElementById('period')?.value;
+        const interval = document.getElementById('interval')?.value || '1d';
 
         // Enhanced client-side validation
         const validationResult = StockFetchManager.validateForm(symbol, period);
@@ -249,7 +250,7 @@ const StockFetchManager = {
             AppState.isLoading = true;
             StockFetchManager.setLoadingState(true);
 
-            const response = await ApiService.fetchStockData(symbol, period);
+            const response = await ApiService.fetchStockData(symbol, period, interval);
 
             if (response.success) {
                 const { data } = response;

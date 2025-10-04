@@ -105,6 +105,51 @@
                                 <div id="period-error" class="field-error" role="alert" aria-live="polite"></div>
                             </div>
                             <div class="form-col">
+                                <label for="interval" class="form-label">
+                                    時間軸（足）
+                                    <span class="required-indicator" aria-label="必須項目">*</span>
+                                </label>
+                                <div class="interval-selector-container">
+                                    <select 
+                                        id="interval" 
+                                        name="interval" 
+                                        class="form-control interval-selector" 
+                                        aria-describedby="interval-help interval-error"
+                                        aria-label="データ取得時間軸を選択"
+                                        required
+                                        data-validation="interval"
+                                    >
+                                        <option value="">時間軸を選択してください</option>
+                                        <optgroup label="分足（短期取引）">
+                                            <option value="1m">1分足</option>
+                                            <option value="2m">2分足</option>
+                                            <option value="5m">5分足</option>
+                                            <option value="15m">15分足</option>
+                                            <option value="30m">30分足</option>
+                                        </optgroup>
+                                        <optgroup label="時間足（中期取引）">
+                                            <option value="60m">1時間足</option>
+                                            <option value="1h">1時間足（1h）</option>
+                                            <option value="90m">90分足</option>
+                                        </optgroup>
+                                        <optgroup label="日足・週足・月足（長期取引）">
+                                            <option value="1d" selected>1日足</option>
+                                            <option value="5d">5日足</option>
+                                            <option value="1wk">1週足</option>
+                                            <option value="1mo">1ヶ月足</option>
+                                            <option value="3mo">3ヶ月足</option>
+                                        </optgroup>
+                                    </select>
+                                    <div class="interval-indicator" id="interval-indicator">
+                                        <span class="indicator-text">1日足でデータを取得します</span>
+                                    </div>
+                                </div>
+                                <div id="interval-help" class="form-text mt-1">
+                                    <small>データの時間軸を選択してください。短い時間軸ほど詳細なデータが取得できますが、データ量が多くなります。</small>
+                                </div>
+                                <div id="interval-error" class="field-error" role="alert" aria-live="polite"></div>
+                            </div>
+                            <div class="form-col">
                                 <button type="submit" id="fetch-btn" class="btn btn-primary">
                                     <span class="btn-text">データ取得</span>
                                     <span class="loading" id="loading-spinner" style="display: none;" aria-hidden="true"></span>

@@ -34,6 +34,9 @@ function initApp() {
     // Issue #67: 時間軸選択UI機能初期化
     initTimeframeSelector();
 
+    // Issue #67: 足選択UI機能初期化
+    initIntervalSelector();
+
     // 初期データ読み込み
     loadExistingData();
 }
@@ -45,6 +48,7 @@ async function handleFetchSubmit(event) {
     const formData = new FormData(event.target);
     const symbol = formData.get('symbol');
     const period = formData.get('period');
+    const interval = formData.get('interval');
 
     // バリデーション
     const errors = validateForm(formData);
@@ -66,7 +70,7 @@ async function handleFetchSubmit(event) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ symbol, period })
+            body: JSON.stringify({ symbol, period, interval })
         });
 
         const result = await response.json();
@@ -877,6 +881,21 @@ function validateForm(formData) {
         }
     }
     
+    // 足選択のバリデーションを追加
+    const interval = formData.get('interval');
+    if (!interval || interval.trim() === '') {
+        errors.interval = '足を選択してください';
+    } else {
+        const validIntervals = [
+            '1m', '2m', '5m', '15m', '30m', '60m', '90m',
+            '1h', '2h', '4h', '6h', '12h',
+            '1d', '5d', '1wk', '1mo', '3mo'
+        ];
+        if (!validIntervals.includes(interval)) {
+            errors.interval = '無効な足が選択されています';
+        }
+    }
+    
     return errors;
 }
 
@@ -891,6 +910,12 @@ function showFieldError(fieldName, message) {
         if (timeframeSelector) {
             setTimeframeSelectorState(timeframeSelector, 'invalid');
         }
+    } else if (fieldName === 'interval') {
+        showIntervalError(message);
+        const intervalSelector = document.getElementById('interval');
+        if (intervalSelector) {
+            setIntervalSelectorState(intervalSelector, 'invalid');
+        }
     } else {
         originalShowFieldError(fieldName, message);
     }
@@ -903,9 +928,303 @@ const originalClearFieldErrors = clearFieldErrors;
 function clearFieldErrors() {
     originalClearFieldErrors();
     clearTimeframeError();
+    clearIntervalError();
     
     const timeframeSelector = document.getElementById('period');
     if (timeframeSelector) {
         setTimeframeSelectorState(timeframeSelector, 'neutral');
     }
+    
+    const intervalSelector = document.getElementById('interval');
+    if (intervalSelector) {
+        setIntervalSelectorState(intervalSelector, 'neutral');
+    }
+}
+
+// ========================================
+// Issue #67: 足選択UI機能実装
+// ========================================
+
+/**
+ * 足選択UI機能の初期化
+ */
+function initIntervalSelector() {
+    console.log('足選択UI機能を初期化中...');
+    
+    const intervalSelector = document.getElementById('interval');
+    const intervalIndicator = document.getElementById('interval-indicator');
+    
+    if (!intervalSelector || !intervalIndicator) {
+        console.warn('足選択要素が見つかりません');
+        return;
+    }
+
+    // 初期状態の設定
+    updateIntervalIndicator(intervalSelector.value);
+    
+    // イベントリスナーの設定
+    intervalSelector.addEventListener('change', handleIntervalChange);
+    intervalSelector.addEventListener('blur', validateIntervalSelection);
+    
+    // フォーカス時のアクセシビリティ向上
+    intervalSelector.addEventListener('focus', handleIntervalFocus);
+    
+    console.log('足選択UI機能の初期化が完了しました');
+}
+
+/**
+ * 足選択変更時のハンドラ
+ * @param {Event} event - 変更イベント
+ */
+function handleIntervalChange(event) {
+    const selectedValue = event.target.value;
+    
+    // バリデーション実行
+    const isValid = validateIntervalSelection(event);
+    
+    if (isValid) {
+        // インジケーター更新
+        updateIntervalIndicator(selectedValue);
+        
+        // フォームの状態を有効に設定
+        setIntervalSelectorState(event.target, 'valid');
+        
+        // アクセシビリティ: 選択内容をアナウンス
+        announceIntervalSelection(selectedValue);
+    }
+}
+
+/**
+ * 足選択のバリデーション
+ * @param {Event} event - イベントオブジェクト
+ * @returns {boolean} バリデーション結果
+ */
+function validateIntervalSelection(event) {
+    const intervalSelector = event.target;
+    const selectedValue = intervalSelector.value;
+    
+    // エラーメッセージをクリア
+    clearIntervalError();
+    
+    // 必須チェック
+    if (!selectedValue || selectedValue.trim() === '') {
+        showIntervalError('足を選択してください');
+        setIntervalSelectorState(intervalSelector, 'invalid');
+        return false;
+    }
+    
+    // 有効な足値のチェック
+    const validIntervals = [
+        '1m', '2m', '5m', '15m', '30m', '60m', '90m',
+        '1h', '2h', '4h', '6h', '12h',
+        '1d', '5d', '1wk', '1mo', '3mo'
+    ];
+    if (!validIntervals.includes(selectedValue)) {
+        showIntervalError('無効な足が選択されています');
+        setIntervalSelectorState(intervalSelector, 'invalid');
+        return false;
+    }
+    
+    // バリデーション成功
+    setIntervalSelectorState(intervalSelector, 'valid');
+    return true;
+}
+
+/**
+ * 足インジケーターの更新
+ * @param {string} selectedValue - 選択された足値
+ */
+function updateIntervalIndicator(selectedValue) {
+    const indicator = document.getElementById('interval-indicator');
+    const indicatorText = indicator.querySelector('.indicator-text');
+    
+    if (!indicator || !indicatorText) {
+        return;
+    }
+    
+    // 既存のクラスをクリア
+    indicator.className = 'interval-indicator';
+    
+    // 足に応じたメッセージとスタイルを設定
+    const intervalConfig = getIntervalConfig(selectedValue);
+    
+    indicatorText.textContent = intervalConfig.message;
+    indicator.classList.add(intervalConfig.className);
+    
+    // アニメーション効果
+    indicator.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        indicator.style.transform = 'scale(1)';
+    }, 150);
+}
+
+/**
+ * 足設定の取得
+ * @param {string} value - 足値
+ * @returns {Object} 足設定オブジェクト
+ */
+function getIntervalConfig(value) {
+    const configs = {
+        // 分足（短期取引）
+        '1m': {
+            message: '1分足 - 超短期スキャルピング取引向け',
+            className: 'minute-interval'
+        },
+        '2m': {
+            message: '2分足 - 短期スキャルピング取引向け',
+            className: 'minute-interval'
+        },
+        '5m': {
+            message: '5分足 - 短期デイトレード向け',
+            className: 'minute-interval'
+        },
+        '15m': {
+            message: '15分足 - 短期デイトレード向け',
+            className: 'minute-interval'
+        },
+        '30m': {
+            message: '30分足 - 短期〜中期デイトレード向け',
+            className: 'minute-interval'
+        },
+        '60m': {
+            message: '60分足 - 中期デイトレード向け',
+            className: 'minute-interval'
+        },
+        '90m': {
+            message: '90分足 - 中期デイトレード向け',
+            className: 'minute-interval'
+        },
+        
+        // 時間足（中期取引）
+        '1h': {
+            message: '1時間足 - 中期スイングトレード向け',
+            className: 'hour-interval'
+        },
+        '2h': {
+            message: '2時間足 - 中期スイングトレード向け',
+            className: 'hour-interval'
+        },
+        '4h': {
+            message: '4時間足 - 中期〜長期スイングトレード向け',
+            className: 'hour-interval'
+        },
+        '6h': {
+            message: '6時間足 - 長期スイングトレード向け',
+            className: 'hour-interval'
+        },
+        '12h': {
+            message: '12時間足 - 長期スイングトレード向け',
+            className: 'hour-interval'
+        },
+        
+        // 日足・週足・月足（長期取引）
+        '1d': {
+            message: '日足 - 長期投資・ポジショントレード向け',
+            className: 'day-interval'
+        },
+        '5d': {
+            message: '5日足 - 長期投資向け',
+            className: 'day-interval'
+        },
+        '1wk': {
+            message: '週足 - 長期投資・トレンド分析向け',
+            className: 'week-interval'
+        },
+        '1mo': {
+            message: '月足 - 超長期投資・マクロ分析向け',
+            className: 'month-interval'
+        },
+        '3mo': {
+            message: '3ヶ月足 - 超長期投資・マクロ分析向け',
+            className: 'month-interval'
+        }
+    };
+    
+    return configs[value] || {
+        message: '足を選択してください',
+        className: 'day-interval'
+    };
+}
+
+/**
+ * 足選択器の状態設定
+ * @param {HTMLElement} element - 選択器要素
+ * @param {string} state - 状態 ('valid', 'invalid', 'neutral')
+ */
+function setIntervalSelectorState(element, state) {
+    // 既存の状態クラスをクリア
+    element.classList.remove('is-valid', 'is-invalid');
+    
+    // 新しい状態クラスを追加
+    if (state === 'valid') {
+        element.classList.add('is-valid');
+    } else if (state === 'invalid') {
+        element.classList.add('is-invalid');
+    }
+}
+
+/**
+ * 足選択エラーの表示
+ * @param {string} message - エラーメッセージ
+ */
+function showIntervalError(message) {
+    const errorElement = document.getElementById('interval-error');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.classList.add('show');
+        
+        // アクセシビリティ: エラーをアナウンス
+        errorElement.setAttribute('aria-live', 'assertive');
+    }
+}
+
+/**
+ * 足選択エラーのクリア
+ */
+function clearIntervalError() {
+    const errorElement = document.getElementById('interval-error');
+    if (errorElement) {
+        errorElement.textContent = '';
+        errorElement.classList.remove('show');
+        errorElement.setAttribute('aria-live', 'polite');
+    }
+}
+
+/**
+ * フォーカス時のハンドラ
+ * @param {Event} event - フォーカスイベント
+ */
+function handleIntervalFocus(event) {
+    // フォーカス時にエラーをクリア
+    clearIntervalError();
+    setIntervalSelectorState(event.target, 'neutral');
+}
+
+/**
+ * 選択内容のアナウンス（アクセシビリティ向上）
+ * @param {string} selectedValue - 選択された値
+ */
+function announceIntervalSelection(selectedValue) {
+    const config = getIntervalConfig(selectedValue);
+    
+    // スクリーンリーダー用の一時的な要素を作成
+    const announcement = document.createElement('div');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.setAttribute('aria-atomic', 'true');
+    announcement.style.position = 'absolute';
+    announcement.style.left = '-10000px';
+    announcement.style.width = '1px';
+    announcement.style.height = '1px';
+    announcement.style.overflow = 'hidden';
+    
+    announcement.textContent = `足が選択されました: ${config.message}`;
+    
+    document.body.appendChild(announcement);
+    
+    // 短時間後に要素を削除
+    setTimeout(() => {
+        if (announcement.parentNode) {
+            announcement.parentNode.removeChild(announcement);
+        }
+    }, 1000);
 }
