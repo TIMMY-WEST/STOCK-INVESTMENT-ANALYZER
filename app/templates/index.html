@@ -3,245 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="株価データの取得・管理・分析を行うWebアプリケーション">
-    <meta name="theme-color" content="#007bff">
-    <meta name="format-detection" content="telephone=no">
-    <title>株価データ管理システム</title>
+    <title>株式投資分析ツール</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- Skip to main content link for accessibility -->
-    <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
-
-    <!-- Header and Navigation -->
-    <header class="header">
-        <div class="container">
-            <nav class="nav" role="navigation" aria-label="メインナビゲーション">
-                <a href="/" class="nav-brand">株価データ管理システム</a>
-                <ul class="nav-links">
-                    <li><a href="/" class="nav-link" aria-current="page">ホーム</a></li>
-                    <li><a href="#data-management" class="nav-link">データ管理</a></li>
-                    <li><a href="#analytics" class="nav-link">分析</a></li>
-                    <li><a href="#help" class="nav-link">ヘルプ</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main id="main-content" class="main">
-        <div class="container">
-            <!-- Page Header -->
-            <section class="page-header">
-                <h1 class="page-title">株価データ管理システム</h1>
-                <p class="page-subtitle">Yahoo Finance APIから株価データを取得し、データベースに保存・管理できます</p>
-            </section>
-
-            <!-- Data Fetch Section -->
-            <section id="data-fetch" class="card">
-                <header class="card-header">
-                    <h2 class="card-title">株価データ取得</h2>
-                </header>
-                <div class="card-body">
-                    <form id="fetch-form" class="fetch-form" role="form" aria-labelledby="fetch-title">
-                        <div class="form-row">
-                            <div class="form-col">
-                                <label for="symbol" class="form-label">銘柄コード</label>
-                                <input
-                                    type="text"
-                                    id="symbol"
-                                    name="symbol"
-                                    class="form-control"
-                                    value="7203.T"
-                                    placeholder="例: 7203.T"
-                                    aria-describedby="symbol-help"
-                                    required
-                                >
-                                <div id="symbol-help" class="form-text mt-1">
-                                    <small>東証の場合は銘柄コードの後に「.T」を付けてください（例: 7203.T）</small>
-                                </div>
-                            </div>
-                            <div class="form-col">
-                                <label for="period" class="form-label">
-                                    取得期間
-                                    <span class="required-indicator" aria-label="必須項目">*</span>
-                                </label>
-                                <div class="timeframe-selector-container">
-                                    <select 
-                                        id="period" 
-                                        name="period" 
-                                        class="form-control timeframe-selector" 
-                                        aria-describedby="period-help period-error"
-                                        aria-label="データ取得期間を選択"
-                                        required
-                                        data-validation="timeframe"
-                                    >
-                                        <option value="">期間を選択してください</option>
-                                        <optgroup label="短期間">
-                                            <option value="5d">5日間</option>
-                                            <option value="1wk">1週間</option>
-                                        </optgroup>
-                                        <optgroup label="中期間">
-                                            <option value="1mo" selected>1ヶ月</option>
-                                            <option value="3mo">3ヶ月</option>
-                                            <option value="6mo">6ヶ月</option>
-                                        </optgroup>
-                                        <optgroup label="長期間">
-                                            <option value="1y">1年</option>
-                                            <option value="2y">2年</option>
-                                            <option value="5y">5年</option>
-                                        </optgroup>
-                                        <optgroup label="超長期間">
-                                            <option value="max">最大期間（全期間）</option>
-                                        </optgroup>
-                                    </select>
-                                    <div class="timeframe-indicator" id="timeframe-indicator">
-                                        <span class="indicator-text">1ヶ月のデータを取得します</span>
-                                    </div>
-                                </div>
-                                <div id="period-help" class="form-text mt-1">
-                                    <small>取得するデータの期間を選択してください。期間が長いほど取得に時間がかかります。</small>
-                                </div>
-                                <div id="period-error" class="field-error" role="alert" aria-live="polite"></div>
-                            </div>
-                            <div class="form-col">
-                                <button type="submit" id="fetch-btn" class="btn btn-primary">
-                                    <span class="btn-text">データ取得</span>
-                                    <span class="loading" id="loading-spinner" style="display: none;" aria-hidden="true"></span>
-                                </button>
-                                <button type="button" id="reset-btn" class="btn btn-secondary mt-2">
-                                    リセット
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-
-                    <!-- Results Section -->
-                    <div id="result-container" role="region" aria-live="polite" aria-label="処理結果"></div>
+    <div class="container">
+        <header>
+            <h1>株式投資分析ツール</h1>
+        </header>
+        
+        <main>
+            <div class="controls">
+                <div class="input-group">
+                    <label for="symbol">銘柄コード:</label>
+                    <input type="text" id="symbol" placeholder="例: AAPL" value="AAPL">
+                    <div class="error-message" id="symbol-error"></div>
                 </div>
-            </section>
-
-            <!-- Data Management Section -->
-            <section id="data-management" class="card">
-                <header class="card-header">
-                    <h2 class="card-title">データ管理</h2>
-                </header>
-                <div class="card-body">
-                    <!-- Data View Controls -->
-                    <div class="form-row mb-3">
-                        <div class="form-col">
-                            <label for="view-symbol" class="form-label">銘柄フィルタ</label>
-                            <input
-                                type="text"
-                                id="view-symbol"
-                                name="view-symbol"
-                                class="form-control"
-                                placeholder="銘柄コードで絞り込み"
-                            >
-                        </div>
-                        <div class="form-col">
-                            <label for="view-limit" class="form-label">表示件数</label>
-                            <select id="view-limit" name="view-limit" class="form-control">
-                                <option value="10">10件</option>
-                                <option value="25" selected>25件</option>
-                                <option value="50">50件</option>
-                                <option value="100">100件</option>
-                            </select>
-                        </div>
-                        <div class="form-col">
-                            <button type="button" id="load-data-btn" class="btn btn-secondary">
-                                データ読み込み
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Data Table -->
-                    <div class="table-container">
-                        <table id="data-table" class="table table-striped" role="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">ID</th>
-                                    <th scope="col" class="sortable" data-sort="symbol">
-                                        銘柄コード
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="date">
-                                        日付
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="open">
-                                        始値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="high">
-                                        高値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="low">
-                                        安値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="close">
-                                        終値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="volume">
-                                        出来高
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="data-table-body">
-                                <tr>
-                                    <td colspan="9" class="text-center loading-text">
-                                        「データ読み込み」ボタンをクリックしてデータを表示してください
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div id="pagination" class="d-flex justify-content-between align-items-center mt-3" style="display: none;">
-                        <div class="pagination-info">
-                            <span id="pagination-text">表示中: 1-25 / 全 0 件</span>
-                        </div>
-                        <div class="pagination-controls gap-2">
-                            <button type="button" id="prev-page-btn" class="btn btn-secondary btn-sm" disabled>前へ</button>
-                            <button type="button" id="next-page-btn" class="btn btn-secondary btn-sm" disabled>次へ</button>
-                        </div>
-                    </div>
+                
+                <div class="input-group">
+                    <label for="timeframe">期間:</label>
+                    <select id="timeframe">
+                        <option value="1d">1日</option>
+                        <option value="5d">5日</option>
+                        <option value="1mo" selected>1ヶ月</option>
+                        <option value="3mo">3ヶ月</option>
+                        <option value="6mo">6ヶ月</option>
+                        <option value="1y">1年</option>
+                        <option value="2y">2年</option>
+                        <option value="5y">5年</option>
+                        <option value="10y">10年</option>
+                        <option value="ytd">年初来</option>
+                        <option value="max">全期間</option>
+                    </select>
+                    <div class="error-message" id="timeframe-error"></div>
                 </div>
-            </section>
-
-            <!-- Connection Test Section -->
-            <section id="system-status" class="card">
-                <header class="card-header">
-                    <h2 class="card-title">システム状態</h2>
-                </header>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p>データベース接続テストを実行して、システムの動作状況を確認できます。</p>
-                        </div>
-                        <button type="button" id="test-connection-btn" class="btn btn-secondary">
-                            接続テスト実行
-                        </button>
-                    </div>
-                    <div id="connection-result" role="region" aria-live="polite"></div>
+                
+                <div class="input-group">
+                    <label for="interval">足種別:</label>
+                    <select id="interval">
+                        <option value="1m">1分足</option>
+                        <option value="5m">5分足</option>
+                        <option value="15m">15分足</option>
+                        <option value="30m">30分足</option>
+                        <option value="1h">1時間足</option>
+                        <option value="1d" selected>日足</option>
+                        <option value="1wk">週足</option>
+                        <option value="1mo">月足</option>
+                    </select>
+                    <div class="error-message" id="interval-error"></div>
                 </div>
-            </section>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer mt-5" style="background-color: var(--light-gray); padding: 2rem 0; border-top: 1px solid var(--border-color);">
-        <div class="container text-center">
-            <p>&copy; 2024 株価データ管理システム. All rights reserved.</p>
-        </div>
-    </footer>
-
+                
+                <button id="fetch-data" class="btn-primary">データ取得</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="stockChart"></canvas>
+            </div>
+            
+            <div class="data-info" id="data-info" style="display: none;">
+                <h3>データ情報</h3>
+                <div id="data-details"></div>
+            </div>
+        </main>
+    </div>
+    
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
