@@ -178,3 +178,6 @@ CLAUDE.md
 prompt.md
 .mypy_cache/
 .claude/
+
+# AI memory (Serena MCP)
+.serena/
