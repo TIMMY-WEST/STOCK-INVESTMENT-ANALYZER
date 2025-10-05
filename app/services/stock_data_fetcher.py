@@ -8,7 +8,7 @@ import pandas as pd
 from typing import Optional, Dict, Any
 from datetime import datetime, date
 import logging
-from app.utils.timeframe_utils import (
+from utils.timeframe_utils import (
     validate_interval,
     get_display_name,
     get_recommended_period,

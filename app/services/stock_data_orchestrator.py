@@ -7,9 +7,9 @@ from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
 
-from app.services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
-from app.services.stock_data_saver import StockDataSaver, StockDataSaveError
-from app.utils.timeframe_utils import (
+from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
+from services.stock_data_saver import StockDataSaver, StockDataSaveError
+from utils.timeframe_utils import (
     get_all_intervals,
     get_display_name,
     validate_interval

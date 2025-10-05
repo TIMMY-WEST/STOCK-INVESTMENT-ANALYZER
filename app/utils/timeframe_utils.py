@@ -4,7 +4,7 @@ yfinanceの時間軸(interval)とデータベースモデルのマッピング�
 """
 
 from typing import Dict, Type, Literal
-from app.models import (
+from models import (
     Stocks1m, Stocks5m, Stocks15m, Stocks30m,
     Stocks1h, Stocks1d, Stocks1wk, Stocks1mo,
     StockDataBase

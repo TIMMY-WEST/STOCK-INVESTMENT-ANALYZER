@@ -5,10 +5,10 @@ from unittest.mock import Mock, patch, MagicMock
 import pandas as pd
 from datetime import datetime, date
 
-from app.services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
-from app.services.stock_data_saver import StockDataSaver, StockDataSaveError
-from app.services.stock_data_orchestrator import StockDataOrchestrator
-from app.utils.timeframe_utils import (
+from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
+from services.stock_data_saver import StockDataSaver, StockDataSaveError
+from services.stock_data_orchestrator import StockDataOrchestrator
+from utils.timeframe_utils import (
     get_model_for_interval,
     validate_interval,
     get_all_intervals
@@ -31,7 +31,7 @@ class TestTimeframeUtils:
 
     def test_get_model_for_interval(self):
         """時間軸に対応するモデルの取得"""
-        from app.models import Stocks1d, Stocks1h, Stocks1m
+        from models import Stocks1d, Stocks1h, Stocks1m
 
         assert get_model_for_interval('1d') == Stocks1d
         assert get_model_for_interval('1h') == Stocks1h
@@ -239,8 +239,8 @@ class TestStockDataOrchestrator:
 
     def test_check_data_integrity(self, orchestrator):
         """整合性チェック"""
-        with patch.object(StockDataSaver, 'count_records', return_value=10), \
-             patch.object(StockDataSaver, 'get_latest_date', return_value=date(2024, 1, 1)):
+        with patch.object(orchestrator.saver, 'count_records', return_value=10), \
+             patch.object(orchestrator.saver, 'get_latest_date', return_value=date(2024, 1, 1)):
 
             result = orchestrator.check_data_integrity('7203.T', '1d')
 

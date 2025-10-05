@@ -9,8 +9,8 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 from datetime import datetime, date
 
-from app.models import get_db_session, StockDataBase
-from app.utils.timeframe_utils import (
+from models import get_db_session, StockDataBase
+from utils.timeframe_utils import (
     get_model_for_interval,
     validate_interval,
     get_display_name,

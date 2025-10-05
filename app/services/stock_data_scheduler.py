@@ -11,7 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 
-from app.services.stock_data_orchestrator import StockDataOrchestrator
+from services.stock_data_orchestrator import StockDataOrchestrator
 
 logger = logging.getLogger(__name__)
 
