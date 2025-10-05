@@ -88,9 +88,9 @@ Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存
    ```
 
 3. **環境設定**
-   
+
    セットアップスクリプトが自動的に `.env` ファイルを生成します。必要に応じて設定を調整してください：
-   
+
    ```env
    DB_HOST=localhost
    DB_PORT=5432
@@ -98,6 +98,15 @@ Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存
    DB_USER=stock_user
    DB_PASSWORD=stock_password
    ```
+
+4. **アプリケーション起動**
+
+   ```bash
+   cd app
+   python app.py
+   ```
+
+   サーバーが起動したら、ブラウザで `http://localhost:8000` にアクセスしてください。
 
 ## データベース管理
 

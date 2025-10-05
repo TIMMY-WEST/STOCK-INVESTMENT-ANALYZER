@@ -4,6 +4,9 @@ import os
 import yfinance as yf
 from datetime import datetime, date
 from models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, DatabaseError, StockDataError
+from services.stock_data_orchestrator import StockDataOrchestrator
+from utils.timeframe_utils import get_model_for_interval, validate_interval, get_display_name
+from sqlalchemy import func
 
 # 環境変数読み込み
 load_dotenv()
@@ -55,73 +58,52 @@ def fetch_data():
                 "message": f"無効な足種別です。有効な値: {', '.join(valid_intervals)}"
             }), 400
 
-        # Yahoo Financeからデータ取得
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period=period, interval=interval)
+        # StockDataOrchestratorを使用してデータ取得・保存
+        orchestrator = StockDataOrchestrator()
+        result = orchestrator.fetch_and_save(
+            symbol=symbol,
+            interval=interval,
+            period=period
+        )
 
-        if hist.empty:
+        if result['success']:
+            save_result = result['save_result']
+
+            return jsonify({
+                "success": True,
+                "message": "データを正常に取得し、データベースに保存しました",
+                "data": {
+                    "symbol": symbol,
+                    "period": period,
+                    "interval": interval,
+                    "records_count": result['fetch_count'],
+                    "saved_records": save_result['saved'],
+                    "skipped_records": save_result.get('skipped', 0),
+                    "date_range": {
+                        "start": save_result.get('date_range', {}).get('start', 'N/A'),
+                        "end": save_result.get('date_range', {}).get('end', 'N/A')
+                    }
+                }
+            })
+        else:
+            # エラーの詳細を分析して適切なエラーコードとステータスコードを返す
+            error_message = result.get('error', 'Unknown error')
+
+            # 銘柄コード無効のエラー判定
+            if 'データが取得できませんでした' in error_message or 'Empty ticker name' in error_message:
+                return jsonify({
+                    "success": False,
+                    "error": "INVALID_SYMBOL",
+                    "message": f"指定された銘柄コードのデータが取得できません"
+                }), 400
+
+            # その他のデータ取得エラー
             return jsonify({
                 "success": False,
-                "error": "INVALID_SYMBOL",
-                "message": "指定された銘柄コードのデータが取得できません"
-            }), 400
+                "error": "DATA_FETCH_ERROR",
+                "message": f"データ取得に失敗しました: {error_message}"
+            }), 500
 
-        # データベースに保存
-        with get_db_session() as session:
-            saved_records = []
-            skipped_records = 0
-
-            for date_index, row in hist.iterrows():
-                try:
-                    # 日付をdate型に変換
-                    stock_date = date_index.date()
-
-                    # 既存データの確認
-                    existing_data = StockDailyCRUD.get_by_symbol_and_date(session, symbol, stock_date)
-                    if existing_data:
-                        skipped_records += 1
-                        continue
-
-                    # 新しいデータを作成
-                    stock_data = StockDailyCRUD.create(
-                        session,
-                        symbol=symbol,
-                        date=stock_date,
-                        open=float(row['Open']),
-                        high=float(row['High']),
-                        low=float(row['Low']),
-                        close=float(row['Close']),
-                        volume=int(row['Volume'])
-                    )
-                    saved_records.append(stock_data)
-
-                except (StockDataError, DatabaseError):
-                    # 重複データの場合はスキップ
-                    skipped_records += 1
-                    continue
-
-        return jsonify({
-            "success": True,
-            "message": "データを正常に取得し、データベースに保存しました",
-            "data": {
-                "symbol": symbol,
-                "period": period,
-                "interval": interval,
-                "records_count": len(hist),
-                "saved_records": len(saved_records),
-                "skipped_records": skipped_records,
-                "date_range": {
-                    "start": hist.index[0].strftime('%Y-%m-%d'),
-                    "end": hist.index[-1].strftime('%Y-%m-%d')
-                }
-            }
-        })
-    except DatabaseError as e:
-        return jsonify({
-            "success": False,
-            "error": "DATABASE_ERROR",
-            "message": f"データベース保存に失敗しました: {str(e)}"
-        }), 500
     except Exception as e:
         return jsonify({
             "success": False,
@@ -222,10 +204,19 @@ def get_stocks():
     try:
         # クエリパラメータの取得
         symbol = request.args.get('symbol')
+        interval = request.args.get('interval', '1d')  # デフォルトは1日足
         limit = request.args.get('limit', 100, type=int)
         offset = request.args.get('offset', 0, type=int)
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
+
+        # 時間軸のバリデーション
+        if not validate_interval(interval):
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": f"無効な時間軸です: {interval}"
+            }), 400
 
         # 日付のパース
         parsed_start_date = None
@@ -265,16 +256,32 @@ def get_stocks():
                 "message": "offset は0以上の値を指定してください"
             }), 400
 
+        # 時間軸に応じたモデルクラスを取得
+        model_class = get_model_for_interval(interval)
+
+        # 時間軸に応じた日時カラム名を決定
+        # 1分〜1時間足は datetime、日足以上は date
+        time_column = model_class.datetime if hasattr(model_class, 'datetime') else model_class.date
+
         with get_db_session() as session:
-            # データ取得
-            stocks = StockDailyCRUD.get_with_filters(
-                session, symbol, limit, offset, parsed_start_date, parsed_end_date
-            )
-            
+            # クエリベースの構築
+            query = session.query(model_class)
+
+            # 銘柄フィルタ
+            if symbol:
+                query = query.filter(model_class.symbol == symbol)
+
+            # 日付範囲フィルタ
+            if parsed_start_date:
+                query = query.filter(time_column >= parsed_start_date)
+            if parsed_end_date:
+                query = query.filter(time_column <= parsed_end_date)
+
             # 総件数取得
-            total_count = StockDailyCRUD.count_with_filters(
-                session, symbol, parsed_start_date, parsed_end_date
-            )
+            total_count = query.count()
+
+            # 並び替えとページネーション
+            stocks = query.order_by(time_column.desc()).limit(limit).offset(offset).all()
 
             # ページネーション情報
             has_next = (offset + len(stocks)) < total_count
@@ -287,7 +294,9 @@ def get_stocks():
                     "limit": limit,
                     "offset": offset,
                     "has_next": has_next
-                }
+                },
+                "interval": interval,
+                "interval_name": get_display_name(interval)
             })
 
     except DatabaseError as e:

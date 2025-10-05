@@ -43,9 +43,10 @@ class TestIntervalSelectorUI:
         assert len(options) > 0, "足選択セレクターにオプションがありません"
         
         # 必要な足種別のオプション確認（実際のHTMLテンプレートに基づく）
-        expected_intervals = ['1m', '2m', '5m', '15m', '30m', '60m', '1h', '90m', '1d', '5d', '1wk', '1mo', '3mo']
+        # Issue #68で実装された時間軸（yahooファイナンスAPIでサポートされている時間軸）
+        expected_intervals = ['1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo']
         option_values = [option.get('value') for option in options if option.get('value')]
-        
+
         for interval in expected_intervals:
             assert interval in option_values, f"足種別 {interval} のオプションが見つかりません"
 
