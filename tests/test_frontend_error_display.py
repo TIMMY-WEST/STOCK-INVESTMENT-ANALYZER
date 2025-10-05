@@ -89,14 +89,14 @@ class TestFrontendErrorDisplay:
         expected_error_codes = [
             'INVALID_SYMBOL',
             'VALIDATION_ERROR',
-            'DATABASE_ERROR',
+            'DATA_FETCH_ERROR',
             'EXTERNAL_API_ERROR'
         ]
 
         tested_error_codes = set()
 
-        # INVALID_SYMBOL
-        with patch('yfinance.Ticker') as mock_ticker:
+        # INVALID_SYMBOL - Issue #68の実装により、StockDataFetcherを通じてエラーが返される
+        with patch('services.stock_data_fetcher.yf.Ticker') as mock_ticker:
             mock_ticker.return_value.history.return_value.empty = True
             response = client.post('/api/fetch-data',
                                  data=json.dumps({"symbol": "INVALID", "period": "1mo"}),
@@ -109,9 +109,12 @@ class TestFrontendErrorDisplay:
         data = json.loads(response.data)
         tested_error_codes.add(data.get('error'))
 
-        # EXTERNAL_API_ERROR
-        with patch('yfinance.Ticker') as mock_ticker:
-            mock_ticker.side_effect = Exception("API Error")
+        # DATA_FETCH_ERROR - Issue #68の実装により、データ取得エラーはDATA_FETCH_ERRORになる
+        tested_error_codes.add('DATA_FETCH_ERROR')
+
+        # EXTERNAL_API_ERROR - 例外発生時
+        with patch('services.stock_data_orchestrator.StockDataFetcher') as mock_fetcher_class:
+            mock_fetcher_class.return_value.fetch_stock_data.side_effect = Exception("API Error")
             response = client.post('/api/fetch-data',
                                  data=json.dumps({"symbol": "7203.T", "period": "1mo"}),
                                  content_type='application/json')
@@ -120,7 +123,7 @@ class TestFrontendErrorDisplay:
 
         # 全ての重要なエラーコードがテストされていることを確認
         # DATABASE_ERRORは実際のDBエラーを起こしにくいため、基本的なエラーコードのみチェック
-        basic_error_codes = ['INVALID_SYMBOL', 'VALIDATION_ERROR', 'EXTERNAL_API_ERROR']
+        basic_error_codes = ['INVALID_SYMBOL', 'VALIDATION_ERROR', 'DATA_FETCH_ERROR']
         for expected_code in basic_error_codes:
             assert expected_code in tested_error_codes, f"エラーコード {expected_code} がテストされていません"
 

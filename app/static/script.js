@@ -44,15 +44,24 @@ function initApp() {
 // データ取得フォーム送信ハンドラ
 async function handleFetchSubmit(event) {
     event.preventDefault();
+    console.log('[handleFetchSubmit] フォーム送信開始');
+
+    // ローディング状態開始
+    showLoading();
+    console.log('[handleFetchSubmit] showLoading() 呼び出し完了');
 
     const formData = new FormData(event.target);
     const symbol = formData.get('symbol');
     const period = formData.get('period');
     const interval = formData.get('interval');
+    console.log('[handleFetchSubmit] パラメータ:', { symbol, period, interval });
 
     // バリデーション
     const errors = validateForm(formData);
+    console.log('[handleFetchSubmit] バリデーション結果:', errors);
     if (Object.keys(errors).length > 0) {
+        console.log('[handleFetchSubmit] バリデーションエラー、hideLoading() 呼び出し');
+        hideLoading(); // バリデーションエラー時にローディング状態を解除
         showValidationErrors(errors);
         return;
     }
@@ -61,8 +70,7 @@ async function handleFetchSubmit(event) {
     clearFieldErrors();
 
     try {
-        // ローディング状態開始
-        showLoading();
+        console.log('[handleFetchSubmit] APIリクエスト送信開始');
 
         // POST /api/fetch-data への非同期リクエスト
         const response = await fetch('/api/fetch-data', {
@@ -73,21 +81,31 @@ async function handleFetchSubmit(event) {
             body: JSON.stringify({ symbol, period, interval })
         });
 
+        console.log('[handleFetchSubmit] レスポンス受信:', response.status, response.ok);
         const result = await response.json();
+        console.log('[handleFetchSubmit] JSON パース完了:', result);
+
+        // ローディング状態を先に解除
+        console.log('[handleFetchSubmit] hideLoading() 呼び出し開始');
+        hideLoading();
+        console.log('[handleFetchSubmit] hideLoading() 呼び出し完了');
 
         if (result.success) {
+            console.log('[handleFetchSubmit] 成功: showSuccess() 呼び出し');
             showSuccess('データを取得しました', result.data);
+            console.log('[handleFetchSubmit] showSuccess() 完了');
             // データテーブル更新
             await loadStockData();
         } else {
+            console.log('[handleFetchSubmit] 失敗: showError() 呼び出し');
             showError(result.message || 'データ取得に失敗しました');
         }
 
     } catch (error) {
-        console.error('データ取得エラー:', error);
-        showError('ネットワークエラーが発生しました: ' + error.message);
-    } finally {
+        console.error('[handleFetchSubmit] エラー発生:', error);
+        console.error('[handleFetchSubmit] エラースタック:', error.stack);
         hideLoading();
+        showError('ネットワークエラーが発生しました: ' + error.message);
     }
 }
 
@@ -102,6 +120,32 @@ function validateForm(formData) {
         errors.symbol = '正しい銘柄コード形式で入力してください（例: 7203.T）';
     }
 
+    // 時間軸選択のバリデーション
+    const period = formData.get('period');
+    if (!period || period.trim() === '') {
+        errors.period = '期間を選択してください';
+    } else {
+        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
+        if (!validPeriods.includes(period)) {
+            errors.period = '無効な期間が選択されています';
+        }
+    }
+
+    // 足選択のバリデーション
+    const interval = formData.get('interval');
+    if (!interval || interval.trim() === '') {
+        errors.interval = '足を選択してください';
+    } else {
+        const validIntervals = [
+            '1m', '5m', '15m', '30m',
+            '1h',
+            '1d', '1wk', '1mo'
+        ];
+        if (!validIntervals.includes(interval)) {
+            errors.interval = '無効な足が選択されています';
+        }
+    }
+
     return errors;
 }
 
@@ -113,6 +157,24 @@ function showValidationErrors(errors) {
 }
 
 function showFieldError(fieldName, message) {
+    // 時間軸選択と足選択のエラーは専用関数で処理
+    if (fieldName === 'period') {
+        showTimeframeError(message);
+        const timeframeSelector = document.getElementById('period');
+        if (timeframeSelector) {
+            setTimeframeSelectorState(timeframeSelector, 'invalid');
+        }
+        return;
+    } else if (fieldName === 'interval') {
+        showIntervalError(message);
+        const intervalSelector = document.getElementById('interval');
+        if (intervalSelector) {
+            setIntervalSelectorState(intervalSelector, 'invalid');
+        }
+        return;
+    }
+
+    // 通常のフィールドエラー処理
     const field = document.getElementById(fieldName);
     if (!field) return;
 
@@ -143,6 +205,20 @@ function clearFieldErrors() {
     document.querySelectorAll('.field-error').forEach(el => {
         el.style.display = 'none';
     });
+
+    // 時間軸選択と足選択のエラーもクリア
+    clearTimeframeError();
+    clearIntervalError();
+
+    const timeframeSelector = document.getElementById('period');
+    if (timeframeSelector) {
+        setTimeframeSelectorState(timeframeSelector, 'neutral');
+    }
+
+    const intervalSelector = document.getElementById('interval');
+    if (intervalSelector) {
+        setIntervalSelectorState(intervalSelector, 'neutral');
+    }
 }
 
 // ローディング状態管理
@@ -170,54 +246,116 @@ function showLoading() {
             <div class="alert alert-info">
                 <div class="alert-content">
                     <span class="status-icon">📊</span>
-                    <span>Yahoo Finance APIからデータを取得中...</span>
+                    <div>
+                        <strong>データ取得中...</strong>
+                        <div style="margin-top: 8px;">Yahoo Finance APIからデータを取得し、データベースに保存しています。しばらくお待ちください...</div>
+                    </div>
                 </div>
             </div>
         `;
+        // スクリーンリーダー向けに状態を通知
+        resultContainer.setAttribute('aria-busy', 'true');
     }
 }
 
 function hideLoading() {
+    console.log('[hideLoading] 開始');
     const fetchButton = document.getElementById('fetch-btn');
+    console.log('[hideLoading] fetchButton:', fetchButton);
+
+    if (!fetchButton) {
+        console.error('[hideLoading] エラー: fetchButton が見つかりません');
+        return;
+    }
+
     const buttonText = fetchButton.querySelector('.btn-text');
     const spinner = document.getElementById('loading-spinner');
+    const resultContainer = document.getElementById('result-container');
+    console.log('[hideLoading] 要素取得完了:', { buttonText, spinner, resultContainer });
 
     if (fetchButton) {
         fetchButton.disabled = false;
+        console.log('[hideLoading] ボタン有効化');
     }
 
     if (buttonText) {
         buttonText.textContent = 'データ取得';
+        console.log('[hideLoading] ボタンテキスト変更');
     }
 
     if (spinner) {
         spinner.style.display = 'none';
+        console.log('[hideLoading] スピナー非表示');
     }
+
+    // ローディングメッセージをクリア
+    if (resultContainer) {
+        resultContainer.removeAttribute('aria-busy');
+        console.log('[hideLoading] aria-busy 削除');
+        // ローディングメッセージ（alert-info）のみをクリア
+        const loadingAlert = resultContainer.querySelector('.alert-info');
+        console.log('[hideLoading] loadingAlert:', loadingAlert);
+        if (loadingAlert) {
+            resultContainer.innerHTML = '';
+            console.log('[hideLoading] ローディングメッセージクリア');
+        }
+    }
+    console.log('[hideLoading] 完了');
 }
 
 // ステータス表示関数
 function showSuccess(message, data) {
+    console.log('[showSuccess] 開始:', message, data);
     const resultContainer = document.getElementById('result-container');
-    if (!resultContainer) return;
+    console.log('[showSuccess] resultContainer:', resultContainer);
+    if (!resultContainer) {
+        console.error('[showSuccess] エラー: resultContainer が見つかりません');
+        return;
+    }
 
+    // スキップされたレコード数を計算
+    const skippedRecords = data.skipped_records || 0;
+    const downloadedCount = data.records_count || 0;
+    const savedCount = data.saved_records || 0;
+    console.log('[showSuccess] データ:', { skippedRecords, downloadedCount, savedCount });
+
+    console.log('[showSuccess] HTML 更新開始');
     resultContainer.innerHTML = `
         <div class="alert alert-success">
             <div class="alert-title">✅ ${escapeHtml(message)}</div>
             <div class="success-details">
                 <div><strong>銘柄:</strong> ${escapeHtml(data.symbol)}</div>
-                <div><strong>取得レコード数:</strong> ${formatNumber(data.records_count)}</div>
-                <div><strong>保存レコード数:</strong> ${formatNumber(data.saved_records)}</div>
+                <div><strong>時間軸（足）:</strong> ${escapeHtml(data.interval || '1d')}</div>
+                <div class="data-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">📥 ダウンロード件数:</span>
+                        <span class="stat-value">${formatNumber(downloadedCount)} 件</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">💾 DB格納件数:</span>
+                        <span class="stat-value">${formatNumber(savedCount)} 件</span>
+                    </div>
+                    ${skippedRecords > 0 ? `
+                    <div class="stat-item">
+                        <span class="stat-label">⏭️ スキップ（重複）:</span>
+                        <span class="stat-value">${formatNumber(skippedRecords)} 件</span>
+                    </div>
+                    ` : ''}
+                </div>
                 <div><strong>取得期間:</strong> ${data.date_range.start} ～ ${data.date_range.end}</div>
             </div>
         </div>
     `;
+    console.log('[showSuccess] HTML 更新完了');
 
-    // 2秒後に自動非表示
+    // 10秒後に自動非表示（情報量が増えたため延長）
     setTimeout(() => {
         if (resultContainer.innerHTML.includes('alert-success')) {
             resultContainer.innerHTML = '';
+            console.log('[showSuccess] 自動非表示実行');
         }
-    }, 5000);
+    }, 10000);
+    console.log('[showSuccess] 完了');
 }
 
 function showError(message) {
@@ -244,6 +382,7 @@ async function loadStockData(page = null) {
     try {
         const tableBody = document.getElementById('data-table-body');
         const symbolFilter = document.getElementById('view-symbol')?.value?.trim();
+        const intervalFilter = document.getElementById('view-interval')?.value || '1d';
         const limit = parseInt(document.getElementById('view-limit')?.value) || 25;
 
         // ページが指定されている場合は使用、そうでなければ現在のページを使用
@@ -259,7 +398,8 @@ async function loadStockData(page = null) {
         // URLパラメータ構築
         const params = new URLSearchParams({
             limit: currentLimit,
-            offset: currentPage * currentLimit
+            offset: currentPage * currentLimit,
+            interval: intervalFilter
         });
 
         if (symbolFilter) {
@@ -345,7 +485,7 @@ function updateDataTable(stockData) {
         <tr>
             <td data-label="ID">${stock.id}</td>
             <td data-label="銘柄コード">${escapeHtml(stock.symbol)}</td>
-            <td data-label="日付">${formatDate(stock.date)}</td>
+            <td data-label="日付">${formatDateTime(stock.datetime || stock.date)}</td>
             <td data-label="始値" class="text-right">${formatCurrency(stock.open)}</td>
             <td data-label="高値" class="text-right">${formatCurrency(stock.high)}</td>
             <td data-label="安値" class="text-right">${formatCurrency(stock.low)}</td>
@@ -444,6 +584,33 @@ function formatDate(dateString) {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
+    }).format(date);
+}
+
+// 日付・日時フォーマット（datetime または date フィールドに対応）
+function formatDateTime(dateTimeString) {
+    if (!dateTimeString) return '-';
+
+    const date = new Date(dateTimeString);
+
+    // 日付のみの場合（時刻が00:00:00の場合）
+    if (dateTimeString.length === 10 || dateTimeString.indexOf('T00:00:00') > 0) {
+        return new Intl.DateTimeFormat('ja-JP', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(date);
+    }
+
+    // 日時の場合
+    return new Intl.DateTimeFormat('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
     }).format(date);
 }
 
@@ -863,83 +1030,6 @@ function announceTimeframeSelection(selectedValue) {
     }, 1000);
 }
 
-/**
- * 既存のバリデーション関数を拡張
- */
-const originalValidateForm = validateForm;
-function validateForm(formData) {
-    const errors = originalValidateForm(formData);
-    
-    // 時間軸選択のバリデーションを追加
-    const period = formData.get('period');
-    if (!period || period.trim() === '') {
-        errors.period = '期間を選択してください';
-    } else {
-        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
-        if (!validPeriods.includes(period)) {
-            errors.period = '無効な期間が選択されています';
-        }
-    }
-    
-    // 足選択のバリデーションを追加
-    const interval = formData.get('interval');
-    if (!interval || interval.trim() === '') {
-        errors.interval = '足を選択してください';
-    } else {
-        const validIntervals = [
-            '1m', '2m', '5m', '15m', '30m', '60m', '90m',
-            '1h', '2h', '4h', '6h', '12h',
-            '1d', '5d', '1wk', '1mo', '3mo'
-        ];
-        if (!validIntervals.includes(interval)) {
-            errors.interval = '無効な足が選択されています';
-        }
-    }
-    
-    return errors;
-}
-
-/**
- * 既存のフィールドエラー表示関数を拡張
- */
-const originalShowFieldError = showFieldError;
-function showFieldError(fieldName, message) {
-    if (fieldName === 'period') {
-        showTimeframeError(message);
-        const timeframeSelector = document.getElementById('period');
-        if (timeframeSelector) {
-            setTimeframeSelectorState(timeframeSelector, 'invalid');
-        }
-    } else if (fieldName === 'interval') {
-        showIntervalError(message);
-        const intervalSelector = document.getElementById('interval');
-        if (intervalSelector) {
-            setIntervalSelectorState(intervalSelector, 'invalid');
-        }
-    } else {
-        originalShowFieldError(fieldName, message);
-    }
-}
-
-/**
- * 既存のフィールドエラークリア関数を拡張
- */
-const originalClearFieldErrors = clearFieldErrors;
-function clearFieldErrors() {
-    originalClearFieldErrors();
-    clearTimeframeError();
-    clearIntervalError();
-    
-    const timeframeSelector = document.getElementById('period');
-    if (timeframeSelector) {
-        setTimeframeSelectorState(timeframeSelector, 'neutral');
-    }
-    
-    const intervalSelector = document.getElementById('interval');
-    if (intervalSelector) {
-        setIntervalSelectorState(intervalSelector, 'neutral');
-    }
-}
 
 // ========================================
 // Issue #67: 足選択UI機能実装
@@ -978,19 +1068,104 @@ function initIntervalSelector() {
  */
 function handleIntervalChange(event) {
     const selectedValue = event.target.value;
-    
+
     // バリデーション実行
     const isValid = validateIntervalSelection(event);
-    
+
     if (isValid) {
         // インジケーター更新
         updateIntervalIndicator(selectedValue);
-        
+
+        // 期間選択肢を制限
+        updatePeriodOptions(selectedValue);
+
         // フォームの状態を有効に設定
         setIntervalSelectorState(event.target, 'valid');
-        
+
         // アクセシビリティ: 選択内容をアナウンス
         announceIntervalSelection(selectedValue);
+    }
+}
+
+/**
+ * 時間軸に応じて期間の選択肢を制限
+ * @param {string} interval - 選択された時間軸
+ */
+function updatePeriodOptions(interval) {
+    const periodSelector = document.getElementById('period');
+    if (!periodSelector) return;
+
+    // 時間軸ごとの利用可能期間マッピング
+    const allowedPeriods = {
+        '1m': ['1d', '5d', '7d'],
+        '2m': ['1d', '5d', '60d'],
+        '5m': ['1d', '5d', '1mo', '60d'],
+        '15m': ['1d', '5d', '1mo', '60d'],
+        '30m': ['1d', '5d', '1mo', '60d'],
+        '60m': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '730d'],
+        '90m': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '730d'],
+        '1h': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '730d'],
+        '1d': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+        '5d': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+        '1wk': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+        '1mo': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+        '3mo': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
+    };
+
+    const allowed = allowedPeriods[interval] || Object.keys(allowedPeriods['1d']);
+    const currentValue = periodSelector.value;
+
+    // 全optionを走査して無効化/有効化
+    Array.from(periodSelector.options).forEach(option => {
+        if (option.value === '') return; // プレースホルダーはスキップ
+
+        if (allowed.includes(option.value)) {
+            option.disabled = false;
+            option.style.display = '';
+        } else {
+            option.disabled = true;
+            option.style.display = 'none';
+        }
+    });
+
+    // 現在の選択が無効になった場合、デフォルト値にリセット
+    if (currentValue && !allowed.includes(currentValue)) {
+        // 1分足なら7d、5-60分足なら60d、それ以外は1mo
+        if (interval === '1m') {
+            periodSelector.value = '7d';
+        } else if (['2m', '5m', '15m', '30m'].includes(interval)) {
+            periodSelector.value = '60d';
+        } else if (['60m', '90m', '1h'].includes(interval)) {
+            periodSelector.value = '730d';
+        } else {
+            periodSelector.value = '1mo';
+        }
+
+        // 期間インジケーターを更新
+        const timeframeIndicator = document.getElementById('timeframe-indicator');
+        if (timeframeIndicator) {
+            const indicatorText = timeframeIndicator.querySelector('.indicator-text');
+            if (indicatorText) {
+                const periodMap = {
+                    '1d': '1日分',
+                    '5d': '5日分',
+                    '7d': '7日分',
+                    '1mo': '1ヶ月分',
+                    '60d': '60日分',
+                    '3mo': '3ヶ月分',
+                    '6mo': '6ヶ月分',
+                    '1y': '1年分',
+                    '2y': '2年分',
+                    '5y': '5年分',
+                    '10y': '10年分',
+                    '730d': '2年分(730日)',
+                    'ytd': '年初来',
+                    'max': '全期間'
+                };
+                const periodText = periodMap[periodSelector.value] || periodSelector.value;
+                indicatorText.textContent = `${periodText}のデータを取得します`;
+            }
+        }
     }
 }
 
@@ -1015,9 +1190,9 @@ function validateIntervalSelection(event) {
     
     // 有効な足値のチェック
     const validIntervals = [
-        '1m', '2m', '5m', '15m', '30m', '60m', '90m',
-        '1h', '2h', '4h', '6h', '12h',
-        '1d', '5d', '1wk', '1mo', '3mo'
+        '1m', '5m', '15m', '30m',
+        '1h',
+        '1d', '1wk', '1mo'
     ];
     if (!validIntervals.includes(selectedValue)) {
         showIntervalError('無効な足が選択されています');
@@ -1070,10 +1245,6 @@ function getIntervalConfig(value) {
             message: '1分足 - 超短期スキャルピング取引向け',
             className: 'minute-interval'
         },
-        '2m': {
-            message: '2分足 - 短期スキャルピング取引向け',
-            className: 'minute-interval'
-        },
         '5m': {
             message: '5分足 - 短期デイトレード向け',
             className: 'minute-interval'
@@ -1086,44 +1257,16 @@ function getIntervalConfig(value) {
             message: '30分足 - 短期〜中期デイトレード向け',
             className: 'minute-interval'
         },
-        '60m': {
-            message: '60分足 - 中期デイトレード向け',
-            className: 'minute-interval'
-        },
-        '90m': {
-            message: '90分足 - 中期デイトレード向け',
-            className: 'minute-interval'
-        },
-        
+
         // 時間足（中期取引）
         '1h': {
             message: '1時間足 - 中期スイングトレード向け',
             className: 'hour-interval'
         },
-        '2h': {
-            message: '2時間足 - 中期スイングトレード向け',
-            className: 'hour-interval'
-        },
-        '4h': {
-            message: '4時間足 - 中期〜長期スイングトレード向け',
-            className: 'hour-interval'
-        },
-        '6h': {
-            message: '6時間足 - 長期スイングトレード向け',
-            className: 'hour-interval'
-        },
-        '12h': {
-            message: '12時間足 - 長期スイングトレード向け',
-            className: 'hour-interval'
-        },
-        
+
         // 日足・週足・月足（長期取引）
         '1d': {
             message: '日足 - 長期投資・ポジショントレード向け',
-            className: 'day-interval'
-        },
-        '5d': {
-            message: '5日足 - 長期投資向け',
             className: 'day-interval'
         },
         '1wk': {
@@ -1133,13 +1276,9 @@ function getIntervalConfig(value) {
         '1mo': {
             message: '月足 - 超長期投資・マクロ分析向け',
             className: 'month-interval'
-        },
-        '3mo': {
-            message: '3ヶ月足 - 超長期投資・マクロ分析向け',
-            className: 'month-interval'
         }
     };
-    
+
     return configs[value] || {
         message: '足を選択してください',
         className: 'day-interval'

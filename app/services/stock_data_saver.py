@@ -96,6 +96,8 @@ class StockDataSaver:
         saved_count = 0
         skipped_count = 0
         error_count = 0
+        date_start = None
+        date_end = None
 
         self.logger.info(
             f"データ保存開始: {symbol} (時間軸: {get_display_name(interval)}, "
@@ -103,6 +105,14 @@ class StockDataSaver:
         )
 
         for data in data_list:
+            # 現在のデータの日付を取得（保存成否に関わらず追跡）
+            current_date = data.get('date') or data.get('datetime')
+            if current_date:
+                if date_start is None or current_date < date_start:
+                    date_start = current_date
+                if date_end is None or current_date > date_end:
+                    date_end = current_date
+
             try:
                 # データに銘柄コードを追加
                 data_with_symbol = {**data, 'symbol': symbol}
@@ -120,7 +130,7 @@ class StockDataSaver:
                 skipped_count += 1
                 self.logger.debug(
                     f"重複データをスキップ: {symbol} "
-                    f"({data.get('date') or data.get('datetime')})"
+                    f"({current_date})"
                 )
 
             except SQLAlchemyError as e:
@@ -128,7 +138,7 @@ class StockDataSaver:
                 error_count += 1
                 self.logger.error(
                     f"データ保存エラー: {symbol} "
-                    f"({data.get('date') or data.get('datetime')}): {e}"
+                    f"({current_date}): {e}"
                 )
 
         # コミット
@@ -147,7 +157,11 @@ class StockDataSaver:
             'total': len(data_list),
             'saved': saved_count,
             'skipped': skipped_count,
-            'errors': error_count
+            'errors': error_count,
+            'date_range': {
+                'start': date_start.strftime('%Y-%m-%d') if date_start else None,
+                'end': date_end.strftime('%Y-%m-%d') if date_end else None
+            }
         }
 
         self.logger.info(
