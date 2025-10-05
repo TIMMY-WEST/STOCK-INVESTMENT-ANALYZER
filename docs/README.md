@@ -31,6 +31,7 @@
 | 仕様書 | ファイル | 参照場面 |
 |-------|---------|----------|
 | **GitHub運用ワークフロー** | [`github_workflow.md`](./github_workflow.md) | Issue管理・ブランチ戦略・PR作成・CI/CD設定 |
+| **バルクデータサービス利用ガイド** | [`bulk_data_service_guide.md`](./bulk_data_service_guide.md) | 複数銘柄の一括取得・進捗トラッキング・運用ガイド |
 
 ## 🤖 AI開発者向けガイド
 
