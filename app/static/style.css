@@ -1381,3 +1381,251 @@ body {
         transition: none;
     }
 }
+
+/* ========================================
+   Bulk Data Fetch Styles
+   ======================================== */
+
+/* Section Subtitle */
+.section-subtitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 1rem;
+}
+
+/* Progress Container */
+.bulk-progress-section .progress-container {
+    width: 100%;
+    height: 2.5rem;
+    background-color: var(--light-gray);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.bulk-progress-section .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+    transition: width 0.3s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.bulk-progress-section .progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: progress-shimmer 2s infinite;
+}
+
+@keyframes progress-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.bulk-progress-section .progress-text {
+    position: relative;
+    z-index: 1;
+    font-size: 1rem;
+}
+
+/* Progress Stats */
+.progress-stats {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    background-color: var(--light-gray);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-label {
+    font-weight: 600;
+    color: var(--medium-gray);
+}
+
+.stat-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--dark-gray);
+}
+
+.stat-success {
+    color: var(--success-color);
+}
+
+.stat-error {
+    color: var(--error-color);
+}
+
+/* Current Processing */
+.current-processing {
+    padding: 0.75rem 1rem;
+    background-color: var(--info-bg);
+    border-left: 4px solid var(--info-color);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+}
+
+.current-processing strong {
+    color: var(--info-color);
+}
+
+/* Bulk Controls */
+.bulk-controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Result and Error Sections */
+.bulk-result-section,
+.bulk-error-section {
+    margin-top: 1.5rem;
+}
+
+.bulk-error-section .alert {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Utility classes for layout */
+.mb-3 {
+    margin-bottom: 1rem;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem;
+}
+
+.mt-1 {
+    margin-top: 0.25rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+.mt-3 {
+    margin-top: 1rem;
+}
+
+.row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.col {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Responsive Design for Bulk Data Fetch */
+@media (max-width: 768px) {
+    .progress-stats {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .bulk-controls {
+        flex-direction: column;
+    }
+
+    .bulk-controls .btn {
+        width: 100%;
+    }
+
+    .stat-item {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .row {
+        flex-direction: column;
+    }
+
+    .col {
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-subtitle {
+        font-size: 1rem;
+    }
+
+    .bulk-progress-section .progress-container {
+        height: 2rem;
+    }
+
+    .bulk-progress-section .progress-text {
+        font-size: 0.875rem;
+    }
+
+    .stat-value {
+        font-size: 1rem;
+    }
+}
+
+/* Accessibility improvements for bulk data fetch */
+@media (prefers-reduced-motion: reduce) {
+    .bulk-progress-section .progress-bar,
+    .progress-stats,
+    .current-processing {
+        transition: none;
+        animation: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .bulk-progress-section .progress-bar {
+        border: 2px solid #000;
+    }
+
+    .progress-stats {
+        border: 2px solid #000;
+    }
+
+    .current-processing {
+        border-left-width: 6px;
+    }
+}
