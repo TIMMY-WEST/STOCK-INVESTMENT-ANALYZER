@@ -6,6 +6,7 @@ from datetime import datetime, date
 from models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, DatabaseError, StockDataError
 from services.stock_data_orchestrator import StockDataOrchestrator
 from utils.timeframe_utils import get_model_for_interval, validate_interval, get_display_name
+from api.bulk_data import bulk_api
 from sqlalchemy import func
 
 # 環境変数読み込み
@@ -13,8 +14,19 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# WebSocket初期化（存在する場合のみ）
+try:
+    from flask_socketio import SocketIO
+    socketio = SocketIO(app, cors_allowed_origins="*")
+    app.config['SOCKETIO'] = socketio
+except Exception:
+    app.config['SOCKETIO'] = None
+
 # テーブル作成
 Base.metadata.create_all(bind=engine)
+
+# Blueprint登録
+app.register_blueprint(bulk_api)
 
 @app.route('/')
 def index():
