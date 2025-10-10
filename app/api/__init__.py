@@ -1,7 +1,7 @@
 from flask import Blueprint
 
 # Bulk Fetch API 用のBlueprint
-bulk_api = Blueprint('bulk_api', __name__, url_prefix='/api/bulk-fetch')
+bulk_api = Blueprint('bulk_api', __name__, url_prefix='/api/bulk')
 
 # WebSocket進捗通知（flask_socketioが存在する場合のみ有効）
 try:
