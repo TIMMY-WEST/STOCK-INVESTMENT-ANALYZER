@@ -28,13 +28,22 @@ def _client_key() -> str:
 
 
 def require_api_key(func: Callable):
-    """単純なAPIキー認証（ヘッダ: X-API-KEY）"""
+    """単純なAPIキー認証（ヘッダ: X-API-KEY）
+
+    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         expected = os.getenv('API_KEY')
-        provided = request.headers.get('X-API-KEY')
-        if expected and provided == expected:
+        # API_KEYが設定されていない場合は認証不要
+        if not expected:
             return func(*args, **kwargs)
+
+        # API_KEYが設定されている場合は認証必須
+        provided = request.headers.get('X-API-KEY')
+        if provided == expected:
+            return func(*args, **kwargs)
+
         return jsonify({
             "success": False,
             "error": "UNAUTHORIZED",

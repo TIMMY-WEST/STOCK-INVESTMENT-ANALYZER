@@ -67,10 +67,10 @@
                                     <span class="required-indicator" aria-label="必須項目">*</span>
                                 </label>
                                 <div class="timeframe-selector-container">
-                                    <select 
-                                        id="period" 
-                                        name="period" 
-                                        class="form-control timeframe-selector" 
+                                    <select
+                                        id="period"
+                                        name="period"
+                                        class="form-control timeframe-selector"
                                         aria-describedby="period-help period-error"
                                         aria-label="データ取得期間を選択"
                                         required
@@ -158,113 +158,6 @@
 
                     <!-- Results Section -->
                     <div id="result-container" role="region" aria-live="polite" aria-label="処理結果"></div>
-                </div>
-            </section>
-
-            <!-- Data Management Section -->
-            <section id="data-management" class="card">
-                <header class="card-header">
-                    <h2 class="card-title">データ管理</h2>
-                </header>
-                <div class="card-body">
-                    <!-- Data View Controls -->
-                    <div class="form-row mb-3">
-                        <div class="form-col">
-                            <label for="view-symbol" class="form-label">銘柄フィルタ</label>
-                            <input
-                                type="text"
-                                id="view-symbol"
-                                name="view-symbol"
-                                class="form-control"
-                                placeholder="銘柄コードで絞り込み"
-                            >
-                        </div>
-                        <div class="form-col">
-                            <label for="view-interval" class="form-label">時間軸フィルタ</label>
-                            <select id="view-interval" name="view-interval" class="form-control">
-                                <option value="1m">1分足</option>
-                                <option value="5m">5分足</option>
-                                <option value="15m">15分足</option>
-                                <option value="30m">30分足</option>
-                                <option value="1h">1時間足</option>
-                                <option value="1d" selected>1日足</option>
-                                <option value="1wk">週足</option>
-                                <option value="1mo">月足</option>
-                            </select>
-                        </div>
-                        <div class="form-col">
-                            <label for="view-limit" class="form-label">表示件数</label>
-                            <select id="view-limit" name="view-limit" class="form-control">
-                                <option value="10">10件</option>
-                                <option value="25" selected>25件</option>
-                                <option value="50">50件</option>
-                                <option value="100">100件</option>
-                            </select>
-                        </div>
-                        <div class="form-col">
-                            <button type="button" id="load-data-btn" class="btn btn-secondary">
-                                データ読み込み
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Data Table -->
-                    <div class="table-container">
-                        <table id="data-table" class="table table-striped" role="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">ID</th>
-                                    <th scope="col" class="sortable" data-sort="symbol">
-                                        銘柄コード
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="date">
-                                        日付
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="open">
-                                        始値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="high">
-                                        高値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="low">
-                                        安値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="close">
-                                        終値
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col" class="sortable" data-sort="volume">
-                                        出来高
-                                        <span class="sort-icon">↕️</span>
-                                    </th>
-                                    <th scope="col">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="data-table-body">
-                                <tr>
-                                    <td colspan="9" class="text-center loading-text">
-                                        「データ読み込み」ボタンをクリックしてデータを表示してください
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div id="pagination" class="d-flex justify-content-between align-items-center mt-3" style="display: none;">
-                        <div class="pagination-info">
-                            <span id="pagination-text">表示中: 1-25 / 全 0 件</span>
-                        </div>
-                        <div class="pagination-controls gap-2">
-                            <button type="button" id="prev-page-btn" class="btn btn-secondary btn-sm" disabled>前へ</button>
-                            <button type="button" id="next-page-btn" class="btn btn-secondary btn-sm" disabled>次へ</button>
-                        </div>
-                    </div>
                 </div>
             </section>
 
@@ -404,6 +297,113 @@
                 </div>
             </section>
 
+            <!-- Data Management Section -->
+            <section id="data-management" class="card">
+                <header class="card-header">
+                    <h2 class="card-title">データ管理</h2>
+                </header>
+                <div class="card-body">
+                    <!-- Data View Controls -->
+                    <div class="form-row mb-3">
+                        <div class="form-col">
+                            <label for="view-symbol" class="form-label">銘柄フィルタ</label>
+                            <input
+                                type="text"
+                                id="view-symbol"
+                                name="view-symbol"
+                                class="form-control"
+                                placeholder="銘柄コードで絞り込み"
+                            >
+                        </div>
+                        <div class="form-col">
+                            <label for="view-interval" class="form-label">時間軸フィルタ</label>
+                            <select id="view-interval" name="view-interval" class="form-control">
+                                <option value="1m">1分足</option>
+                                <option value="5m">5分足</option>
+                                <option value="15m">15分足</option>
+                                <option value="30m">30分足</option>
+                                <option value="1h">1時間足</option>
+                                <option value="1d" selected>1日足</option>
+                                <option value="1wk">週足</option>
+                                <option value="1mo">月足</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label for="view-limit" class="form-label">表示件数</label>
+                            <select id="view-limit" name="view-limit" class="form-control">
+                                <option value="10">10件</option>
+                                <option value="25" selected>25件</option>
+                                <option value="50">50件</option>
+                                <option value="100">100件</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <button type="button" id="load-data-btn" class="btn btn-secondary">
+                                データ読み込み
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="table-container">
+                        <table id="data-table" class="table table-striped" role="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col" class="sortable" data-sort="symbol">
+                                        銘柄コード
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="date">
+                                        日付
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="open">
+                                        始値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="high">
+                                        高値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="low">
+                                        安値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="close">
+                                        終値
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col" class="sortable" data-sort="volume">
+                                        出来高
+                                        <span class="sort-icon">↕️</span>
+                                    </th>
+                                    <th scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body">
+                                <tr>
+                                    <td colspan="9" class="text-center loading-text">
+                                        「データ読み込み」ボタンをクリックしてデータを表示してください
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="pagination" class="d-flex justify-content-between align-items-center mt-3" style="display: none;">
+                        <div class="pagination-info">
+                            <span id="pagination-text">表示中: 1-25 / 全 0 件</span>
+                        </div>
+                        <div class="pagination-controls gap-2">
+                            <button type="button" id="prev-page-btn" class="btn btn-secondary btn-sm" disabled>前へ</button>
+                            <button type="button" id="next-page-btn" class="btn btn-secondary btn-sm" disabled>次へ</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Connection Test Section -->
             <section id="system-status" class="card">
                 <header class="card-header">
@@ -432,5 +432,6 @@
     </footer>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

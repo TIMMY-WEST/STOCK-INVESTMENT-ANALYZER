@@ -188,10 +188,11 @@ class TestFrontendUI:
             else:
                 # データがある場合は正しい範囲が表示される
                 import re
-                match = re.search(r'表示中: (\d+)-(\d+) / 全 (\d+) 件', text)
+                match = re.search(r'表示中: ([\d,]+)-([\d,]+) / 全 ([\d,]+) 件', text)
                 assert match, f"ページネーション表示の形式が正しくありません: {text}"
-                
-                start, end, total = map(int, match.groups())
+
+                # カンマを除去して数値に変換
+                start, end, total = [int(s.replace(',', '')) for s in match.groups()]
                 assert start >= 1, f"開始番号が1未満です: {start}"
                 assert end >= start, f"終了番号が開始番号より小さいです: start={start}, end={end}"
                 assert total >= 0, f"総件数が負の値です: {total}"

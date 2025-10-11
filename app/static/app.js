@@ -1050,23 +1050,30 @@ const BulkDataFetchManager = {
                         <strong>失敗:</strong> <span class="stat-error">${Utils.formatNumber(summary.failed || 0)}</span>
                     </div>
                 </div>
-                ${summary.total_records ? `
                 <div class="row mt-1">
                     <div class="col">
-                        <strong>総取得レコード数:</strong> ${Utils.formatNumber(summary.total_records)}
+                        <strong>ダウンロード件数:</strong> ${Utils.formatNumber(summary.total_downloaded || 0)}
+                    </div>
+                    <div class="col">
+                        <strong>DB格納件数:</strong> ${Utils.formatNumber(summary.total_saved || 0)}
+                    </div>
+                    <div class="col">
+                        <strong>スキップ件数:</strong> ${Utils.formatNumber(summary.total_skipped || 0)}
                     </div>
                 </div>
-                ` : ''}
-            </div>
-            <div class="mt-3">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="StockDataManager.loadData()">
-                    データテーブルを更新
-                </button>
             </div>
         `;
 
         resultContainer.innerHTML = '';
         resultContainer.appendChild(alert);
+
+        // 自動的にデータテーブルを更新
+        if (typeof loadStockData === 'function') {
+            console.log('一括取得完了: データテーブルを自動更新中...');
+            loadStockData();
+        } else {
+            console.warn('loadStockData関数が見つかりません');
+        }
 
         // エラー詳細がある場合は表示
         if (summary.errors && summary.errors.length > 0) {
