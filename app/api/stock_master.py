@@ -11,6 +11,7 @@ import os
 from typing import Dict, Any
 
 from services.jpx_stock_service import JPXStockService, JPXStockServiceError
+from models import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +300,7 @@ def get_stock_master_status():
             
             # 最新の更新履歴を取得
             last_update = session.query(StockMasterUpdate).order_by(
-                StockMasterUpdate.created_at.desc()
+                StockMasterUpdate.started_at.desc()
             ).first()
             
             last_update_data = None
