@@ -7,6 +7,7 @@ from models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, Dat
 from services.stock_data_orchestrator import StockDataOrchestrator
 from utils.timeframe_utils import get_model_for_interval, validate_interval, get_display_name
 from api.bulk_data import bulk_api
+from api.stock_master import stock_master_api
 from sqlalchemy import func
 
 # 環境変数読み込み
@@ -27,6 +28,7 @@ Base.metadata.create_all(bind=engine)
 
 # Blueprint登録
 app.register_blueprint(bulk_api)
+app.register_blueprint(stock_master_api)
 
 @app.route('/')
 def index():
