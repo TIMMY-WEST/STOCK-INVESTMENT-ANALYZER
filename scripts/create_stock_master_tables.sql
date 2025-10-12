@@ -7,12 +7,27 @@
 -- ====================================
 -- 1. 銘柄マスタテーブル (stock_master)
 -- ====================================
+-- JPXデータの全項目を格納可能な拡張版
 CREATE TABLE IF NOT EXISTS stock_master (
     id SERIAL PRIMARY KEY,
+
+    -- 基本情報
     stock_code VARCHAR(10) UNIQUE NOT NULL,     -- 銘柄コード（例: "7203"）
     stock_name VARCHAR(100) NOT NULL,            -- 銘柄名（例: "トヨタ自動車"）
-    market_category VARCHAR(50),                 -- 市場区分（例: "プライム"）
-    sector VARCHAR(100),                         -- 業種
+    market_category VARCHAR(50),                 -- 市場区分（例: "プライム（内国株式）"）
+
+    -- 業種情報
+    sector_code_33 VARCHAR(10),                  -- 33業種コード
+    sector_name_33 VARCHAR(100),                 -- 33業種区分
+    sector_code_17 VARCHAR(10),                  -- 17業種コード
+    sector_name_17 VARCHAR(100),                 -- 17業種区分
+
+    -- 規模情報
+    scale_code VARCHAR(10),                      -- 規模コード
+    scale_category VARCHAR(50),                  -- 規模区分（TOPIX分類）
+
+    -- データ管理
+    data_date VARCHAR(8),                        -- データ取得日（YYYYMMDD形式）
     is_active INTEGER DEFAULT 1 NOT NULL,        -- 有効フラグ（1=有効, 0=無効）
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -21,13 +36,21 @@ CREATE TABLE IF NOT EXISTS stock_master (
 -- インデックス作成
 CREATE INDEX IF NOT EXISTS idx_stock_master_code ON stock_master(stock_code);
 CREATE INDEX IF NOT EXISTS idx_stock_master_active ON stock_master(is_active);
+CREATE INDEX IF NOT EXISTS idx_stock_master_market ON stock_master(market_category);
+CREATE INDEX IF NOT EXISTS idx_stock_master_sector_33 ON stock_master(sector_code_33);
 
 -- コメント追加
-COMMENT ON TABLE stock_master IS 'JPX銘柄一覧を管理する銘柄マスタテーブル (Phase 2)';
+COMMENT ON TABLE stock_master IS 'JPX銘柄一覧を管理する銘柄マスタテーブル（全項目対応版） (Phase 2)';
 COMMENT ON COLUMN stock_master.stock_code IS '銘柄コード（例: 7203）';
 COMMENT ON COLUMN stock_master.stock_name IS '銘柄名（例: トヨタ自動車）';
-COMMENT ON COLUMN stock_master.market_category IS '市場区分（例: プライム）';
-COMMENT ON COLUMN stock_master.sector IS '業種';
+COMMENT ON COLUMN stock_master.market_category IS '市場区分（例: プライム（内国株式））';
+COMMENT ON COLUMN stock_master.sector_code_33 IS '33業種コード';
+COMMENT ON COLUMN stock_master.sector_name_33 IS '33業種区分';
+COMMENT ON COLUMN stock_master.sector_code_17 IS '17業種コード';
+COMMENT ON COLUMN stock_master.sector_name_17 IS '17業種区分';
+COMMENT ON COLUMN stock_master.scale_code IS '規模コード';
+COMMENT ON COLUMN stock_master.scale_category IS '規模区分（TOPIX分類）';
+COMMENT ON COLUMN stock_master.data_date IS 'データ取得日（YYYYMMDD形式）';
 COMMENT ON COLUMN stock_master.is_active IS '有効フラグ（1=有効, 0=無効）';
 
 -- ====================================

@@ -81,7 +81,9 @@ class TestStockMasterTableStructure:
 
         expected_columns = [
             'id', 'stock_code', 'stock_name', 'market_category',
-            'sector', 'is_active', 'created_at', 'updated_at'
+            'sector_code_33', 'sector_name_33', 'sector_code_17', 'sector_name_17',
+            'scale_code', 'scale_category', 'data_date',
+            'is_active', 'created_at', 'updated_at'
         ]
 
         for col_name in expected_columns:
@@ -111,8 +113,9 @@ class TestStockMasterCRUD:
         stock = StockMaster(
             stock_code="7203",
             stock_name="トヨタ自動車",
-            market_category="プライム",
-            sector="輸送用機器",
+            market_category="プライム（内国株式）",
+            sector_name_33="輸送用機器",
+            sector_code_33="5050",
             is_active=1
         )
         session.add(stock)
@@ -122,8 +125,8 @@ class TestStockMasterCRUD:
         result = session.query(StockMaster).filter_by(stock_code="7203").first()
         assert result is not None
         assert result.stock_name == "トヨタ自動車"
-        assert result.market_category == "プライム"
-        assert result.sector == "輸送用機器"
+        assert result.market_category == "プライム（内国株式）"
+        assert result.sector_name_33 == "輸送用機器"
         assert result.is_active == 1
 
     def test_unique_stock_code_constraint(self, session, clean_stock_master_tables):
@@ -192,8 +195,9 @@ class TestStockMasterCRUD:
         stock = StockMaster(
             stock_code="7203",
             stock_name="トヨタ自動車",
-            market_category="プライム",
-            sector="輸送用機器",
+            market_category="プライム（内国株式）",
+            sector_name_33="輸送用機器",
+            sector_code_33="5050",
             is_active=1
         )
         session.add(stock)
@@ -203,8 +207,8 @@ class TestStockMasterCRUD:
 
         assert stock_dict['stock_code'] == "7203"
         assert stock_dict['stock_name'] == "トヨタ自動車"
-        assert stock_dict['market_category'] == "プライム"
-        assert stock_dict['sector'] == "輸送用機器"
+        assert stock_dict['market_category'] == "プライム（内国株式）"
+        assert stock_dict['sector_name_33'] == "輸送用機器"
         assert stock_dict['is_active'] is True  # Integer から Boolean に変換
         assert 'created_at' in stock_dict
         assert 'updated_at' in stock_dict

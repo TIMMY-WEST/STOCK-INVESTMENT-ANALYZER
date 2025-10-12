@@ -215,14 +215,28 @@ StockDaily = Stocks1d
 
 # 銘柄マスタテーブル (Phase 2)
 class StockMaster(Base):
-    """銘柄マスタテーブル - JPX銘柄一覧を管理"""
+    """銘柄マスタテーブル - JPX銘柄一覧を管理（全項目対応版）"""
     __tablename__ = 'stock_master'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # 基本情報
     stock_code = Column(String(10), unique=True, nullable=False)  # 銘柄コード（例: "7203"）
     stock_name = Column(String(100), nullable=False)              # 銘柄名（例: "トヨタ自動車"）
-    market_category = Column(String(50))                          # 市場区分（例: "プライム"）
-    sector = Column(String(100))                                  # 業種
+    market_category = Column(String(50))                          # 市場区分（例: "プライム（内国株式）"）
+
+    # 業種情報
+    sector_code_33 = Column(String(10))                           # 33業種コード
+    sector_name_33 = Column(String(100))                          # 33業種区分
+    sector_code_17 = Column(String(10))                           # 17業種コード
+    sector_name_17 = Column(String(100))                          # 17業種区分
+
+    # 規模情報
+    scale_code = Column(String(10))                               # 規模コード
+    scale_category = Column(String(50))                           # 規模区分（TOPIX分類）
+
+    # データ管理
+    data_date = Column(String(8))                                 # データ取得日（YYYYMMDD形式）
     is_active = Column(Integer, default=1, nullable=False)        # 有効フラグ（1=有効, 0=無効）
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -230,6 +244,8 @@ class StockMaster(Base):
     __table_args__ = (
         Index('idx_stock_master_code', 'stock_code'),
         Index('idx_stock_master_active', 'is_active'),
+        Index('idx_stock_master_market', 'market_category'),
+        Index('idx_stock_master_sector_33', 'sector_code_33'),
     )
 
     def __repr__(self):
@@ -242,7 +258,13 @@ class StockMaster(Base):
             'stock_code': self.stock_code,
             'stock_name': self.stock_name,
             'market_category': self.market_category,
-            'sector': self.sector,
+            'sector_code_33': self.sector_code_33,
+            'sector_name_33': self.sector_name_33,
+            'sector_code_17': self.sector_code_17,
+            'sector_name_17': self.sector_name_17,
+            'scale_code': self.scale_code,
+            'scale_category': self.scale_category,
+            'data_date': self.data_date,
             'is_active': bool(self.is_active),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
