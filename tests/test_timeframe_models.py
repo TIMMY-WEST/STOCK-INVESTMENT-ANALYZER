@@ -23,7 +23,11 @@ from sqlalchemy.exc import IntegrityError
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.models import (
+# appディレクトリをパスに追加
+app_path = project_root / "app"
+sys.path.insert(0, str(app_path))
+
+from models import (
     Base, Stocks1m, Stocks5m, Stocks15m, Stocks30m, 
     Stocks1h, Stocks1d, Stocks1wk, Stocks1mo
 )
