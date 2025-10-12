@@ -15,13 +15,10 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# WebSocket初期化（存在する場合のみ）
-try:
-    from flask_socketio import SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*")
-    app.config['SOCKETIO'] = socketio
-except Exception:
-    app.config['SOCKETIO'] = None
+# WebSocket初期化
+from flask_socketio import SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
+app.config['SOCKETIO'] = socketio
 
 # テーブル作成
 Base.metadata.create_all(bind=engine)
@@ -30,9 +27,25 @@ Base.metadata.create_all(bind=engine)
 app.register_blueprint(bulk_api)
 app.register_blueprint(stock_master_api)
 
+# WebSocketイベントハンドラ
+@socketio.on('connect')
+def handle_connect():
+    """クライアントがWebSocketに接続した時の処理"""
+    print(f"クライアントが接続しました: {request.sid}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """クライアントがWebSocketから切断した時の処理"""
+    print(f"クライアントが切断しました: {request.sid}")
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/websocket-test')
+def websocket_test():
+    """WebSocket進捗配信のテストページ"""
+    return render_template('websocket_test.html')
 
 @app.route('/api/test-connection', methods=['GET'])
 def test_connection():
@@ -469,7 +482,8 @@ def create_test_data():
         }), 500
 
 if __name__ == '__main__':
-    app.run(
+    socketio.run(
+        app,
         debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true',
         port=int(os.getenv('FLASK_PORT', 8000)),
         host='0.0.0.0'
