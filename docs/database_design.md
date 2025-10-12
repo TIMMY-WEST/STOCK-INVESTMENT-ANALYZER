@@ -297,6 +297,114 @@ CONSTRAINT ck_stocks_1d_price_logic CHECK (
 )
 ```
 
+### 9. batch_executions テーブル（バッチ実行情報）
+
+バッチ処理の実行状況を管理するテーブルです。
+
+```sql
+CREATE TABLE batch_executions (
+    id SERIAL PRIMARY KEY,
+    batch_type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    total_symbols INTEGER NOT NULL DEFAULT 0,
+    processed_symbols INTEGER NOT NULL DEFAULT 0,
+    failed_symbols INTEGER NOT NULL DEFAULT 0,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### カラム定義
+
+| カラム名           | データ型                 | NULL     | デフォルト        | 説明                                    |
+| ------------------ | ------------------------ | -------- | ----------------- | --------------------------------------- |
+| `id`               | SERIAL                   | NOT NULL | AUTO_INCREMENT    | 主キー、自動採番                       |
+| `batch_type`       | VARCHAR(50)              | NOT NULL | -                 | バッチ種別（例：daily_fetch）          |
+| `status`           | VARCHAR(20)              | NOT NULL | 'pending'         | 実行状態（pending/running/completed/failed） |
+| `total_symbols`    | INTEGER                  | NOT NULL | 0                 | 処理対象銘柄数                         |
+| `processed_symbols`| INTEGER                  | NOT NULL | 0                 | 処理完了銘柄数                         |
+| `failed_symbols`   | INTEGER                  | NOT NULL | 0                 | 処理失敗銘柄数                         |
+| `start_time`       | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理開始時刻                           |
+| `end_time`         | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理終了時刻                           |
+| `error_message`    | TEXT                     | NULL     | -                 | エラーメッセージ                       |
+| `created_at`       | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時                       |
+| `updated_at`       | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時                       |
+
+### 10. batch_execution_details テーブル（バッチ実行詳細）
+
+バッチ処理の銘柄ごとの詳細情報を管理するテーブルです。
+
+```sql
+CREATE TABLE batch_execution_details (
+    id SERIAL PRIMARY KEY,
+    batch_execution_id INTEGER NOT NULL REFERENCES batch_executions(id) ON DELETE CASCADE,
+    symbol VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    records_inserted INTEGER NOT NULL DEFAULT 0,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### カラム定義
+
+| カラム名             | データ型                 | NULL     | デフォルト        | 説明                                    |
+| -------------------- | ------------------------ | -------- | ----------------- | --------------------------------------- |
+| `id`                 | SERIAL                   | NOT NULL | AUTO_INCREMENT    | 主キー、自動採番                       |
+| `batch_execution_id` | INTEGER                  | NOT NULL | -                 | バッチ実行ID（外部キー）               |
+| `symbol`             | VARCHAR(20)              | NOT NULL | -                 | 銘柄コード（例：7203.T）               |
+| `status`             | VARCHAR(20)              | NOT NULL | 'pending'         | 処理状態（pending/running/completed/failed） |
+| `records_inserted`   | INTEGER                  | NOT NULL | 0                 | 挿入されたレコード数                   |
+| `start_time`         | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理開始時刻                           |
+| `end_time`           | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理終了時刻                           |
+| `error_message`      | TEXT                     | NULL     | -                 | エラーメッセージ                       |
+| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時                       |
+| `updated_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時                       |
+
+#### 制約設計
+
+**batch_executions テーブル**
+```sql
+-- 主キー制約
+CONSTRAINT pk_batch_executions PRIMARY KEY (id),
+-- チェック制約
+CONSTRAINT ck_batch_executions_status CHECK (
+    status IN ('pending', 'running', 'completed', 'failed')
+),
+CONSTRAINT ck_batch_executions_symbols CHECK (
+    total_symbols >= 0 AND 
+    processed_symbols >= 0 AND 
+    failed_symbols >= 0 AND
+    processed_symbols <= total_symbols AND
+    failed_symbols <= total_symbols
+)
+```
+
+**batch_execution_details テーブル**
+```sql
+-- 主キー制約
+CONSTRAINT pk_batch_execution_details PRIMARY KEY (id),
+-- 外部キー制約
+CONSTRAINT fk_batch_execution_details_batch_id 
+    FOREIGN KEY (batch_execution_id) REFERENCES batch_executions(id) ON DELETE CASCADE,
+-- ユニーク制約
+CONSTRAINT uk_batch_execution_details_batch_symbol 
+    UNIQUE (batch_execution_id, symbol),
+-- チェック制約
+CONSTRAINT ck_batch_execution_details_status CHECK (
+    status IN ('pending', 'running', 'completed', 'failed')
+),
+CONSTRAINT ck_batch_execution_details_records CHECK (
+    records_inserted >= 0
+)
+```
+
 ## インデックス設計
 
 ### 基本設計方針
@@ -405,6 +513,22 @@ CREATE INDEX idx_stocks_1wk_symbol_date_desc ON stocks_1wk (symbol, date DESC);
 CREATE INDEX idx_stocks_1mo_symbol ON stocks_1mo (symbol);
 CREATE INDEX idx_stocks_1mo_date ON stocks_1mo (date);
 CREATE INDEX idx_stocks_1mo_symbol_date_desc ON stocks_1mo (symbol, date DESC);
+```
+
+#### batch_executions テーブル
+```sql
+CREATE INDEX idx_batch_executions_status ON batch_executions (status);
+CREATE INDEX idx_batch_executions_batch_type ON batch_executions (batch_type);
+CREATE INDEX idx_batch_executions_created_at ON batch_executions (created_at);
+CREATE INDEX idx_batch_executions_status_created_at ON batch_executions (status, created_at DESC);
+```
+
+#### batch_execution_details テーブル
+```sql
+CREATE INDEX idx_batch_execution_details_batch_id ON batch_execution_details (batch_execution_id);
+CREATE INDEX idx_batch_execution_details_status ON batch_execution_details (status);
+CREATE INDEX idx_batch_execution_details_symbol ON batch_execution_details (symbol);
+CREATE INDEX idx_batch_execution_details_batch_status ON batch_execution_details (batch_execution_id, status);
 ```
 
 ### 5. インデックス利用想定クエリ
@@ -667,6 +791,85 @@ class Stock1mo(Base):
 
     def __repr__(self):
         return f"<Stock1mo(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+
+# バッチ実行情報モデル
+class BatchExecution(Base):
+    __tablename__ = 'batch_executions'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    batch_type = Column(String(50), nullable=False)
+    status = Column(String(20), nullable=False, default='pending')
+    total_symbols = Column(Integer, nullable=False, default=0)
+    processed_symbols = Column(Integer, nullable=False, default=0)
+    failed_symbols = Column(Integer, nullable=False, default=0)
+    start_time = Column(DateTime(timezone=True))
+    end_time = Column(DateTime(timezone=True))
+    error_message = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'running', 'completed', 'failed')", name='ck_batch_executions_status'),
+        CheckConstraint('total_symbols >= 0 AND processed_symbols >= 0 AND failed_symbols >= 0 AND processed_symbols <= total_symbols AND failed_symbols <= total_symbols', name='ck_batch_executions_symbols'),
+        Index('idx_batch_executions_status', 'status'),
+        Index('idx_batch_executions_batch_type', 'batch_type'),
+        Index('idx_batch_executions_created_at', 'created_at'),
+        Index('idx_batch_executions_status_created_at', 'status', 'created_at', postgresql_desc=True),
+    )
+
+    @property
+    def progress_rate(self):
+        """進捗率を計算（0.0-1.0）"""
+        if self.total_symbols == 0:
+            return 0.0
+        return self.processed_symbols / self.total_symbols
+
+    @property
+    def execution_time(self):
+        """実行時間を計算（秒）"""
+        if not self.start_time:
+            return None
+        end_time = self.end_time or func.now()
+        return (end_time - self.start_time).total_seconds()
+
+    def __repr__(self):
+        return f"<BatchExecution(id={self.id}, batch_type='{self.batch_type}', status='{self.status}', progress={self.progress_rate:.2%})>"
+
+# バッチ実行詳細モデル
+class BatchExecutionDetail(Base):
+    __tablename__ = 'batch_execution_details'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    batch_execution_id = Column(Integer, ForeignKey('batch_executions.id', ondelete='CASCADE'), nullable=False)
+    symbol = Column(String(20), nullable=False)
+    status = Column(String(20), nullable=False, default='pending')
+    records_inserted = Column(Integer, nullable=False, default=0)
+    start_time = Column(DateTime(timezone=True))
+    end_time = Column(DateTime(timezone=True))
+    error_message = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('batch_execution_id', 'symbol', name='uk_batch_execution_details_batch_symbol'),
+        CheckConstraint("status IN ('pending', 'running', 'completed', 'failed')", name='ck_batch_execution_details_status'),
+        CheckConstraint('records_inserted >= 0', name='ck_batch_execution_details_records'),
+        Index('idx_batch_execution_details_batch_id', 'batch_execution_id'),
+        Index('idx_batch_execution_details_status', 'status'),
+        Index('idx_batch_execution_details_symbol', 'symbol'),
+        Index('idx_batch_execution_details_batch_status', 'batch_execution_id', 'status'),
+    )
+
+    @property
+    def execution_time(self):
+        """実行時間を計算（秒）"""
+        if not self.start_time:
+            return None
+        end_time = self.end_time or func.now()
+        return (end_time - self.start_time).total_seconds()
+
+    def __repr__(self):
+        return f"<BatchExecutionDetail(id={self.id}, batch_id={self.batch_execution_id}, symbol='{self.symbol}', status='{self.status}')>"
 ```
 
 ## データベース初期化
