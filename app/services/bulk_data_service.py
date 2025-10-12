@@ -12,6 +12,7 @@ import time
 
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_saver import StockDataSaver, StockDataSaveError
+from services.error_handler import ErrorHandler, ErrorAction
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +126,12 @@ class BulkDataService:
         self.max_workers = max_workers
         self.retry_count = retry_count
         self.logger = logger
+        # ErrorHandlerを初期化
+        self.error_handler = ErrorHandler(
+            max_retries=retry_count,
+            retry_delay=2,
+            backoff_multiplier=2
+        )
 
     def fetch_single_stock(
         self,
@@ -133,7 +140,7 @@ class BulkDataService:
         period: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        単一銘柄のデータを取得・保存（リトライ機能付き）
+        単一銘柄のデータを取得・保存（ErrorHandlerによるリトライ機能付き）
 
         Args:
             symbol: 銘柄コード
@@ -144,6 +151,7 @@ class BulkDataService:
             処理結果
         """
         last_error = None
+        retry_count = 0
 
         for attempt in range(self.retry_count):
             try:
@@ -170,30 +178,47 @@ class BulkDataService:
                     'interval': interval,
                     'records_fetched': len(data_list),
                     'records_saved': save_result.get('saved', 0),
-                    'attempt': attempt + 1
+                    'attempt': attempt + 1,
+                    'retry_count': retry_count
                 }
 
-            except (StockDataFetchError, StockDataSaveError) as e:
-                last_error = str(e)
-                self.logger.warning(
-                    f"銘柄 {symbol} の取得失敗 (試行 {attempt + 1}/{self.retry_count}): {e}"
-                )
-
-                # 最終試行でない場合は待機
-                if attempt < self.retry_count - 1:
-                    time.sleep(2 ** attempt)  # 指数バックオフ
-
             except Exception as e:
-                last_error = str(e)
-                self.logger.error(f"予期しないエラー: {symbol}: {e}")
-                break  # 予期しないエラーの場合はリトライしない
+                last_error = e
+                retry_count = attempt
+
+                # ErrorHandlerでエラー処理判定
+                context = {
+                    'retry_count': retry_count,
+                    'interval': interval,
+                    'period': period
+                }
+                action = self.error_handler.handle_error(e, symbol, context)
+
+                # アクションに応じた処理
+                if action == ErrorAction.RETRY:
+                    # 最終試行でない場合はリトライ
+                    if attempt < self.retry_count - 1:
+                        self.error_handler.retry_with_backoff(retry_count)
+                        continue
+                    else:
+                        # 最大リトライ回数到達
+                        break
+
+                elif action == ErrorAction.SKIP:
+                    # スキップして処理終了
+                    break
+
+                elif action == ErrorAction.ABORT:
+                    # システムエラー - 例外を再発生させる
+                    raise BulkDataServiceError(f"システムエラー: {symbol}: {e}") from e
 
         return {
             'success': False,
             'symbol': symbol,
             'interval': interval,
-            'error': last_error,
-            'attempts': self.retry_count
+            'error': str(last_error),
+            'attempts': retry_count + 1,
+            'retry_count': retry_count
         }
 
     def fetch_multiple_stocks(
@@ -293,6 +318,10 @@ class BulkDataService:
         summary['total_skipped'] = total_skipped
         summary['errors'] = tracker.error_details[:100]  # エラー詳細（最大100件）
 
+        # エラーハンドラーからエラーレポートを生成
+        error_report = self.error_handler.generate_error_report()
+        summary['error_report'] = error_report
+
         self.logger.info(
             f"全銘柄一括取得完了: "
             f"成功 {summary['successful']}/{summary['total']}, "
@@ -300,7 +329,8 @@ class BulkDataService:
             f"ダウンロード {total_downloaded}件, "
             f"DB格納 {total_saved}件, "
             f"スキップ {total_skipped}件, "
-            f"処理時間 {summary['elapsed_time']}秒"
+            f"処理時間 {summary['elapsed_time']}秒, "
+            f"エラー統計: {error_report['summary']['error_by_type']}"
         )
 
         return summary
