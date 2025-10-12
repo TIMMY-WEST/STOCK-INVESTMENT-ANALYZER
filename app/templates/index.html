@@ -67,10 +67,10 @@
                                     <span class="required-indicator" aria-label="必須項目">*</span>
                                 </label>
                                 <div class="timeframe-selector-container">
-                                    <select 
-                                        id="period" 
-                                        name="period" 
-                                        class="form-control timeframe-selector" 
+                                    <select
+                                        id="period"
+                                        name="period"
+                                        class="form-control timeframe-selector"
                                         aria-describedby="period-help period-error"
                                         aria-label="データ取得期間を選択"
                                         required
@@ -158,6 +158,142 @@
 
                     <!-- Results Section -->
                     <div id="result-container" role="region" aria-live="polite" aria-label="処理結果"></div>
+                </div>
+            </section>
+
+            <!-- Bulk Data Fetch Section -->
+            <section id="bulk-data-fetch" class="card">
+                <header class="card-header">
+                    <h2 class="card-title">全銘柄一括取得</h2>
+                </header>
+                <div class="card-body">
+                    <!-- Configuration Section -->
+                    <div class="bulk-config-section mb-4">
+                        <h3 class="section-subtitle mb-3">取得設定</h3>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label for="bulk-symbols" class="form-label">
+                                    対象銘柄
+                                    <span class="required-indicator" aria-label="必須項目">*</span>
+                                </label>
+                                <textarea
+                                    id="bulk-symbols"
+                                    name="bulk-symbols"
+                                    class="form-control"
+                                    rows="5"
+                                    placeholder="例: 7203.T&#10;6758.T&#10;9984.T&#10;（1行に1銘柄コード）"
+                                    aria-describedby="bulk-symbols-help"
+                                    required
+                                ></textarea>
+                                <div id="bulk-symbols-help" class="form-text mt-1">
+                                    <small>取得したい銘柄コードを1行に1つずつ入力してください（最大100銘柄）</small>
+                                </div>
+                                <div id="bulk-symbols-count" class="form-text mt-1" style="font-weight: bold;">
+                                    <small>選択銘柄数: 0</small>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <label for="bulk-interval" class="form-label">
+                                    時間軸（足）
+                                    <span class="required-indicator" aria-label="必須項目">*</span>
+                                </label>
+                                <select
+                                    id="bulk-interval"
+                                    name="bulk-interval"
+                                    class="form-control"
+                                    required
+                                >
+                                    <option value="">時間軸を選択してください</option>
+                                    <option value="1m">1分足</option>
+                                    <option value="5m">5分足</option>
+                                    <option value="15m">15分足</option>
+                                    <option value="30m">30分足</option>
+                                    <option value="1h">1時間足</option>
+                                    <option value="1d" selected>1日足</option>
+                                    <option value="1wk">週足</option>
+                                    <option value="1mo">月足</option>
+                                </select>
+                            </div>
+                            <div class="form-col">
+                                <label for="bulk-period" class="form-label">取得期間</label>
+                                <select
+                                    id="bulk-period"
+                                    name="bulk-period"
+                                    class="form-control"
+                                >
+                                    <option value="">デフォルト（1ヶ月）</option>
+                                    <option value="5d">5日間</option>
+                                    <option value="1mo" selected>1ヶ月</option>
+                                    <option value="3mo">3ヶ月</option>
+                                    <option value="6mo">6ヶ月</option>
+                                    <option value="1y">1年</option>
+                                    <option value="2y">2年</option>
+                                    <option value="5y">5年</option>
+                                    <option value="max">最大期間</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="bulk-controls mb-4">
+                        <button type="button" id="bulk-start-btn" class="btn btn-primary">
+                            <span class="btn-text">一括取得開始</span>
+                        </button>
+                        <button type="button" id="bulk-stop-btn" class="btn btn-danger" style="display: none;">
+                            <span class="btn-text">停止</span>
+                        </button>
+                        <button type="button" id="bulk-reset-btn" class="btn btn-secondary">
+                            リセット
+                        </button>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div id="bulk-progress-section" class="bulk-progress-section" style="display: none;">
+                        <h3 class="section-subtitle mb-3">取得進捗</h3>
+
+                        <!-- Progress Bar -->
+                        <div class="progress-container mb-3">
+                            <div class="progress-bar" id="bulk-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                <span class="progress-text" id="bulk-progress-text">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Progress Stats -->
+                        <div class="progress-stats mb-3">
+                            <div class="stat-item">
+                                <span class="stat-label">処理済:</span>
+                                <span class="stat-value" id="bulk-processed">0</span> /
+                                <span class="stat-value" id="bulk-total">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">成功:</span>
+                                <span class="stat-value stat-success" id="bulk-successful">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">失敗:</span>
+                                <span class="stat-value stat-error" id="bulk-failed">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Current Processing -->
+                        <div class="current-processing">
+                            <strong>現在処理中:</strong>
+                            <span id="bulk-current-symbol">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Result Section -->
+                    <div id="bulk-result-section" class="bulk-result-section" style="display: none;">
+                        <h3 class="section-subtitle mb-3">取得結果</h3>
+                        <div id="bulk-result-container" role="region" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Error Section -->
+                    <div id="bulk-error-section" class="bulk-error-section" style="display: none;">
+                        <h3 class="section-subtitle mb-3">エラー詳細</h3>
+                        <div id="bulk-error-container" role="region" aria-live="assertive"></div>
+                    </div>
                 </div>
             </section>
 
@@ -296,5 +432,6 @@
     </footer>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

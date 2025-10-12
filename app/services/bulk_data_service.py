@@ -283,10 +283,23 @@ class BulkDataService:
         summary = tracker.get_summary()
         summary['results'] = results
 
+        # 詳細統計情報を集計
+        total_downloaded = sum(r.get('records_fetched', 0) for r in results if r.get('success'))
+        total_saved = sum(r.get('records_saved', 0) for r in results if r.get('success'))
+        total_skipped = total_downloaded - total_saved
+
+        summary['total_downloaded'] = total_downloaded
+        summary['total_saved'] = total_saved
+        summary['total_skipped'] = total_skipped
+        summary['errors'] = tracker.error_details[:100]  # エラー詳細（最大100件）
+
         self.logger.info(
             f"全銘柄一括取得完了: "
             f"成功 {summary['successful']}/{summary['total']}, "
             f"失敗 {summary['failed']}, "
+            f"ダウンロード {total_downloaded}件, "
+            f"DB格納 {total_saved}件, "
+            f"スキップ {total_skipped}件, "
             f"処理時間 {summary['elapsed_time']}秒"
         )
 

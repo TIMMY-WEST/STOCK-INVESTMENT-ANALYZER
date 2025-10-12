@@ -795,6 +795,412 @@ const AccessibilityManager = {
     }
 };
 
+// Bulk Data Fetch Manager
+const BulkDataFetchManager = {
+    currentJobId: null,
+    pollInterval: null,
+    socket: null,
+
+    init: () => {
+        const startBtn = document.getElementById('bulk-start-btn');
+        const stopBtn = document.getElementById('bulk-stop-btn');
+        const resetBtn = document.getElementById('bulk-reset-btn');
+        const symbolsInput = document.getElementById('bulk-symbols');
+
+        if (startBtn) {
+            startBtn.addEventListener('click', BulkDataFetchManager.startBulkFetch);
+        }
+
+        if (stopBtn) {
+            stopBtn.addEventListener('click', BulkDataFetchManager.stopBulkFetch);
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', BulkDataFetchManager.resetBulkFetch);
+        }
+
+        if (symbolsInput) {
+            symbolsInput.addEventListener('input', BulkDataFetchManager.updateSymbolCount);
+        }
+
+        // Initialize WebSocket if available
+        BulkDataFetchManager.initWebSocket();
+    },
+
+    initWebSocket: () => {
+        // WebSocket接続（Socket.IOが利用可能な場合）
+        if (typeof io !== 'undefined') {
+            try {
+                BulkDataFetchManager.socket = io();
+
+                BulkDataFetchManager.socket.on('bulk_progress', (data) => {
+                    if (data.job_id === BulkDataFetchManager.currentJobId) {
+                        BulkDataFetchManager.updateProgress(data.progress);
+                    }
+                });
+
+                BulkDataFetchManager.socket.on('bulk_complete', (data) => {
+                    if (data.job_id === BulkDataFetchManager.currentJobId) {
+                        BulkDataFetchManager.showResult(data.summary);
+                    }
+                });
+            } catch (error) {
+                console.warn('WebSocket not available, using polling instead:', error);
+            }
+        }
+    },
+
+    updateSymbolCount: () => {
+        const symbolsInput = document.getElementById('bulk-symbols');
+        const countDisplay = document.getElementById('bulk-symbols-count');
+
+        if (!symbolsInput || !countDisplay) return;
+
+        const symbols = BulkDataFetchManager.getSymbolsFromInput();
+        countDisplay.innerHTML = `<small>選択銘柄数: ${symbols.length}</small>`;
+    },
+
+    getSymbolsFromInput: () => {
+        const symbolsInput = document.getElementById('bulk-symbols');
+        if (!symbolsInput) return [];
+
+        const text = symbolsInput.value.trim();
+        if (!text) return [];
+
+        return text.split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+    },
+
+    startBulkFetch: async () => {
+        const symbols = BulkDataFetchManager.getSymbolsFromInput();
+        const interval = document.getElementById('bulk-interval')?.value || '1d';
+        const period = document.getElementById('bulk-period')?.value || '1mo';
+
+        // Validation
+        if (symbols.length === 0) {
+            UIComponents.showResult(
+                'bulk-result-container',
+                'error',
+                '入力エラー',
+                '銘柄コードを入力してください'
+            );
+            document.getElementById('bulk-result-section').style.display = 'block';
+            return;
+        }
+
+        if (symbols.length > 100) {
+            UIComponents.showResult(
+                'bulk-result-container',
+                'error',
+                '入力エラー',
+                '銘柄数は100以下にしてください'
+            );
+            document.getElementById('bulk-result-section').style.display = 'block';
+            return;
+        }
+
+        if (!interval) {
+            UIComponents.showResult(
+                'bulk-result-container',
+                'error',
+                '入力エラー',
+                '時間軸を選択してください'
+            );
+            document.getElementById('bulk-result-section').style.display = 'block';
+            return;
+        }
+
+        try {
+            // UI状態を取得中に変更
+            BulkDataFetchManager.setFetchingState(true);
+
+            // ジョブ開始API呼び出し
+            const response = await fetch('/api/bulk/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': localStorage.getItem('api_key') || ''
+                },
+                body: JSON.stringify({
+                    symbols: symbols,
+                    interval: interval,
+                    period: period || undefined
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                BulkDataFetchManager.currentJobId = data.job_id;
+
+                // 進捗表示セクションを表示
+                document.getElementById('bulk-progress-section').style.display = 'block';
+                document.getElementById('bulk-total').textContent = symbols.length;
+
+                // WebSocketがない場合はポーリング開始
+                if (!BulkDataFetchManager.socket) {
+                    BulkDataFetchManager.startPolling();
+                }
+            } else {
+                throw new Error(data.message || 'ジョブの開始に失敗しました');
+            }
+        } catch (error) {
+            BulkDataFetchManager.setFetchingState(false);
+            BulkDataFetchManager.showError('一括取得開始エラー', error.message);
+        }
+    },
+
+    startPolling: () => {
+        if (BulkDataFetchManager.pollInterval) {
+            clearInterval(BulkDataFetchManager.pollInterval);
+        }
+
+        BulkDataFetchManager.pollInterval = setInterval(async () => {
+            if (!BulkDataFetchManager.currentJobId) {
+                clearInterval(BulkDataFetchManager.pollInterval);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/bulk/status/${BulkDataFetchManager.currentJobId}`, {
+                    headers: {
+                        'X-API-KEY': localStorage.getItem('api_key') || ''
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.job) {
+                    const job = data.job;
+
+                    if (job.progress) {
+                        BulkDataFetchManager.updateProgress(job.progress);
+                    }
+
+                    if (job.status === 'completed') {
+                        clearInterval(BulkDataFetchManager.pollInterval);
+                        BulkDataFetchManager.showResult(job.summary);
+                    } else if (job.status === 'failed') {
+                        clearInterval(BulkDataFetchManager.pollInterval);
+                        BulkDataFetchManager.showError('一括取得失敗', job.error || '不明なエラー');
+                    }
+                }
+            } catch (error) {
+                console.error('Status polling error:', error);
+            }
+        }, 1000); // 1秒ごとにポーリング
+    },
+
+    updateProgress: (progress) => {
+        const progressBar = document.getElementById('bulk-progress-bar');
+        const progressText = document.getElementById('bulk-progress-text');
+        const processed = document.getElementById('bulk-processed');
+        const successful = document.getElementById('bulk-successful');
+        const failed = document.getElementById('bulk-failed');
+        const currentSymbol = document.getElementById('bulk-current-symbol');
+
+        if (progressBar && progressText) {
+            const percentage = Math.round(progress.progress_percentage || 0);
+            progressBar.style.width = percentage + '%';
+            progressBar.setAttribute('aria-valuenow', percentage);
+            progressText.textContent = percentage + '%';
+        }
+
+        if (processed) {
+            processed.textContent = progress.processed || 0;
+        }
+
+        if (successful) {
+            successful.textContent = progress.successful || 0;
+        }
+
+        if (failed) {
+            failed.textContent = progress.failed || 0;
+        }
+
+        if (currentSymbol && progress.current_symbol) {
+            currentSymbol.textContent = progress.current_symbol;
+        }
+    },
+
+    showResult: (summary) => {
+        BulkDataFetchManager.setFetchingState(false);
+
+        const resultSection = document.getElementById('bulk-result-section');
+        const resultContainer = document.getElementById('bulk-result-container');
+
+        if (!resultSection || !resultContainer) return;
+
+        resultSection.style.display = 'block';
+
+        const alert = document.createElement('div');
+        alert.className = summary.failed === 0 ? 'alert alert-success' : 'alert alert-warning';
+        alert.innerHTML = `
+            <div class="alert-title">✅ 一括取得完了</div>
+            <div class="mt-2">
+                <div class="row">
+                    <div class="col">
+                        <strong>総銘柄数:</strong> ${Utils.formatNumber(summary.total || 0)}
+                    </div>
+                    <div class="col">
+                        <strong>成功:</strong> <span class="stat-success">${Utils.formatNumber(summary.successful || 0)}</span>
+                    </div>
+                    <div class="col">
+                        <strong>失敗:</strong> <span class="stat-error">${Utils.formatNumber(summary.failed || 0)}</span>
+                    </div>
+                </div>
+                <div class="row mt-1">
+                    <div class="col">
+                        <strong>ダウンロード件数:</strong> ${Utils.formatNumber(summary.total_downloaded || 0)}
+                    </div>
+                    <div class="col">
+                        <strong>DB格納件数:</strong> ${Utils.formatNumber(summary.total_saved || 0)}
+                    </div>
+                    <div class="col">
+                        <strong>スキップ件数:</strong> ${Utils.formatNumber(summary.total_skipped || 0)}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        resultContainer.innerHTML = '';
+        resultContainer.appendChild(alert);
+
+        // 自動的にデータテーブルを更新
+        if (typeof loadStockData === 'function') {
+            console.log('一括取得完了: データテーブルを自動更新中...');
+            loadStockData();
+        } else {
+            console.warn('loadStockData関数が見つかりません');
+        }
+
+        // エラー詳細がある場合は表示
+        if (summary.errors && summary.errors.length > 0) {
+            const errorSection = document.getElementById('bulk-error-section');
+            const errorContainer = document.getElementById('bulk-error-container');
+
+            if (errorSection && errorContainer) {
+                errorSection.style.display = 'block';
+
+                const errorList = document.createElement('div');
+                errorList.className = 'alert alert-danger';
+                errorList.innerHTML = `
+                    <div class="alert-title">エラー詳細 (${summary.errors.length}件)</div>
+                    <ul class="mt-2 mb-0">
+                        ${summary.errors.slice(0, 10).map(err =>
+                            `<li><strong>${Utils.escapeHtml(err.symbol)}:</strong> ${Utils.escapeHtml(err.error)}</li>`
+                        ).join('')}
+                        ${summary.errors.length > 10 ? `<li>...他${summary.errors.length - 10}件</li>` : ''}
+                    </ul>
+                `;
+
+                errorContainer.innerHTML = '';
+                errorContainer.appendChild(errorList);
+            }
+        }
+    },
+
+    showError: (title, message) => {
+        BulkDataFetchManager.setFetchingState(false);
+
+        const errorSection = document.getElementById('bulk-error-section');
+        const errorContainer = document.getElementById('bulk-error-container');
+
+        if (errorSection && errorContainer) {
+            errorSection.style.display = 'block';
+            const alert = UIComponents.createAlert('error', title, message, false);
+            errorContainer.innerHTML = '';
+            errorContainer.appendChild(alert);
+        }
+    },
+
+    stopBulkFetch: async () => {
+        if (!BulkDataFetchManager.currentJobId) return;
+
+        try {
+            const response = await fetch(`/api/bulk/stop/${BulkDataFetchManager.currentJobId}`, {
+                method: 'POST',
+                headers: {
+                    'X-API-KEY': localStorage.getItem('api_key') || ''
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                BulkDataFetchManager.setFetchingState(false);
+                UIComponents.showResult(
+                    'bulk-result-container',
+                    'warning',
+                    'キャンセル',
+                    'ジョブのキャンセルをリクエストしました'
+                );
+                document.getElementById('bulk-result-section').style.display = 'block';
+            }
+        } catch (error) {
+            BulkDataFetchManager.showError('停止エラー', error.message);
+        }
+    },
+
+    resetBulkFetch: () => {
+        // ポーリング停止
+        if (BulkDataFetchManager.pollInterval) {
+            clearInterval(BulkDataFetchManager.pollInterval);
+            BulkDataFetchManager.pollInterval = null;
+        }
+
+        // 状態リセット
+        BulkDataFetchManager.currentJobId = null;
+        BulkDataFetchManager.setFetchingState(false);
+
+        // UI リセット
+        document.getElementById('bulk-symbols').value = '';
+        document.getElementById('bulk-interval').value = '1d';
+        document.getElementById('bulk-period').value = '1mo';
+        document.getElementById('bulk-progress-section').style.display = 'none';
+        document.getElementById('bulk-result-section').style.display = 'none';
+        document.getElementById('bulk-error-section').style.display = 'none';
+
+        BulkDataFetchManager.updateSymbolCount();
+    },
+
+    setFetchingState: (isFetching) => {
+        const startBtn = document.getElementById('bulk-start-btn');
+        const stopBtn = document.getElementById('bulk-stop-btn');
+        const resetBtn = document.getElementById('bulk-reset-btn');
+        const symbolsInput = document.getElementById('bulk-symbols');
+        const intervalSelect = document.getElementById('bulk-interval');
+        const periodSelect = document.getElementById('bulk-period');
+
+        if (startBtn) {
+            startBtn.disabled = isFetching;
+            startBtn.style.display = isFetching ? 'none' : 'inline-block';
+        }
+
+        if (stopBtn) {
+            stopBtn.disabled = !isFetching;
+            stopBtn.style.display = isFetching ? 'inline-block' : 'none';
+        }
+
+        if (resetBtn) {
+            resetBtn.disabled = isFetching;
+        }
+
+        if (symbolsInput) {
+            symbolsInput.disabled = isFetching;
+        }
+
+        if (intervalSelect) {
+            intervalSelect.disabled = isFetching;
+        }
+
+        if (periodSelect) {
+            periodSelect.disabled = isFetching;
+        }
+    }
+};
+
 // Application initialization
 const App = {
     init: () => {
@@ -813,6 +1219,7 @@ const App = {
             StockDataManager.init();
             SystemStatusManager.init();
             AccessibilityManager.init();
+            BulkDataFetchManager.init();
 
             console.log('Stock Data Management System initialized successfully');
         } catch (error) {
