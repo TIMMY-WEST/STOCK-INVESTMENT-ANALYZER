@@ -287,6 +287,314 @@ JPXの銘柄一覧Excel（data_j.xls）を自動ダウンロードし、銘柄�
 
 ---
 
+### Issue: 銘柄マスタデータベース設計・実装（Phase 2）
+**Labels**: `feature`, `database`, `phase2`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+JPX銘柄一覧を管理する銘柄マスタテーブルと更新履歴テーブルの設計・実装
+
+#### 完了条件
+- [ ] `stock_master`テーブル作成（銘柄コード、銘柄名、市場区分、業種、有効フラグ等）
+- [ ] `stock_master_updates`テーブル作成（更新履歴管理）
+- [ ] 適切なインデックス設定（銘柄コード、有効フラグ）
+- [ ] テーブル作成SQLスクリプト実装
+- [ ] データベースマイグレーションスクリプト実装
+
+#### PRレビュー重点観点
+- [ ] テーブル設計が要件を満たしているか
+- [ ] インデックス設計が効率的か
+- [ ] データ型の選択が適切か
+- [ ] 将来的な拡張性が考慮されているか
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- テーブル作成の確認
+- インデックス効果の確認
+- CRUD操作の動作確認
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - 銘柄マスタテーブル)
+- [`database_design.md`](../database_design.md)
+
+---
+
+### Issue: JPX銘柄一覧取得・更新機能実装（Phase 2）
+**Labels**: `feature`, `backend`, `phase2`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、データベースを更新する機能実装
+
+#### 完了条件
+- [ ] JPXからExcelファイル（data_j.xls）をダウンロードする関数実装
+- [ ] Excelデータのパース・正規化処理実装
+- [ ] 銘柄マスタの差分更新処理実装（新規追加、更新、無効化）
+- [ ] 更新履歴の記録機能実装
+- [ ] エラーハンドリング（ダウンロード失敗、パースエラー等）
+- [ ] ユニットテスト実装
+
+#### PRレビュー重点観点
+- [ ] Excelファイル処理が正しく実装されているか
+- [ ] 差分更新ロジックが適切か
+- [ ] エラーハンドリングが十分か
+- [ ] トランザクション処理が適切か
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- JPXからのダウンロード確認
+- Excelパース処理の確認
+- 差分更新の動作確認（新規、更新、削除）
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - JPX銘柄一覧の取得と管理)
+
+---
+
+### Issue: 銘柄マスタ管理API実装（Phase 2）
+**Labels**: `feature`, `backend`, `phase2`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+銘柄マスタの更新と取得を行うREST APIエンドポイントの実装
+
+#### 完了条件
+- [ ] `POST /api/stock-master/update` エンドポイント実装（銘柄一覧更新）
+- [ ] `GET /api/stock-master/list` エンドポイント実装（銘柄一覧取得）
+- [ ] APIキー認証実装
+- [ ] クエリパラメータによるフィルタリング実装（有効フラグ、市場区分等）
+- [ ] ページネーション実装
+- [ ] エラーレスポンス実装
+- [ ] API仕様書更新
+
+#### PRレビュー重点観点
+- [ ] API設計がRESTfulか
+- [ ] 認証・認可が適切に実装されているか
+- [ ] バリデーション処理が十分か
+- [ ] エラーハンドリングが適切か
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- 各エンドポイントの動作確認
+- 認証テスト
+- フィルタリング・ページネーションのテスト
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - API エンドポイント)
+- [`api_specification.md`](../api_specification.md)
+
+---
+
+### Issue: バッチ処理データベース設計・実装（Phase 2）
+**Labels**: `feature`, `database`, `phase2`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+バッチ処理の状態管理と進捗記録のためのデータベーステーブル設計・実装
+
+#### 完了条件
+- [ ] `batch_executions`テーブル作成（バッチ実行情報管理）
+- [ ] `batch_execution_details`テーブル作成（銘柄ごとの処理詳細）
+- [ ] 適切なインデックス設定（batch_id、status等）
+- [ ] テーブル作成SQLスクリプト実装
+- [ ] Phase 1のインメモリ管理からの移行計画策定
+
+#### PRレビュー重点観点
+- [ ] テーブル設計がバッチ処理要件を満たしているか
+- [ ] インデックス設計が効率的か
+- [ ] ステータス管理が適切か
+- [ ] Phase 1との互換性が考慮されているか
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- テーブル作成の確認
+- CRUD操作の動作確認
+- インデックス効果の確認
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - バッチ実行情報テーブル)
+- [`database_design.md`](../database_design.md)
+
+---
+
+### Issue: バッチ処理エンジン実装（Phase 2）
+**Labels**: `feature`, `backend`, `phase2`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+高度なバッチ処理エンジンとワーカープールによる並列データ取得機能の実装
+
+#### 完了条件
+- [ ] `BatchEngine`クラス実装（バッチ制御）
+- [ ] `StockDataWorker`クラス実装（データ取得ワーカー）
+- [ ] `ProgressManager`クラス実装（進捗管理）
+- [ ] ワーカープール管理機能実装
+- [ ] バッチ開始・停止・一時停止・再開機能実装
+- [ ] データベース永続化による状態管理
+- [ ] 並列処理の最適化（レート制限対応）
+
+#### PRレビュー重点観点
+- [ ] バッチエンジンの設計が適切か
+- [ ] ワーカープールの管理が効率的か
+- [ ] 並列処理が正しく実装されているか
+- [ ] リソース管理が適切か
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- 並列処理の動作確認
+- バッチ制御機能のテスト
+- リソース使用量の確認
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - BatchEngine クラス)
+
+---
+
+### Issue: エラーハンドリング・リカバリ機能実装（Phase 2）
+**Labels**: `feature`, `backend`, `phase2`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+エラー分類に基づいた高度なエラーハンドリングとリカバリ機能の実装
+
+#### 完了条件
+- [ ] `ErrorHandler`クラス実装
+- [ ] エラー分類ロジック実装（一時的、永続的、システムエラー）
+- [ ] リトライ処理実装（指数バックオフ対応）
+- [ ] エラーログ記録機能実装
+- [ ] エラーレポート生成機能実装
+- [ ] バッチ停止・再開機能との連携
+
+#### PRレビュー重点観点
+- [ ] エラー分類ロジックが適切か
+- [ ] リトライ戦略が適切か
+- [ ] エラーログが十分に記録されているか
+- [ ] システムの安定性が向上しているか
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- 各種エラーケースでのテスト
+- リトライ処理の確認
+- エラーログの確認
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - エラーハンドリング)
+
+---
+
+### Issue: WebSocket進捗配信機能実装（Phase 2）
+**Labels**: `feature`, `backend`, `phase2`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+WebSocketによるリアルタイム進捗配信機能の実装
+
+#### 完了条件
+- [ ] flask-socketioライブラリの導入
+- [ ] WebSocketサーバー実装
+- [ ] 進捗情報のブロードキャスト機能実装
+- [ ] WebSocket接続管理機能実装
+- [ ] フロントエンドとの連携実装
+- [ ] RESTポーリングとの併用サポート
+
+#### PRレビュー重点観点
+- [ ] WebSocket実装が適切か
+- [ ] リアルタイム配信が正しく機能するか
+- [ ] 接続管理が適切か
+- [ ] パフォーマンスへの影響が最小限か
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- WebSocket接続のテスト
+- リアルタイム進捗配信の確認
+- 複数クライアント接続のテスト
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - WebSocket進捗情報)
+
+---
+
+### Issue: バッチ処理監視・ログ機能実装（Phase 2）
+**Labels**: `feature`, `monitoring`, `phase2`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+バッチ処理の詳細なログ出力とメトリクス収集機能の実装
+
+#### 完了条件
+- [ ] 構造化ログ出力実装
+- [ ] メトリクス収集機能実装（スループット、成功率、平均処理時間等）
+- [ ] ログローテーション設定
+- [ ] パフォーマンス監視機能実装
+- [ ] 完了予定時刻（ETA）算出機能実装
+
+#### PRレビュー重点観点
+- [ ] ログ出力が適切か
+- [ ] メトリクス収集が効果的か
+- [ ] ログフォーマットが統一されているか
+- [ ] パフォーマンス監視が適切か
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- ログ出力の確認
+- メトリクス収集の確認
+- ETA算出の精度確認
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - 監視・ログ)
+
+---
+
+### Issue: Phase 1からPhase 2への移行実装
+**Labels**: `migration`, `phase2`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
+**Assignees**: 自分をアサイン
+
+#### 実装内容
+Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理エンジンへの移行
+
+#### 完了条件
+- [ ] Phase 1とPhase 2の共存実装（段階的移行）
+- [ ] 既存APIエンドポイントの下位互換性維持
+- [ ] インメモリ管理からデータベース永続化への移行
+- [ ] 移行ドキュメント作成
+- [ ] 移行テストの実施
+- [ ] Phase 1のコード削除またはdeprecated化
+
+#### PRレビュー重点観点
+- [ ] 下位互換性が維持されているか
+- [ ] 移行プロセスが安全か
+- [ ] ドキュメントが十分か
+- [ ] 既存機能への影響がないか
+- [ ] 実装内容が仕様書（api_bulk_fetch.md）と一致しているか
+
+#### テスト方法
+- Phase 1機能の動作確認
+- Phase 2機能の動作確認
+- 移行プロセスのテスト
+
+#### 参考仕様書
+- [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 1からPhase 2への移行計画)
+
+---
+
 ## 🐛 マイルストン 3: UI/UX改善・バグ修正 関連Issue
 
 ### Issue: ページネーション機能修正
