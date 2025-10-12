@@ -42,26 +42,42 @@ def create_stock_master_tables():
 
     try:
         with engine.begin() as conn:
-            # 1. stock_master テーブル作成
+            # 1. stock_master テーブル作成（JPX全項目対応版）
             print("\n[1/4] stock_master テーブルを作成中...")
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS stock_master (
                     id SERIAL PRIMARY KEY,
+
+                    -- 基本情報
                     stock_code VARCHAR(10) UNIQUE NOT NULL,
                     stock_name VARCHAR(100) NOT NULL,
                     market_category VARCHAR(50),
-                    sector VARCHAR(100),
+
+                    -- 業種情報
+                    sector_code_33 VARCHAR(10),
+                    sector_name_33 VARCHAR(100),
+                    sector_code_17 VARCHAR(10),
+                    sector_name_17 VARCHAR(100),
+
+                    -- 規模情報
+                    scale_code VARCHAR(10),
+                    scale_category VARCHAR(50),
+
+                    -- データ管理
+                    data_date VARCHAR(8),
                     is_active INTEGER DEFAULT 1 NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                 )
             """))
-            print("✓ stock_master テーブルを作成しました")
+            print("✓ stock_master テーブルを作成しました（JPX全項目対応版）")
 
             # 2. stock_master インデックス作成
             print("\n[2/4] stock_master インデックスを作成中...")
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_stock_master_code ON stock_master(stock_code)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_stock_master_active ON stock_master(is_active)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_stock_master_market ON stock_master(market_category)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_stock_master_sector_33 ON stock_master(sector_code_33)"))
             print("✓ stock_master インデックスを作成しました")
 
             # 3. stock_master_updates テーブル作成
