@@ -304,6 +304,110 @@ class StockMasterUpdate(Base):
             'completed_at': self.completed_at.isoformat() if self.completed_at else None
         }
 
+# バッチ実行情報テーブル (Phase 2)
+class BatchExecution(Base):
+    """バッチ実行情報テーブル - バッチ処理の実行状況を管理"""
+    __tablename__ = 'batch_executions'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    batch_type = Column(String(50), nullable=False)               # 'all_stocks', 'partial', etc.
+    status = Column(String(20), nullable=False)                   # 'running', 'completed', 'failed', 'paused'
+    total_stocks = Column(Integer, nullable=False)                # 総銘柄数
+    processed_stocks = Column(Integer, default=0)                 # 処理済み銘柄数
+    successful_stocks = Column(Integer, default=0)                # 成功銘柄数
+    failed_stocks = Column(Integer, default=0)                    # 失敗銘柄数
+    start_time = Column(DateTime(timezone=True), server_default=func.now())
+    end_time = Column(DateTime(timezone=True))
+    error_message = Column(String)                                # エラーメッセージ
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index('idx_batch_executions_status', 'status'),
+        Index('idx_batch_executions_batch_type', 'batch_type'),
+        Index('idx_batch_executions_start_time', 'start_time'),
+    )
+
+    def __repr__(self):
+        return f"<BatchExecution(id={self.id}, batch_type='{self.batch_type}', status='{self.status}')>"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """モデルインスタンスを辞書形式に変換"""
+        return {
+            'id': self.id,
+            'batch_type': self.batch_type,
+            'status': self.status,
+            'total_stocks': self.total_stocks,
+            'processed_stocks': self.processed_stocks,
+            'successful_stocks': self.successful_stocks,
+            'failed_stocks': self.failed_stocks,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+    @property
+    def progress_percentage(self) -> float:
+        """進捗率を計算"""
+        if self.total_stocks == 0:
+            return 0.0
+        return (self.processed_stocks / self.total_stocks) * 100.0
+
+    @property
+    def duration_seconds(self) -> Optional[float]:
+        """実行時間を秒で計算"""
+        if not self.start_time:
+            return None
+        end_time = self.end_time or datetime.now(self.start_time.tzinfo)
+        return (end_time - self.start_time).total_seconds()
+
+# バッチ実行詳細テーブル (Phase 2)
+class BatchExecutionDetail(Base):
+    """バッチ実行詳細テーブル - 個別銘柄の処理状況を管理"""
+    __tablename__ = 'batch_execution_details'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    batch_execution_id = Column(Integer, nullable=False)          # batch_executionsテーブルへの外部キー
+    stock_code = Column(String(10), nullable=False)               # 銘柄コード
+    status = Column(String(20), nullable=False)                   # 'pending', 'processing', 'completed', 'failed'
+    start_time = Column(DateTime(timezone=True))
+    end_time = Column(DateTime(timezone=True))
+    error_message = Column(String)                                # エラーメッセージ
+    records_inserted = Column(Integer, default=0)                 # 挿入されたレコード数
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index('idx_batch_execution_details_batch_id', 'batch_execution_id'),
+        Index('idx_batch_execution_details_status', 'status'),
+        Index('idx_batch_execution_details_stock_code', 'stock_code'),
+        Index('idx_batch_execution_details_batch_stock', 'batch_execution_id', 'stock_code'),
+    )
+
+    def __repr__(self):
+        return f"<BatchExecutionDetail(id={self.id}, batch_execution_id={self.batch_execution_id}, stock_code='{self.stock_code}', status='{self.status}')>"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """モデルインスタンスを辞書形式に変換"""
+        return {
+            'id': self.id,
+            'batch_execution_id': self.batch_execution_id,
+            'stock_code': self.stock_code,
+            'status': self.status,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'error_message': self.error_message,
+            'records_inserted': self.records_inserted,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+    @property
+    def duration_seconds(self) -> Optional[float]:
+        """処理時間を秒で計算"""
+        if not self.start_time:
+            return None
+        end_time = self.end_time or datetime.now(self.start_time.tzinfo)
+        return (end_time - self.start_time).total_seconds()
+
 # データベース設定
 DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 engine = create_engine(DATABASE_URL)

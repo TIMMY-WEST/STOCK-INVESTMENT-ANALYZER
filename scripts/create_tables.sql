@@ -497,6 +497,79 @@ COMMENT ON COLUMN stock_master_updates.status IS 'ステータス（success, fai
 COMMENT ON COLUMN stock_master_updates.error_message IS 'エラーメッセージ（失敗時）';
 
 -- =============================================================================
+-- 11. batch_executions テーブル作成（バッチ実行情報）
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS batch_executions (
+    id SERIAL PRIMARY KEY,
+    batch_type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    total_stocks INTEGER NOT NULL,
+    processed_stocks INTEGER DEFAULT 0,
+    successful_stocks INTEGER DEFAULT 0,
+    failed_stocks INTEGER DEFAULT 0,
+    start_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    end_time TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- テーブルコメント
+COMMENT ON TABLE batch_executions IS 'バッチ実行情報テーブル - バッチ処理の実行状況を管理 (Phase 2)';
+COMMENT ON COLUMN batch_executions.batch_type IS 'バッチタイプ（all_stocks, partial, etc.）';
+COMMENT ON COLUMN batch_executions.status IS 'ステータス（running, completed, failed, paused）';
+COMMENT ON COLUMN batch_executions.total_stocks IS '総銘柄数';
+COMMENT ON COLUMN batch_executions.processed_stocks IS '処理済み銘柄数';
+COMMENT ON COLUMN batch_executions.successful_stocks IS '成功銘柄数';
+COMMENT ON COLUMN batch_executions.failed_stocks IS '失敗銘柄数';
+COMMENT ON COLUMN batch_executions.start_time IS 'バッチ開始時刻';
+COMMENT ON COLUMN batch_executions.end_time IS 'バッチ終了時刻';
+COMMENT ON COLUMN batch_executions.error_message IS 'エラーメッセージ';
+
+-- インデックス作成
+CREATE INDEX IF NOT EXISTS idx_batch_executions_status ON batch_executions (status);
+CREATE INDEX IF NOT EXISTS idx_batch_executions_batch_type ON batch_executions (batch_type);
+CREATE INDEX IF NOT EXISTS idx_batch_executions_start_time ON batch_executions (start_time);
+
+-- =============================================================================
+-- 12. batch_execution_details テーブル作成（バッチ実行詳細）
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS batch_execution_details (
+    id SERIAL PRIMARY KEY,
+    batch_execution_id INTEGER NOT NULL,
+    stock_code VARCHAR(10) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    start_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    records_inserted INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- 外部キー制約
+    CONSTRAINT fk_batch_execution_details_batch_id 
+        FOREIGN KEY (batch_execution_id) 
+        REFERENCES batch_executions(id) 
+        ON DELETE CASCADE
+);
+
+-- テーブルコメント
+COMMENT ON TABLE batch_execution_details IS 'バッチ実行詳細テーブル - 個別銘柄の処理状況を管理 (Phase 2)';
+COMMENT ON COLUMN batch_execution_details.batch_execution_id IS 'batch_executionsテーブルへの外部キー';
+COMMENT ON COLUMN batch_execution_details.stock_code IS '銘柄コード';
+COMMENT ON COLUMN batch_execution_details.status IS 'ステータス（pending, processing, completed, failed）';
+COMMENT ON COLUMN batch_execution_details.start_time IS '処理開始時刻';
+COMMENT ON COLUMN batch_execution_details.end_time IS '処理終了時刻';
+COMMENT ON COLUMN batch_execution_details.error_message IS 'エラーメッセージ';
+COMMENT ON COLUMN batch_execution_details.records_inserted IS '挿入されたレコード数';
+
+-- インデックス作成
+CREATE INDEX IF NOT EXISTS idx_batch_execution_details_batch_id ON batch_execution_details (batch_execution_id);
+CREATE INDEX IF NOT EXISTS idx_batch_execution_details_status ON batch_execution_details (status);
+CREATE INDEX IF NOT EXISTS idx_batch_execution_details_stock_code ON batch_execution_details (stock_code);
+CREATE INDEX IF NOT EXISTS idx_batch_execution_details_batch_stock ON batch_execution_details (batch_execution_id, stock_code);
+
+-- =============================================================================
 -- 実行結果確認
 -- =============================================================================
 
@@ -506,13 +579,13 @@ SELECT
     tablename as "テーブル名",
     tableowner as "所有者"
 FROM pg_tables
-WHERE tablename LIKE 'stocks_%' OR tablename LIKE 'stock_master%'
+WHERE tablename LIKE 'stocks_%' OR tablename LIKE 'stock_master%' OR tablename LIKE 'batch_%'
 ORDER BY tablename;
 
 -- テーブル作成成功メッセージ
 DO $$
 BEGIN
-    RAISE NOTICE '=== 10テーブル構成作成完了 ===';
+    RAISE NOTICE '=== 12テーブル構成作成完了 ===';
     RAISE NOTICE '【株価データテーブル（8テーブル）】';
     RAISE NOTICE '  - stocks_1d (日足)';
     RAISE NOTICE '  - stocks_1m (1分足)';
