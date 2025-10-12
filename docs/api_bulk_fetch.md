@@ -186,13 +186,104 @@
 - `.env` に `RATE_LIMIT_PER_MINUTE` を設定することでレート制限を調整できます（デフォルト: 60）。
 
 ## 進捗通知（WebSocket）
-- 現在の実装は進捗のREST取得に対応しています。
-- WebSocketによるリアルタイム通知は `flask_socketio` の導入後に有効化予定です（コードに拡張用の土台あり）。
+
+### WebSocket接続
+- **URL**: `ws://<server-host>:<port>/socket.io/`
+- **プロトコル**: Socket.IO
+- **CORS**: すべてのオリジンから接続可能（`cors_allowed_origins="*"`）
+
+### 接続イベント
+
+#### `connect`
+クライアントがWebSocketに接続した時に発火します。
+
+#### `disconnect`
+クライアントがWebSocketから切断した時に発火します。
+
+### 進捗配信イベント
+
+#### `bulk_progress`
+バッチ処理の進捗がリアルタイムで配信されます。
+
+イベントデータ:
+```json
+{
+  "job_id": "job-1720000000000",
+  "progress": {
+    "total": 3,
+    "processed": 1,
+    "successful": 1,
+    "failed": 0,
+    "progress_percentage": 33.3
+  }
+}
+```
+
+#### `bulk_complete`
+バッチ処理が完了した時に配信されます。
+
+イベントデータ:
+```json
+{
+  "job_id": "job-1720000000000",
+  "summary": {
+    "total_symbols": 3,
+    "successful": 3,
+    "failed": 0,
+    "duration_seconds": 5.2
+  }
+}
+```
+
+### クライアント実装例
+
+#### JavaScript (Socket.IO Client)
+```javascript
+// Socket.IOクライアントライブラリを読み込み
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+// WebSocket接続
+const socket = io();
+
+// 接続イベント
+socket.on('connect', () => {
+    console.log('WebSocketに接続しました');
+});
+
+// 切断イベント
+socket.on('disconnect', () => {
+    console.log('WebSocketから切断されました');
+});
+
+// 進捗更新イベント
+socket.on('bulk_progress', (data) => {
+    console.log('進捗更新:', data);
+    // 進捗バーの更新などの処理
+    updateProgressBar(data.progress.progress_percentage);
+});
+
+// 完了イベント
+socket.on('bulk_complete', (data) => {
+    console.log('バッチ完了:', data);
+    // 完了メッセージの表示などの処理
+    showCompletionMessage(data.summary);
+});
+```
+
+### RESTポーリングとの併用
+WebSocketとRESTポーリング（`GET /api/bulk/status/{job_id}`）は併用可能です。
+
+- **WebSocket**: リアルタイム進捗配信（推奨）
+- **RESTポーリング**: WebSocket非対応環境での代替手段
+
+### テストページ
+WebSocket機能のテストページが利用可能です:
+- **URL**: `http://<server-host>:<port>/websocket-test`
+- **機能**: WebSocket接続テスト、バッチ実行、リアルタイム進捗表示
 
 ## Phase 1 の制限事項
 - **ジョブ管理**: インメモリ管理のため、アプリケーション再起動時にジョブ情報が失われます
 - **並列処理**: 簡易なスレッド実行です。大規模運用ではキュー（RQ/Celery等）の採用が必要です
-- **進捗配信**: WebSocketによるリアルタイム通知は未実装（RESTポーリングのみ）
 - **エラーリカバリ**: 基本的なリトライのみで、高度なエラーハンドリングは未実装
 - **外部API制限**: Yahoo Finance APIへの大量アクセスとなるため、レート制限の設定を慎重に行ってください
 

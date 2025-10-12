@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket進捗配信テスト</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .control-panel {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .progress-container {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .progress-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .info-item {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .log-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 5px;
+            margin: 3px 0;
+            font-family: monospace;
+            font-size: 12px;
+            border-left: 3px solid #007bff;
+            padding-left: 10px;
+        }
+        .log-entry.success {
+            border-left-color: #28a745;
+        }
+        .log-entry.error {
+            border-left-color: #dc3545;
+            color: #dc3545;
+        }
+        .summary {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            display: none;
+        }
+        .summary h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebSocket進捗配信テスト</h1>
+
+        <div id="connection-status" class="status disconnected">
+            未接続
+        </div>
+
+        <div class="control-panel">
+            <h3>バッチ実行</h3>
+            <div>
+                <label for="symbols">銘柄コード（カンマ区切り）:</label><br>
+                <input type="text" id="symbols" value="7203.T,6758.T,9984.T" style="width: 400px;">
+            </div>
+            <div>
+                <label for="interval">足種別:</label>
+                <select id="interval">
+                    <option value="1d">1日足</option>
+                    <option value="1wk">1週足</option>
+                    <option value="1mo">1月足</option>
+                </select>
+
+                <label for="period">期間:</label>
+                <select id="period">
+                    <option value="1mo">1ヶ月</option>
+                    <option value="3mo">3ヶ月</option>
+                    <option value="6mo">6ヶ月</option>
+                    <option value="1y">1年</option>
+                </select>
+            </div>
+            <div>
+                <button id="start-btn" onclick="startBulkFetch()">バッチ開始</button>
+                <button id="stop-btn" onclick="stopBulkFetch()" disabled>バッチ停止</button>
+            </div>
+            <div>
+                <label>Job ID: <span id="job-id">-</span></label>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <h3>進捗状況</h3>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%">0%</div>
+            </div>
+            <div class="progress-info">
+                <div class="info-item">
+                    <div class="info-label">処理済み / 総数</div>
+                    <div class="info-value"><span id="processed">0</span> / <span id="total">0</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">成功</div>
+                    <div class="info-value" style="color: #28a745;"><span id="successful">0</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">失敗</div>
+                    <div class="info-value" style="color: #dc3545;"><span id="failed">0</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">ステータス</div>
+                    <div class="info-value" id="status">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="summary" class="summary">
+            <h3>実行結果サマリー</h3>
+            <div id="summary-content"></div>
+        </div>
+
+        <div class="log-container">
+            <h3>イベントログ</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let currentJobId = null;
+
+        // WebSocket接続
+        function connectWebSocket() {
+            socket = io();
+
+            socket.on('connect', () => {
+                addLog('WebSocketに接続しました', 'success');
+                updateConnectionStatus(true);
+            });
+
+            socket.on('disconnect', () => {
+                addLog('WebSocketから切断されました', 'error');
+                updateConnectionStatus(false);
+            });
+
+            // 進捗更新イベント
+            socket.on('bulk_progress', (data) => {
+                addLog(`進捗更新: Job ${data.job_id}`, 'success');
+                updateProgress(data.progress);
+            });
+
+            // 完了イベント
+            socket.on('bulk_complete', (data) => {
+                addLog(`バッチ完了: Job ${data.job_id}`, 'success');
+                showSummary(data.summary);
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('stop-btn').disabled = true;
+            });
+        }
+
+        // バッチ開始
+        async function startBulkFetch() {
+            const symbolsInput = document.getElementById('symbols').value;
+            const symbols = symbolsInput.split(',').map(s => s.trim());
+            const interval = document.getElementById('interval').value;
+            const period = document.getElementById('period').value;
+
+            try {
+                const response = await fetch('/api/bulk/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbols: symbols,
+                        interval: interval,
+                        period: period
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentJobId = result.job_id;
+                    document.getElementById('job-id').textContent = currentJobId;
+                    addLog(`バッチ開始: Job ${currentJobId}`, 'success');
+                    document.getElementById('start-btn').disabled = true;
+                    document.getElementById('stop-btn').disabled = false;
+                    document.getElementById('summary').style.display = 'none';
+                } else {
+                    addLog(`エラー: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                addLog(`エラー: ${error.message}`, 'error');
+            }
+        }
+
+        // バッチ停止
+        async function stopBulkFetch() {
+            if (!currentJobId) {
+                addLog('Job IDが設定されていません', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/bulk/stop/${currentJobId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    addLog(`バッチ停止要求: ${result.message}`, 'success');
+                    document.getElementById('start-btn').disabled = false;
+                    document.getElementById('stop-btn').disabled = true;
+                } else {
+                    addLog(`エラー: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                addLog(`エラー: ${error.message}`, 'error');
+            }
+        }
+
+        // 進捗表示更新
+        function updateProgress(progress) {
+            const percentage = progress.progress_percentage || 0;
+            document.getElementById('progress-fill').style.width = percentage + '%';
+            document.getElementById('progress-fill').textContent = percentage.toFixed(1) + '%';
+            document.getElementById('processed').textContent = progress.processed || 0;
+            document.getElementById('total').textContent = progress.total || 0;
+            document.getElementById('successful').textContent = progress.successful || 0;
+            document.getElementById('failed').textContent = progress.failed || 0;
+            document.getElementById('status').textContent = '実行中';
+        }
+
+        // サマリー表示
+        function showSummary(summary) {
+            const summaryDiv = document.getElementById('summary');
+            const contentDiv = document.getElementById('summary-content');
+
+            contentDiv.innerHTML = `
+                <p><strong>総銘柄数:</strong> ${summary.total_symbols}</p>
+                <p><strong>成功:</strong> ${summary.successful}</p>
+                <p><strong>失敗:</strong> ${summary.failed}</p>
+                <p><strong>処理時間:</strong> ${summary.duration_seconds}秒</p>
+            `;
+
+            summaryDiv.style.display = 'block';
+            document.getElementById('status').textContent = '完了';
+        }
+
+        // 接続状態表示更新
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connection-status');
+            if (connected) {
+                statusDiv.textContent = 'WebSocket接続中';
+                statusDiv.className = 'status connected';
+            } else {
+                statusDiv.textContent = '未接続';
+                statusDiv.className = 'status disconnected';
+            }
+        }
+
+        // ログ追加
+        function addLog(message, type = '') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // ページロード時にWebSocket接続
+        window.addEventListener('load', () => {
+            connectWebSocket();
+            addLog('ページを読み込みました');
+        });
+    </script>
+</body>
+</html>
