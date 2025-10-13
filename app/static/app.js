@@ -1201,6 +1201,400 @@ const BulkDataFetchManager = {
     }
 };
 
+// JPX Stock Automation Manager
+const JPXAutomationManager = {
+    currentJobId: null,
+    socket: null,
+    pollInterval: null,
+
+    init: () => {
+        try {
+            // Get UI elements
+            const startBtn = document.getElementById('jpx-start-btn');
+            const stopBtn = document.getElementById('jpx-stop-btn');
+            const intervalInput = document.getElementById('jpx-interval');
+            const periodInput = document.getElementById('jpx-period');
+
+            if (startBtn) {
+                startBtn.addEventListener('click', JPXAutomationManager.startJPXAutomation);
+            }
+            if (stopBtn) {
+                stopBtn.addEventListener('click', JPXAutomationManager.stopJPXAutomation);
+            }
+
+            // Initialize WebSocket for real-time updates
+            JPXAutomationManager.initWebSocket();
+
+            console.log('JPX Automation Manager initialized');
+        } catch (error) {
+            console.error('JPX Automation Manager initialization error:', error);
+        }
+    },
+
+    initWebSocket: () => {
+        try {
+            if (typeof io !== 'undefined') {
+                JPXAutomationManager.socket = io();
+
+                JPXAutomationManager.socket.on('bulk_progress', (data) => {
+                    if (data.job_id === JPXAutomationManager.currentJobId) {
+                        JPXAutomationManager.updateProgress(data.progress);
+                    }
+                });
+
+                JPXAutomationManager.socket.on('bulk_complete', (data) => {
+                    if (data.job_id === JPXAutomationManager.currentJobId) {
+                        JPXAutomationManager.showResult(data.summary);
+                    }
+                });
+
+                console.log('JPX WebSocket initialized');
+            }
+        } catch (error) {
+            console.warn('JPX WebSocket initialization failed:', error);
+        }
+    },
+
+    startJPXAutomation: async () => {
+        try {
+            const intervalInput = document.getElementById('jpx-interval');
+            const periodInput = document.getElementById('jpx-period');
+            const interval = intervalInput.value;
+            const period = periodInput.value;
+
+            // Validation
+            if (!interval) {
+                JPXAutomationManager.showError('入力エラー', '時間軸を選択してください');
+                return;
+            }
+
+            JPXAutomationManager.setProcessingState(true);
+            JPXAutomationManager.showStatus('JPX銘柄リストをダウンロード中...');
+
+            // Step 1: Update stock master from JPX
+            const updateResponse = await fetch('/api/stock-master/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': localStorage.getItem('api_key') || ''
+                },
+                body: JSON.stringify({
+                    update_type: 'manual'
+                })
+            });
+
+            if (!updateResponse.ok) {
+                const errorData = await updateResponse.json();
+                throw new Error(errorData.message || 'JPX銘柄リスト更新エラー');
+            }
+
+            const updateResult = await updateResponse.json();
+            console.log('JPX update result:', updateResult);
+
+            const stockCount = updateResult.data.total_stocks;
+            JPXAutomationManager.updateStockCount(stockCount);
+            JPXAutomationManager.showStatus(`JPX銘柄リスト取得完了（${stockCount}銘柄）。株価データ取得を開始します...`);
+
+            // Step 2: Get stock list (with pagination)
+            const symbols = [];
+            const limit = 1000; // API limit per request
+            let offset = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                const listResponse = await fetch(`/api/stock-master/list?limit=${limit}&offset=${offset}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-API-KEY': localStorage.getItem('api_key') || ''
+                    }
+                });
+
+                if (!listResponse.ok) {
+                    throw new Error('銘柄リスト取得エラー');
+                }
+
+                const listResult = await listResponse.json();
+                const batchSymbols = listResult.data.stocks.map(stock => stock.stock_code);
+                symbols.push(...batchSymbols);
+
+                // Check if there are more records
+                if (batchSymbols.length < limit) {
+                    hasMore = false;
+                } else {
+                    offset += limit;
+                    JPXAutomationManager.showStatus(`銘柄リスト取得中... (${symbols.length}/${stockCount})`);
+                }
+            }
+
+            console.log(`Starting bulk fetch for ${symbols.length} symbols`);
+
+            // Step 3: Start bulk fetch
+            console.log('[JPXAutomationManager] 一括取得APIリクエスト開始');
+            console.log('[JPXAutomationManager] リクエストパラメータ:', {
+                symbolsCount: symbols.length,
+                interval: interval,
+                period: period,
+                apiKey: localStorage.getItem('api_key') ? '設定済み' : '未設定'
+            });
+
+            const bulkResponse = await fetch('/api/bulk/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': localStorage.getItem('api_key') || ''
+                },
+                body: JSON.stringify({
+                    symbols: symbols,
+                    interval: interval,
+                    period: period || undefined
+                })
+            });
+
+            console.log('[JPXAutomationManager] APIレスポンス受信:', {
+                status: bulkResponse.status,
+                statusText: bulkResponse.statusText,
+                ok: bulkResponse.ok
+            });
+
+            if (!bulkResponse.ok) {
+                let errorMessage = '一括取得開始エラー';
+                try {
+                    const errorData = await bulkResponse.json();
+                    console.error('[JPXAutomationManager] APIエラーレスポンス:', errorData);
+                    errorMessage = errorData.message || errorMessage;
+                } catch (parseError) {
+                    console.error('[JPXAutomationManager] エラーレスポンスのパースに失敗:', parseError);
+                    errorMessage = `HTTP ${bulkResponse.status}: ${bulkResponse.statusText}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            const bulkResult = await bulkResponse.json();
+            console.log('[JPXAutomationManager] 一括取得開始成功:', bulkResult);
+            
+            JPXAutomationManager.currentJobId = bulkResult.job_id;
+
+            JPXAutomationManager.showProgressSection();
+            JPXAutomationManager.showStatus('株価データ取得中...');
+
+            // Start polling if WebSocket is not available
+            if (!JPXAutomationManager.socket) {
+                console.log('[JPXAutomationManager] WebSocket未接続のため、ポーリング開始');
+                JPXAutomationManager.startPolling();
+            } else {
+                console.log('[JPXAutomationManager] WebSocket接続済み、リアルタイム進捗受信待機');
+            }
+
+        } catch (error) {
+            console.error('JPX automation error:', error);
+            JPXAutomationManager.setProcessingState(false);
+            JPXAutomationManager.showError('JPX自動取得エラー', error.message);
+        }
+    },
+
+    startPolling: () => {
+        console.log('[JPXAutomationManager] ポーリング開始');
+        JPXAutomationManager.pollInterval = setInterval(async () => {
+            if (!JPXAutomationManager.currentJobId) {
+                console.log('[JPXAutomationManager] ジョブIDが無いためポーリング停止');
+                clearInterval(JPXAutomationManager.pollInterval);
+                return;
+            }
+
+            try {
+                console.log(`[JPXAutomationManager] ステータス取得開始: job_id=${JPXAutomationManager.currentJobId}`);
+                const response = await fetch(`/api/bulk/status/${JPXAutomationManager.currentJobId}`, {
+                    headers: {
+                        'X-API-KEY': localStorage.getItem('api_key') || ''
+                    }
+                });
+
+                console.log(`[JPXAutomationManager] ステータスレスポンス: status=${response.status}, ok=${response.ok}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('[JPXAutomationManager] ステータスデータ:', data);
+                    
+                    if (data.success && data.job) {
+                        const job = data.job;
+                        console.log(`[JPXAutomationManager] ジョブステータス: ${job.status}, 進捗: ${job.progress?.progress_percentage || 0}%`);
+
+                        JPXAutomationManager.updateProgress(job.progress);
+
+                        if (job.status === 'completed') {
+                            console.log('[JPXAutomationManager] ジョブ完了、ポーリング停止');
+                            clearInterval(JPXAutomationManager.pollInterval);
+                            JPXAutomationManager.showResult(job.summary);
+                        } else if (job.status === 'failed') {
+                            console.log('[JPXAutomationManager] ジョブ失敗、ポーリング停止');
+                            clearInterval(JPXAutomationManager.pollInterval);
+                            JPXAutomationManager.showError('一括取得失敗', job.error || '不明なエラー');
+                        }
+                    } else {
+                        console.error('[JPXAutomationManager] ステータスレスポンスが無効:', data);
+                    }
+                } else {
+                    console.error(`[JPXAutomationManager] ステータス取得エラー: ${response.status} ${response.statusText}`);
+                    try {
+                        const errorData = await response.json();
+                        console.error('[JPXAutomationManager] エラーレスポンス:', errorData);
+                    } catch (parseError) {
+                        console.error('[JPXAutomationManager] エラーレスポンスのパースに失敗:', parseError);
+                    }
+                }
+            } catch (error) {
+                console.error('[JPXAutomationManager] ポーリングエラー:', error);
+            }
+        }, 2000);
+    },
+
+    updateProgress: (progress) => {
+        const progressBar = document.getElementById('jpx-progress-bar');
+        const progressText = document.getElementById('jpx-progress-text');
+        const processedEl = document.getElementById('jpx-processed');
+        const totalEl = document.getElementById('jpx-total');
+        const successfulEl = document.getElementById('jpx-successful');
+        const failedEl = document.getElementById('jpx-failed');
+        const currentSymbolEl = document.getElementById('jpx-current-symbol');
+
+        if (progressBar && progressText) {
+            const percentage = progress.progress_percentage || 0;
+            progressBar.style.width = `${percentage}%`;
+            progressBar.setAttribute('aria-valuenow', percentage);
+            progressText.textContent = `${Math.round(percentage)}%`;
+        }
+
+        if (processedEl) processedEl.textContent = progress.processed || 0;
+        if (totalEl) totalEl.textContent = progress.total || 0;
+        if (successfulEl) successfulEl.textContent = progress.successful || 0;
+        if (failedEl) failedEl.textContent = progress.failed || 0;
+        if (currentSymbolEl && progress.current_symbol) {
+            currentSymbolEl.textContent = progress.current_symbol;
+        }
+    },
+
+    showProgressSection: () => {
+        const progressSection = document.getElementById('jpx-progress-section');
+        if (progressSection) {
+            progressSection.style.display = 'block';
+        }
+    },
+
+    showStatus: (message) => {
+        const statusSection = document.getElementById('jpx-status-section');
+        const statusEl = document.getElementById('jpx-status');
+
+        if (statusSection) {
+            statusSection.style.display = 'block';
+        }
+        if (statusEl) {
+            statusEl.textContent = message;
+        }
+    },
+
+    updateStockCount: (count) => {
+        const stockCountEl = document.getElementById('jpx-stock-count');
+        if (stockCountEl) {
+            stockCountEl.textContent = count;
+        }
+    },
+
+    showResult: (summary) => {
+        JPXAutomationManager.setProcessingState(false);
+
+        const resultSection = document.getElementById('jpx-result-section');
+        const resultContainer = document.getElementById('jpx-result-container');
+
+        if (resultContainer) {
+            resultContainer.innerHTML = `
+                <div class="alert alert-success">
+                    <h4>取得完了</h4>
+                    <p>全銘柄の株価データ取得が完了しました。</p>
+                    <ul>
+                        <li>合計銘柄数: ${summary.total_symbols}</li>
+                        <li>成功: ${summary.successful}</li>
+                        <li>失敗: ${summary.failed}</li>
+                        <li>処理時間: ${summary.duration_seconds ? summary.duration_seconds.toFixed(2) + '秒' : 'N/A'}</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        if (resultSection) {
+            resultSection.style.display = 'block';
+        }
+
+        JPXAutomationManager.showStatus('完了');
+    },
+
+    showError: (title, message) => {
+        const errorSection = document.getElementById('jpx-error-section');
+        const errorContainer = document.getElementById('jpx-error-container');
+
+        if (errorContainer) {
+            errorContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <h4>${Utils.escapeHtml(title)}</h4>
+                    <p>${Utils.escapeHtml(message)}</p>
+                </div>
+            `;
+        }
+
+        if (errorSection) {
+            errorSection.style.display = 'block';
+        }
+    },
+
+    stopJPXAutomation: async () => {
+        if (!JPXAutomationManager.currentJobId) return;
+
+        try {
+            const response = await fetch(`/api/bulk/stop/${JPXAutomationManager.currentJobId}`, {
+                method: 'POST',
+                headers: {
+                    'X-API-KEY': localStorage.getItem('api_key') || ''
+                }
+            });
+
+            if (response.ok) {
+                JPXAutomationManager.setProcessingState(false);
+                JPXAutomationManager.showStatus('停止しました');
+            }
+        } catch (error) {
+            console.error('Stop error:', error);
+            JPXAutomationManager.showError('停止エラー', error.message);
+        }
+    },
+
+    setProcessingState: (isProcessing) => {
+        const startBtn = document.getElementById('jpx-start-btn');
+        const stopBtn = document.getElementById('jpx-stop-btn');
+        const intervalInput = document.getElementById('jpx-interval');
+        const periodInput = document.getElementById('jpx-period');
+
+        if (startBtn) {
+            startBtn.disabled = isProcessing;
+            startBtn.style.display = isProcessing ? 'none' : 'inline-block';
+        }
+
+        if (stopBtn) {
+            stopBtn.disabled = !isProcessing;
+            stopBtn.style.display = isProcessing ? 'inline-block' : 'none';
+        }
+
+        if (intervalInput) intervalInput.disabled = isProcessing;
+        if (periodInput) periodInput.disabled = isProcessing;
+
+        if (!isProcessing) {
+            if (JPXAutomationManager.pollInterval) {
+                clearInterval(JPXAutomationManager.pollInterval);
+                JPXAutomationManager.pollInterval = null;
+            }
+            JPXAutomationManager.currentJobId = null;
+        }
+    }
+};
+
 // Application initialization
 const App = {
     init: () => {
@@ -1220,6 +1614,7 @@ const App = {
             SystemStatusManager.init();
             AccessibilityManager.init();
             BulkDataFetchManager.init();
+            JPXAutomationManager.init();
 
             console.log('Stock Data Management System initialized successfully');
         } catch (error) {

@@ -107,35 +107,51 @@ def _make_progress_callback(job_id: str, batch_db_id: Optional[int] = None) -> C
         進捗更新コールバック関数
     """
     def cb(progress: Dict[str, Any]):
+        logger.info(f"[progress_callback] 進捗更新: job_id={job_id}, progress={progress}")
+        
         # Phase 1: インメモリ管理の更新
         job = JOBS.get(job_id)
         if job:
             job['progress'] = progress
             job['updated_at'] = time.time()
+            logger.debug(f"[progress_callback] Phase 1進捗更新完了: job_id={job_id}")
+        else:
+            logger.warning(f"[progress_callback] Phase 1ジョブが見つかりません: job_id={job_id}")
 
         # Phase 2: データベースの更新
         if ENABLE_PHASE2 and batch_db_id:
             try:
+                logger.debug(f"[progress_callback] Phase 2進捗更新開始: batch_db_id={batch_db_id}")
                 BatchService.update_batch_progress(
                     batch_id=batch_db_id,
                     processed_stocks=progress.get('processed', 0),
                     successful_stocks=progress.get('successful', 0),
                     failed_stocks=progress.get('failed', 0)
                 )
+                logger.debug(f"[progress_callback] Phase 2進捗更新完了: batch_db_id={batch_db_id}")
             except BatchServiceError as e:
-                logger.error(f"Phase 2バッチ進捗更新エラー: {e}")
+                logger.error(f"[progress_callback] Phase 2バッチ進捗更新エラー: {e}")
 
         # WebSocket通知（利用可能な場合のみ）
         try:
-            socketio = current_app.config.get('SOCKETIO')
-            if socketio:
-                socketio.emit('bulk_progress', {
-                    'job_id': job_id,
-                    'batch_db_id': batch_db_id,
-                    'progress': progress
-                })
-        except Exception:
-            pass
+            from flask import current_app
+            # アプリケーションコンテキストが利用可能かチェック
+            try:
+                socketio = current_app.config.get('SOCKETIO')
+                if socketio:
+                    logger.debug(f"[progress_callback] WebSocket進捗通知送信: job_id={job_id}")
+                    socketio.emit('bulk_progress', {
+                        'job_id': job_id,
+                        'batch_db_id': batch_db_id,
+                        'progress': progress
+                    })
+                else:
+                    logger.debug(f"[progress_callback] WebSocket未設定のため進捗通知スキップ")
+            except RuntimeError:
+                # アプリケーションコンテキスト外で実行されている場合はスキップ
+                logger.debug(f"[progress_callback] アプリケーションコンテキスト外のためWebSocket通知スキップ")
+        except Exception as e:
+            logger.error(f"[progress_callback] WebSocket進捗通知エラー: {e}")
     return cb
 
 
@@ -150,14 +166,19 @@ def _run_job(job_id: str, symbols: List[str], interval: str, period: Optional[st
         period: 取得期間
         batch_db_id: Phase 2のバッチDB ID（データベース永続化用）
     """
+    logger.info(f"[_run_job] ジョブ実行開始: job_id={job_id}, symbols_count={len(symbols)}, interval={interval}, period={period}")
+    
     service = get_bulk_service()
     try:
+        logger.info(f"[_run_job] BulkDataService.fetch_multiple_stocks 呼び出し開始")
         summary = service.fetch_multiple_stocks(
             symbols=symbols,
             interval=interval,
             period=period,
             progress_callback=_make_progress_callback(job_id, batch_db_id)
         )
+        
+        logger.info(f"[_run_job] データ取得完了: job_id={job_id}, summary={summary}")
 
         # Phase 1: インメモリ管理の更新
         job = JOBS.get(job_id)
@@ -165,47 +186,66 @@ def _run_job(job_id: str, symbols: List[str], interval: str, period: Optional[st
             job['status'] = 'completed'
             job['summary'] = summary
             job['updated_at'] = time.time()
+            logger.info(f"[_run_job] Phase 1ジョブ完了更新: job_id={job_id}")
 
         # Phase 2: データベースの更新
         if ENABLE_PHASE2 and batch_db_id:
             try:
+                logger.info(f"[_run_job] Phase 2バッチ完了更新開始: batch_db_id={batch_db_id}")
                 BatchService.complete_batch(
                     batch_id=batch_db_id,
                     status='completed'
                 )
+                logger.info(f"[_run_job] Phase 2バッチ完了更新成功: batch_db_id={batch_db_id}")
             except BatchServiceError as e:
-                logger.error(f"Phase 2バッチ完了更新エラー: {e}")
+                logger.error(f"[_run_job] Phase 2バッチ完了更新エラー: {e}")
 
         # 完了通知（WebSocketが有効な場合）
         try:
-            socketio = current_app.config.get('SOCKETIO')
-            if socketio:
-                socketio.emit('bulk_complete', {
-                    'job_id': job_id,
-                    'batch_db_id': batch_db_id,
-                    'summary': summary
-                })
-        except Exception:
-            pass
+            from flask import current_app
+            # アプリケーションコンテキストが利用可能かチェック
+            try:
+                socketio = current_app.config.get('SOCKETIO')
+                if socketio:
+                    logger.info(f"[_run_job] WebSocket完了通知送信: job_id={job_id}")
+                    socketio.emit('bulk_complete', {
+                        'job_id': job_id,
+                        'batch_db_id': batch_db_id,
+                        'summary': summary
+                    })
+                else:
+                    logger.info(f"[_run_job] WebSocket未設定のため完了通知スキップ")
+            except RuntimeError:
+                # アプリケーションコンテキスト外で実行されている場合はスキップ
+                logger.info(f"[_run_job] アプリケーションコンテキスト外のためWebSocket完了通知スキップ")
+        except Exception as e:
+            logger.error(f"[_run_job] WebSocket完了通知エラー: {e}")
 
     except Exception as e:
+        logger.error(f"[_run_job] ジョブ実行エラー: job_id={job_id}, error={e}", exc_info=True)
+        
         # Phase 1: インメモリ管理の更新
         job = JOBS.get(job_id)
         if job is not None:
             job['status'] = 'failed'
             job['error'] = str(e)
             job['updated_at'] = time.time()
+            logger.info(f"[_run_job] Phase 1ジョブ失敗更新: job_id={job_id}")
 
         # Phase 2: データベースの更新
         if ENABLE_PHASE2 and batch_db_id:
             try:
+                logger.info(f"[_run_job] Phase 2バッチ失敗更新開始: batch_db_id={batch_db_id}")
                 BatchService.complete_batch(
                     batch_id=batch_db_id,
                     status='failed',
                     error_message=str(e)
                 )
+                logger.info(f"[_run_job] Phase 2バッチ失敗更新成功: batch_db_id={batch_db_id}")
             except BatchServiceError as db_err:
-                logger.error(f"Phase 2バッチ失敗更新エラー: {db_err}")
+                logger.error(f"[_run_job] Phase 2バッチ失敗更新エラー: {db_err}")
+
+    logger.info(f"[_run_job] ジョブ実行終了: job_id={job_id}")
 
 
 @bulk_api.route('/start', methods=['POST'])
@@ -222,68 +262,96 @@ def start_bulk_fetch():
     下位互換性のため、レスポンスにはjob_idを含めますが、
     Phase 2が有効な場合はbatch_db_idも返します。
     """
-    data = request.get_json(silent=True) or {}
-    symbols = data.get('symbols')
-    interval = data.get('interval', '1d')
-    period = data.get('period')
+    try:
+        logger.info("[bulk_data] 一括取得リクエスト受信")
+        
+        data = request.get_json(silent=True) or {}
+        symbols = data.get('symbols')
+        interval = data.get('interval', '1d')
+        period = data.get('period')
 
-    # 入力検証
-    if not symbols or not isinstance(symbols, list) or not all(isinstance(s, str) for s in symbols):
+        logger.info(f"[bulk_data] リクエストパラメータ: symbols_count={len(symbols) if symbols else 0}, interval={interval}, period={period}")
+
+        # 入力検証
+        if not symbols or not isinstance(symbols, list) or not all(isinstance(s, str) for s in symbols):
+            logger.error("[bulk_data] バリデーションエラー: symbols が無効")
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": "'symbols' は文字列リストで指定してください"
+            }), 400
+
+        # リクエストサイズ制限チェック
+        if len(symbols) > 5000:
+            logger.error(f"[bulk_data] リクエストサイズエラー: symbols_count={len(symbols)}")
+            return jsonify({
+                "success": False,
+                "error": "REQUEST_TOO_LARGE",
+                "message": f"一度に処理できる銘柄数は5000件までです。現在: {len(symbols)}件"
+            }), 413
+
+        # Phase 1: インメモリ管理用のジョブID生成
+        job_id = f"job-{int(time.time() * 1000)}"
+        logger.info(f"[bulk_data] ジョブID生成: {job_id}")
+        
+        JOBS[job_id] = {
+            'id': job_id,
+            'status': 'running',
+            'progress': {
+                'total': len(symbols),
+                'processed': 0,
+                'successful': 0,
+                'failed': 0,
+                'progress_percentage': 0.0
+            },
+            'created_at': time.time(),
+            'updated_at': time.time()
+        }
+
+        # Phase 2: データベースにバッチ実行レコードを作成
+        batch_db_id = None
+        if ENABLE_PHASE2:
+            try:
+                logger.info("[bulk_data] Phase 2バッチ作成開始")
+                batch_info = BatchService.create_batch(
+                    batch_type='partial',
+                    total_stocks=len(symbols)
+                )
+                batch_db_id = batch_info['id']
+                logger.info(f"[bulk_data] Phase 2バッチ作成成功: batch_db_id={batch_db_id}")
+            except BatchServiceError as e:
+                logger.error(f"[bulk_data] Phase 2バッチ作成エラー: {e}")
+                # Phase 2失敗時もPhase 1で継続
+
+        # バックグラウンドでジョブ実行
+        logger.info(f"[bulk_data] バックグラウンドジョブ開始: job_id={job_id}")
+        thread = threading.Thread(
+            target=_run_job,
+            args=(job_id, symbols, interval, period, batch_db_id),
+            daemon=True
+        )
+        thread.start()
+
+        response_data = {
+            "success": True,
+            "job_id": job_id,
+            "status": "accepted"
+        }
+
+        # Phase 2が有効な場合はbatch_db_idも返す
+        if batch_db_id:
+            response_data["batch_db_id"] = batch_db_id
+
+        logger.info(f"[bulk_data] 一括取得開始成功: job_id={job_id}, batch_db_id={batch_db_id}")
+        return jsonify(response_data), 202
+
+    except Exception as e:
+        logger.error(f"[bulk_data] 一括取得開始エラー: {e}", exc_info=True)
         return jsonify({
             "success": False,
-            "error": "VALIDATION_ERROR",
-            "message": "'symbols' は文字列リストで指定してください"
-        }), 400
-
-    # Phase 1: インメモリ管理用のジョブID生成
-    job_id = f"job-{int(time.time() * 1000)}"
-    JOBS[job_id] = {
-        'id': job_id,
-        'status': 'running',
-        'progress': {
-            'total': len(symbols),
-            'processed': 0,
-            'successful': 0,
-            'failed': 0,
-            'progress_percentage': 0.0
-        },
-        'created_at': time.time(),
-        'updated_at': time.time()
-    }
-
-    # Phase 2: データベースにバッチ実行レコードを作成
-    batch_db_id = None
-    if ENABLE_PHASE2:
-        try:
-            batch_info = BatchService.create_batch(
-                batch_type='partial',
-                total_stocks=len(symbols)
-            )
-            batch_db_id = batch_info['id']
-            logger.info(f"Phase 2バッチ作成: batch_db_id={batch_db_id}")
-        except BatchServiceError as e:
-            logger.error(f"Phase 2バッチ作成エラー: {e}")
-            # Phase 2失敗時もPhase 1で継続
-
-    # バックグラウンドでジョブ実行
-    thread = threading.Thread(
-        target=_run_job,
-        args=(job_id, symbols, interval, period, batch_db_id),
-        daemon=True
-    )
-    thread.start()
-
-    response_data = {
-        "success": True,
-        "job_id": job_id,
-        "status": "accepted"
-    }
-
-    # Phase 2が有効な場合はbatch_db_idも返す
-    if batch_db_id:
-        response_data["batch_db_id"] = batch_db_id
-
-    return jsonify(response_data), 202
+            "error": "INTERNAL_ERROR",
+            "message": f"内部エラーが発生しました: {str(e)}"
+        }), 500
 
 
 @bulk_api.route('/status/<job_id>', methods=['GET'])

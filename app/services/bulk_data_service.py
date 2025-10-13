@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import random
 
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_saver import StockDataSaver, StockDataSaveError
@@ -173,13 +174,13 @@ class ProgressTracker:
 class BulkDataService:
     """全銘柄一括取得サービスクラス"""
 
-    def __init__(self, max_workers: int = 10, retry_count: int = 3, batch_id: Optional[str] = None):
+    def __init__(self, max_workers: int = 3, retry_count: int = 5, batch_id: Optional[str] = None):
         """
         初期化
 
         Args:
-            max_workers: 最大並列ワーカー数
-            retry_count: リトライ回数
+            max_workers: 最大並列ワーカー数（レート制限対策で3に削減）
+            retry_count: リトライ回数（デフォルト5回に増加）
             batch_id: バッチID（構造化ログ用）
         """
         self.fetcher = StockDataFetcher()
@@ -189,11 +190,11 @@ class BulkDataService:
         self.logger = logger
         # 構造化ログ用ロガー
         self.batch_logger = get_batch_logger(batch_id=batch_id)
-        # ErrorHandlerを初期化
+        # ErrorHandlerを初期化（リトライ設定を強化）
         self.error_handler = ErrorHandler(
             max_retries=retry_count,
-            retry_delay=2,
-            backoff_multiplier=2
+            retry_delay=5,  # 初期遅延を5秒に増加（レート制限対策）
+            backoff_multiplier=3.0  # バックオフ倍率を3.0に増加
         )
 
     def fetch_single_stock(
@@ -295,7 +296,11 @@ class BulkDataService:
                             error_message=str(e),
                             retry_count=retry_count + 1
                         )
-                        self.error_handler.retry_with_backoff(retry_count)
+                        # エクスポネンシャルバックオフ + ランダムジッター
+                        base_delay = self.error_handler.retry_delay * (self.error_handler.backoff_multiplier ** attempt)
+                        jitter = random.uniform(0.5, 1.5)  # 50%-150%のランダムジッター
+                        delay = base_delay * jitter
+                        time.sleep(delay)
                         continue
                     else:
                         # 最大リトライ回数到達
@@ -406,6 +411,10 @@ class BulkDataService:
                             f"失敗: {progress['failed']}, "
                             f"速度: {progress['stocks_per_second']}銘柄/秒"
                         )
+
+                    # レート制限対策：リクエスト間隔制御
+                    if tracker.processed < tracker.total:
+                        time.sleep(1.0)  # 1秒間隔でリクエスト制御
 
                 except Exception as e:
                     self.logger.error(f"タスク実行エラー ({symbol}): {e}")

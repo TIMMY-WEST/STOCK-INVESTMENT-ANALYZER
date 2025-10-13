@@ -30,6 +30,27 @@ class StockDataFetcher:
         """初期化"""
         self.logger = logger
 
+    def _format_symbol_for_yahoo(self, symbol: str) -> str:
+        """
+        Yahoo Finance用に銘柄コードをフォーマット
+        
+        Args:
+            symbol: 元の銘柄コード（例: '1301', '7203.T'）
+            
+        Returns:
+            Yahoo Finance用の銘柄コード（例: '1301.T', '7203.T'）
+        """
+        # 既に.Tサフィックスが付いている場合はそのまま返す
+        if symbol.endswith('.T'):
+            return symbol
+            
+        # 数字のみの銘柄コード（日本株）の場合は.Tを追加
+        if symbol.isdigit():
+            return f"{symbol}.T"
+            
+        # その他の場合（海外株等）はそのまま返す
+        return symbol
+
     def fetch_stock_data(
         self,
         symbol: str,
@@ -66,29 +87,32 @@ class StockDataFetcher:
                     f"期間未指定のため推奨期間を使用: {period} (時間軸: {get_display_name(interval)})"
                 )
 
+            # 日本株の場合、Yahoo Finance用に.Tサフィックスを追加
+            yahoo_symbol = self._format_symbol_for_yahoo(symbol)
+            
             # yfinanceでデータ取得
             self.logger.info(
-                f"株価データ取得開始: {symbol} (時間軸: {get_display_name(interval)}, "
+                f"株価データ取得開始: {symbol} -> {yahoo_symbol} (時間軸: {get_display_name(interval)}, "
                 f"期間: {period or f'{start}~{end}'})"
             )
 
-            ticker = yf.Ticker(symbol)
+            ticker = yf.Ticker(yahoo_symbol)
 
-            # データ取得
+            # データ取得（タイムアウト設定を追加）
             if period:
-                df = ticker.history(period=period, interval=interval)
+                df = ticker.history(period=period, interval=interval, timeout=30)
             else:
-                df = ticker.history(start=start, end=end, interval=interval)
+                df = ticker.history(start=start, end=end, interval=interval, timeout=30)
 
             # データの検証
             if df.empty:
                 raise StockDataFetchError(
-                    f"データが取得できませんでした: {symbol} "
+                    f"データが取得できませんでした: {symbol} (Yahoo: {yahoo_symbol}) "
                     f"(時間軸: {get_display_name(interval)})"
                 )
 
             self.logger.info(
-                f"株価データ取得成功: {symbol} - {len(df)}件 "
+                f"株価データ取得成功: {symbol} (Yahoo: {yahoo_symbol}) - {len(df)}件 "
                 f"(時間軸: {get_display_name(interval)})"
             )
 
@@ -96,7 +120,7 @@ class StockDataFetcher:
 
         except Exception as e:
             error_msg = (
-                f"株価データ取得エラー: {symbol} "
+                f"株価データ取得エラー: {symbol} (Yahoo: {yahoo_symbol}) "
                 f"(時間軸: {get_display_name(interval)}): {str(e)}"
             )
             self.logger.error(error_msg)

@@ -20,20 +20,24 @@ stock_master_api = Blueprint('stock_master_api', __name__)
 
 # APIキー認証
 def require_api_key(f):
-    """APIキー認証デコレータ"""
+    """APIキー認証デコレータ
+
+    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        api_key = request.headers.get('X-API-Key')
         expected_api_key = os.getenv('API_KEY')
-        
+
+        # API_KEYが設定されていない場合は認証不要
         if not expected_api_key:
-            logger.warning("API_KEYが設定されていません")
-            return jsonify({'error': 'サーバー設定エラー'}), 500
-            
+            return f(*args, **kwargs)
+
+        # API_KEYが設定されている場合は認証必須
+        api_key = request.headers.get('X-API-Key')
         if not api_key or api_key != expected_api_key:
             logger.warning(f"無効なAPIキー: {api_key}")
             return jsonify({'error': '認証が必要です'}), 401
-            
+
         return f(*args, **kwargs)
     return decorated_function
 
