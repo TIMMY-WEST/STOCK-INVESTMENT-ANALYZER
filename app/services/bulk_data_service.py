@@ -13,8 +13,20 @@ import time
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_saver import StockDataSaver, StockDataSaveError
 from services.error_handler import ErrorHandler, ErrorAction
+from utils.structured_logger import get_batch_logger, setup_structured_logging
 
 logger = logging.getLogger(__name__)
+
+# 構造化ログ設定（アプリケーション起動時に一度だけ実行）
+try:
+    setup_structured_logging(
+        log_dir='logs',
+        log_level=logging.INFO,
+        enable_console=True,
+        enable_file=True
+    )
+except Exception as e:
+    logger.warning(f"構造化ログ設定に失敗しました: {e}")
 
 
 class BulkDataServiceError(Exception):
@@ -23,7 +35,11 @@ class BulkDataServiceError(Exception):
 
 
 class ProgressTracker:
-    """進捗トラッカー"""
+    """進捗トラッカー
+
+    Phase 2要件: メトリクス収集機能（スループット、成功率、平均処理時間等）
+    仕様書: docs/api_bulk_fetch.md (790-796行目)
+    """
 
     def __init__(self, total: int):
         """
@@ -39,8 +55,20 @@ class ProgressTracker:
         self.start_time = datetime.now()
         self.current_symbol = None
         self.error_details: List[Dict[str, Any]] = []
+        # メトリクス収集用
+        self.processing_times: List[float] = []  # 各銘柄の処理時間（ミリ秒）
+        self.records_fetched_list: List[int] = []  # 各銘柄の取得レコード数
+        self.records_saved_list: List[int] = []  # 各銘柄の保存レコード数
 
-    def update(self, symbol: str, success: bool, error_message: Optional[str] = None):
+    def update(
+        self,
+        symbol: str,
+        success: bool,
+        error_message: Optional[str] = None,
+        duration_ms: Optional[int] = None,
+        records_fetched: int = 0,
+        records_saved: int = 0
+    ):
         """
         進捗を更新
 
@@ -48,12 +76,20 @@ class ProgressTracker:
             symbol: 処理した銘柄コード
             success: 成功したかどうか
             error_message: エラーメッセージ（失敗時）
+            duration_ms: 処理時間（ミリ秒）
+            records_fetched: 取得したレコード数
+            records_saved: 保存したレコード数
         """
         self.processed += 1
         self.current_symbol = symbol
 
         if success:
             self.successful += 1
+            # メトリクス記録
+            if duration_ms is not None:
+                self.processing_times.append(duration_ms)
+            self.records_fetched_list.append(records_fetched)
+            self.records_saved_list.append(records_saved)
         else:
             self.failed += 1
             if error_message:
@@ -68,18 +104,31 @@ class ProgressTracker:
         現在の進捗情報を取得
 
         Returns:
-            進捗情報の辞書
+            進捗情報の辞書（メトリクス含む）
         """
         elapsed_time = (datetime.now() - self.start_time).total_seconds()
         progress_percentage = (self.processed / self.total * 100) if self.total > 0 else 0
 
         # 処理速度の計算
         stocks_per_second = self.processed / elapsed_time if elapsed_time > 0 else 0
+        stocks_per_minute = stocks_per_second * 60
 
-        # 完了予測時刻の計算
+        # 完了予測時刻の計算（ETA）
         remaining = self.total - self.processed
         eta_seconds = remaining / stocks_per_second if stocks_per_second > 0 else 0
         eta = datetime.now().timestamp() + eta_seconds
+
+        # メトリクス計算
+        avg_processing_time = (
+            sum(self.processing_times) / len(self.processing_times)
+            if self.processing_times else 0
+        )
+        total_records_fetched = sum(self.records_fetched_list)
+        total_records_saved = sum(self.records_saved_list)
+        records_per_minute = (total_records_saved / elapsed_time * 60) if elapsed_time > 0 else 0
+
+        # 成功率の計算
+        success_rate = (self.successful / self.processed * 100) if self.processed > 0 else 0
 
         return {
             'total': self.total,
@@ -91,7 +140,18 @@ class ProgressTracker:
             'elapsed_time': round(elapsed_time, 2),
             'stocks_per_second': round(stocks_per_second, 2),
             'estimated_completion': datetime.fromtimestamp(eta).isoformat() if eta_seconds > 0 else None,
-            'error_count': len(self.error_details)
+            'error_count': len(self.error_details),
+            # Phase 2メトリクス
+            'throughput': {
+                'stocks_per_minute': round(stocks_per_minute, 2),
+                'records_per_minute': round(records_per_minute, 2)
+            },
+            'performance': {
+                'success_rate': round(success_rate, 2),
+                'avg_processing_time_ms': round(avg_processing_time, 2),
+                'total_records_fetched': total_records_fetched,
+                'total_records_saved': total_records_saved
+            }
         }
 
     def get_summary(self) -> Dict[str, Any]:
@@ -113,19 +173,22 @@ class ProgressTracker:
 class BulkDataService:
     """全銘柄一括取得サービスクラス"""
 
-    def __init__(self, max_workers: int = 10, retry_count: int = 3):
+    def __init__(self, max_workers: int = 10, retry_count: int = 3, batch_id: Optional[str] = None):
         """
         初期化
 
         Args:
             max_workers: 最大並列ワーカー数
             retry_count: リトライ回数
+            batch_id: バッチID（構造化ログ用）
         """
         self.fetcher = StockDataFetcher()
         self.saver = StockDataSaver()
         self.max_workers = max_workers
         self.retry_count = retry_count
         self.logger = logger
+        # 構造化ログ用ロガー
+        self.batch_logger = get_batch_logger(batch_id=batch_id)
         # ErrorHandlerを初期化
         self.error_handler = ErrorHandler(
             max_retries=retry_count,
@@ -152,25 +215,50 @@ class BulkDataService:
         """
         last_error = None
         retry_count = 0
+        start_time = time.time()
 
         for attempt in range(self.retry_count):
             try:
                 # データ取得
+                fetch_start = time.time()
                 df = self.fetcher.fetch_stock_data(
                     symbol=symbol,
                     interval=interval,
                     period=period
+                )
+                fetch_duration = int((time.time() - fetch_start) * 1000)
+
+                # 構造化ログ: データ取得成功
+                self.batch_logger.log_batch_action(
+                    action='data_fetch',
+                    stock_code=symbol,
+                    status='success',
+                    duration_ms=fetch_duration,
+                    records_count=len(df)
                 )
 
                 # データ変換
                 data_list = self.fetcher.convert_to_dict(df, interval)
 
                 # データ保存
+                save_start = time.time()
                 save_result = self.saver.save_stock_data(
                     symbol=symbol,
                     interval=interval,
                     data_list=data_list
                 )
+                save_duration = int((time.time() - save_start) * 1000)
+
+                # 構造化ログ: データ保存成功
+                self.batch_logger.log_batch_action(
+                    action='data_save',
+                    stock_code=symbol,
+                    status='success',
+                    duration_ms=save_duration,
+                    records_count=save_result.get('saved', 0)
+                )
+
+                total_duration = int((time.time() - start_time) * 1000)
 
                 return {
                     'success': True,
@@ -179,7 +267,8 @@ class BulkDataService:
                     'records_fetched': len(data_list),
                     'records_saved': save_result.get('saved', 0),
                     'attempt': attempt + 1,
-                    'retry_count': retry_count
+                    'retry_count': retry_count,
+                    'duration_ms': total_duration
                 }
 
             except Exception as e:
@@ -198,6 +287,14 @@ class BulkDataService:
                 if action == ErrorAction.RETRY:
                     # 最終試行でない場合はリトライ
                     if attempt < self.retry_count - 1:
+                        # 構造化ログ: リトライ
+                        self.batch_logger.log_batch_action(
+                            action='data_fetch',
+                            stock_code=symbol,
+                            status='retry',
+                            error_message=str(e),
+                            retry_count=retry_count + 1
+                        )
                         self.error_handler.retry_with_backoff(retry_count)
                         continue
                     else:
@@ -212,13 +309,25 @@ class BulkDataService:
                     # システムエラー - 例外を再発生させる
                     raise BulkDataServiceError(f"システムエラー: {symbol}: {e}") from e
 
+        # 構造化ログ: エラー発生
+        total_duration = int((time.time() - start_time) * 1000)
+        self.batch_logger.log_batch_action(
+            action='error_occurred',
+            stock_code=symbol,
+            status='failed',
+            error_message=str(last_error),
+            retry_count=retry_count,
+            duration_ms=total_duration
+        )
+
         return {
             'success': False,
             'symbol': symbol,
             'interval': interval,
             'error': str(last_error),
             'attempts': retry_count + 1,
-            'retry_count': retry_count
+            'retry_count': retry_count,
+            'duration_ms': total_duration
         }
 
     def fetch_multiple_stocks(
@@ -270,11 +379,14 @@ class BulkDataService:
                     result = future.result()
                     results.append(result)
 
-                    # 進捗更新
+                    # 進捗更新（メトリクス含む）
                     tracker.update(
                         symbol=symbol,
                         success=result.get('success', False),
-                        error_message=result.get('error')
+                        error_message=result.get('error'),
+                        duration_ms=result.get('duration_ms'),
+                        records_fetched=result.get('records_fetched', 0),
+                        records_saved=result.get('records_saved', 0)
                     )
 
                     # 進捗コールバック実行
