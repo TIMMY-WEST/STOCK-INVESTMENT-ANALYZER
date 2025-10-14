@@ -208,10 +208,17 @@ def _run_job(job_id: str, symbols: List[str], interval: str, period: Optional[st
                 socketio = current_app.config.get('SOCKETIO')
                 if socketio:
                     logger.info(f"[_run_job] WebSocket完了通知送信: job_id={job_id}")
+                    # フロントエンド用にサマリーフォーマットを変換
+                    frontend_summary = {
+                        'total_symbols': summary.get('total'),
+                        'successful': summary.get('successful'),
+                        'failed': summary.get('failed'),
+                        'duration_seconds': summary.get('elapsed_time')
+                    }
                     socketio.emit('bulk_complete', {
                         'job_id': job_id,
                         'batch_db_id': batch_db_id,
-                        'summary': summary
+                        'summary': frontend_summary
                     })
                 else:
                     logger.info(f"[_run_job] WebSocket未設定のため完了通知スキップ")
@@ -425,9 +432,20 @@ def get_job_status(job_id: str):
             "message": "指定されたジョブが見つかりません"
         }), 404
 
+    # フロントエンド用にサマリーフォーマットを変換
+    response_job = dict(job)
+    if 'summary' in response_job and response_job['summary']:
+        summary = response_job['summary']
+        response_job['summary'] = {
+            'total_symbols': summary.get('total'),
+            'successful': summary.get('successful'),
+            'failed': summary.get('failed'),
+            'duration_seconds': summary.get('elapsed_time')
+        }
+
     return jsonify({
         "success": True,
-        "job": job
+        "job": response_job
     })
 
 
