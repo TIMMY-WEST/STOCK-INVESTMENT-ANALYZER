@@ -239,77 +239,54 @@ class BulkDataService:
                 )
 
                 # データ変換
-                data_list = self.fetcher.convert_to_dict(df, interval)
+                try:
+                    data_list = self.fetcher.convert_to_dict(df, interval)
+                    if not data_list:
+                        self.logger.warning(f"変換後のデータが空です: {symbol}")
+                        continue
+                except Exception as e:
+                    self.logger.error(f"データ変換エラー: {symbol}: {e}")
+                    continue
 
                 # データ保存
-                save_start = time.time()
-                save_result = self.saver.save_stock_data(
-                    symbol=symbol,
-                    interval=interval,
-                    data_list=data_list
+                save_result = self.saver.save_stock_data(symbol, data_list, interval)
+                
+                # 成功ログ
+                self.logger.info(
+                    f"データ保存完了: {symbol} ({interval}) - "
+                    f"有効データ: {len(data_list)}件, 保存: {save_result.get('saved', 0)}件"
                 )
-                save_duration = int((time.time() - save_start) * 1000)
-
-                # 構造化ログ: データ保存成功
-                self.batch_logger.log_batch_action(
-                    action='data_save',
-                    stock_code=symbol,
-                    status='success',
-                    duration_ms=save_duration,
-                    records_count=save_result.get('saved', 0)
-                )
-
+                
+                # 成功時の結果を返す
                 total_duration = int((time.time() - start_time) * 1000)
-
                 return {
                     'success': True,
                     'symbol': symbol,
                     'interval': interval,
                     'records_fetched': len(data_list),
                     'records_saved': save_result.get('saved', 0),
-                    'attempt': attempt + 1,
-                    'retry_count': retry_count,
-                    'duration_ms': total_duration
+                    'duration_ms': total_duration,
+                    'attempt': retry_count + 1
                 }
-
+                
             except Exception as e:
                 last_error = e
-                retry_count = attempt
-
-                # ErrorHandlerでエラー処理判定
-                context = {
-                    'retry_count': retry_count,
-                    'interval': interval,
-                    'period': period
-                }
-                action = self.error_handler.handle_error(e, symbol, context)
-
-                # アクションに応じた処理
+                self.logger.error(f"データ処理エラー: {symbol}: {e}")
+                
+                # エラーハンドラーでアクションを決定
+                action = self.error_handler.handle_error(e, symbol, {'retry_count': retry_count})
+                
                 if action == ErrorAction.RETRY:
-                    # 最終試行でない場合はリトライ
-                    if attempt < self.retry_count - 1:
-                        # 構造化ログ: リトライ
-                        self.batch_logger.log_batch_action(
-                            action='data_fetch',
-                            stock_code=symbol,
-                            status='retry',
-                            error_message=str(e),
-                            retry_count=retry_count + 1
-                        )
-                        # エクスポネンシャルバックオフ + ランダムジッター
-                        base_delay = self.error_handler.retry_delay * (self.error_handler.backoff_multiplier ** attempt)
-                        jitter = random.uniform(0.5, 1.5)  # 50%-150%のランダムジッター
-                        delay = base_delay * jitter
-                        time.sleep(delay)
+                    retry_count += 1
+                    if retry_count < self.retry_count:
+                        self.logger.info(f"リトライ {retry_count}/{self.retry_count}: {symbol}")
                         continue
                     else:
-                        # 最大リトライ回数到達
+                        self.logger.error(f"最大リトライ回数に達しました: {symbol}")
                         break
-
                 elif action == ErrorAction.SKIP:
                     # スキップして処理終了
                     break
-
                 elif action == ErrorAction.ABORT:
                     # システムエラー - 例外を再発生させる
                     raise BulkDataServiceError(f"システムエラー: {symbol}: {e}") from e
@@ -459,14 +436,25 @@ class BulkDataService:
 
                 # 結果を記録
                 for symbol in batch_symbols:
-                    if symbol in symbols_data:
-                        symbol_result = save_result['results_by_symbol'].get(symbol, {})
+                    if symbol in symbols_data and len(symbols_data[symbol]) > 0:
+                        data_list = symbols_data[symbol]  # 既に変換済みのデータを使用
+                        
+                        # バッチ保存結果から該当銘柄の結果を取得
+                        symbol_save_result = save_result.get('results_by_symbol', {}).get(symbol, {})
+                        
+                        # 成功ログ
+                        self.logger.info(
+                            f"バッチ保存完了: {symbol} ({interval}) - "
+                            f"有効データ: {len(data_list)}件, 保存: {symbol_save_result.get('saved', 0)}件"
+                        )
+
+                        # 結果記録
                         result = {
                             'success': True,
                             'symbol': symbol,
                             'interval': interval,
-                            'records_fetched': len(symbols_data[symbol]),
-                            'records_saved': symbol_result.get('saved', 0),
+                            'records_fetched': len(data_list),  # 有効データ数を記録
+                            'records_saved': symbol_save_result.get('saved', 0),
                             'duration_ms': batch_duration // len(batch_symbols)
                         }
                         all_results.append(result)
@@ -476,8 +464,8 @@ class BulkDataService:
                             symbol=symbol,
                             success=True,
                             duration_ms=batch_duration // len(batch_symbols),
-                            records_fetched=len(symbols_data[symbol]),
-                            records_saved=symbol_result.get('saved', 0)
+                            records_fetched=len(data_list),  # 有効データ数
+                            records_saved=symbol_save_result.get('saved', 0)
                         )
                     else:
                         # データ取得失敗

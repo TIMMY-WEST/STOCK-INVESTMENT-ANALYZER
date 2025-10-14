@@ -116,12 +116,16 @@ def fetch_data():
             # エラーの詳細を分析して適切なエラーコードとステータスコードを返す
             error_message = result.get('error', 'Unknown error')
 
-            # 銘柄コード無効のエラー判定
-            if 'データが取得できませんでした' in error_message or 'Empty ticker name' in error_message:
+            # 銘柄コード無効のエラー判定（より包括的な条件）
+            if ('データが取得できませんでした' in error_message or 
+                'Empty ticker name' in error_message or
+                'No data found' in error_message or
+                'Invalid symbol' in error_message or
+                '無効な銘柄コード' in error_message):
                 return jsonify({
                     "success": False,
                     "error": "INVALID_SYMBOL",
-                    "message": f"指定された銘柄コードのデータが取得できません"
+                    "message": f"指定された銘柄コード '{symbol}' のデータが取得できません。銘柄コードを確認してください。"
                 }), 400
 
             # その他のデータ取得エラー

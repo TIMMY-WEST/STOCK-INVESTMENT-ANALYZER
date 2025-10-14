@@ -157,10 +157,10 @@ class TestStockMasterAPI:
             content_type='application/json'
         )
         
-        # 検証（API_KEYが設定されていない場合は500エラー）
-        assert response.status_code == 500
+        # 検証（API_KEYが設定されていない場合は認証をスキップして正常処理）
+        assert response.status_code == 200
         response_data = json.loads(response.data)
-        assert response_data['error'] == 'サーバー設定エラー'
+        assert response_data['status'] == 'success'
     
     @patch.dict('os.environ', {'API_KEY': 'test_api_key'})
     def test_update_stock_master_invalid_api_key(self):

@@ -297,15 +297,134 @@
                 </div>
             </section>
 
+            <!-- JPX Sequential Multi-Interval Fetch Section -->
+            <section id="jpx-sequential" class="card">
+                <header class="card-header">
+                    <h2 class="card-title">🚀 JPX全銘柄8種類順次自動取得</h2>
+                </header>
+                <div class="card-body">
+                    <div class="alert alert-success mb-4">
+                        <p><strong>✨ 新機能: ワンクリックで8種類の時間軸データを自動取得！</strong></p>
+                        <p>この機能は、JPX銘柄マスタから取得した全銘柄について、以下の8種類の時間軸データを<strong>順次自動的に取得</strong>します：</p>
+                        <ol style="margin-top: 10px; margin-left: 20px;">
+                            <li>1分足、5日間</li>
+                            <li>5分足、1ヶ月</li>
+                            <li>15分足、1ヶ月</li>
+                            <li>30分足、1ヶ月</li>
+                            <li>1時間足、2年</li>
+                            <li>1日足、最大期間</li>
+                            <li>週足、最大期間</li>
+                            <li>月足、最大期間</li>
+                        </ol>
+                        <p style="margin-top: 10px;"><strong>各時間軸の実行結果がリアルタイムで表示されます。</strong></p>
+                    </div>
+
+                    <!-- Configuration Section -->
+                    <div class="jpx-seq-config-section mb-4">
+                        <h3 class="section-subtitle mb-3">取得設定</h3>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label for="jpx-seq-limit" class="form-label">
+                                    取得銘柄数
+                                    <span class="required-indicator" aria-label="必須項目">*</span>
+                                </label>
+                                <select
+                                    id="jpx-seq-limit"
+                                    name="jpx-seq-limit"
+                                    class="form-control"
+                                    required
+                                >
+                                    <option value="10" selected>10銘柄（テスト用）</option>
+                                    <option value="5000">全銘柄（5000銘柄）</option>
+                                </select>
+                                <div class="form-text mt-1">
+                                    <small>⚠️ 全銘柄取得は非常に時間がかかります（推定20〜30時間）。まずは10銘柄でテストしてください。</small>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <label for="jpx-seq-market" class="form-label">市場区分</label>
+                                <select
+                                    id="jpx-seq-market"
+                                    name="jpx-seq-market"
+                                    class="form-control"
+                                >
+                                    <option value="">全市場</option>
+                                    <option value="プライム">プライム市場のみ</option>
+                                    <option value="スタンダード">スタンダード市場のみ</option>
+                                    <option value="グロース">グロース市場のみ</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="jpx-seq-controls mb-4">
+                        <button type="button" id="jpx-seq-start-btn" class="btn btn-primary btn-lg">
+                            <span class="btn-text">🚀 8種類データ順次自動取得 開始</span>
+                        </button>
+                        <button type="button" id="jpx-seq-stop-btn" class="btn btn-danger" style="display: none;">
+                            <span class="btn-text">⏸️ 停止</span>
+                        </button>
+                        <button type="button" id="jpx-seq-update-master-btn" class="btn btn-secondary">
+                            <span class="btn-text">📥 JPX銘柄マスタを更新</span>
+                        </button>
+                    </div>
+
+                    <!-- Master Update Status -->
+                    <div id="jpx-seq-master-status" class="alert alert-info" style="display: none; margin-bottom: 1rem;">
+                        <strong>銘柄マスタ更新中...</strong>
+                        <p id="jpx-seq-master-status-text">JPX公式サイトから銘柄一覧をダウンロードしています...</p>
+                    </div>
+
+                    <!-- Status Section -->
+                    <div id="jpx-seq-status-section" class="jpx-seq-status-section" style="display: none;">
+                        <h3 class="section-subtitle mb-3">処理状況</h3>
+                        <div class="status-info mb-3">
+                            <div class="stat-item">
+                                <span class="stat-label">対象銘柄数:</span>
+                                <span class="stat-value" id="jpx-seq-stock-count">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">完了時間軸:</span>
+                                <span class="stat-value" id="jpx-seq-interval-progress">0 / 8</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">現在の時間軸:</span>
+                                <span class="stat-value" id="jpx-seq-current-interval">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interval Results Section -->
+                    <div id="jpx-seq-intervals-section" class="jpx-seq-intervals-section" style="display: none;">
+                        <h3 class="section-subtitle mb-3">各時間軸の実行結果</h3>
+                        <div id="jpx-seq-intervals-container" class="intervals-container"></div>
+                    </div>
+
+                    <!-- Final Result Section -->
+                    <div id="jpx-seq-result-section" class="jpx-seq-result-section" style="display: none;">
+                        <h3 class="section-subtitle mb-3">最終結果サマリー</h3>
+                        <div id="jpx-seq-result-container" role="region" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Error Section -->
+                    <div id="jpx-seq-error-section" class="jpx-seq-error-section" style="display: none;">
+                        <h3 class="section-subtitle mb-3">エラー詳細</h3>
+                        <div id="jpx-seq-error-container" role="region" aria-live="assertive"></div>
+                    </div>
+                </div>
+            </section>
+
             <!-- JPX Stock List Automation Section -->
             <section id="jpx-automation" class="card">
                 <header class="card-header">
-                    <h2 class="card-title">JPX全銘柄自動取得</h2>
+                    <h2 class="card-title">JPX全銘柄自動取得（単一時間軸）</h2>
                 </header>
                 <div class="card-body">
                     <div class="alert alert-info mb-4">
                         <p><strong>この機能について:</strong></p>
                         <p>JPX（日本取引所グループ）のWebサイトから最新の上場銘柄リストを自動でダウンロードし、すべての銘柄の株価データを一括取得します。</p>
+                        <p><strong>注:</strong> 単一の時間軸のみ取得します。8種類の時間軸を順次取得する場合は、上の「JPX全銘柄8種類順次自動取得」セクションをご利用ください。</p>
                     </div>
 
                     <!-- Configuration Section -->
@@ -565,5 +684,6 @@
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script src="{{ url_for('static', filename='jpx_sequential.js') }}"></script>
 </body>
 </html>

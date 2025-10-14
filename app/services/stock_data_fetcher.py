@@ -70,6 +70,10 @@ class StockDataFetcher:
         Returns:
             Yahoo Finance用の銘柄コード（例: '1301.T', '7203.T'）
         """
+        # symbolがNoneまたは空文字列の場合はそのまま返す
+        if not symbol:
+            return symbol or ''
+        
         # 既に.Tサフィックスが付いている場合はそのまま返す
         if symbol.endswith('.T'):
             return symbol
@@ -106,6 +110,12 @@ class StockDataFetcher:
             StockDataFetchError: データ取得失敗時
         """
         try:
+            # symbolの検証
+            if not symbol:
+                raise StockDataFetchError(
+                    f"無効な銘柄コードです: {symbol}"
+                )
+
             # 時間軸の検証
             if not validate_interval(interval):
                 raise ValueError(f"サポートされていない時間軸: {interval}")
@@ -149,8 +159,10 @@ class StockDataFetcher:
             return df
 
         except Exception as e:
+            # yahoo_symbolが定義されていない場合の対応
+            yahoo_symbol_str = yahoo_symbol if 'yahoo_symbol' in locals() else symbol
             error_msg = (
-                f"株価データ取得エラー: {symbol} (Yahoo: {yahoo_symbol}) "
+                f"株価データ取得エラー: {symbol} (Yahoo: {yahoo_symbol_str}) "
                 f"(時間軸: {get_display_name(interval)}): {str(e)}"
             )
             self.logger.error(error_msg)
@@ -338,21 +350,51 @@ class StockDataFetcher:
         """
         records = []
         is_intraday = is_intraday_interval(interval)
+        skipped_count = 0  # スキップされたレコード数をカウント
 
         for index, row in df.iterrows():
             # NaN値チェック - 主要フィールドがすべてNaNの場合はスキップ
             if (pd.isna(row['Open']) and pd.isna(row['High']) and
                 pd.isna(row['Low']) and pd.isna(row['Close'])):
+                skipped_count += 1
                 self.logger.debug(f"データスキップ: すべての価格フィールドがNaN ({index})")
                 continue
 
             try:
+                # 価格データの取得と検証
+                open_price = float(row['Open']) if pd.notna(row['Open']) else None
+                high_price = float(row['High']) if pd.notna(row['High']) else None
+                low_price = float(row['Low']) if pd.notna(row['Low']) else None
+                close_price = float(row['Close']) if pd.notna(row['Close']) else None
+                volume = int(row['Volume']) if pd.notna(row['Volume']) else 0
+
+                # 無効な価格データをスキップ（NaNまたは0以下の値）
+                if (open_price is None or open_price <= 0 or
+                    high_price is None or high_price <= 0 or
+                    low_price is None or low_price <= 0 or
+                    close_price is None or close_price <= 0):
+                    skipped_count += 1
+                    self.logger.debug(f"データスキップ: 無効な価格データ ({index}) - "
+                                    f"Open:{open_price}, High:{high_price}, Low:{low_price}, Close:{close_price}")
+                    continue
+
+                # 価格ロジック制約の検証
+                if not (high_price >= low_price and 
+                       high_price >= open_price and 
+                       high_price >= close_price and
+                       low_price <= open_price and 
+                       low_price <= close_price):
+                    skipped_count += 1
+                    self.logger.debug(f"データスキップ: 価格ロジック制約違反 ({index}) - "
+                                    f"Open:{open_price}, High:{high_price}, Low:{low_price}, Close:{close_price}")
+                    continue
+
                 record = {
-                    'open': float(row['Open']) if pd.notna(row['Open']) else 0.0,
-                    'high': float(row['High']) if pd.notna(row['High']) else 0.0,
-                    'low': float(row['Low']) if pd.notna(row['Low']) else 0.0,
-                    'close': float(row['Close']) if pd.notna(row['Close']) else 0.0,
-                    'volume': int(row['Volume']) if pd.notna(row['Volume']) else 0
+                    'open': open_price,
+                    'high': high_price,
+                    'low': low_price,
+                    'close': close_price,
+                    'volume': volume
                 }
 
                 # 日付・日時フィールドの設定
@@ -372,8 +414,16 @@ class StockDataFetcher:
                 records.append(record)
 
             except (ValueError, TypeError) as e:
+                skipped_count += 1
                 self.logger.warning(f"データ変換エラー: {index}: {e}")
                 continue
+
+        # フィルタリング結果をログ出力
+        if skipped_count > 0:
+            self.logger.info(
+                f"データ変換完了: 元データ {len(df)}件 → 有効データ {len(records)}件 "
+                f"(無効データ {skipped_count}件をスキップ)"
+            )
 
         return records
 
