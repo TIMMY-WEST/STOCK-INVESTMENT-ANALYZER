@@ -10,6 +10,23 @@ const AppState = {
     isLoading: false
 };
 
+// Interval-Period validation rules (same as script.js)
+const INTERVAL_PERIOD_RULES = {
+    '1m': ['1d', '5d', '7d'],
+    '2m': ['1d', '5d', '60d'],
+    '5m': ['1d', '5d', '1mo', '60d'],
+    '15m': ['1d', '5d', '1mo', '60d'],
+    '30m': ['1d', '5d', '1mo', '60d'],
+    '60m': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '730d'],
+    '90m': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '730d'],
+    '1h': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '730d'],
+    '1d': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+    '5d': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+    '1wk': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+    '1mo': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+    '3mo': ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
+};
+
 // Utility functions
 const Utils = {
     // Format number with thousands separator
@@ -67,6 +84,48 @@ const Utils = {
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
+    },
+
+    // Update period options based on interval selection
+    updatePeriodOptions: (intervalValue, periodSelectId) => {
+        const periodSelector = document.getElementById(periodSelectId);
+        if (!periodSelector) return;
+
+        const allowedPeriods = INTERVAL_PERIOD_RULES[intervalValue] || INTERVAL_PERIOD_RULES['1d'];
+        const currentValue = periodSelector.value;
+
+        // Enable/disable options based on interval
+        Array.from(periodSelector.options).forEach(option => {
+            if (option.value === '') return; // Skip placeholder
+
+            if (allowedPeriods.includes(option.value)) {
+                option.disabled = false;
+                option.style.display = '';
+            } else {
+                option.disabled = true;
+                option.style.display = 'none';
+            }
+        });
+
+        // Reset to default if current selection is invalid
+        if (currentValue && !allowedPeriods.includes(currentValue)) {
+            // Default period based on interval
+            if (intervalValue === '1m') {
+                periodSelector.value = '5d';
+            } else if (['2m', '5m', '15m', '30m'].includes(intervalValue)) {
+                periodSelector.value = '1mo';
+            } else if (['60m', '90m', '1h'].includes(intervalValue)) {
+                periodSelector.value = '1mo';
+            } else {
+                periodSelector.value = '1mo';
+            }
+        }
+    },
+
+    // Validate interval-period combination
+    validateIntervalPeriod: (interval, period) => {
+        const allowedPeriods = INTERVAL_PERIOD_RULES[interval] || INTERVAL_PERIOD_RULES['1d'];
+        return allowedPeriods.includes(period);
     }
 };
 
@@ -806,6 +865,7 @@ const BulkDataFetchManager = {
         const stopBtn = document.getElementById('bulk-stop-btn');
         const resetBtn = document.getElementById('bulk-reset-btn');
         const symbolsInput = document.getElementById('bulk-symbols');
+        const intervalSelect = document.getElementById('bulk-interval');
 
         if (startBtn) {
             startBtn.addEventListener('click', BulkDataFetchManager.startBulkFetch);
@@ -821,6 +881,13 @@ const BulkDataFetchManager = {
 
         if (symbolsInput) {
             symbolsInput.addEventListener('input', BulkDataFetchManager.updateSymbolCount);
+        }
+
+        // Add interval change listener for period restrictions
+        if (intervalSelect) {
+            intervalSelect.addEventListener('change', (e) => {
+                Utils.updatePeriodOptions(e.target.value, 'bulk-period');
+            });
         }
 
         // Initialize WebSocket if available
@@ -895,6 +962,18 @@ const BulkDataFetchManager = {
                 'error',
                 '入力エラー',
                 '銘柄数は100以下にしてください'
+            );
+            document.getElementById('bulk-result-section').style.display = 'block';
+            return;
+        }
+
+        // Validate interval-period combination
+        if (!Utils.validateIntervalPeriod(interval, period)) {
+            UIComponents.showResult(
+                'bulk-result-container',
+                'error',
+                '入力エラー',
+                `選択された時間軸（${interval}）では、期間（${period}）は選択できません。`
             );
             document.getElementById('bulk-result-section').style.display = 'block';
             return;
@@ -1222,6 +1301,13 @@ const JPXAutomationManager = {
                 stopBtn.addEventListener('click', JPXAutomationManager.stopJPXAutomation);
             }
 
+            // Add interval change listener for period restrictions
+            if (intervalInput) {
+                intervalInput.addEventListener('change', (e) => {
+                    Utils.updatePeriodOptions(e.target.value, 'jpx-period');
+                });
+            }
+
             // Initialize WebSocket for real-time updates
             JPXAutomationManager.initWebSocket();
 
@@ -1260,11 +1346,17 @@ const JPXAutomationManager = {
             const intervalInput = document.getElementById('jpx-interval');
             const periodInput = document.getElementById('jpx-period');
             const interval = intervalInput.value;
-            const period = periodInput.value;
+            const period = periodInput.value || '1mo';
 
             // Validation
             if (!interval) {
                 JPXAutomationManager.showError('入力エラー', '時間軸を選択してください');
+                return;
+            }
+
+            // Validate interval-period combination
+            if (!Utils.validateIntervalPeriod(interval, period)) {
+                JPXAutomationManager.showError('入力エラー', `選択された時間軸（${interval}）では、期間（${period}）は選択できません。`);
                 return;
             }
 
