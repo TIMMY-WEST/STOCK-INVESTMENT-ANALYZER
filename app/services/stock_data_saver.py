@@ -214,6 +214,111 @@ class StockDataSaver:
 
         return results
 
+    def save_batch_stock_data(
+        self,
+        symbols_data: Dict[str, List[Dict[str, Any]]],
+        interval: str
+    ) -> Dict[str, Any]:
+        """
+        複数銘柄のデータをバッチ保存（一括コミット）
+
+        Args:
+            symbols_data: {銘柄コード: データリスト} の辞書
+            interval: 時間軸
+
+        Returns:
+            バッチ保存結果の統計情報
+
+        Raises:
+            StockDataSaveError: データ保存失敗時
+        """
+        # 時間軸の検証
+        if not validate_interval(interval):
+            raise ValueError(f"サポートされていない時間軸: {interval}")
+
+        # モデルクラスの取得
+        model_class = get_model_for_interval(interval)
+
+        total_saved = 0
+        total_skipped = 0
+        total_errors = 0
+        results_by_symbol = {}
+
+        self.logger.info(
+            f"バッチデータ保存開始: {len(symbols_data)}銘柄 "
+            f"(時間軸: {get_display_name(interval)})"
+        )
+
+        with get_db_session() as session:
+            for symbol, data_list in symbols_data.items():
+                saved_count = 0
+                skipped_count = 0
+                error_count = 0
+
+                for data in data_list:
+                    try:
+                        # データに銘柄コードを追加
+                        data_with_symbol = {**data, 'symbol': symbol}
+
+                        # レコードを作成
+                        record = model_class(**data_with_symbol)
+                        session.add(record)
+
+                        # flushして即座にDBに反映（重複チェック用）
+                        session.flush()
+
+                        saved_count += 1
+
+                    except IntegrityError:
+                        # ユニーク制約違反（重複データ）
+                        session.rollback()
+                        skipped_count += 1
+                        self.logger.debug(
+                            f"重複データをスキップ: {symbol}"
+                        )
+
+                    except SQLAlchemyError as e:
+                        session.rollback()
+                        error_count += 1
+                        self.logger.error(
+                            f"データ保存エラー: {symbol}: {e}"
+                        )
+
+                results_by_symbol[symbol] = {
+                    'saved': saved_count,
+                    'skipped': skipped_count,
+                    'errors': error_count,
+                    'total': len(data_list)
+                }
+
+                total_saved += saved_count
+                total_skipped += skipped_count
+                total_errors += error_count
+
+            # 一括コミット
+            try:
+                session.commit()
+                self.logger.info(
+                    f"バッチデータ保存完了: {len(symbols_data)}銘柄 "
+                    f"(時間軸: {get_display_name(interval)}) - "
+                    f"保存: {total_saved}, スキップ: {total_skipped}, エラー: {total_errors}"
+                )
+            except SQLAlchemyError as e:
+                session.rollback()
+                raise StockDataSaveError(
+                    f"バッチデータ保存のコミットに失敗: "
+                    f"(時間軸: {get_display_name(interval)}): {e}"
+                )
+
+        return {
+            'interval': interval,
+            'total_symbols': len(symbols_data),
+            'total_saved': total_saved,
+            'total_skipped': total_skipped,
+            'total_errors': total_errors,
+            'results_by_symbol': results_by_symbol
+        }
+
     def get_latest_date(
         self,
         symbol: str,

@@ -30,24 +30,54 @@ class StockDataFetcher:
         """初期化"""
         self.logger = logger
 
+    def _is_valid_stock_code(self, symbol: str) -> bool:
+        """
+        有効な銘柄コードかチェック
+
+        Args:
+            symbol: 銘柄コード
+
+        Returns:
+            有効な場合True
+        """
+        if not symbol or not isinstance(symbol, str):
+            return False
+
+        # .T サフィックスを除去
+        code = symbol.replace('.T', '')
+
+        # 数字のみ（4桁）が日本株の標準形式
+        if code.isdigit() and len(code) == 4:
+            return True
+
+        # その他の有効なフォーマット（米国株など）
+        # アルファベットのみ、または数字+アルファベットの組み合わせ
+        if code.replace('.', '').replace('-', '').isalnum():
+            # 無効なパターン（数字+A形式）を除外
+            if code[-1] == 'A' and code[:-1].isdigit():
+                return False
+            return True
+
+        return False
+
     def _format_symbol_for_yahoo(self, symbol: str) -> str:
         """
         Yahoo Finance用に銘柄コードをフォーマット
-        
+
         Args:
             symbol: 元の銘柄コード（例: '1301', '7203.T'）
-            
+
         Returns:
             Yahoo Finance用の銘柄コード（例: '1301.T', '7203.T'）
         """
         # 既に.Tサフィックスが付いている場合はそのまま返す
         if symbol.endswith('.T'):
             return symbol
-            
+
         # 数字のみの銘柄コード（日本株）の場合は.Tを追加
         if symbol.isdigit():
             return f"{symbol}.T"
-            
+
         # その他の場合（海外株等）はそのまま返す
         return symbol
 
@@ -169,6 +199,132 @@ class StockDataFetcher:
 
         return results
 
+    def fetch_batch_stock_data(
+        self,
+        symbols: list[str],
+        interval: str = '1d',
+        period: Optional[str] = None,
+        start: Optional[str] = None,
+        end: Optional[str] = None
+    ) -> Dict[str, pd.DataFrame]:
+        """
+        複数銘柄の株価データを一括取得（バッチダウンロード）
+
+        Args:
+            symbols: 銘柄コードのリスト（例: ['7203.T', '6758.T', '9984.T']）
+            interval: 時間軸（'1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo'）
+            period: 取得期間（'1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'）
+            start: 開始日（YYYY-MM-DD形式、periodと排他）
+            end: 終了日（YYYY-MM-DD形式、periodと排他）
+
+        Returns:
+            {銘柄コード: DataFrame} の辞書
+
+        Raises:
+            StockDataFetchError: データ取得失敗時
+        """
+        try:
+            # 時間軸の検証
+            if not validate_interval(interval):
+                raise ValueError(f"サポートされていない時間軸: {interval}")
+
+            # 無効な銘柄コードをフィルタリング
+            valid_symbols = []
+            invalid_symbols = []
+            for symbol in symbols:
+                if self._is_valid_stock_code(symbol):
+                    valid_symbols.append(symbol)
+                else:
+                    invalid_symbols.append(symbol)
+
+            if invalid_symbols:
+                self.logger.warning(
+                    f"無効な銘柄コードをスキップ: {len(invalid_symbols)}件 - {invalid_symbols[:10]}"
+                    + ("..." if len(invalid_symbols) > 10 else "")
+                )
+
+            if not valid_symbols:
+                self.logger.warning("有効な銘柄コードがありません")
+                return {}
+
+            # 期間の設定
+            if period is None and start is None and end is None:
+                period = get_recommended_period(interval)
+                self.logger.info(
+                    f"期間未指定のため推奨期間を使用: {period} (時間軸: {get_display_name(interval)})"
+                )
+
+            # 日本株の場合、Yahoo Finance用に.Tサフィックスを追加
+            yahoo_symbols = [self._format_symbol_for_yahoo(s) for s in valid_symbols]
+
+            # yfinanceでバッチダウンロード
+            self.logger.info(
+                f"株価データバッチ取得開始: {len(valid_symbols)}銘柄 (時間軸: {get_display_name(interval)}, "
+                f"期間: {period or f'{start}~{end}'})"
+            )
+
+            # yf.download()でバッチダウンロード
+            if period:
+                df_multi = yf.download(
+                    tickers=yahoo_symbols,
+                    period=period,
+                    interval=interval,
+                    group_by='ticker',
+                    threads=True,
+                    timeout=60,
+                    progress=False
+                )
+            else:
+                df_multi = yf.download(
+                    tickers=yahoo_symbols,
+                    start=start,
+                    end=end,
+                    interval=interval,
+                    group_by='ticker',
+                    threads=True,
+                    timeout=60,
+                    progress=False
+                )
+
+            # 結果を銘柄ごとに分割
+            result = {}
+            success_count = 0
+
+            for original_symbol, yahoo_symbol in zip(valid_symbols, yahoo_symbols):
+                try:
+                    # 複数銘柄の場合はdf_multi[yahoo_symbol]、単一銘柄の場合はdf_multi
+                    if len(yahoo_symbols) > 1:
+                        df = df_multi[yahoo_symbol] if yahoo_symbol in df_multi.columns.levels[0] else pd.DataFrame()
+                    else:
+                        df = df_multi
+
+                    if not df.empty:
+                        result[original_symbol] = df
+                        success_count += 1
+                    else:
+                        self.logger.warning(
+                            f"データが取得できませんでした: {original_symbol} (Yahoo: {yahoo_symbol})"
+                        )
+                except Exception as e:
+                    self.logger.error(
+                        f"銘柄データ抽出エラー: {original_symbol} (Yahoo: {yahoo_symbol}): {e}"
+                    )
+
+            self.logger.info(
+                f"株価データバッチ取得完了: {success_count}/{len(valid_symbols)}銘柄成功 "
+                f"(時間軸: {get_display_name(interval)})"
+            )
+
+            return result
+
+        except Exception as e:
+            error_msg = (
+                f"株価データバッチ取得エラー: {len(symbols)}銘柄 "
+                f"(時間軸: {get_display_name(interval)}): {str(e)}"
+            )
+            self.logger.error(error_msg)
+            raise StockDataFetchError(error_msg) from e
+
     def convert_to_dict(self, df: pd.DataFrame, interval: str) -> list[Dict[str, Any]]:
         """
         DataFrameを辞書リストに変換（データベース保存用）
@@ -184,29 +340,40 @@ class StockDataFetcher:
         is_intraday = is_intraday_interval(interval)
 
         for index, row in df.iterrows():
-            record = {
-                'open': float(row['Open']),
-                'high': float(row['High']),
-                'low': float(row['Low']),
-                'close': float(row['Close']),
-                'volume': int(row['Volume'])
-            }
+            # NaN値チェック - 主要フィールドがすべてNaNの場合はスキップ
+            if (pd.isna(row['Open']) and pd.isna(row['High']) and
+                pd.isna(row['Low']) and pd.isna(row['Close'])):
+                self.logger.debug(f"データスキップ: すべての価格フィールドがNaN ({index})")
+                continue
 
-            # 日付・日時フィールドの設定
-            if is_intraday:
-                # 分足・時間足: datetime使用
-                if isinstance(index, pd.Timestamp):
-                    record['datetime'] = index.to_pydatetime()
-                else:
-                    record['datetime'] = datetime.fromisoformat(str(index))
-            else:
-                # 日足・週足・月足: date使用
-                if isinstance(index, pd.Timestamp):
-                    record['date'] = index.date()
-                else:
-                    record['date'] = date.fromisoformat(str(index).split()[0])
+            try:
+                record = {
+                    'open': float(row['Open']) if pd.notna(row['Open']) else 0.0,
+                    'high': float(row['High']) if pd.notna(row['High']) else 0.0,
+                    'low': float(row['Low']) if pd.notna(row['Low']) else 0.0,
+                    'close': float(row['Close']) if pd.notna(row['Close']) else 0.0,
+                    'volume': int(row['Volume']) if pd.notna(row['Volume']) else 0
+                }
 
-            records.append(record)
+                # 日付・日時フィールドの設定
+                if is_intraday:
+                    # 分足・時間足: datetime使用
+                    if isinstance(index, pd.Timestamp):
+                        record['datetime'] = index.to_pydatetime()
+                    else:
+                        record['datetime'] = datetime.fromisoformat(str(index))
+                else:
+                    # 日足・週足・月足: date使用
+                    if isinstance(index, pd.Timestamp):
+                        record['date'] = index.date()
+                    else:
+                        record['date'] = date.fromisoformat(str(index).split()[0])
+
+                records.append(record)
+
+            except (ValueError, TypeError) as e:
+                self.logger.warning(f"データ変換エラー: {index}: {e}")
+                continue
 
         return records
 
