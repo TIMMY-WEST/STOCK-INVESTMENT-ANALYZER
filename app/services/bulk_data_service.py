@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import random
 
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_saver import StockDataSaver, StockDataSaveError
@@ -173,13 +174,13 @@ class ProgressTracker:
 class BulkDataService:
     """全銘柄一括取得サービスクラス"""
 
-    def __init__(self, max_workers: int = 10, retry_count: int = 3, batch_id: Optional[str] = None):
+    def __init__(self, max_workers: int = 3, retry_count: int = 5, batch_id: Optional[str] = None):
         """
         初期化
 
         Args:
-            max_workers: 最大並列ワーカー数
-            retry_count: リトライ回数
+            max_workers: 最大並列ワーカー数（レート制限対策で3に削減）
+            retry_count: リトライ回数（デフォルト5回に増加）
             batch_id: バッチID（構造化ログ用）
         """
         self.fetcher = StockDataFetcher()
@@ -189,11 +190,11 @@ class BulkDataService:
         self.logger = logger
         # 構造化ログ用ロガー
         self.batch_logger = get_batch_logger(batch_id=batch_id)
-        # ErrorHandlerを初期化
+        # ErrorHandlerを初期化（リトライ設定を強化）
         self.error_handler = ErrorHandler(
             max_retries=retry_count,
-            retry_delay=2,
-            backoff_multiplier=2
+            retry_delay=5,  # 初期遅延を5秒に増加（レート制限対策）
+            backoff_multiplier=3.0  # バックオフ倍率を3.0に増加
         )
 
     def fetch_single_stock(
@@ -238,73 +239,54 @@ class BulkDataService:
                 )
 
                 # データ変換
-                data_list = self.fetcher.convert_to_dict(df, interval)
+                try:
+                    data_list = self.fetcher.convert_to_dict(df, interval)
+                    if not data_list:
+                        self.logger.warning(f"変換後のデータが空です: {symbol}")
+                        continue
+                except Exception as e:
+                    self.logger.error(f"データ変換エラー: {symbol}: {e}")
+                    continue
 
                 # データ保存
-                save_start = time.time()
-                save_result = self.saver.save_stock_data(
-                    symbol=symbol,
-                    interval=interval,
-                    data_list=data_list
+                save_result = self.saver.save_stock_data(symbol, data_list, interval)
+                
+                # 成功ログ
+                self.logger.info(
+                    f"データ保存完了: {symbol} ({interval}) - "
+                    f"有効データ: {len(data_list)}件, 保存: {save_result.get('saved', 0)}件"
                 )
-                save_duration = int((time.time() - save_start) * 1000)
-
-                # 構造化ログ: データ保存成功
-                self.batch_logger.log_batch_action(
-                    action='data_save',
-                    stock_code=symbol,
-                    status='success',
-                    duration_ms=save_duration,
-                    records_count=save_result.get('saved', 0)
-                )
-
+                
+                # 成功時の結果を返す
                 total_duration = int((time.time() - start_time) * 1000)
-
                 return {
                     'success': True,
                     'symbol': symbol,
                     'interval': interval,
                     'records_fetched': len(data_list),
                     'records_saved': save_result.get('saved', 0),
-                    'attempt': attempt + 1,
-                    'retry_count': retry_count,
-                    'duration_ms': total_duration
+                    'duration_ms': total_duration,
+                    'attempt': retry_count + 1
                 }
-
+                
             except Exception as e:
                 last_error = e
-                retry_count = attempt
-
-                # ErrorHandlerでエラー処理判定
-                context = {
-                    'retry_count': retry_count,
-                    'interval': interval,
-                    'period': period
-                }
-                action = self.error_handler.handle_error(e, symbol, context)
-
-                # アクションに応じた処理
+                self.logger.error(f"データ処理エラー: {symbol}: {e}")
+                
+                # エラーハンドラーでアクションを決定
+                action = self.error_handler.handle_error(e, symbol, {'retry_count': retry_count})
+                
                 if action == ErrorAction.RETRY:
-                    # 最終試行でない場合はリトライ
-                    if attempt < self.retry_count - 1:
-                        # 構造化ログ: リトライ
-                        self.batch_logger.log_batch_action(
-                            action='data_fetch',
-                            stock_code=symbol,
-                            status='retry',
-                            error_message=str(e),
-                            retry_count=retry_count + 1
-                        )
-                        self.error_handler.retry_with_backoff(retry_count)
+                    retry_count += 1
+                    if retry_count < self.retry_count:
+                        self.logger.info(f"リトライ {retry_count}/{self.retry_count}: {symbol}")
                         continue
                     else:
-                        # 最大リトライ回数到達
+                        self.logger.error(f"最大リトライ回数に達しました: {symbol}")
                         break
-
                 elif action == ErrorAction.SKIP:
                     # スキップして処理終了
                     break
-
                 elif action == ErrorAction.ABORT:
                     # システムエラー - 例外を再発生させる
                     raise BulkDataServiceError(f"システムエラー: {symbol}: {e}") from e
@@ -335,10 +317,229 @@ class BulkDataService:
         symbols: List[str],
         interval: str = '1d',
         period: Optional[str] = None,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        use_batch: bool = True,
+        batch_size: int = 100
+    ) -> Dict[str, Any]:
+        """
+        複数銘柄のデータを取得・保存（バッチ処理対応）
+
+        Args:
+            symbols: 銘柄コードのリスト
+            interval: 時間軸
+            period: 取得期間
+            progress_callback: 進捗通知用コールバック関数
+            use_batch: バッチ処理を使用するか（デフォルト: True）
+            batch_size: バッチサイズ（デフォルト: 100銘柄）
+
+        Returns:
+            処理結果のサマリー
+        """
+        if use_batch:
+            return self._fetch_multiple_stocks_batch(
+                symbols, interval, period, progress_callback, batch_size
+            )
+        else:
+            return self._fetch_multiple_stocks_parallel(
+                symbols, interval, period, progress_callback
+            )
+
+    def _fetch_multiple_stocks_batch(
+        self,
+        symbols: List[str],
+        interval: str = '1d',
+        period: Optional[str] = None,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        batch_size: int = 100
+    ) -> Dict[str, Any]:
+        """
+        複数銘柄のデータをバッチ処理で取得・保存
+
+        Args:
+            symbols: 銘柄コードのリスト
+            interval: 時間軸
+            period: 取得期間
+            progress_callback: 進捗通知用コールバック関数
+            batch_size: バッチサイズ
+
+        Returns:
+            処理結果のサマリー
+        """
+        self.logger.info(
+            f"全銘柄バッチ取得開始: {len(symbols)}銘柄 "
+            f"(時間軸: {interval}, バッチサイズ: {batch_size})"
+        )
+
+        # 進捗トラッカー初期化
+        tracker = ProgressTracker(total=len(symbols))
+        all_results = []
+
+        # 銘柄をバッチサイズごとに分割
+        for i in range(0, len(symbols), batch_size):
+            batch_symbols = symbols[i:i + batch_size]
+            batch_start_time = time.time()
+
+            self.logger.info(
+                f"バッチ {i // batch_size + 1}/{(len(symbols) + batch_size - 1) // batch_size} 処理開始: "
+                f"{len(batch_symbols)}銘柄"
+            )
+
+            try:
+                # バッチダウンロード
+                fetch_start = time.time()
+                batch_data = self.fetcher.fetch_batch_stock_data(
+                    symbols=batch_symbols,
+                    interval=interval,
+                    period=period
+                )
+                fetch_duration = int((time.time() - fetch_start) * 1000)
+
+                # データ変換（エラーハンドリング強化）
+                symbols_data = {}
+                conversion_errors = []
+                for symbol, df in batch_data.items():
+                    try:
+                        data_list = self.fetcher.convert_to_dict(df, interval)
+                        if data_list:  # 空でない場合のみ追加
+                            symbols_data[symbol] = data_list
+                        else:
+                            self.logger.warning(f"データ変換後が空: {symbol}")
+                    except Exception as e:
+                        conversion_errors.append(f"{symbol}: {e}")
+                        self.logger.error(f"データ変換エラー: {symbol}: {e}")
+
+                if conversion_errors:
+                    self.logger.warning(
+                        f"データ変換エラー: {len(conversion_errors)}件 - "
+                        f"{', '.join(conversion_errors[:5])}"
+                        + ("..." if len(conversion_errors) > 5 else "")
+                    )
+
+                # バッチ保存（データがある場合のみ）
+                if symbols_data:
+                    save_start = time.time()
+                    save_result = self.saver.save_batch_stock_data(
+                        symbols_data=symbols_data,
+                        interval=interval
+                    )
+                    save_duration = int((time.time() - save_start) * 1000)
+                else:
+                    self.logger.warning(f"保存可能なデータなし: バッチ {i // batch_size + 1}")
+                    save_result = {
+                        'total_symbols': 0,
+                        'total_saved': 0,
+                        'results_by_symbol': {}
+                    }
+                    save_duration = 0
+
+                batch_duration = int((time.time() - batch_start_time) * 1000)
+
+                # 結果を記録
+                for symbol in batch_symbols:
+                    if symbol in symbols_data and len(symbols_data[symbol]) > 0:
+                        data_list = symbols_data[symbol]  # 既に変換済みのデータを使用
+                        
+                        # バッチ保存結果から該当銘柄の結果を取得
+                        symbol_save_result = save_result.get('results_by_symbol', {}).get(symbol, {})
+                        
+                        # 成功ログ
+                        self.logger.info(
+                            f"バッチ保存完了: {symbol} ({interval}) - "
+                            f"有効データ: {len(data_list)}件, 保存: {symbol_save_result.get('saved', 0)}件"
+                        )
+
+                        # 結果記録
+                        result = {
+                            'success': True,
+                            'symbol': symbol,
+                            'interval': interval,
+                            'records_fetched': len(data_list),  # 有効データ数を記録
+                            'records_saved': symbol_save_result.get('saved', 0),
+                            'duration_ms': batch_duration // len(batch_symbols)
+                        }
+                        all_results.append(result)
+
+                        # 進捗更新
+                        tracker.update(
+                            symbol=symbol,
+                            success=True,
+                            duration_ms=batch_duration // len(batch_symbols),
+                            records_fetched=len(data_list),  # 有効データ数
+                            records_saved=symbol_save_result.get('saved', 0)
+                        )
+                    else:
+                        # データ取得失敗
+                        result = {
+                            'success': False,
+                            'symbol': symbol,
+                            'interval': interval,
+                            'error': 'データ取得失敗'
+                        }
+                        all_results.append(result)
+                        tracker.update(symbol=symbol, success=False, error_message='データ取得失敗')
+
+                # 進捗コールバック実行
+                if progress_callback:
+                    try:
+                        progress_callback(tracker.get_progress())
+                    except Exception as e:
+                        self.logger.error(f"進捗コールバックエラー: {e}")
+
+                # 進捗ログ出力
+                progress = tracker.get_progress()
+                self.logger.info(
+                    f"バッチ処理完了: {progress['processed']}/{progress['total']} "
+                    f"({progress['progress_percentage']}%) - "
+                    f"成功: {progress['successful']}, 失敗: {progress['failed']}"
+                )
+
+            except Exception as e:
+                self.logger.error(f"バッチ処理エラー: {e}")
+                # バッチ全体が失敗した場合
+                for symbol in batch_symbols:
+                    result = {
+                        'success': False,
+                        'symbol': symbol,
+                        'interval': interval,
+                        'error': str(e)
+                    }
+                    all_results.append(result)
+                    tracker.update(symbol=symbol, success=False, error_message=str(e))
+
+        # サマリー作成
+        summary = tracker.get_summary()
+        summary['results'] = all_results
+
+        # 詳細統計情報を集計
+        total_downloaded = sum(r.get('records_fetched', 0) for r in all_results if r.get('success'))
+        total_saved = sum(r.get('records_saved', 0) for r in all_results if r.get('success'))
+        total_skipped = total_downloaded - total_saved
+
+        summary['total_downloaded'] = total_downloaded
+        summary['total_saved'] = total_saved
+        summary['total_skipped'] = total_skipped
+        summary['errors'] = tracker.error_details[:100]
+
+        self.logger.info(
+            f"全銘柄バッチ取得完了: "
+            f"成功 {summary['successful']}/{summary['total']}, "
+            f"失敗 {summary['failed']}, "
+            f"ダウンロード {total_downloaded}件, "
+            f"DB格納 {total_saved}件, "
+            f"処理時間 {summary['elapsed_time']}秒"
+        )
+
+        return summary
+
+    def _fetch_multiple_stocks_parallel(
+        self,
+        symbols: List[str],
+        interval: str = '1d',
+        period: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
     ) -> Dict[str, Any]:
         """
-        複数銘柄のデータを並列取得・保存
+        複数銘柄のデータを並列取得・保存（旧実装）
 
         Args:
             symbols: 銘柄コードのリスト
@@ -406,6 +607,10 @@ class BulkDataService:
                             f"失敗: {progress['failed']}, "
                             f"速度: {progress['stocks_per_second']}銘柄/秒"
                         )
+
+                    # レート制限対策：リクエスト間隔制御
+                    if tracker.processed < tracker.total:
+                        time.sleep(1.0)  # 1秒間隔でリクエスト制御
 
                 except Exception as e:
                     self.logger.error(f"タスク実行エラー ({symbol}): {e}")

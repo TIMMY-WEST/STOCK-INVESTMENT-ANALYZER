@@ -72,7 +72,7 @@ class TestStockDataFetcher:
         index = pd.date_range('2024-01-01', periods=3, freq='D')
         return pd.DataFrame(data, index=index)
 
-    @patch('app.services.stock_data_fetcher.yf.Ticker')
+    @patch('services.stock_data_fetcher.yf.Ticker')
     def test_fetch_stock_data_success(self, mock_ticker, fetcher, mock_yfinance_data):
         """データ取得成功"""
         mock_ticker.return_value.history.return_value = mock_yfinance_data
@@ -83,7 +83,7 @@ class TestStockDataFetcher:
         assert not df.empty
         mock_ticker.return_value.history.assert_called_once()
 
-    @patch('app.services.stock_data_fetcher.yf.Ticker')
+    @patch('services.stock_data_fetcher.yf.Ticker')
     def test_fetch_stock_data_empty(self, mock_ticker, fetcher):
         """空データの場合エラー"""
         mock_ticker.return_value.history.return_value = pd.DataFrame()
@@ -91,7 +91,7 @@ class TestStockDataFetcher:
         with pytest.raises(StockDataFetchError):
             fetcher.fetch_stock_data('INVALID', '1d', period='1d')
 
-    @patch('app.services.stock_data_fetcher.yf.Ticker')
+    @patch('services.stock_data_fetcher.yf.Ticker')
     def test_fetch_stock_data_invalid_interval(self, mock_ticker, fetcher):
         """無効な時間軸でエラー"""
         with pytest.raises(StockDataFetchError):
@@ -161,7 +161,7 @@ class TestStockDataSaver:
         with pytest.raises(ValueError):
             saver.save_stock_data('7203.T', 'invalid', sample_data_list)
 
-    @patch('app.services.stock_data_saver.get_db_session')
+    @patch('services.stock_data_saver.get_db_session')
     def test_save_stock_data_success(self, mock_session, saver, sample_data_list):
         """データ保存成功"""
         mock_sess = MagicMock()

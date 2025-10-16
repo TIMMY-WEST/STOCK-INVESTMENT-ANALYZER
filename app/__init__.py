@@ -1,4 +1,4 @@
 # This file makes the app directory a Python package
-from .app import app
+from .app import app, socketio
 
-__all__ = ['app']
+__all__ = ['app', 'socketio']

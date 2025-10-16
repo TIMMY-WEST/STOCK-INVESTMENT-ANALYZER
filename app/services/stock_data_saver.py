@@ -128,9 +128,9 @@ class StockDataSaver:
                 # ユニーク制約違反（重複データ）
                 session.rollback()
                 skipped_count += 1
-                self.logger.debug(
-                    f"重複データをスキップ: {symbol} "
-                    f"({current_date})"
+                self.logger.info(
+                    f"重複データをスキップ: {symbol} ({current_date}) "
+                    f"(時間軸: {get_display_name(interval)})"
                 )
 
             except SQLAlchemyError as e:
@@ -213,6 +213,177 @@ class StockDataSaver:
                     }
 
         return results
+
+    def save_batch_stock_data(
+        self,
+        symbols_data: Dict[str, List[Dict[str, Any]]],
+        interval: str
+    ) -> Dict[str, Any]:
+        """
+        複数銘柄のデータをバッチ保存（重複データ事前除外方式）
+
+        Args:
+            symbols_data: {銘柄コード: データリスト} の辞書
+            interval: 時間軸
+
+        Returns:
+            バッチ保存結果の統計情報
+
+        Raises:
+            StockDataSaveError: データ保存失敗時
+        """
+        # 時間軸の検証
+        if not validate_interval(interval):
+            raise ValueError(f"サポートされていない時間軸: {interval}")
+
+        # モデルクラスの取得
+        model_class = get_model_for_interval(interval)
+
+        total_saved = 0
+        total_skipped = 0
+        total_errors = 0
+        results_by_symbol = {}
+
+        self.logger.info(
+            f"バッチデータ保存開始: {len(symbols_data)}銘柄 "
+            f"(時間軸: {get_display_name(interval)})"
+        )
+
+        with get_db_session() as session:
+            # 全銘柄の重複チェックを一括実行
+            filtered_symbols_data = self._filter_duplicate_data(
+                session, model_class, symbols_data, interval
+            )
+
+            # 重複除外後のデータを一括保存
+            records_to_save = []
+            for symbol, data_list in filtered_symbols_data.items():
+                saved_count = 0
+                skipped_count = len(symbols_data.get(symbol, [])) - len(data_list)
+                error_count = 0
+
+                for data in data_list:
+                    try:
+                        # データに銘柄コードを追加
+                        data_with_symbol = {**data, 'symbol': symbol}
+
+                        # レコードを作成
+                        record = model_class(**data_with_symbol)
+                        records_to_save.append(record)
+                        saved_count += 1
+
+                    except Exception as e:
+                        error_count += 1
+                        self.logger.error(
+                            f"レコード作成エラー: {symbol}: {e}"
+                        )
+
+                results_by_symbol[symbol] = {
+                    'saved': saved_count,
+                    'skipped': skipped_count,
+                    'errors': error_count,
+                    'total': len(symbols_data.get(symbol, []))
+                }
+
+                total_saved += saved_count
+                total_skipped += skipped_count
+                total_errors += error_count
+
+            # 一括保存とコミット
+            try:
+                if records_to_save:
+                    session.add_all(records_to_save)
+                    session.commit()
+                    
+                total_records = sum(len(data_list) for data_list in symbols_data.values())
+                self.logger.info(
+                    f"バッチデータ保存完了: {len(symbols_data)}銘柄 "
+                    f"(時間軸: {get_display_name(interval)}) - "
+                    f"対象データ数: {total_records}, 保存: {total_saved}, "
+                    f"重複スキップ: {total_skipped}, エラー: {total_errors}"
+                )
+            except SQLAlchemyError as e:
+                session.rollback()
+                raise StockDataSaveError(
+                    f"バッチデータ保存のコミットに失敗: "
+                    f"(時間軸: {get_display_name(interval)}): {e}"
+                )
+
+        return {
+            'interval': interval,
+            'total_symbols': len(symbols_data),
+            'total_saved': total_saved,
+            'total_skipped': total_skipped,
+            'total_errors': total_errors,
+            'results_by_symbol': results_by_symbol
+        }
+
+    def _filter_duplicate_data(
+        self,
+        session: Session,
+        model_class: type,
+        symbols_data: Dict[str, List[Dict[str, Any]]],
+        interval: str
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        重複データを事前に除外
+
+        Args:
+            session: SQLAlchemyセッション
+            model_class: データベースモデルクラス
+            symbols_data: 元のデータ
+            interval: 時間軸
+
+        Returns:
+            重複除外後のデータ
+        """
+        filtered_data = {}
+        
+        # 時間軸に応じて適切なカラム名を決定
+        date_column_name = 'date' if not is_intraday_interval(interval) else 'datetime'
+        date_column = getattr(model_class, date_column_name)
+        
+        for symbol, data_list in symbols_data.items():
+            if not data_list:
+                filtered_data[symbol] = []
+                continue
+                
+            # 該当銘柄の既存データの日付/日時を取得
+            existing_dates = set()
+            try:
+                existing_records = session.query(date_column).filter(
+                    model_class.symbol == symbol
+                ).all()
+                existing_dates = {record[0] for record in existing_records}
+            except Exception as e:
+                self.logger.warning(f"既存データ取得エラー: {symbol}: {e}")
+                # エラーの場合は安全のため全データを保存対象とする
+                filtered_data[symbol] = data_list
+                continue
+            
+            # 重複していないデータのみを抽出
+            non_duplicate_data = []
+            for data in data_list:
+                data_date = data.get('date') or data.get('datetime')
+                if data_date and data_date not in existing_dates:
+                    non_duplicate_data.append(data)
+                elif data_date in existing_dates:
+                    self.logger.debug(
+                        f"重複データをスキップ: {symbol} ({data_date}) "
+                        f"(時間軸: {get_display_name(interval)})"
+                    )
+            
+            filtered_data[symbol] = non_duplicate_data
+            
+            if len(non_duplicate_data) < len(data_list):
+                skipped_count = len(data_list) - len(non_duplicate_data)
+                self.logger.info(
+                    f"重複データ除外: {symbol} - "
+                    f"対象: {len(data_list)}件, 保存対象: {len(non_duplicate_data)}件, "
+                    f"重複スキップ: {skipped_count}件"
+                )
+        
+        return filtered_data
 
     def get_latest_date(
         self,
