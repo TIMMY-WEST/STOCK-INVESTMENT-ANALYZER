@@ -29,10 +29,8 @@ def test_database_connection():
         from models import get_db_session, Stocks1d
         from sqlalchemy import text
 
-        # データベースセッションを取得
-        session = get_db_session()
-
-        try:
+        # データベースセッションを取得（コンテキストマネージャーとして使用）
+        with get_db_session() as session:
             # 接続テスト用のクエリを実行
             session.execute(text("SELECT 1"))
 
@@ -63,9 +61,6 @@ def test_database_connection():
                 },
                 "timestamp": datetime.utcnow().isoformat() + 'Z'
             }), 200
-
-        finally:
-            session.close()
 
     except Exception as e:
         logger.error(f"データベース接続テストエラー: {e}", exc_info=True)
@@ -109,21 +104,12 @@ def test_api_connection():
 
         response_time = (time.time() - start_time) * 1000  # ミリ秒
 
-        if stock_data and len(stock_data) > 0:
-            # データポイント数とメタ情報を取得
-            data_points = len(stock_data)
-            last_data = stock_data[-1] if stock_data else {}
-            last_update = last_data.get('date', 'N/A')
+        # stock_dataはリストまたはDataFrame。データの有無を適切にチェック
+        has_data = stock_data is not None and len(stock_data) > 0
 
-            # 銘柄名を取得（可能であれば）
-            company_name = "N/A"
-            try:
-                import yfinance as yf
-                ticker = yf.Ticker(symbol)
-                info = ticker.info
-                company_name = info.get('longName', info.get('shortName', 'N/A'))
-            except Exception:
-                pass
+        if has_data:
+            # データポイント数を取得
+            data_points = len(stock_data)
 
             return jsonify({
                 "success": True,
@@ -131,9 +117,8 @@ def test_api_connection():
                 "responseTime": round(response_time, 2),
                 "details": {
                     "symbol": symbol,
-                    "dataPoints": data_points,
-                    "lastUpdate": str(last_update),
-                    "companyName": company_name
+                    "dataAvailable": True,
+                    "dataPoints": data_points
                 },
                 "timestamp": datetime.utcnow().isoformat() + 'Z'
             }), 200
@@ -179,11 +164,8 @@ def health_check():
             from models import get_db_session
             from sqlalchemy import text
 
-            session = get_db_session()
-            try:
+            with get_db_session() as session:
                 session.execute(text("SELECT 1"))
-            finally:
-                session.close()
         except Exception as e:
             db_status = "error"
             db_message = f"接続エラー: {str(e)}"
@@ -202,7 +184,9 @@ def health_check():
                 interval='1d'
             )
 
-            if not stock_data or len(stock_data) == 0:
+            # stock_dataの有無を適切にチェック
+            has_data = stock_data is not None and len(stock_data) > 0
+            if not has_data:
                 api_status = "warning"
                 api_message = "データ取得できず"
         except Exception as e:
@@ -212,21 +196,21 @@ def health_check():
 
         # 総合ステータスを判定
         if db_status == "error" or api_status == "error":
-            overall = "error"
+            overall_status = "error"
         elif db_status == "warning" or api_status == "warning":
-            overall = "warning"
+            overall_status = "degraded"
         else:
-            overall = "healthy"
+            overall_status = "healthy"
 
         return jsonify({
-            "overall": overall,
+            "status": overall_status,
             "timestamp": datetime.utcnow().isoformat() + 'Z',
             "services": {
                 "database": {
                     "status": db_status,
                     "message": db_message
                 },
-                "api": {
+                "yahoo_finance_api": {
                     "status": api_status,
                     "message": api_message
                 }
@@ -237,14 +221,14 @@ def health_check():
         logger.error(f"ヘルスチェックエラー: {e}", exc_info=True)
 
         return jsonify({
-            "overall": "error",
+            "status": "error",
             "timestamp": datetime.utcnow().isoformat() + 'Z',
             "services": {
                 "database": {
                     "status": "unknown",
                     "message": "ステータス不明"
                 },
-                "api": {
+                "yahoo_finance_api": {
                     "status": "unknown",
                     "message": "ステータス不明"
                 }

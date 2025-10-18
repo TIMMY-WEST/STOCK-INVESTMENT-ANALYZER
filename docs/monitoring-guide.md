@@ -380,53 +380,74 @@ grep "7203" logs/batch_bulk.log | jq .
 grep '"status":"failed"' logs/batch_bulk.log | jq .
 ```
 
-### JavaScript でのシステム監視
+### WebUI統合
+
+#### システム状態セクション
+
+WebUIの「システム状態」セクションには、「システム状態の確認」ボタンがあり、ワンクリックで以下の3つのテストを順次実行します：
+
+1. **データベース接続テスト** (`POST /api/system/db-connection-test`)
+2. **Yahoo Finance API接続テスト** (`POST /api/system/api-connection-test`)
+3. **統合ヘルスチェック** (`GET /api/system/health-check`)
+
+#### 実装例
 
 ```javascript
-// システム監視クラスの初期化
-class SystemMonitor {
-  constructor() {
-    this.autoMonitorInterval = null;
-    this.autoMonitorEnabled = false;
-    this.lastCheckTime = null;
-
-    this.initializeEventListeners();
-    this.loadInitialStatus();
-  }
-
-  async runFullHealthCheck() {
-    try {
-      this.showLoading();
-
-      const [dbResult, apiResult] = await Promise.all([
-        this.testDatabaseConnection(),
-        this.testApiConnection()
-      ]);
-
-      this.updateOverallStatus(dbResult, apiResult);
-      this.updateLastCheckTime();
-
-    } catch (error) {
-      console.error('Health check error:', error);
-      this.showError('システム状態の確認中にエラーが発生しました');
-    } finally {
-      this.hideLoading();
+// SystemStatusManager - WebUIシステム監視マネージャー
+const SystemStatusManager = {
+  init: () => {
+    const checkBtn = document.getElementById('system-check-btn');
+    if (checkBtn) {
+      checkBtn.addEventListener('click', SystemStatusManager.runSystemCheck);
     }
-  }
+  },
 
-  async testDatabaseConnection() {
+  runSystemCheck: async () => {
+    const btn = document.getElementById('system-check-btn');
+    const resultsContainer = document.getElementById('monitoring-results');
+
+    try {
+      btn.disabled = true;
+      btn.textContent = 'チェック実行中...';
+      resultsContainer.style.display = 'block';
+
+      // 3つのテストを順次実行
+      await SystemStatusManager.runDatabaseTest();
+      await SystemStatusManager.runApiTest();
+      await SystemStatusManager.runHealthCheck();
+
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'システム状態の確認';
+    }
+  },
+
+  runDatabaseTest: async () => {
     const response = await fetch('/api/system/db-connection-test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
+    const data = await response.json();
+    // 結果を表示
+  },
 
-    const result = await response.json();
-    this.updateDatabaseStatus(result);
-    return result;
+  runApiTest: async () => {
+    const response = await fetch('/api/system/api-connection-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    // 結果を表示
+  },
+
+  runHealthCheck: async () => {
+    const response = await fetch('/api/system/health-check');
+    const data = await response.json();
+    // 総合ステータスを表示
   }
-}
+};
 
-// 初期化
+// ページ読み込み時に初期化
 document.addEventListener('DOMContentLoaded', function() {
   window.systemMonitor = new SystemMonitor();
 });

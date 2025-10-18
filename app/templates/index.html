@@ -655,21 +655,52 @@
                 </div>
             </section>
 
-            <!-- Connection Test Section -->
+            <!-- System Monitoring Section -->
             <section id="system-status" class="card">
                 <header class="card-header">
                     <h2 class="card-title">システム状態</h2>
                 </header>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <p>データベース接続テストを実行して、システムの動作状況を確認できます。</p>
+                            <p>システムの動作状況を確認します。データベース接続、Yahoo Finance API接続、統合ヘルスチェックを順次実行します。</p>
                         </div>
-                        <button type="button" id="test-connection-btn" class="btn btn-secondary">
-                            接続テスト実行
+                        <button type="button" id="system-check-btn" class="btn btn-primary">
+                            システム状態の確認
                         </button>
                     </div>
-                    <div id="connection-result" role="region" aria-live="polite"></div>
+
+                    <!-- Monitoring Results -->
+                    <div id="monitoring-results" style="display: none;">
+                        <h3 class="section-subtitle mb-3">チェック結果</h3>
+
+                        <!-- DB Connection Test Result -->
+                        <div id="db-test-result" class="monitoring-test-result mb-3" style="display: none;">
+                            <div class="test-header">
+                                <strong>📊 データベース接続テスト</strong>
+                                <span class="test-status" id="db-test-status"></span>
+                            </div>
+                            <div id="db-test-details" class="test-details mt-2"></div>
+                        </div>
+
+                        <!-- API Connection Test Result -->
+                        <div id="api-test-result" class="monitoring-test-result mb-3" style="display: none;">
+                            <div class="test-header">
+                                <strong>🌐 Yahoo Finance API接続テスト</strong>
+                                <span class="test-status" id="api-test-status"></span>
+                            </div>
+                            <div id="api-test-details" class="test-details mt-2"></div>
+                        </div>
+
+                        <!-- Health Check Result -->
+                        <div id="health-check-result" class="monitoring-test-result mb-3" style="display: none;">
+                            <div class="test-header">
+                                <strong>✅ 統合ヘルスチェック</strong>
+                                <span class="test-status" id="health-check-status"></span>
+                            </div>
+                            <div id="health-check-details" class="test-details mt-2"></div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>

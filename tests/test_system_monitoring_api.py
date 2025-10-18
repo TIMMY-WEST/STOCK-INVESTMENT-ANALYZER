@@ -38,7 +38,10 @@ class TestDatabaseConnectionTest:
         mock_result4.scalar.return_value = True
 
         mock_session.execute.side_effect = [mock_result1, mock_result2, mock_result3, mock_result4]
-        mock_get_session.return_value = mock_session
+
+        # コンテキストマネージャーとしてモックセッションを返す
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        mock_get_session.return_value.__exit__.return_value = False
 
         # APIリクエスト
         response = client.post('/api/system/db-connection-test')
@@ -94,7 +97,7 @@ class TestAPIConnectionTest:
         assert data['message'] == 'Yahoo Finance API接続正常'
         assert data['details']['symbol'] == '7203.T'
         assert data['details']['dataPoints'] > 0
-        assert 'companyName' in data['details']
+        assert data['details']['dataAvailable'] is True
 
     @patch('services.stock_data_fetcher.StockDataFetcher')
     def test_api_connection_no_data(self, mock_fetcher_class, client):
@@ -139,9 +142,10 @@ class TestHealthCheck:
     @patch('models.get_db_session')
     def test_health_check_all_healthy(self, mock_get_session, mock_fetcher_class, client):
         """正常系: 全てのサービスが正常"""
-        # データベースモック
+        # データベースモック（コンテキストマネージャー対応）
         mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        mock_get_session.return_value.__exit__.return_value = False
 
         # APIモック
         mock_fetcher = MagicMock()
@@ -154,9 +158,9 @@ class TestHealthCheck:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data['overall'] == 'healthy'
+        assert data['status'] == 'healthy'
         assert data['services']['database']['status'] == 'healthy'
-        assert data['services']['api']['status'] == 'healthy'
+        assert data['services']['yahoo_finance_api']['status'] == 'healthy'
 
     @patch('services.stock_data_fetcher.StockDataFetcher')
     @patch('models.get_db_session')
@@ -176,16 +180,17 @@ class TestHealthCheck:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data['overall'] == 'error'
+        assert data['status'] == 'error'
         assert data['services']['database']['status'] == 'error'
 
     @patch('services.stock_data_fetcher.StockDataFetcher')
     @patch('models.get_db_session')
     def test_health_check_api_warning(self, mock_get_session, mock_fetcher_class, client):
         """正常系: APIから警告（データなし）"""
-        # データベースモック
+        # データベースモック（コンテキストマネージャー対応）
         mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        mock_get_session.return_value.__exit__.return_value = False
 
         # APIモック（データなし）
         mock_fetcher = MagicMock()
@@ -198,5 +203,5 @@ class TestHealthCheck:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data['overall'] == 'warning'
-        assert data['services']['api']['status'] == 'warning'
+        assert data['status'] == 'degraded'
+        assert data['services']['yahoo_finance_api']['status'] == 'warning'
