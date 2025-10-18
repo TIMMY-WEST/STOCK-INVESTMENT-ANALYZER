@@ -214,7 +214,7 @@ const StatusLevel = {
 - **接続確認**: PostgreSQL接続の成功/失敗
 - **応答時間**: 接続確立までの時間
 - **接続数**: 現在のアクティブ接続数
-- **テーブル存在確認**: `stocks_daily`テーブルの存在確認
+- **テーブル存在確認**: `stocks_1d`テーブルの存在確認
 
 #### APIテスト項目
 
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
 #### 接続テスト
 - [ ] PostgreSQL接続確認
 - [ ] 接続応答時間測定
-- [ ] テーブル存在確認（stocks_daily）
+- [ ] テーブル存在確認（stocks_1d）
 - [ ] アクティブ接続数取得
 - [ ] Yahoo Finance API接続確認
 - [ ] テスト銘柄（7203.T）データ取得

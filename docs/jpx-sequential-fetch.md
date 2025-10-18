@@ -421,14 +421,14 @@ JPX（日本取引所グループ）から最新の上場銘柄情報を自動�
 
 取得したデータは以下のテーブルに保存されます：
 
-- `stock_1m`: 1分足データ
-- `stock_5m`: 5分足データ
-- `stock_15m`: 15分足データ
-- `stock_30m`: 30分足データ
-- `stock_1h`: 1時間足データ
-- `stock_daily`: 日足データ
-- `stock_weekly`: 週足データ
-- `stock_monthly`: 月足データ
+- `stocks_1m`: 1分足データ
+- `stocks_5m`: 5分足データ
+- `stocks_15m`: 15分足データ
+- `stocks_30m`: 30分足データ
+- `stocks_1h`: 1時間足データ
+- `stocks_1d`: 日足データ
+- `stocks_1wk`: 週足データ
+- `stocks_1mo`: 月足データ
 
 ### バッチ実行履歴
 

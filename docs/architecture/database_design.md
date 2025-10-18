@@ -22,7 +22,7 @@ related_docs:
   - [目次](#目次)
   - [基本情報](#基本情報)
   - [テーブル設計](#テーブル設計)
-    - [1. stocks\_daily テーブル（日足データ）](#1-stocks_daily-テーブル日足データ)
+    - [1. stocks\_1d テーブル（日足データ）](#1-stocks_1d-テーブル日足データ)
       - [テーブル定義](#テーブル定義)
       - [カラム定義](#カラム定義)
       - [制約](#制約)
@@ -1180,13 +1180,13 @@ FROM stocks_daily;
 
 ```sql
 -- サンプルデータ挿入（日足データ）
-INSERT INTO stocks_daily (symbol, date, open, high, low, close, volume) VALUES
+INSERT INTO stocks_1d (symbol, date, open, high, low, close, volume) VALUES
 ('7203.T', '2024-09-09', 2500.00, 2550.00, 2480.00, 2530.00, 1500000),
 ('7203.T', '2024-09-08', 2480.00, 2520.00, 2460.00, 2500.00, 1200000),
 ('7203.T', '2024-09-07', 2450.00, 2490.00, 2430.00, 2480.00, 1100000);
 
 -- 6502.T（東芝）のサンプルデータ
-INSERT INTO stocks_daily (symbol, date, open, high, low, close, volume) VALUES
+INSERT INTO stocks_1d (symbol, date, open, high, low, close, volume) VALUES
 ('6502.T', '2024-09-09', 4500.00, 4580.00, 4450.00, 4550.00, 800000),
 ('6502.T', '2024-09-08', 4480.00, 4520.00, 4460.00, 4500.00, 750000);
 ```
@@ -1195,7 +1195,7 @@ INSERT INTO stocks_daily (symbol, date, open, high, low, close, volume) VALUES
 
 ### 優先度: 高（MVP必須）
 
-- ✅ stocks_daily テーブル作成
+- ✅ stocks_1d テーブル作成（日足データ）
 - ✅ 基本制約（ユニーク、チェック）
 - ✅ 基本インデックス
 - ✅ SQLAlchemyモデル
@@ -1310,7 +1310,7 @@ CREATE TABLE stocks_monthly (
 ### 設計方針
 
 #### MVP段階（現在）
-- **日足のみ実装**: stocks_daily テーブル
+- **全時間軸実装済み**: stocks_1m, stocks_5m, stocks_15m, stocks_30m, stocks_1h, stocks_1d, stocks_1wk, stocks_1mo テーブル
 - **シンプル設計**: 複雑な統合は避ける
 - **動作優先**: まず日足で動作確認
 
