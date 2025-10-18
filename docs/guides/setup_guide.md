@@ -204,9 +204,14 @@ psql -U stock_user -d stock_data_system -h localhost
 
 **テーブル作成SQL**
 
+> **Note**: 本システムは8つの時間軸テーブル（1分足、5分足、15分足、30分足、時間足、日足、週足、月足）をサポートしています。
+> 詳細なスキーマ定義は [データベース設計書](../architecture/database_design.md) を参照してください。
+
+以下は日足データテーブル（stocks_1d）の作成例です：
+
 ```sql
--- stocks_daily テーブル作成
-CREATE TABLE stocks_daily (
+-- stocks_1d テーブル作成（日足データ）
+CREATE TABLE stocks_1d (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(20) NOT NULL,
     date DATE NOT NULL,
@@ -217,25 +222,38 @@ CREATE TABLE stocks_daily (
     volume BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- 制約
-    CONSTRAINT uk_stocks_daily_symbol_date UNIQUE (symbol, date),
-    CONSTRAINT ck_stocks_daily_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
-    CONSTRAINT ck_stocks_daily_volume CHECK (volume >= 0),
-    CONSTRAINT ck_stocks_daily_price_logic CHECK (
-        high >= low AND 
-        high >= open AND 
-        high >= close AND 
-        low <= open AND 
+    CONSTRAINT uk_stocks_1d_symbol_date UNIQUE (symbol, date),
+    CONSTRAINT ck_stocks_1d_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
+    CONSTRAINT ck_stocks_1d_volume CHECK (volume >= 0),
+    CONSTRAINT ck_stocks_1d_price_logic CHECK (
+        high >= low AND
+        high >= open AND
+        high >= close AND
+        low <= open AND
         low <= close
     )
 );
 
 -- インデックス作成
-CREATE INDEX idx_stocks_daily_symbol ON stocks_daily (symbol);
-CREATE INDEX idx_stocks_daily_date ON stocks_daily (date);
-CREATE INDEX idx_stocks_daily_symbol_date_desc ON stocks_daily (symbol, date DESC);
+CREATE INDEX idx_stocks_1d_symbol ON stocks_1d (symbol);
+CREATE INDEX idx_stocks_1d_date ON stocks_1d (date);
+CREATE INDEX idx_stocks_1d_symbol_date_desc ON stocks_1d (symbol, date DESC);
 ```
+
+**その他の時間軸テーブル**
+
+全8テーブルの作成スクリプトは [データベース設計書](../architecture/database_design.md#2-全テーブル作成スクリプト) を参照してください。
+
+- `stocks_1m` - 1分足データ
+- `stocks_5m` - 5分足データ
+- `stocks_15m` - 15分足データ
+- `stocks_30m` - 30分足データ
+- `stocks_1h` - 時間足データ
+- `stocks_1d` - 日足データ
+- `stocks_1wk` - 週足データ
+- `stocks_1mo` - 月足データ
 
 ### 2.4 接続確認
 
@@ -243,15 +261,15 @@ CREATE INDEX idx_stocks_daily_symbol_date_desc ON stocks_daily (symbol, date DES
 -- テーブル作成確認
 \dt
 
--- テーブル構造確認
-\d stocks_daily
+-- テーブル構造確認（日足テーブルの例）
+\d stocks_1d
 
--- サンプルデータ挿入
-INSERT INTO stocks_daily (symbol, date, open, high, low, close, volume) VALUES
+-- サンプルデータ挿入（日足テーブルの例）
+INSERT INTO stocks_1d (symbol, date, open, high, low, close, volume) VALUES
 ('7203.T', '2024-09-09', 2500.00, 2550.00, 2480.00, 2530.00, 1500000);
 
 -- データ確認
-SELECT * FROM stocks_daily;
+SELECT * FROM stocks_1d;
 
 -- 終了
 \q
@@ -360,6 +378,9 @@ if __name__ == '__main__':
 
 **app/models.py の作成**
 
+> **Note**: 以下は日足データモデル（Stock1d）の例です。
+> 全8テーブルのSQLAlchemyモデル定義は [データベース設計書](../architecture/database_design.md#sqlalchemy-モデル定義) を参照してください。
+
 ```python
 from sqlalchemy import Column, Integer, String, Date, Numeric, BigInteger, DateTime, UniqueConstraint, CheckConstraint, Index
 from sqlalchemy.ext.declarative import declarative_base
@@ -367,9 +388,9 @@ from sqlalchemy.sql import func
 
 Base = declarative_base()
 
-class StockDaily(Base):
-    __tablename__ = 'stocks_daily'
-    
+class Stock1d(Base):
+    __tablename__ = 'stocks_1d'
+
     # カラム定義
     id = Column(Integer, primary_key=True, autoincrement=True)
     symbol = Column(String(20), nullable=False)
@@ -381,20 +402,20 @@ class StockDaily(Base):
     volume = Column(BigInteger, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
+
     # 制約定義
     __table_args__ = (
-        UniqueConstraint('symbol', 'date', name='uk_stocks_daily_symbol_date'),
-        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_daily_prices'),
-        CheckConstraint('volume >= 0', name='ck_stocks_daily_volume'),
-        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_daily_price_logic'),
-        Index('idx_stocks_daily_symbol', 'symbol'),
-        Index('idx_stocks_daily_date', 'date'),
-        Index('idx_stocks_daily_symbol_date_desc', 'symbol', 'date'),
+        UniqueConstraint('symbol', 'date', name='uk_stocks_1d_symbol_date'),
+        CheckConstraint('open >= 0 AND high >= 0 AND low >= 0 AND close >= 0', name='ck_stocks_1d_prices'),
+        CheckConstraint('volume >= 0', name='ck_stocks_1d_volume'),
+        CheckConstraint('high >= low AND high >= open AND high >= close AND low <= open AND low <= close', name='ck_stocks_1d_price_logic'),
+        Index('idx_stocks_1d_symbol', 'symbol'),
+        Index('idx_stocks_1d_date', 'date'),
+        Index('idx_stocks_1d_symbol_date_desc', 'symbol', 'date'),
     )
-    
+
     def __repr__(self):
-        return f"<StockDaily(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
+        return f"<Stock1d(symbol='{self.symbol}', date='{self.date}', close={self.close})>"
 ```
 
 **app/templates/index.html の作成**
@@ -577,7 +598,7 @@ FLASK_PORT=8001 python app.py
 - [ ] 必要なパッケージがインストールされている
 - [ ] PostgreSQLサービスが起動している
 - [ ] データベース `stock_data_system` が作成されている
-- [ ] テーブル `stocks_daily` が作成されている
+- [ ] テーブル `stocks_1d` (および必要に応じて他の時間軸テーブル) が作成されている
 - [ ] `.env` ファイルが正しく設定されている
 - [ ] Flask アプリケーションが起動する
 - [ ] ブラウザで画面が表示される
