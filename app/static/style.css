@@ -1718,3 +1718,37 @@ body {
         border-left-width: 6px;
     }
 }
+
+/* System Monitoring Styles */
+.monitoring-test-result {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: white;
+}
+
+.monitoring-test-result .test-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.monitoring-test-result .test-status {
+    font-weight: bold;
+}
+
+.monitoring-test-result .test-details {
+    padding-left: 1rem;
+}
+
+.monitoring-test-result .alert {
+    margin-bottom: 0;
+}
+
+.section-subtitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 1rem;
+}

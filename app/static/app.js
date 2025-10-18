@@ -774,50 +774,204 @@ const StockDataManager = {
 // System Status Manager
 const SystemStatusManager = {
     init: () => {
-        const testBtn = document.getElementById('test-connection-btn');
-        if (testBtn) {
-            testBtn.addEventListener('click', SystemStatusManager.testConnection);
+        const checkBtn = document.getElementById('system-check-btn');
+        if (checkBtn) {
+            checkBtn.addEventListener('click', SystemStatusManager.runSystemCheck);
         }
     },
 
-    testConnection: async () => {
-        const btn = document.getElementById('test-connection-btn');
-        const resultContainer = document.getElementById('connection-result');
+    runSystemCheck: async () => {
+        const btn = document.getElementById('system-check-btn');
+        const resultsContainer = document.getElementById('monitoring-results');
 
-        if (!btn || !resultContainer) return;
+        if (!btn || !resultsContainer) return;
 
         try {
             btn.disabled = true;
-            btn.textContent = 'テスト実行中...';
-            resultContainer.innerHTML = '';
+            btn.textContent = 'チェック実行中...';
+            resultsContainer.style.display = 'block';
 
-            const response = await ApiService.testConnection();
+            // Hide all previous results
+            SystemStatusManager.hideAllResults();
 
-            if (response.success) {
-                const alert = UIComponents.createAlert(
-                    'success',
-                    '接続成功',
-                    `${response.message} (データベース: ${response.database}, ユーザー: ${response.user})`
-                );
-                resultContainer.appendChild(alert);
-            } else {
-                const alert = UIComponents.createAlert(
-                    'error',
-                    '接続失敗',
-                    response.message
-                );
-                resultContainer.appendChild(alert);
-            }
+            // 1. データベース接続テスト
+            await SystemStatusManager.runDatabaseTest();
+
+            // 2. API接続テスト
+            await SystemStatusManager.runApiTest();
+
+            // 3. 統合ヘルスチェック
+            await SystemStatusManager.runHealthCheck();
+
         } catch (error) {
-            const alert = UIComponents.createAlert(
-                'error',
-                '接続エラー',
-                `接続テストに失敗しました: ${error.message}`
-            );
-            resultContainer.appendChild(alert);
+            console.error('System check error:', error);
         } finally {
             btn.disabled = false;
-            btn.textContent = '接続テスト実行';
+            btn.textContent = 'システム状態の確認';
+        }
+    },
+
+    hideAllResults: () => {
+        document.getElementById('db-test-result').style.display = 'none';
+        document.getElementById('api-test-result').style.display = 'none';
+        document.getElementById('health-check-result').style.display = 'none';
+    },
+
+    runDatabaseTest: async () => {
+        const resultDiv = document.getElementById('db-test-result');
+        const statusSpan = document.getElementById('db-test-status');
+        const detailsDiv = document.getElementById('db-test-details');
+
+        resultDiv.style.display = 'block';
+        statusSpan.innerHTML = '<span class="loading" style="display: inline-block; width: 16px; height: 16px;"></span> テスト中...';
+        detailsDiv.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/system/db-connection-test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                statusSpan.innerHTML = '<span style="color: green;">✅ 正常</span>';
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <div><strong>メッセージ:</strong> ${Utils.escapeHtml(data.message)}</div>
+                        <div><strong>レスポンスタイム:</strong> ${data.responseTime}ms</div>
+                        <div><strong>データベース:</strong> ${Utils.escapeHtml(data.details.database)}</div>
+                        <div><strong>接続数:</strong> ${data.details.connectionCount}</div>
+                        <div><strong>テーブル存在:</strong> ${data.details.tableExists ? 'はい' : 'いいえ'}</div>
+                    </div>
+                `;
+            } else {
+                statusSpan.innerHTML = '<span style="color: red;">❌ エラー</span>';
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <div><strong>エラー:</strong> ${Utils.escapeHtml(data.message)}</div>
+                        <div><strong>レスポンスタイム:</strong> ${data.responseTime}ms</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            statusSpan.innerHTML = '<span style="color: red;">❌ エラー</span>';
+            detailsDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <div><strong>エラー:</strong> ${Utils.escapeHtml(error.message)}</div>
+                </div>
+            `;
+        }
+    },
+
+    runApiTest: async () => {
+        const resultDiv = document.getElementById('api-test-result');
+        const statusSpan = document.getElementById('api-test-status');
+        const detailsDiv = document.getElementById('api-test-details');
+
+        resultDiv.style.display = 'block';
+        statusSpan.innerHTML = '<span class="loading" style="display: inline-block; width: 16px; height: 16px;"></span> テスト中...';
+        detailsDiv.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/system/api-connection-test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                statusSpan.innerHTML = '<span style="color: green;">✅ 正常</span>';
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <div><strong>メッセージ:</strong> ${Utils.escapeHtml(data.message)}</div>
+                        <div><strong>レスポンスタイム:</strong> ${data.responseTime}ms</div>
+                        <div><strong>テストシンボル:</strong> ${Utils.escapeHtml(data.details.symbol)}</div>
+                        <div><strong>データ取得:</strong> ${data.details.dataAvailable ? '成功' : '失敗'}</div>
+                    </div>
+                `;
+            } else {
+                statusSpan.innerHTML = '<span style="color: red;">❌ エラー</span>';
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <div><strong>エラー:</strong> ${Utils.escapeHtml(data.message)}</div>
+                        <div><strong>レスポンスタイム:</strong> ${data.responseTime}ms</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            statusSpan.innerHTML = '<span style="color: red;">❌ エラー</span>';
+            detailsDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <div><strong>エラー:</strong> ${Utils.escapeHtml(error.message)}</div>
+                </div>
+            `;
+        }
+    },
+
+    runHealthCheck: async () => {
+        const resultDiv = document.getElementById('health-check-result');
+        const statusSpan = document.getElementById('health-check-status');
+        const detailsDiv = document.getElementById('health-check-details');
+
+        resultDiv.style.display = 'block';
+        statusSpan.innerHTML = '<span class="loading" style="display: inline-block; width: 16px; height: 16px;"></span> チェック中...';
+        detailsDiv.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/system/health-check', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'healthy') {
+                statusSpan.innerHTML = '<span style="color: green;">✅ 正常</span>';
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <div><strong>総合ステータス:</strong> ${Utils.escapeHtml(data.status)}</div>
+                        <div><strong>データベース:</strong> ${data.services.database.status === 'healthy' ? '✅ 正常' : '❌ エラー'}</div>
+                        <div><strong>Yahoo Finance API:</strong> ${data.services.yahoo_finance_api.status === 'healthy' ? '✅ 正常' : '❌ エラー'}</div>
+                    </div>
+                `;
+            } else if (data.status === 'degraded') {
+                statusSpan.innerHTML = '<span style="color: orange;">⚠️ 一部エラー</span>';
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        <div><strong>総合ステータス:</strong> ${Utils.escapeHtml(data.status)}</div>
+                        <div><strong>データベース:</strong> ${data.services.database.status === 'healthy' ? '✅ 正常' : '❌ エラー'}</div>
+                        <div><strong>Yahoo Finance API:</strong> ${data.services.yahoo_finance_api.status === 'healthy' ? '✅ 正常' : '❌ エラー'}</div>
+                        ${data.services.database.status !== 'healthy' ? `<div class="mt-2"><strong>DBエラー:</strong> ${Utils.escapeHtml(data.services.database.message)}</div>` : ''}
+                        ${data.services.yahoo_finance_api.status !== 'healthy' ? `<div class="mt-2"><strong>APIエラー:</strong> ${Utils.escapeHtml(data.services.yahoo_finance_api.message)}</div>` : ''}
+                    </div>
+                `;
+            } else {
+                statusSpan.innerHTML = '<span style="color: red;">❌ エラー</span>';
+                detailsDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <div><strong>総合ステータス:</strong> ${Utils.escapeHtml(data.status)}</div>
+                        <div><strong>データベース:</strong> ${data.services.database.status === 'healthy' ? '✅ 正常' : '❌ エラー'}</div>
+                        <div><strong>Yahoo Finance API:</strong> ${data.services.yahoo_finance_api.status === 'healthy' ? '✅ 正常' : '❌ エラー'}</div>
+                        ${data.services.database.status !== 'healthy' ? `<div class="mt-2"><strong>DBエラー:</strong> ${Utils.escapeHtml(data.services.database.message)}</div>` : ''}
+                        ${data.services.yahoo_finance_api.status !== 'healthy' ? `<div class="mt-2"><strong>APIエラー:</strong> ${Utils.escapeHtml(data.services.yahoo_finance_api.message)}</div>` : ''}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            statusSpan.innerHTML = '<span style="color: red;">❌ エラー</span>';
+            detailsDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <div><strong>エラー:</strong> ${Utils.escapeHtml(error.message)}</div>
+                </div>
+            `;
         }
     }
 };
