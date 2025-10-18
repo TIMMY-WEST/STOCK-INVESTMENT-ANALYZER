@@ -6,117 +6,178 @@
 
 **設計理念**: 動作優先・シンプル設計・後から拡張
 
-## 🗂️ 仕様書一覧と利用場面
+## 📁 ドキュメント構成
 
-開発時に参照する仕様書とその利用場面を以下に示します。
+ドキュメントはカテゴリー別に整理されています。各カテゴリーは以下の通りです。
 
-### 🏗️ プロジェクト全体設計
+### 🏗️ アーキテクチャ・設計 (`architecture/`)
 
-| 仕様書 | ファイル | 参照場面 |
-|-------|---------|----------|
-| **プロジェクトアーキテクチャ** | [`project_architecture.md`](./project_architecture.md) | プロジェクト全体の構成理解・技術スタック選定・ディレクトリ構成確認 |
-| **環境構築・セットアップ** | [`setup_guide.md`](./setup_guide.md) | 開発環境構築・初回セットアップ・トラブルシューティング |
+システム全体の設計方針とアーキテクチャ関連のドキュメント
 
-### 🔧 技術実装
+| ドキュメント | 説明 | AI優先度 |
+|------------|------|---------|
+| [プロジェクトアーキテクチャ](architecture/project_architecture.md) | プロジェクト全体の構成・技術スタック・ディレクトリ構成 | **高** |
+| [データベース設計](architecture/database_design.md) | テーブル設計・SQLAlchemyモデル・インデックス | **高** |
+| [フロントエンド設計](architecture/frontend_design.md) | UI/UX設計・HTML/CSS/JavaScript実装 | 中 |
+| [バッチ処理設計](architecture/batch_processing_design.md) | バッチ処理アーキテクチャ | 中 |
+| [システム監視設計](architecture/system_monitoring_design.md) | 監視・アラート設計 | 低 |
 
-| 仕様書 | ファイル | 参照場面 |
-|-------|---------|----------|
-| **API仕様書** | [`api_specification.md`](./api_specification.md) | API エンドポイント実装・リクエスト/レスポンス形式確認・エラーハンドリング実装 |
-| **データベース設計** | [`database_design.md`](./database_design.md) | テーブル設計・SQLAlchemyモデル実装・インデックス作成・データマイグレーション |
-| **データベースセットアップ** | [`DATABASE_SETUP.md`](./DATABASE_SETUP.md) | PostgreSQL環境構築・データベース接続設定・初期セットアップ・トラブルシューティング |
-| **フロントエンド設計** | [`frontend_design.md`](./frontend_design.md) | UI/UXデザイン・HTML/CSS/JavaScript実装・レスポンシブ対応 |
+### 🔌 API仕様 (`api/`)
 
-### 🚀 開発プロセス
+APIエンドポイントとインターフェース仕様
 
-| 仕様書 | ファイル | 参照場面 |
-|-------|---------|----------|
-| **GitHub運用ワークフロー** | [`github_workflow.md`](./github_workflow.md) | Issue管理・ブランチ戦略・PR作成・CI/CD設定 |
-| **バルクデータサービス利用ガイド** | [`bulk_data_service_guide.md`](./bulk_data_service_guide.md) | 複数銘柄の一括取得・進捗トラッキング・運用ガイド |
+| ドキュメント | 説明 | AI優先度 |
+|------------|------|---------|
+| [API仕様書](api/api_specification.md) | 全APIエンドポイント・リクエスト/レスポンス形式 | **高** |
+| [バルクデータ取得API](api/api_bulk_fetch.md) | 一括データ取得API仕様 | 中 |
+| [JPX逐次取得API](api/api_jpx_sequential.md) | JPX銘柄逐次取得API仕様 | 中 |
+
+### 📖 運用・利用ガイド (`guides/`)
+
+セットアップ、運用、パフォーマンス最適化のガイド
+
+| ドキュメント | 説明 | AI優先度 |
+|------------|------|---------|
+| [セットアップガイド](guides/setup_guide.md) | 開発環境構築・初回セットアップ | **高** |
+| [データベースセットアップ](guides/DATABASE_SETUP.md) | PostgreSQL環境構築・接続設定 | **高** |
+| [バルクデータサービス利用ガイド](guides/bulk_data_service_guide.md) | 一括データ取得の使い方 | 中 |
+| [JPX逐次取得利用ガイド](guides/user_guide_jpx_sequential.md) | JPX銘柄取得の使い方 | 中 |
+| [パフォーマンス最適化ガイド](guides/performance_optimization_guide.md) | パフォーマンス改善手法 | 低 |
+| [バックアップ手順](guides/backup_procedures.md) | データバックアップ・リストア | 低 |
+
+### 🔧 開発関連 (`development/`)
+
+開発プロセス、テスト戦略、統合仕様
+
+| ドキュメント | 説明 | AI優先度 |
+|------------|------|---------|
+| [GitHub運用ワークフロー](development/github_workflow.md) | Issue管理・ブランチ戦略・PR作成 | **高** |
+| [テスト戦略](development/testing_strategy.md) | テスト方針・テストケース | 中 |
+| [JPX統合仕様](development/jpx_integration_spec.md) | JPX銘柄統合仕様 | 中 |
+
+### 📊 監視・運用 (`monitoring/`)
+
+システム監視と運用関連
+
+| ドキュメント | 説明 | AI優先度 |
+|------------|------|---------|
+| [監視ガイド](monitoring/MONITORING.md) | システム監視・メトリクス | 低 |
+
+### 🔄 マイグレーション (`migration/`)
+
+バージョン移行手順
+
+| ドキュメント | 説明 | AI優先度 |
+|------------|------|---------|
+| [Phase1→Phase2移行](migration/phase1_to_phase2_migration.md) | フェーズ間移行手順 | 中 |
+
+### 📝 実装レポート (`implementation/`)
+
+実装完了時のレポート
+
+| ドキュメント | 説明 |
+|------------|------|
+| [Issue-79実装レポート](implementation/issue-79-implementation-report.md) | Issue #79実装完了レポート |
+
+### 📋 タスク管理 (`tasks/`)
+
+進行中のタスクとマイルストーン
+
+| ドキュメント | 説明 |
+|------------|------|
+| [Issues一覧](tasks/issues.md) | 現在のIssue一覧 |
+| [Milestones](tasks/milestones.md) | マイルストーン管理 |
+
+### 🗄️ 旧バージョン (`old/`)
+
+過去バージョンのドキュメントアーカイブ
+
+---
 
 ## 🤖 AI開発者向けガイド
 
 ### タスク別推奨参照順序
 
 #### 🏁 初期セットアップ時
-1. [`project_architecture.md`](./project_architecture.md) - 全体像把握
-2. [`setup_guide.md`](./setup_guide.md) - 環境構築
-3. [`DATABASE_SETUP.md`](./DATABASE_SETUP.md) - PostgreSQLセットアップ
-4. [`github_workflow.md`](./github_workflow.md) - 開発フロー確認
+1. [architecture/project_architecture.md](architecture/project_architecture.md) - 全体像把握
+2. [guides/setup_guide.md](guides/setup_guide.md) - 環境構築
+3. [guides/DATABASE_SETUP.md](guides/DATABASE_SETUP.md) - PostgreSQLセットアップ
+4. [development/github_workflow.md](development/github_workflow.md) - 開発フロー確認
 
 #### 🛠️ バックエンド開発時
-1. [`api_specification.md`](./api_specification.md) - APIエンドポイント実装
-2. [`database_design.md`](./database_design.md) - データベースモデル実装
-3. [`DATABASE_SETUP.md`](./DATABASE_SETUP.md) - データベース接続・セットアップ
-4. [`project_architecture.md`](./project_architecture.md) - 技術スタック確認
+1. [api/api_specification.md](api/api_specification.md) - APIエンドポイント実装
+2. [architecture/database_design.md](architecture/database_design.md) - データベースモデル実装
+3. [guides/DATABASE_SETUP.md](guides/DATABASE_SETUP.md) - データベース接続・セットアップ
+4. [architecture/project_architecture.md](architecture/project_architecture.md) - 技術スタック確認
 
 #### 🎨 フロントエンド開発時
-1. [`frontend_design.md`](./frontend_design.md) - UI/UX設計確認
-2. [`api_specification.md`](./api_specification.md) - API連携仕様
-3. [`project_architecture.md`](./project_architecture.md) - フロントエンド技術確認
+1. [architecture/frontend_design.md](architecture/frontend_design.md) - UI/UX設計確認
+2. [api/api_specification.md](api/api_specification.md) - API連携仕様
+3. [architecture/project_architecture.md](architecture/project_architecture.md) - フロントエンド技術確認
 
 #### 🚀 リリース・デプロイ時
-1. [`github_workflow.md`](./github_workflow.md) - CI/CD・デプロイフロー
-2. [`setup_guide.md`](./setup_guide.md) - 本番環境セットアップ
-3. [`DATABASE_SETUP.md`](./DATABASE_SETUP.md) - 本番環境データベースセットアップ
+1. [development/github_workflow.md](development/github_workflow.md) - CI/CD・デプロイフロー
+2. [guides/setup_guide.md](guides/setup_guide.md) - 本番環境セットアップ
+3. [guides/DATABASE_SETUP.md](guides/DATABASE_SETUP.md) - 本番環境データベースセットアップ
 
 ### 開発優先度別機能マップ
 
 #### 🔴 優先度: 高（MVP必須）
-- **API実装**: [`api_specification.md`](./api_specification.md) の「優先度: 高」セクション
-- **DB実装**: [`database_design.md`](./database_design.md) の「優先度: 高」セクション  
-- **UI実装**: [`frontend_design.md`](./frontend_design.md) の「優先度: 高」セクション
+- **API実装**: [api/api_specification.md](api/api_specification.md) の「優先度: 高」セクション
+- **DB実装**: [architecture/database_design.md](architecture/database_design.md) の「優先度: 高」セクション
+- **UI実装**: [architecture/frontend_design.md](architecture/frontend_design.md) の「優先度: 高」セクション
 
 #### 🟡 優先度: 中（動作確認後）
 - **機能改善**: 各仕様書の「優先度: 中」セクション
-- **パフォーマンス最適化**: [`database_design.md`](./database_design.md) のパフォーマンス考慮事項
+- **パフォーマンス最適化**: [architecture/database_design.md](architecture/database_design.md) のパフォーマンス考慮事項
 
 #### 🟢 優先度: 低（必要になってから）
 - **将来拡張**: 各仕様書の「将来拡張計画」セクション
-- **複数時間軸対応**: [`api_specification.md`](./api_specification.md) の将来拡張計画
+- **複数時間軸対応**: [api/api_specification.md](api/api_specification.md) の将来拡張計画
 
 ## 🔍 よくある参照パターン
 
 ### エラー対応時
-- **API エラー**: [`api_specification.md`](./api_specification.md) の「エラーハンドリング」
-- **DB エラー**: [`database_design.md`](./database_design.md) の「トラブルシューティング」
-- **DB接続エラー**: [`DATABASE_SETUP.md`](./DATABASE_SETUP.md) の「トラブルシューティング」
-- **環境エラー**: [`setup_guide.md`](./setup_guide.md) の「トラブルシューティング」
+- **API エラー**: [api/api_specification.md](api/api_specification.md) の「エラーハンドリング」
+- **DB エラー**: [architecture/database_design.md](architecture/database_design.md) の「トラブルシューティング」
+- **DB接続エラー**: [guides/DATABASE_SETUP.md](guides/DATABASE_SETUP.md) の「トラブルシューティング」
+- **環境エラー**: [guides/setup_guide.md](guides/setup_guide.md) の「トラブルシューティング」
 
 ### 新機能追加時
-1. [`project_architecture.md`](./project_architecture.md) - 既存アーキテクチャとの整合性確認
-2. [`api_specification.md`](./api_specification.md) - API設計への影響確認
-3. [`database_design.md`](./database_design.md) - データ構造への影響確認
-4. [`frontend_design.md`](./frontend_design.md) - UI/UXへの影響確認
+1. [architecture/project_architecture.md](architecture/project_architecture.md) - 既存アーキテクチャとの整合性確認
+2. [api/api_specification.md](api/api_specification.md) - API設計への影響確認
+3. [architecture/database_design.md](architecture/database_design.md) - データ構造への影響確認
+4. [architecture/frontend_design.md](architecture/frontend_design.md) - UI/UXへの影響確認
 
 ### コードレビュー時
-- **API レビュー**: [`api_specification.md`](./api_specification.md) の「実装例」
-- **DB レビュー**: [`database_design.md`](./database_design.md) のSQLAlchemyモデル定義
-- **フロントエンド レビュー**: [`frontend_design.md`](./frontend_design.md) の実装例
+- **API レビュー**: [api/api_specification.md](api/api_specification.md) の「実装例」
+- **DB レビュー**: [architecture/database_design.md](architecture/database_design.md) のSQLAlchemyモデル定義
+- **フロントエンド レビュー**: [architecture/frontend_design.md](architecture/frontend_design.md) の実装例
 
 ## 📌 開発の進め方
 
 ### ステップ1: 環境構築
 ```bash
 # 1. セットアップガイドに従って環境構築
-参照: setup_guide.md
+参照: guides/setup_guide.md
 
 # 2. PostgreSQLセットアップ
-参照: DATABASE_SETUP.md
+参照: guides/DATABASE_SETUP.md
 
 # 3. 動作確認
-参照: setup_guide.md の「動作確認」セクション
+参照: guides/setup_guide.md の「動作確認」セクション
 ```
 
 ### ステップ2: MVP実装
 ```bash
 # 1. データベース実装
-参照: database_design.md の「優先度: 高」
+参照: architecture/database_design.md の「優先度: 高」
 
-# 2. API実装  
-参照: api_specification.md の「優先度: 高」
+# 2. API実装
+参照: api/api_specification.md の「優先度: 高」
 
 # 3. フロントエンド実装
-参照: frontend_design.md の「優先度: 高」
+参照: architecture/frontend_design.md の「優先度: 高」
 ```
 
 ### ステップ3: 機能拡張
@@ -127,15 +188,15 @@
 ## 🎯 重要な設計判断基準
 
 ### 技術選定時
-- [`project_architecture.md`](./project_architecture.md) の「技術スタック」に従う
+- [architecture/project_architecture.md](architecture/project_architecture.md) の「技術スタック」に従う
 - **避けるもの**: 同ファイルの「避けるもの」セクションを確認
 
 ### データ設計時
-- [`database_design.md`](./database_design.md) の「設計方針」に従う
+- [architecture/database_design.md](architecture/database_design.md) の「設計方針」に従う
 - **制約**: 同ファイルの「制約」セクションを必ず確認
 
 ### API設計時
-- [`api_specification.md`](./api_specification.md) の「開発方針」に従う
+- [api/api_specification.md](api/api_specification.md) の「開発方針」に従う
 - **エラーハンドリング**: 同ファイルの標準に準拠
 
 ## 🔄 継続的改善

@@ -1,3 +1,12 @@
+---
+category: development
+ai_context: high
+last_updated: 2025-10-18
+related_docs:
+  - ../guides/setup_guide.md
+  - ../architecture/project_architecture.md
+---
+
 # 株価データ取得・管理システム GitHub運用ルール
 
 ## 目次

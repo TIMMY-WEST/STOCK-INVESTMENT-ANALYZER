@@ -1,3 +1,13 @@
+---
+category: architecture
+ai_context: high
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_specification.md
+  - ../architecture/database_design.md
+  - ../guides/setup_guide.md
+---
+
 # 株価データ取得システム - プロジェクト全体アーキテクチャ
 
 ## 目次

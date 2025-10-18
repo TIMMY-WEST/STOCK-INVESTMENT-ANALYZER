@@ -1,3 +1,13 @@
+---
+category: architecture
+ai_context: high
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_specification.md
+  - ../architecture/project_architecture.md
+  - ../guides/DATABASE_SETUP.md
+---
+
 # データベース設計書
 
 ## 概要
