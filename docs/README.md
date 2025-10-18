@@ -17,6 +17,7 @@
 | ドキュメント | 説明 | AI優先度 |
 |------------|------|---------|
 | [全銘柄一括取得システム](bulk-data-fetch.md) | バルクデータ取得の完全ガイド | **高** |
+| [JPX全銘柄順次取得システム](jpx-sequential-fetch.md) | JPX8種類時間軸自動取得の完全ガイド | **高** |
 
 ### 🏗️ アーキテクチャ・設計 (`architecture/`)
 
@@ -36,7 +37,6 @@ APIエンドポイントとインターフェース仕様
 | ドキュメント | 説明 | AI優先度 |
 |------------|------|---------|
 | [API仕様書](api/api_specification.md) | 全APIエンドポイント・リクエスト/レスポンス形式 | **高** |
-| [JPX逐次取得API](api/api_jpx_sequential.md) | JPX銘柄逐次取得API仕様 | 中 |
 
 ### 📖 運用・利用ガイド (`guides/`)
 
@@ -46,7 +46,6 @@ APIエンドポイントとインターフェース仕様
 |------------|------|---------|
 | [セットアップガイド](guides/setup_guide.md) | 開発環境構築・初回セットアップ | **高** |
 | [データベースセットアップ](guides/DATABASE_SETUP.md) | PostgreSQL環境構築・接続設定 | **高** |
-| [JPX逐次取得利用ガイド](guides/user_guide_jpx_sequential.md) | JPX銘柄取得の使い方 | 中 |
 | [パフォーマンス最適化ガイド](guides/performance_optimization_guide.md) | パフォーマンス改善手法 | 低 |
 | [バックアップ手順](guides/backup_procedures.md) | データバックアップ・リストア | 低 |
 
@@ -58,7 +57,6 @@ APIエンドポイントとインターフェース仕様
 |------------|------|---------|
 | [GitHub運用ワークフロー](development/github_workflow.md) | Issue管理・ブランチ戦略・PR作成 | **高** |
 | [テスト戦略](development/testing_strategy.md) | テスト方針・テストケース | 中 |
-| [JPX統合仕様](development/jpx_integration_spec.md) | JPX銘柄統合仕様 | 中 |
 
 ### 📊 監視・運用 (`monitoring/`)
 
