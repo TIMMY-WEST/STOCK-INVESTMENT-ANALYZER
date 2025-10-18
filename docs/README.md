@@ -18,6 +18,7 @@
 |------------|------|---------|
 | [全銘柄一括取得システム](bulk-data-fetch.md) | バルクデータ取得の完全ガイド | **高** |
 | [JPX全銘柄順次取得システム](jpx-sequential-fetch.md) | JPX8種類時間軸自動取得の完全ガイド | **高** |
+| [システム監視・ログ機能](monitoring-guide.md) | 監視・ログ・メトリクス・接続テストの完全ガイド | 中 |
 
 ### 🏗️ アーキテクチャ・設計 (`architecture/`)
 
@@ -28,7 +29,6 @@
 | [プロジェクトアーキテクチャ](architecture/project_architecture.md) | プロジェクト全体の構成・技術スタック・ディレクトリ構成 | **高** |
 | [データベース設計](architecture/database_design.md) | テーブル設計・SQLAlchemyモデル・インデックス | **高** |
 | [フロントエンド設計](architecture/frontend_design.md) | UI/UX設計・HTML/CSS/JavaScript実装 | 中 |
-| [システム監視設計](architecture/system_monitoring_design.md) | 監視・アラート設計 | 低 |
 
 ### 🔌 API仕様 (`api/`)
 
@@ -58,13 +58,6 @@ APIエンドポイントとインターフェース仕様
 | [GitHub運用ワークフロー](development/github_workflow.md) | Issue管理・ブランチ戦略・PR作成 | **高** |
 | [テスト戦略](development/testing_strategy.md) | テスト方針・テストケース | 中 |
 
-### 📊 監視・運用 (`monitoring/`)
-
-システム監視と運用関連
-
-| ドキュメント | 説明 | AI優先度 |
-|------------|------|---------|
-| [監視ガイド](monitoring/MONITORING.md) | システム監視・メトリクス | 低 |
 
 ### 🔄 マイグレーション (`migration/`)
 
