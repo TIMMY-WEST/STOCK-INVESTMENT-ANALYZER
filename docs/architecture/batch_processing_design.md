@@ -1,3 +1,12 @@
+---
+category: architecture
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_bulk_fetch.md
+  - ../guides/bulk_data_service_guide.md
+---
+
 # バッチ処理設計仕様書
 
 ## 📋 概要

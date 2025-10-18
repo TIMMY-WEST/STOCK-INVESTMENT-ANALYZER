@@ -1,3 +1,11 @@
+---
+category: architecture
+ai_context: low
+last_updated: 2025-10-18
+related_docs:
+  - ../monitoring/MONITORING.md
+---
+
 # システム監視設計書
 
 ## 概要

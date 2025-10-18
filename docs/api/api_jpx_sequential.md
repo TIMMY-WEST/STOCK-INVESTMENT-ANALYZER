@@ -1,3 +1,13 @@
+---
+category: api
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../guides/user_guide_jpx_sequential.md
+  - ../development/jpx_integration_spec.md
+  - ../api/api_specification.md
+---
+
 # JPX全銘柄自動取得API仕様書
 
 ## 概要

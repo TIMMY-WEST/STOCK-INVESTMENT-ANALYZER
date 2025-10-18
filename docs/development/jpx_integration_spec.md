@@ -1,3 +1,13 @@
+---
+category: development
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_jpx_sequential.md
+  - ../guides/user_guide_jpx_sequential.md
+  - ../architecture/database_design.md
+---
+
 # JPX連携仕様書
 
 ## 📋 概要

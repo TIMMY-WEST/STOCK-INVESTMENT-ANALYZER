@@ -1,3 +1,12 @@
+---
+category: guide
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_jpx_sequential.md
+  - ../development/jpx_integration_spec.md
+---
+
 # JPX全銘柄8種類順次自動取得 - ユーザーガイド
 
 ## 概要

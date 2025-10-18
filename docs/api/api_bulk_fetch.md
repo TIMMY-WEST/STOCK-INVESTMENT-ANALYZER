@@ -1,3 +1,13 @@
+---
+category: api
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../architecture/batch_processing_design.md
+  - ../guides/bulk_data_service_guide.md
+  - ../api/api_specification.md
+---
+
 # 全銘柄一括取得システム仕様書（Bulk Data Fetch System）
 
 このドキュメントは、全銘柄一括取得システムの完全な仕様をまとめたものです。Phase 1（MVP実装済み）とPhase 2（将来拡張計画）の両方を含みます。

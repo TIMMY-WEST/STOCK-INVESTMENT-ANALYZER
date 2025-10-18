@@ -1,3 +1,12 @@
+---
+category: guide
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_bulk_fetch.md
+  - ../architecture/batch_processing_design.md
+---
+
 # バルクデータサービス利用ガイド
 
 このガイドでは、`services.bulk_data_service` に実装されたバルクデータ取得機能の使い方、運用時の注意点、よくある質問をまとめます。PR #73 の機能に対応しています。

@@ -1,3 +1,13 @@
+---
+category: migration
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_bulk_fetch.md
+  - ../architecture/batch_processing_design.md
+  - ../guides/bulk_data_service_guide.md
+---
+
 # Phase 1 から Phase 2 への移行ガイド
 
 ## 概要
