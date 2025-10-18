@@ -1,3 +1,12 @@
+---
+category: guide
+ai_context: low
+last_updated: 2025-10-18
+related_docs:
+  - ../guides/DATABASE_SETUP.md
+  - ../architecture/database_design.md
+---
+
 # データベースバックアップ手順書
 
 ## 概要

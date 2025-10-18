@@ -1,3 +1,12 @@
+---
+category: architecture
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../api/api_specification.md
+  - ../architecture/project_architecture.md
+---
+
 # フロントエンド設計書
 
 ## 概要

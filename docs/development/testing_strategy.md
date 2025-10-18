@@ -1,3 +1,12 @@
+---
+category: development
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../architecture/project_architecture.md
+  - ../api/api_specification.md
+---
+
 # 株価データ取得システム - テスト戦略 v1.1.0
 
 ## 📋 概要

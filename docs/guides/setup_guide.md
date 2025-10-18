@@ -1,3 +1,13 @@
+---
+category: guide
+ai_context: high
+last_updated: 2025-10-18
+related_docs:
+  - ../guides/DATABASE_SETUP.md
+  - ../architecture/project_architecture.md
+  - ../development/github_workflow.md
+---
+
 # 環境構築・セットアップ手順書
 
 ## 概要

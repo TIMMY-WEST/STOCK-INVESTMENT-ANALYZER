@@ -1,3 +1,11 @@
+---
+category: migration
+ai_context: medium
+last_updated: 2025-10-18
+related_docs:
+  - ../bulk-data-fetch.md
+---
+
 # Phase 1 から Phase 2 への移行ガイド
 
 ## 概要

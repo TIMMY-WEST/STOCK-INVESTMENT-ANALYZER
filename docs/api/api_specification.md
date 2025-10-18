@@ -1,3 +1,13 @@
+---
+category: api
+ai_context: high
+last_updated: 2025-10-18
+related_docs:
+  - ../architecture/database_design.md
+  - ../architecture/project_architecture.md
+  - ../bulk-data-fetch.md
+---
+
 # API仕様書
 
 ## 概要

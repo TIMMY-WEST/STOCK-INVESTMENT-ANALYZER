@@ -1,3 +1,12 @@
+---
+category: guide
+ai_context: low
+last_updated: 2025-10-18
+related_docs:
+  - ../architecture/database_design.md
+  - ../api/api_specification.md
+---
+
 # パフォーマンス最適化ガイド
 
 ## 📋 概要

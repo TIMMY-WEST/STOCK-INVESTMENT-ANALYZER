@@ -1,3 +1,12 @@
+---
+category: guide
+ai_context: high
+last_updated: 2025-10-18
+related_docs:
+  - ../architecture/database_design.md
+  - ../guides/setup_guide.md
+---
+
 # PostgreSQL環境構築とデータベース接続設定（Issue #10改善版）
 
 ## 概要
