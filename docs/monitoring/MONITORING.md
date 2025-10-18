@@ -4,7 +4,7 @@ ai_context: low
 last_updated: 2025-10-18
 related_docs:
   - ../architecture/system_monitoring_design.md
-  - ../architecture/batch_processing_design.md
+  - ../bulk-data-fetch.md
 ---
 
 # バッチ処理監視・ログ機能ガイド

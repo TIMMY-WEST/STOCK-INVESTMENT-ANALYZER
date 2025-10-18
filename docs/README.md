@@ -10,6 +10,14 @@
 
 ドキュメントはカテゴリー別に整理されています。各カテゴリーは以下の通りです。
 
+### 🚀 機能別統合ドキュメント
+
+主要機能の完全ガイド（API仕様・設計・実装・運用を統合）
+
+| ドキュメント | 説明 | AI優先度 |
+|------------|------|---------|
+| [全銘柄一括取得システム](bulk-data-fetch.md) | バルクデータ取得の完全ガイド | **高** |
+
 ### 🏗️ アーキテクチャ・設計 (`architecture/`)
 
 システム全体の設計方針とアーキテクチャ関連のドキュメント
@@ -19,7 +27,6 @@
 | [プロジェクトアーキテクチャ](architecture/project_architecture.md) | プロジェクト全体の構成・技術スタック・ディレクトリ構成 | **高** |
 | [データベース設計](architecture/database_design.md) | テーブル設計・SQLAlchemyモデル・インデックス | **高** |
 | [フロントエンド設計](architecture/frontend_design.md) | UI/UX設計・HTML/CSS/JavaScript実装 | 中 |
-| [バッチ処理設計](architecture/batch_processing_design.md) | バッチ処理アーキテクチャ | 中 |
 | [システム監視設計](architecture/system_monitoring_design.md) | 監視・アラート設計 | 低 |
 
 ### 🔌 API仕様 (`api/`)
@@ -29,7 +36,6 @@ APIエンドポイントとインターフェース仕様
 | ドキュメント | 説明 | AI優先度 |
 |------------|------|---------|
 | [API仕様書](api/api_specification.md) | 全APIエンドポイント・リクエスト/レスポンス形式 | **高** |
-| [バルクデータ取得API](api/api_bulk_fetch.md) | 一括データ取得API仕様 | 中 |
 | [JPX逐次取得API](api/api_jpx_sequential.md) | JPX銘柄逐次取得API仕様 | 中 |
 
 ### 📖 運用・利用ガイド (`guides/`)
@@ -40,7 +46,6 @@ APIエンドポイントとインターフェース仕様
 |------------|------|---------|
 | [セットアップガイド](guides/setup_guide.md) | 開発環境構築・初回セットアップ | **高** |
 | [データベースセットアップ](guides/DATABASE_SETUP.md) | PostgreSQL環境構築・接続設定 | **高** |
-| [バルクデータサービス利用ガイド](guides/bulk_data_service_guide.md) | 一括データ取得の使い方 | 中 |
 | [JPX逐次取得利用ガイド](guides/user_guide_jpx_sequential.md) | JPX銘柄取得の使い方 | 中 |
 | [パフォーマンス最適化ガイド](guides/performance_optimization_guide.md) | パフォーマンス改善手法 | 低 |
 | [バックアップ手順](guides/backup_procedures.md) | データバックアップ・リストア | 低 |
