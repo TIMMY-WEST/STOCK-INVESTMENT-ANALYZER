@@ -5,7 +5,7 @@ import yfinance as yf
 from datetime import datetime, date
 from models import Base, StockDaily, StockDailyCRUD, get_db_session, engine, DatabaseError, StockDataError
 from services.stock_data_orchestrator import StockDataOrchestrator
-from utils.timeframe_utils import get_model_for_interval, validate_interval, get_display_name
+from utils.timeframe_utils import get_model_for_interval, validate_interval, get_display_name, get_table_name
 from api.bulk_data import bulk_api
 from api.stock_master import stock_master_api
 from api.system_monitoring import system_api
@@ -111,7 +111,8 @@ def fetch_data():
                     "date_range": {
                         "start": save_result.get('date_range', {}).get('start', 'N/A'),
                         "end": save_result.get('date_range', {}).get('end', 'N/A')
-                    }
+                    },
+                    "table_name": get_table_name(interval)
                 }
             })
         else:
@@ -322,14 +323,16 @@ def get_stocks():
             return jsonify({
                 "success": True,
                 "data": [stock.to_dict() for stock in stocks],
+                "metadata": {
+                    "interval": interval,
+                    "table_name": get_table_name(interval)
+                },
                 "pagination": {
                     "total": total_count,
                     "limit": limit,
                     "offset": offset,
                     "has_next": has_next
-                },
-                "interval": interval,
-                "interval_name": get_display_name(interval)
+                }
             })
 
     except DatabaseError as e:
