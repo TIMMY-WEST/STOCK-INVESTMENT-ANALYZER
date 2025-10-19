@@ -145,3 +145,24 @@ def validate_interval(interval: str) -> bool:
         False: 無効な時間軸
     """
     return interval in TIMEFRAME_MODEL_MAP
+
+
+def get_table_name(interval: str) -> str:
+    """
+    時間軸に対応するテーブル名を取得
+
+    Args:
+        interval: yfinance interval
+
+    Returns:
+        対応するテーブル名（例: 'stocks_1d', 'stocks_5m'）
+
+    Raises:
+        ValueError: サポートされていないintervalの場合
+    """
+    if interval not in TIMEFRAME_MODEL_MAP:
+        raise ValueError(
+            f"サポートされていない時間軸: {interval}. "
+            f"サポート時間軸: {list(TIMEFRAME_MODEL_MAP.keys())}"
+        )
+    return TIMEFRAME_MODEL_MAP[interval].__tablename__
