@@ -54,6 +54,33 @@ const Utils = {
         }).format(date);
     },
 
+    // Format date/datetime (handles both date and datetime fields)
+    formatDateTime: (dateTimeString) => {
+        if (!dateTimeString) return '-';
+
+        const date = new Date(dateTimeString);
+
+        // Check if it's date-only (length 10 or contains T00:00:00)
+        if (dateTimeString.length === 10 || dateTimeString.indexOf('T00:00:00') > 0) {
+            return new Intl.DateTimeFormat('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(date);
+        }
+
+        // For datetime values
+        return new Intl.DateTimeFormat('ja-JP', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).format(date);
+    },
+
     // Escape HTML to prevent XSS
     escapeHtml: (text) => {
         const div = document.createElement('div');
@@ -224,11 +251,15 @@ const UIComponents = {
 
     // Create table row for stock data
     createStockTableRow: (stock) => {
+        // 日時フィールドの処理: datetimeフィールドがあれば使用、なければdateフィールドを使用
+        const dateTimeValue = stock.datetime || stock.date;
+        const formattedDateTime = stock.datetime ? Utils.formatDateTime(stock.datetime) : Utils.formatDate(stock.date);
+        
         return `
             <tr data-stock-id="${stock.id}">
                 <td>${stock.id}</td>
                 <td>${Utils.escapeHtml(stock.symbol)}</td>
-                <td>${Utils.formatDate(stock.date)}</td>
+                <td>${formattedDateTime}</td>
                 <td>${Utils.formatCurrency(stock.open)}</td>
                 <td>${Utils.formatCurrency(stock.high)}</td>
                 <td>${Utils.formatCurrency(stock.low)}</td>
@@ -239,7 +270,7 @@ const UIComponents = {
                         type="button"
                         class="btn btn-danger btn-sm"
                         onclick="StockDataManager.deleteStock(${stock.id})"
-                        aria-label="Delete stock data for ${Utils.escapeHtml(stock.symbol)} on ${Utils.formatDate(stock.date)}"
+                        aria-label="Delete stock data for ${Utils.escapeHtml(stock.symbol)} on ${formattedDateTime}"
                     >
                         削除
                     </button>
@@ -622,6 +653,7 @@ const StockDataManager = {
 
         // Auto-load data on filter change (debounced)
         const symbolFilter = document.getElementById('view-symbol');
+        const intervalFilter = document.getElementById('view-interval');
         const limitFilter = document.getElementById('view-limit');
 
         if (symbolFilter) {
@@ -629,6 +661,13 @@ const StockDataManager = {
                 AppState.currentPage = 0;
                 StockDataManager.loadData();
             }, 500));
+        }
+
+        if (intervalFilter) {
+            intervalFilter.addEventListener('change', () => {
+                AppState.currentPage = 0;
+                StockDataManager.loadData();
+            });
         }
 
         if (limitFilter) {
@@ -647,6 +686,7 @@ const StockDataManager = {
             AppState.isLoading = true;
             const tableBody = document.getElementById('data-table-body');
             const symbolFilter = document.getElementById('view-symbol')?.value?.trim();
+            const intervalFilter = document.getElementById('view-interval')?.value || '1d';
             const limit = parseInt(document.getElementById('view-limit')?.value) || 25;
 
             if (tableBody) {
@@ -655,6 +695,7 @@ const StockDataManager = {
 
             const filters = {
                 symbol: symbolFilter || undefined,
+                interval: intervalFilter,
                 limit: limit,
                 offset: AppState.currentPage * limit
             };
