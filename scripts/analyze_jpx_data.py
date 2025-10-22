@@ -8,6 +8,7 @@ JPX銘柄一覧データの分析スクリプト
 
 import sys
 import io
+from typing import Dict, Any, Optional
 import pandas as pd
 from pathlib import Path
 
@@ -15,8 +16,12 @@ from pathlib import Path
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-def analyze_jpx_data(file_path: str):
-    """JPXデータファイルを分析"""
+def analyze_jpx_data(file_path: str) -> None:
+    """JPXデータファイルを分析
+    
+    Args:
+        file_path: 分析対象のExcelファイルパス
+    """
 
     print("=" * 80)
     print("JPX銘柄一覧データ分析")
@@ -25,7 +30,7 @@ def analyze_jpx_data(file_path: str):
     # Excelファイルを読み込み
     print(f"\n[1] ファイル読み込み: {file_path}")
     try:
-        df = pd.read_excel(file_path)
+        df: pd.DataFrame = pd.read_excel(file_path)
         print(f"✓ 読み込み成功: {len(df)} 行 × {len(df.columns)} 列")
     except Exception as e:
         print(f"❌ 読み込み失敗: {e}")
@@ -160,8 +165,77 @@ def analyze_jpx_data(file_path: str):
     print("=" * 80)
 
 
+def analyze_column_statistics(df: pd.DataFrame) -> Dict[str, Any]:
+    """カラムの統計情報を分析
+    
+    Args:
+        df: 分析対象のDataFrame
+        
+    Returns:
+        統計情報の辞書
+    """
+    stats: Dict[str, Any] = {}
+    
+    for col in df.columns:
+        col_stats: Dict[str, Any] = {
+            'dtype': str(df[col].dtype),
+            'null_count': int(df[col].isnull().sum()),
+            'unique_count': int(df[col].nunique()),
+            'sample_values': df[col].dropna().head(3).tolist()
+        }
+        
+        if df[col].dtype in ['int64', 'float64']:
+            col_stats.update({
+                'min': float(df[col].min()) if pd.notna(df[col].min()) else None,
+                'max': float(df[col].max()) if pd.notna(df[col].max()) else None,
+                'mean': float(df[col].mean()) if pd.notna(df[col].mean()) else None
+            })
+        
+        stats[col] = col_stats
+    
+    return stats
+
+def validate_stock_master_compatibility(df: pd.DataFrame) -> Dict[str, bool]:
+    """stock_masterテーブルとの互換性をチェック
+    
+    Args:
+        df: JPXデータのDataFrame
+        
+    Returns:
+        検証結果の辞書
+    """
+    validation_results: Dict[str, bool] = {}
+    
+    # 必要なカラムの存在チェック
+    required_columns: list[str] = ['コード', '銘柄名', '市場・商品区分', '33業種コード', '33業種区分']
+    
+    for col in required_columns:
+        validation_results[f'has_{col}'] = col in df.columns
+    
+    # データ品質チェック
+    if 'コード' in df.columns:
+        validation_results['code_format_valid'] = bool(df['コード'].astype(str).str.match(r'^\d{4}$').all())
+    
+    if '銘柄名' in df.columns:
+        validation_results['name_not_empty'] = bool(df['銘柄名'].notna().all())
+    
+    return validation_results
+
+def print_validation_results(results: Dict[str, bool]) -> None:
+    """検証結果を表示
+    
+    Args:
+        results: 検証結果の辞書
+    """
+    print("\n[6] stock_masterテーブル互換性チェック")
+    print("-" * 80)
+    
+    for check, passed in results.items():
+        status: str = "✓" if passed else "❌"
+        print(f"  {status} {check}: {'PASS' if passed else 'FAIL'}")
+
 if __name__ == "__main__":
-    file_path = "data_j.xls"
+    file_path: str = "data_j.xls"
 
     if not Path(file_path).exists():
         print(f"❌ ファイルが見つかりません: {file_path}")
