@@ -35,6 +35,13 @@ dev = [
     "pylint>=3.0.0",
     "mypy>=1.8.0",
 ]
+test = [
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "pytest-xdist>=3.5.0",
+    "pytest-timeout>=2.2.0",
+]
 
 # ===== Black Configuration =====
 [tool.black]
@@ -176,3 +183,52 @@ module = [
     "flask_socketio.*",
 ]
 ignore_missing_imports = true
+
+# ===== Pytest Configuration =====
+[tool.pytest.ini_options]
+# テストディレクトリとファイルパターン
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# マーカー定義
+markers = [
+    "unit: Unit tests - 単体テスト（外部依存なし）",
+    "integration: Integration tests - 結合テスト（DB/API連携）",
+    "e2e: End-to-End tests - E2Eテスト（ブラウザ操作）",
+    "slow: Slow running tests - 実行時間の長いテスト",
+]
+
+# デフォルトオプション
+addopts = [
+    "--strict-markers",           # 未定義マーカーの使用を禁止
+    "--verbose",                  # 詳細出力
+    "--tb=short",                 # トレースバックを短く表示
+    "--cov=app",                  # appディレクトリのカバレッジ測定
+    "--cov=models",               # modelsのカバレッジ測定
+    "--cov=services",             # servicesディレクトリのカバレッジ測定
+    "--cov=utils",                # utilsディレクトリのカバレッジ測定
+    "--cov-report=term-missing",  # カバレッジレポート（ターミナル）
+    "--cov-report=html",          # カバレッジレポート（HTML）
+    "--cov-fail-under=70",        # 最低カバレッジ率70%
+]
+
+# ログ設定
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+# 警告フィルター
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::pytest.PytestUnknownMarkWarning",
+]
+
+# タイムアウト設定（デフォルト300秒）
+timeout = 300
+
+# 並列実行時の設定
+# pytest-xdistを使用する場合は -n auto オプションで実行
