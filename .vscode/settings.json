@@ -1,0 +1,90 @@
+{
+  // ===== Python設定 =====
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
+
+  // ===== フォーマッター設定 =====
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+  "editor.formatOnType": false,
+
+  // Pythonのフォーマッターとしてblackを使用
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.rulers": [79]
+  },
+
+  // ===== Black設定 =====
+  "black-formatter.args": [
+    "--line-length=79"
+  ],
+
+  // ===== isort設定 =====
+  "isort.args": [
+    "--profile=black",
+    "--line-length=79"
+  ],
+  "isort.check": true,
+
+  // ===== Linter設定 =====
+  // Flake8
+  "flake8.args": [
+    "--config=${workspaceFolder}/.flake8"
+  ],
+  "flake8.enabled": true,
+
+  // Pylint
+  "pylint.args": [
+    "--rcfile=${workspaceFolder}/pyproject.toml"
+  ],
+  "pylint.enabled": true,
+
+  // ===== 型チェック設定 =====
+  "python.analysis.typeCheckingMode": "basic",
+  "mypy-type-checker.args": [
+    "--config-file=${workspaceFolder}/pyproject.toml"
+  ],
+
+  // ===== Python全般設定 =====
+  "python.linting.enabled": true,
+  "python.linting.lintOnSave": true,
+
+  // テスト設定
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+
+  // ===== エディター設定 =====
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+
+  // 除外ファイル
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.git": true
+  },
+
+  // ===== ファイル監視除外 =====
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/venv/**": true,
+    "**/.venv/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true,
+    "**/.mypy_cache/**": true
+  },
+
+  // ===== 拡張機能の推奨 =====
+  "extensions.ignoreRecommendations": false
+}
