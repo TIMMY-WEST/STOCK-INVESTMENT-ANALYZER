@@ -1,0 +1,62 @@
+[flake8]
+# 最大行長（PEP 8準拠）
+max-line-length = 79
+
+# 複雑度の閾値（McCabe complexity）
+max-complexity = 10
+
+# 除外ディレクトリ
+exclude =
+    .git,
+    __pycache__,
+    .pytest_cache,
+    venv,
+    .venv,
+    migrations,
+    build,
+    dist,
+    *.egg-info,
+    .eggs,
+    .serena,
+    .claude
+
+# 無視するエラーコード
+ignore =
+    # E203: whitespace before ':' (Blackと競合)
+    E203,
+    # W503: line break before binary operator (PEP 8で推奨される改行位置)
+    W503,
+    # E501: line too long (Blackに任せる)
+    E501,
+
+# 1行あたりのインポート数
+max-line-complexity = 18
+
+# docstringのチェック
+docstring-convention = google
+
+# 型ヒントのチェックを有効化
+enable-extensions =
+    # G: flake8-logging-format
+    # B: flake8-bugbear
+    # C: mccabe
+
+# ファイルごとの無視設定
+per-file-ignores =
+    # __init__.pyではF401（未使用のインポート）を許可
+    __init__.py:F401,F403
+    # テストファイルではいくつかのルールを緩和
+    test_*.py:D100,D101,D102,D103,F401,F811
+    tests/*.py:D100,D101,D102,D103,F401,F811
+
+# カウント表示を有効化
+count = True
+
+# 統計情報を表示
+statistics = True
+
+# エラー表示形式
+format = default
+
+# 並列実行数（自動）
+jobs = auto
