@@ -3,62 +3,70 @@
 yfinanceの時間軸(interval)とデータベースモデルのマッピングを提供します。
 """
 
-from typing import Dict, Type, Literal
+from typing import Dict, Literal, Type
+
 from models import (
-    Stocks1m, Stocks5m, Stocks15m, Stocks30m,
-    Stocks1h, Stocks1d, Stocks1wk, Stocks1mo,
-    StockDataBase
+    StockDataBase,
+    Stocks1d,
+    Stocks1h,
+    Stocks1m,
+    Stocks1mo,
+    Stocks1wk,
+    Stocks5m,
+    Stocks15m,
+    Stocks30m,
 )
 
+
 # 時間軸の型定義
-TimeframeInterval = Literal['1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo']
+TimeframeInterval = Literal["1m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo"]
 
 # yfinance interval と データベースモデルのマッピング
 TIMEFRAME_MODEL_MAP: Dict[str, Type[StockDataBase]] = {
-    '1m': Stocks1m,
-    '5m': Stocks5m,
-    '15m': Stocks15m,
-    '30m': Stocks30m,
-    '1h': Stocks1h,
-    '1d': Stocks1d,
-    '1wk': Stocks1wk,
-    '1mo': Stocks1mo,
+    "1m": Stocks1m,
+    "5m": Stocks5m,
+    "15m": Stocks15m,
+    "30m": Stocks30m,
+    "1h": Stocks1h,
+    "1d": Stocks1d,
+    "1wk": Stocks1wk,
+    "1mo": Stocks1mo,
 }
 
 # 時間軸の表示名マッピング
 TIMEFRAME_DISPLAY_NAME: Dict[str, str] = {
-    '1m': '1分足',
-    '5m': '5分足',
-    '15m': '15分足',
-    '30m': '30分足',
-    '1h': '1時間足',
-    '1d': '日足',
-    '1wk': '週足',
-    '1mo': '月足',
+    "1m": "1分足",
+    "5m": "5分足",
+    "15m": "15分足",
+    "30m": "30分足",
+    "1h": "1時間足",
+    "1d": "日足",
+    "1wk": "週足",
+    "1mo": "月足",
 }
 
 # 時間軸の優先順位（データ量が多い順）
 TIMEFRAME_PRIORITY: Dict[str, int] = {
-    '1m': 1,   # 最優先（データ量が最大）
-    '5m': 2,
-    '15m': 3,
-    '30m': 4,
-    '1h': 5,
-    '1d': 6,
-    '1wk': 7,
-    '1mo': 8,  # 最低優先（データ量が最小）
+    "1m": 1,  # 最優先（データ量が最大）
+    "5m": 2,
+    "15m": 3,
+    "30m": 4,
+    "1h": 5,
+    "1d": 6,
+    "1wk": 7,
+    "1mo": 8,  # 最低優先（データ量が最小）
 }
 
 # 時間軸の推奨取得期間（yfinance period）
 TIMEFRAME_RECOMMENDED_PERIOD: Dict[str, str] = {
-    '1m': '7d',    # 1分足: 過去7日間
-    '5m': '60d',   # 5分足: 過去60日間
-    '15m': '60d',  # 15分足: 過去60日間
-    '30m': '60d',  # 30分足: 過去60日間
-    '1h': '730d',  # 1時間足: 過去730日間（2年）
-    '1d': 'max',   # 日足: 全期間
-    '1wk': 'max',  # 週足: 全期間
-    '1mo': 'max',  # 月足: 全期間
+    "1m": "7d",  # 1分足: 過去7日間
+    "5m": "60d",  # 5分足: 過去60日間
+    "15m": "60d",  # 15分足: 過去60日間
+    "30m": "60d",  # 30分足: 過去60日間
+    "1h": "730d",  # 1時間足: 過去730日間（2年）
+    "1d": "max",  # 日足: 全期間
+    "1wk": "max",  # 週足: 全期間
+    "1mo": "max",  # 月足: 全期間
 }
 
 
@@ -106,7 +114,7 @@ def get_recommended_period(interval: str) -> str:
     Returns:
         推奨取得期間（yfinance period）
     """
-    return TIMEFRAME_RECOMMENDED_PERIOD.get(interval, '1y')
+    return TIMEFRAME_RECOMMENDED_PERIOD.get(interval, "1y")
 
 
 def is_intraday_interval(interval: str) -> bool:
@@ -120,7 +128,7 @@ def is_intraday_interval(interval: str) -> bool:
         True: 分足・時間足（datetime使用）
         False: 日足・週足・月足（date使用）
     """
-    return interval in ['1m', '5m', '15m', '30m', '1h']
+    return interval in ["1m", "5m", "15m", "30m", "1h"]
 
 
 def get_all_intervals() -> list[str]:

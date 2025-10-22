@@ -545,11 +545,11 @@ CREATE TABLE IF NOT EXISTS batch_execution_details (
     error_message TEXT,
     records_inserted INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- 外部キー制約
-    CONSTRAINT fk_batch_execution_details_batch_id 
-        FOREIGN KEY (batch_execution_id) 
-        REFERENCES batch_executions(id) 
+    CONSTRAINT fk_batch_execution_details_batch_id
+        FOREIGN KEY (batch_execution_id)
+        REFERENCES batch_executions(id)
         ON DELETE CASCADE
 );
 

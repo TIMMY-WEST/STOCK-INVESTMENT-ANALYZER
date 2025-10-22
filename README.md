@@ -80,12 +80,12 @@ Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存
    ```
 
 2. **データベースセットアップ**
-   
+
    **Windows:**
    ```cmd
    scripts\setup_db.bat
    ```
-   
+
    **Linux/macOS:**
    ```bash
    chmod +x scripts/setup_db.sh

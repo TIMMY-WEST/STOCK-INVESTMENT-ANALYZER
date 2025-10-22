@@ -4,13 +4,13 @@
 エラーレポート生成を提供します。
 """
 
-import time
-import logging
-from enum import Enum
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+import logging
+import time
+from typing import Any, Dict, List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -18,21 +18,24 @@ logger = logging.getLogger(__name__)
 
 class ErrorType(Enum):
     """エラー種別"""
-    TEMPORARY = "temporary"      # 一時的エラー（リトライ対象）
-    PERMANENT = "permanent"      # 永続的エラー（スキップ対象）
-    SYSTEM = "system"           # システムエラー（バッチ停止）
+
+    TEMPORARY = "temporary"  # 一時的エラー（リトライ対象）
+    PERMANENT = "permanent"  # 永続的エラー（スキップ対象）
+    SYSTEM = "system"  # システムエラー（バッチ停止）
 
 
 class ErrorAction(Enum):
     """エラー処理アクション"""
-    RETRY = "retry"             # リトライを実行
-    SKIP = "skip"               # スキップして継続
-    ABORT = "abort"             # バッチ停止
+
+    RETRY = "retry"  # リトライを実行
+    SKIP = "skip"  # スキップして継続
+    ABORT = "abort"  # バッチ停止
 
 
 @dataclass
 class ErrorRecord:
     """エラー記録"""
+
     timestamp: str
     error_type: str
     stock_code: str
@@ -49,7 +52,12 @@ class ErrorHandler:
     エラー分類、リトライ処理、ログ記録、レポート生成を行います。
     """
 
-    def __init__(self, max_retries: int = 3, retry_delay: int = 2, backoff_multiplier: int = 2):
+    def __init__(
+        self,
+        max_retries: int = 3,
+        retry_delay: int = 2,
+        backoff_multiplier: int = 2,
+    ):
         """
         初期化
 
@@ -85,9 +93,15 @@ class ErrorHandler:
 
         # 一時的エラー（ネットワーク関連）
         # Timeout, ConnectionError, TimeoutError, StockDataFetchError など
-        if error_class in ['Timeout', 'TimeoutError', 'ConnectionError', 'HTTPError', 'StockDataFetchError']:
+        if error_class in [
+            "Timeout",
+            "TimeoutError",
+            "ConnectionError",
+            "HTTPError",
+            "StockDataFetchError",
+        ]:
             # HTTPエラーの場合はステータスコードで判定
-            if hasattr(error, 'response') and error.response:
+            if hasattr(error, "response") and error.response:
                 status_code = error.response.status_code
                 # 429 (Too Many Requests), 503 (Service Unavailable) など
                 if status_code in [429, 503, 504]:
@@ -99,19 +113,23 @@ class ErrorHandler:
             return ErrorType.TEMPORARY
 
         # タイムアウト・接続エラー（メッセージベース）
-        if 'timeout' in error_message or 'connection' in error_message:
+        if "timeout" in error_message or "connection" in error_message:
             return ErrorType.TEMPORARY
 
         # レート制限エラー
-        if 'rate limit' in error_message or '429' in error_message:
+        if "rate limit" in error_message or "429" in error_message:
             return ErrorType.TEMPORARY
 
         # データベースエラー
-        if error_class in ['DatabaseError', 'OperationalError', 'IntegrityError']:
+        if error_class in [
+            "DatabaseError",
+            "OperationalError",
+            "IntegrityError",
+        ]:
             return ErrorType.SYSTEM
 
         # データ形式エラー
-        if error_class in ['ValueError', 'KeyError', 'AttributeError']:
+        if error_class in ["ValueError", "KeyError", "AttributeError"]:
             return ErrorType.PERMANENT
 
         # デフォルトは永続的エラー
@@ -121,7 +139,7 @@ class ErrorHandler:
         self,
         error: Exception,
         stock_code: str,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ) -> ErrorAction:
         """
         エラー処理を判定
@@ -147,8 +165,8 @@ class ErrorHandler:
             stock_code=stock_code,
             error_message=str(error),
             exception_class=error.__class__.__name__,
-            retry_count=context.get('retry_count', 0),
-            context=context
+            retry_count=context.get("retry_count", 0),
+            context=context,
         )
 
         # エラー種別に応じた処理判定
@@ -169,10 +187,7 @@ class ErrorHandler:
         return action
 
     def _handle_temporary_error(
-        self,
-        error: Exception,
-        stock_code: str,
-        context: Dict[str, Any]
+        self, error: Exception, stock_code: str, context: Dict[str, Any]
     ) -> ErrorAction:
         """
         一時的エラーの処理
@@ -185,7 +200,7 @@ class ErrorHandler:
         Returns:
             ErrorAction: 実行すべきアクション
         """
-        retry_count = context.get('retry_count', 0)
+        retry_count = context.get("retry_count", 0)
 
         if retry_count < self.max_retries:
             self.logger.info(
@@ -200,10 +215,7 @@ class ErrorHandler:
             return ErrorAction.SKIP
 
     def _handle_permanent_error(
-        self,
-        error: Exception,
-        stock_code: str,
-        context: Dict[str, Any]
+        self, error: Exception, stock_code: str, context: Dict[str, Any]
     ) -> ErrorAction:
         """
         永続的エラーの処理
@@ -222,10 +234,7 @@ class ErrorHandler:
         return ErrorAction.SKIP
 
     def _handle_system_error(
-        self,
-        error: Exception,
-        stock_code: str,
-        context: Dict[str, Any]
+        self, error: Exception, stock_code: str, context: Dict[str, Any]
     ) -> ErrorAction:
         """
         システムエラーの処理
@@ -243,10 +252,7 @@ class ErrorHandler:
         )
         return ErrorAction.ABORT
 
-    def retry_with_backoff(
-        self,
-        retry_count: int
-    ) -> float:
+    def retry_with_backoff(self, retry_count: int) -> float:
         """
         指数バックオフでリトライ待機時間を計算
 
@@ -256,7 +262,7 @@ class ErrorHandler:
         Returns:
             float: 待機時間（秒）
         """
-        delay = self.retry_delay * (self.backoff_multiplier ** retry_count)
+        delay = self.retry_delay * (self.backoff_multiplier**retry_count)
         self.logger.debug(f"リトライ待機: {delay}秒")
         time.sleep(delay)
         return delay
@@ -303,42 +309,40 @@ class ErrorHandler:
 
         # 最も多くエラーが発生した銘柄トップ10
         top_error_stocks = sorted(
-            error_by_stock.items(),
-            key=lambda x: x[1],
-            reverse=True
+            error_by_stock.items(), key=lambda x: x[1], reverse=True
         )[:10]
 
         # 最近のエラー詳細（最大50件）
         recent_errors = [
             {
-                'timestamp': rec.timestamp,
-                'stock_code': rec.stock_code,
-                'error_type': rec.error_type,
-                'error_message': rec.error_message,
-                'exception_class': rec.exception_class,
-                'retry_count': rec.retry_count,
-                'action_taken': rec.action_taken
+                "timestamp": rec.timestamp,
+                "stock_code": rec.stock_code,
+                "error_type": rec.error_type,
+                "error_message": rec.error_message,
+                "exception_class": rec.exception_class,
+                "retry_count": rec.retry_count,
+                "action_taken": rec.action_taken,
             }
             for rec in self.error_records[-50:]
         ]
 
         report = {
-            'summary': {
-                'total_errors': len(self.error_records),
-                'error_by_type': dict(error_by_type),
-                'unique_stocks_with_errors': len(error_by_stock),
-                'generated_at': datetime.now().isoformat()
+            "summary": {
+                "total_errors": len(self.error_records),
+                "error_by_type": dict(error_by_type),
+                "unique_stocks_with_errors": len(error_by_stock),
+                "generated_at": datetime.now().isoformat(),
             },
-            'top_error_stocks': [
-                {'stock_code': code, 'error_count': count}
+            "top_error_stocks": [
+                {"stock_code": code, "error_count": count}
                 for code, count in top_error_stocks
             ],
-            'recent_errors': recent_errors,
-            'statistics': {
-                'temporary_errors': error_by_type.get('temporary', 0),
-                'permanent_errors': error_by_type.get('permanent', 0),
-                'system_errors': error_by_type.get('system', 0)
-            }
+            "recent_errors": recent_errors,
+            "statistics": {
+                "temporary_errors": error_by_type.get("temporary", 0),
+                "permanent_errors": error_by_type.get("permanent", 0),
+                "system_errors": error_by_type.get("system", 0),
+            },
         }
 
         return report
@@ -351,9 +355,9 @@ class ErrorHandler:
             Dict[str, Any]: エラー統計
         """
         return {
-            'total_errors': len(self.error_records),
-            'error_stats': dict(self.error_stats),
-            'error_records_count': len(self.error_records)
+            "total_errors": len(self.error_records),
+            "error_stats": dict(self.error_stats),
+            "error_records_count": len(self.error_records),
         }
 
     def clear_error_records(self):

@@ -1,15 +1,17 @@
 """
 WebSocket進捗配信機能のテスト
 """
-import pytest
+
 from flask_socketio import SocketIOTestClient
+import pytest
 
 
 @pytest.fixture
 def app_instance():
     """Flaskアプリインスタンスを作成"""
     from app import app, socketio
-    app.config['TESTING'] = True
+
+    app.config["TESTING"] = True
     return app, socketio
 
 
@@ -71,9 +73,9 @@ def test_bulk_complete_event(socketio_client, app_instance):
 
 def test_websocket_test_page(client):
     """WebSocketテストページへのアクセステスト"""
-    response = client.get('/websocket-test')
+    response = client.get("/websocket-test")
     assert response.status_code == 200
-    assert b'WebSocket' in response.data
+    assert b"WebSocket" in response.data
 
 
 def test_multiple_clients_connection(app_instance):

@@ -71,14 +71,14 @@ from app.models import db
 class StockData:
     # クラス変数の型ヒント
     table_name: ClassVar[str] = "stocks_1d"
-    
+
     def __init__(self, symbol: str, price: Decimal) -> None:
         self.symbol: str = symbol
         self.price: Decimal = price
-    
+
     def get_symbol(self) -> str:
         return self.symbol
-    
+
     def update_price(self, new_price: Decimal) -> None:
         self.price = new_price
 ```
@@ -200,7 +200,7 @@ show_error_context = true
 # 除外ディレクトリ
 exclude = [
     "venv",
-    ".venv", 
+    ".venv",
     "migrations",
     "build",
     "dist",
@@ -210,7 +210,7 @@ exclude = [
 [[tool.mypy.overrides]]
 module = [
     "yfinance.*",
-    "selenium.*", 
+    "selenium.*",
     "webdriver_manager.*",
     "eventlet.*",
     "flask_socketio.*",
@@ -246,7 +246,7 @@ from app.models import db
 
 class StockData1d(db.Model):
     __tablename__ = 'stocks_1d'
-    
+
     id: Column[int] = Column(BigInteger, primary_key=True)
     symbol: Column[str] = Column(String(20), nullable=False)
     date: Column[datetime] = Column(DateTime, nullable=False)
@@ -255,8 +255,8 @@ class StockData1d(db.Model):
     low: Column[Decimal] = Column(Numeric(10, 2), nullable=False)
     close: Column[Decimal] = Column(Numeric(10, 2), nullable=False)
     volume: Column[int] = Column(BigInteger, nullable=False)
-    
-    def __init__(self, symbol: str, date: datetime, open_price: Decimal, 
+
+    def __init__(self, symbol: str, date: datetime, open_price: Decimal,
                  high: Decimal, low: Decimal, close: Decimal, volume: int) -> None:
         self.symbol = symbol
         self.date = date
@@ -265,7 +265,7 @@ class StockData1d(db.Model):
         self.low = low
         self.close = close
         self.volume = volume
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """モデルを辞書形式に変換"""
         return {
@@ -289,24 +289,24 @@ import yfinance as yf
 from app.models import StockData1d
 
 class StockDataService:
-    
+
     def __init__(self) -> None:
         self.cache: Dict[str, Any] = {}
-    
+
     def fetch_stock_data(self, symbol: str, period: str = "1d") -> Optional[Dict[str, Any]]:
         """Yahoo Financeから株価データを取得"""
         try:
             ticker = yf.Ticker(symbol)
             hist = ticker.history(period=period)
-            
+
             if hist.empty:
                 return None
-                
+
             return self._convert_to_dict(hist)
         except Exception as e:
             print(f"Error fetching data for {symbol}: {e}")
             return None
-    
+
     def _convert_to_dict(self, hist_data: Any) -> Dict[str, List[float]]:
         """pandas DataFrameを辞書形式に変換"""
         return {
@@ -316,7 +316,7 @@ class StockDataService:
             'close': hist_data['Close'].tolist(),
             'volume': hist_data['Volume'].tolist()
         }
-    
+
     def save_stock_data(self, symbol: str, data: Dict[str, Any]) -> bool:
         """株価データをデータベースに保存"""
         try:
@@ -343,10 +343,10 @@ def get_stock_data(symbol: str) -> Tuple[Response, int]:
     try:
         period: str = request.args.get('period', '1d')
         data: Optional[Dict[str, Any]] = service.fetch_stock_data(symbol, period)
-        
+
         if data is None:
             return jsonify({'error': 'Stock data not found'}), 404
-            
+
         return jsonify(data), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -357,7 +357,7 @@ def save_stock_data(symbol: str) -> Tuple[Response, int]:
     try:
         data: Dict[str, Any] = request.get_json()
         success: bool = service.save_stock_data(symbol, data)
-        
+
         if success:
             return jsonify({'message': 'Data saved successfully'}), 201
         else:

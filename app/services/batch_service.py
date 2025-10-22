@@ -6,17 +6,21 @@ Phase 1のインメモリ管理からPhase 2のデータベース永続化への
 参照仕様書: docs/api_bulk_fetch.md (Phase 2)
 """
 
-import logging
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+import logging
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
+
 from models import BatchExecution, BatchExecutionDetail, get_db_session
+
 
 logger = logging.getLogger(__name__)
 
 
 class BatchServiceError(Exception):
     """バッチサービスエラー"""
+
     pass
 
 
@@ -25,9 +29,7 @@ class BatchService:
 
     @staticmethod
     def create_batch(
-        batch_type: str,
-        total_stocks: int,
-        session: Optional[Session] = None
+        batch_type: str, total_stocks: int, session: Optional[Session] = None
     ) -> Dict[str, Any]:
         """
         新しいバッチ実行レコードを作成
@@ -48,11 +50,11 @@ class BatchService:
                 # セッションが提供されている場合はそれを使用
                 batch = BatchExecution(
                     batch_type=batch_type,
-                    status='running',
+                    status="running",
                     total_stocks=total_stocks,
                     processed_stocks=0,
                     successful_stocks=0,
-                    failed_stocks=0
+                    failed_stocks=0,
                 )
                 session.add(batch)
                 session.flush()
@@ -62,11 +64,11 @@ class BatchService:
                 with get_db_session() as db_session:
                     batch = BatchExecution(
                         batch_type=batch_type,
-                        status='running',
+                        status="running",
                         total_stocks=total_stocks,
                         processed_stocks=0,
                         successful_stocks=0,
-                        failed_stocks=0
+                        failed_stocks=0,
                     )
                     db_session.add(batch)
                     db_session.flush()
@@ -79,7 +81,9 @@ class BatchService:
             raise BatchServiceError(f"バッチ作成に失敗しました: {e}") from e
 
     @staticmethod
-    def get_batch(batch_id: int, session: Optional[Session] = None) -> Optional[Dict[str, Any]]:
+    def get_batch(
+        batch_id: int, session: Optional[Session] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         バッチ実行情報を取得
 
@@ -95,16 +99,26 @@ class BatchService:
         """
         try:
             if session:
-                batch = session.query(BatchExecution).filter(BatchExecution.id == batch_id).first()
+                batch = (
+                    session.query(BatchExecution)
+                    .filter(BatchExecution.id == batch_id)
+                    .first()
+                )
                 return batch.to_dict() if batch else None
             else:
                 with get_db_session() as db_session:
-                    batch = db_session.query(BatchExecution).filter(BatchExecution.id == batch_id).first()
+                    batch = (
+                        db_session.query(BatchExecution)
+                        .filter(BatchExecution.id == batch_id)
+                        .first()
+                    )
                     return batch.to_dict() if batch else None
 
         except Exception as e:
             logger.error(f"バッチ取得エラー (batch_id={batch_id}): {e}")
-            raise BatchServiceError(f"バッチ情報の取得に失敗しました: {e}") from e
+            raise BatchServiceError(
+                f"バッチ情報の取得に失敗しました: {e}"
+            ) from e
 
     @staticmethod
     def update_batch_progress(
@@ -112,7 +126,7 @@ class BatchService:
         processed_stocks: int,
         successful_stocks: int,
         failed_stocks: int,
-        session: Optional[Session] = None
+        session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         バッチの進捗を更新
@@ -132,7 +146,11 @@ class BatchService:
         """
         try:
             if session:
-                batch = session.query(BatchExecution).filter(BatchExecution.id == batch_id).first()
+                batch = (
+                    session.query(BatchExecution)
+                    .filter(BatchExecution.id == batch_id)
+                    .first()
+                )
                 if not batch:
                     return None
 
@@ -143,7 +161,11 @@ class BatchService:
                 return batch.to_dict()
             else:
                 with get_db_session() as db_session:
-                    batch = db_session.query(BatchExecution).filter(BatchExecution.id == batch_id).first()
+                    batch = (
+                        db_session.query(BatchExecution)
+                        .filter(BatchExecution.id == batch_id)
+                        .first()
+                    )
                     if not batch:
                         return None
 
@@ -157,14 +179,16 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ進捗更新エラー (batch_id={batch_id}): {e}")
-            raise BatchServiceError(f"バッチ進捗の更新に失敗しました: {e}") from e
+            raise BatchServiceError(
+                f"バッチ進捗の更新に失敗しました: {e}"
+            ) from e
 
     @staticmethod
     def complete_batch(
         batch_id: int,
-        status: str = 'completed',
+        status: str = "completed",
         error_message: Optional[str] = None,
-        session: Optional[Session] = None
+        session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         バッチを完了状態にする
@@ -183,7 +207,11 @@ class BatchService:
         """
         try:
             if session:
-                batch = session.query(BatchExecution).filter(BatchExecution.id == batch_id).first()
+                batch = (
+                    session.query(BatchExecution)
+                    .filter(BatchExecution.id == batch_id)
+                    .first()
+                )
                 if not batch:
                     return None
 
@@ -195,7 +223,11 @@ class BatchService:
                 return batch.to_dict()
             else:
                 with get_db_session() as db_session:
-                    batch = db_session.query(BatchExecution).filter(BatchExecution.id == batch_id).first()
+                    batch = (
+                        db_session.query(BatchExecution)
+                        .filter(BatchExecution.id == batch_id)
+                        .first()
+                    )
                     if not batch:
                         return None
 
@@ -210,14 +242,16 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ完了エラー (batch_id={batch_id}): {e}")
-            raise BatchServiceError(f"バッチの完了処理に失敗しました: {e}") from e
+            raise BatchServiceError(
+                f"バッチの完了処理に失敗しました: {e}"
+            ) from e
 
     @staticmethod
     def list_batches(
         limit: int = 100,
         offset: int = 0,
         status: Optional[str] = None,
-        session: Optional[Session] = None
+        session: Optional[Session] = None,
     ) -> List[Dict[str, Any]]:
         """
         バッチ実行情報一覧を取得
@@ -255,14 +289,16 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ一覧取得エラー: {e}")
-            raise BatchServiceError(f"バッチ一覧の取得に失敗しました: {e}") from e
+            raise BatchServiceError(
+                f"バッチ一覧の取得に失敗しました: {e}"
+            ) from e
 
     @staticmethod
     def create_batch_detail(
         batch_execution_id: int,
         stock_code: str,
-        status: str = 'pending',
-        session: Optional[Session] = None
+        status: str = "pending",
+        session: Optional[Session] = None,
     ) -> Dict[str, Any]:
         """
         バッチ実行詳細レコードを作成
@@ -284,7 +320,7 @@ class BatchService:
                 detail = BatchExecutionDetail(
                     batch_execution_id=batch_execution_id,
                     stock_code=stock_code,
-                    status=status
+                    status=status,
                 )
                 session.add(detail)
                 session.flush()
@@ -294,7 +330,7 @@ class BatchService:
                     detail = BatchExecutionDetail(
                         batch_execution_id=batch_execution_id,
                         stock_code=stock_code,
-                        status=status
+                        status=status,
                     )
                     db_session.add(detail)
                     db_session.flush()
@@ -303,8 +339,12 @@ class BatchService:
                 return detail_dict
 
         except Exception as e:
-            logger.error(f"バッチ詳細作成エラー (batch_id={batch_execution_id}, stock_code={stock_code}): {e}")
-            raise BatchServiceError(f"バッチ詳細の作成に失敗しました: {e}") from e
+            logger.error(
+                f"バッチ詳細作成エラー (batch_id={batch_execution_id}, stock_code={stock_code}): {e}"
+            )
+            raise BatchServiceError(
+                f"バッチ詳細の作成に失敗しました: {e}"
+            ) from e
 
     @staticmethod
     def update_batch_detail(
@@ -312,7 +352,7 @@ class BatchService:
         status: str,
         records_inserted: int = 0,
         error_message: Optional[str] = None,
-        session: Optional[Session] = None
+        session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         バッチ実行詳細を更新
@@ -332,7 +372,11 @@ class BatchService:
         """
         try:
             if session:
-                detail = session.query(BatchExecutionDetail).filter(BatchExecutionDetail.id == detail_id).first()
+                detail = (
+                    session.query(BatchExecutionDetail)
+                    .filter(BatchExecutionDetail.id == detail_id)
+                    .first()
+                )
                 if not detail:
                     return None
 
@@ -345,7 +389,11 @@ class BatchService:
                 return detail.to_dict()
             else:
                 with get_db_session() as db_session:
-                    detail = db_session.query(BatchExecutionDetail).filter(BatchExecutionDetail.id == detail_id).first()
+                    detail = (
+                        db_session.query(BatchExecutionDetail)
+                        .filter(BatchExecutionDetail.id == detail_id)
+                        .first()
+                    )
                     if not detail:
                         return None
 
@@ -361,12 +409,13 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ詳細更新エラー (detail_id={detail_id}): {e}")
-            raise BatchServiceError(f"バッチ詳細の更新に失敗しました: {e}") from e
+            raise BatchServiceError(
+                f"バッチ詳細の更新に失敗しました: {e}"
+            ) from e
 
     @staticmethod
     def get_batch_details(
-        batch_execution_id: int,
-        session: Optional[Session] = None
+        batch_execution_id: int, session: Optional[Session] = None
     ) -> List[Dict[str, Any]]:
         """
         バッチ実行詳細一覧を取得
@@ -383,17 +432,31 @@ class BatchService:
         """
         try:
             if session:
-                details = session.query(BatchExecutionDetail).filter(
-                    BatchExecutionDetail.batch_execution_id == batch_execution_id
-                ).all()
+                details = (
+                    session.query(BatchExecutionDetail)
+                    .filter(
+                        BatchExecutionDetail.batch_execution_id
+                        == batch_execution_id
+                    )
+                    .all()
+                )
                 return [detail.to_dict() for detail in details]
             else:
                 with get_db_session() as db_session:
-                    details = db_session.query(BatchExecutionDetail).filter(
-                        BatchExecutionDetail.batch_execution_id == batch_execution_id
-                    ).all()
+                    details = (
+                        db_session.query(BatchExecutionDetail)
+                        .filter(
+                            BatchExecutionDetail.batch_execution_id
+                            == batch_execution_id
+                        )
+                        .all()
+                    )
                     return [detail.to_dict() for detail in details]
 
         except Exception as e:
-            logger.error(f"バッチ詳細一覧取得エラー (batch_id={batch_execution_id}): {e}")
-            raise BatchServiceError(f"バッチ詳細一覧の取得に失敗しました: {e}") from e
+            logger.error(
+                f"バッチ詳細一覧取得エラー (batch_id={batch_execution_id}): {e}"
+            )
+            raise BatchServiceError(
+                f"バッチ詳細一覧の取得に失敗しました: {e}"
+            ) from e

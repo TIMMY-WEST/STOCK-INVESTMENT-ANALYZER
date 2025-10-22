@@ -11,7 +11,7 @@ related_docs:
 
 ## 概要
 
-このドキュメントでは、株価投資分析システム用のPostgreSQL環境構築手順について説明します。  
+このドキュメントでは、株価投資分析システム用のPostgreSQL環境構築手順について説明します。
 **Issue #10の改善により、Windows/Linux/macOS環境でのUnicode問題、トランザクション問題、権限設定が自動化されました。**
 
 ## ✅ Issue #10で実装された改善
@@ -289,7 +289,7 @@ FATAL: password authentication failed for user "postgres"
    ```bash
    # Windows（管理者コマンドプロンプト）
    net user postgres new_password
-   
+
    # Linux/macOS
    sudo -u postgres psql
    \password postgres
@@ -306,7 +306,7 @@ could not connect to server at "localhost", port 5432
    # Windows
    sc query postgresql
    net start postgresql
-   
+
    # Linux/macOS
    sudo systemctl status postgresql
    sudo systemctl start postgresql
@@ -372,7 +372,7 @@ STOCK-INVESTMENT-ANALYZER/
 接続テストが成功したら、以下に進むことができます:
 
 1. 株価データ取得API実装
-2. WebアプリケーションのUI作成  
+2. WebアプリケーションのUI作成
 3. データ分析機能の追加
 
 ---

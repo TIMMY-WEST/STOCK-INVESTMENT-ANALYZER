@@ -169,7 +169,7 @@ stock-investment-analyzer/
 > **注意**: 以下は将来の可能性であり、現時点では実装せず、MVPが完成してから検討する
 
 - マイクロサービス化
-- API Gateway導入  
+- API Gateway導入
 - サービス分離
 - Docker化
 

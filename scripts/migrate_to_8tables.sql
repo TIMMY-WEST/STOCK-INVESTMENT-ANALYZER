@@ -18,7 +18,7 @@ SELECT
 -- =============================================================================
 -- このスクリプトは既存の stocks_daily テーブルから新しい8テーブル構成に移行します。
 -- 実行前に必ずデータベースのバックアップを取得してください。
--- 
+--
 -- バックアップコマンド例:
 -- pg_dump -U stock_user -d stock_data_system > backup_before_migration.sql
 
@@ -31,7 +31,7 @@ DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_daily') THEN
         RAISE NOTICE '既存の stocks_daily テーブルが見つかりました';
-        
+
         -- 既存データ件数確認
         EXECUTE 'SELECT COUNT(*) FROM stocks_daily' INTO @count;
         RAISE NOTICE 'stocks_daily テーブルのレコード数: %', @count;
@@ -74,21 +74,21 @@ BEGIN
     -- 移行元テーブルの存在確認
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_daily') AND
        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_1d') THEN
-        
+
         -- 移行元データ件数確認
         SELECT COUNT(*) INTO source_count FROM stocks_daily;
         SELECT COUNT(*) INTO target_count FROM stocks_1d;
-        
+
         RAISE NOTICE 'データ移行を開始します...';
         RAISE NOTICE '移行元 stocks_daily: % レコード', source_count;
         RAISE NOTICE '移行先 stocks_1d: % レコード', target_count;
-        
+
         -- 重複データを避けるため、既存データをクリア（オプション）
         -- DELETE FROM stocks_1d;
-        
+
         -- データ移行実行
         INSERT INTO stocks_1d (symbol, date, open, high, low, close, volume, created_at, updated_at)
-        SELECT 
+        SELECT
             symbol,
             date,
             open,
@@ -106,11 +106,11 @@ BEGIN
             close = EXCLUDED.close,
             volume = EXCLUDED.volume,
             updated_at = CURRENT_TIMESTAMP;
-        
+
         -- 移行後データ件数確認
         SELECT COUNT(*) INTO target_count FROM stocks_1d;
         RAISE NOTICE 'データ移行完了: % レコードを stocks_1d に移行しました', target_count;
-        
+
     ELSE
         RAISE NOTICE 'データ移行をスキップします（必要なテーブルが存在しません）';
     END IF;
@@ -127,12 +127,12 @@ DECLARE
     record_count INTEGER;
 BEGIN
     RAISE NOTICE '=== 移行結果確認 ===';
-    
+
     -- 各テーブルのレコード数を確認
-    FOR table_name IN 
-        SELECT t.table_name 
-        FROM information_schema.tables t 
-        WHERE t.table_schema = 'public' 
+    FOR table_name IN
+        SELECT t.table_name
+        FROM information_schema.tables t
+        WHERE t.table_schema = 'public'
         AND t.table_name LIKE 'stocks_%'
         ORDER BY t.table_name
     LOOP
@@ -156,9 +156,9 @@ BEGIN
         -- バックアップテーブル名に変更
         ALTER TABLE stocks_daily RENAME TO stocks_daily_backup_migration;
         RAISE NOTICE '旧テーブル stocks_daily を stocks_daily_backup_migration にリネームしました';
-        
+
         -- バックアップテーブルにコメント追加
-        COMMENT ON TABLE stocks_daily_backup_migration IS 
+        COMMENT ON TABLE stocks_daily_backup_migration IS
             '8テーブル構成移行前のバックアップテーブル（' || CURRENT_TIMESTAMP || '）';
     END IF;
 END $$;
@@ -174,11 +174,11 @@ DECLARE
     table_name TEXT;
 BEGIN
     RAISE NOTICE 'インデックス統計情報を更新中...';
-    
-    FOR table_name IN 
-        SELECT t.table_name 
-        FROM information_schema.tables t 
-        WHERE t.table_schema = 'public' 
+
+    FOR table_name IN
+        SELECT t.table_name
+        FROM information_schema.tables t
+        WHERE t.table_schema = 'public'
         AND t.table_name LIKE 'stocks_%'
         AND t.table_name != 'stocks_daily_backup_migration'
     LOOP
