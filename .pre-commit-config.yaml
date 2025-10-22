@@ -27,7 +27,7 @@ repos:
       # JSONファイルの構文チェック
       - id: check-json
         name: JSONファイルの構文チェック
-        exclude: ^(venv/|\.venv/)
+        exclude: ^(venv/|\.venv/|\.vscode/)
       # TOMLファイルの構文チェック
       - id: check-toml
         name: TOMLファイルの構文チェック
