@@ -1,0 +1,104 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+
+default_language_version:
+  python: python3
+
+repos:
+  # ===== General hooks =====
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # ファイル末尾の空行を修正
+      - id: end-of-file-fixer
+        name: ファイル末尾の空行を修正
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/)
+      # 行末の空白を削除
+      - id: trailing-whitespace
+        name: 行末の空白を削除
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/)
+      # マージコンフリクトのマーカーをチェック
+      - id: check-merge-conflict
+        name: マージコンフリクトのマーカーをチェック
+      # YAMLファイルの構文チェック
+      - id: check-yaml
+        name: YAMLファイルの構文チェック
+        exclude: ^(venv/|\.venv/)
+      # JSONファイルの構文チェック
+      - id: check-json
+        name: JSONファイルの構文チェック
+        exclude: ^(venv/|\.venv/)
+      # TOMLファイルの構文チェック
+      - id: check-toml
+        name: TOMLファイルの構文チェック
+        exclude: ^(venv/|\.venv/)
+      # 大きなファイルの追加を防ぐ（500KB以上）
+      - id: check-added-large-files
+        name: 大きなファイルの追加を防ぐ
+        args: ['--maxkb=500']
+      # Pythonファイルの構文チェック
+      - id: check-ast
+        name: Pythonファイルの構文チェック
+        exclude: ^(venv/|\.venv/|migrations/)
+      # デバッグ文の検出
+      - id: debug-statements
+        name: デバッグ文の検出
+        exclude: ^(venv/|\.venv/|migrations/)
+
+  # ===== Black (コードフォーマッタ) =====
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        name: Blackによるコードフォーマット
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/)
+
+  # ===== isort (インポート文の整理) =====
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isortによるインポート文の整理
+        args: ["--profile", "black", "--line-length", "79"]
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/)
+
+  # ===== flake8 (Linter) =====
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        name: flake8によるコードチェック
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/|\.serena/|\.claude/)
+        additional_dependencies:
+          # flake8拡張プラグイン
+          - flake8-bugbear>=24.0.0
+          - flake8-docstrings>=1.7.0
+          - flake8-comprehensions>=3.14.0
+
+  # ===== mypy (型チェック) =====
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.0
+    hooks:
+      - id: mypy
+        name: mypyによる型チェック
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/|tests/)
+        additional_dependencies:
+          - types-Flask>=1.1.0
+          - types-python-dateutil>=2.8.0
+          - types-requests>=2.31.0
+          - sqlalchemy[mypy]>=2.0.0
+        # 型チェックが失敗してもコミットを続行する（警告のみ）
+        # 本格的な型チェック導入後にverbose=trueに変更することを推奨
+        verbose: false
+        args:
+          - --config-file=pyproject.toml
+          - --no-incremental
+          - --ignore-missing-imports
+
+# CI環境での設定
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] 自動フォーマット修正
+
+  autofix_prs: true
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit自動更新'
