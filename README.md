@@ -169,6 +169,12 @@ STOCK-INVESTMENT-ANALYZER/
 3. **テスト実行**: 全テストの通過確認
 4. **Pull Request**: レビュー依頼とマージ
 
+詳細な開発ガイドライン:
+- [Git運用ワークフロー](docs/development/git_workflow.md) - 共同開発向けの詳細なGit運用ルール
+- [GitHub運用ルール](docs/development/github_workflow.md) - 個人+AI開発向けの簡易版
+- [ブランチ保護ルール](docs/development/branch_protection_rules.md) - mainブランチの保護設定とCI/CD要件
+- [テスト戦略](docs/development/testing_strategy.md) - テスト方針とベストプラクティス
+
 ## サンプルデータ
 
 システムには以下の日本企業のサンプルデータが含まれています：
