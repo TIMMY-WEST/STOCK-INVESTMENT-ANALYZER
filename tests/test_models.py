@@ -1,23 +1,26 @@
-import pytest
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
+
 pytestmark = pytest.mark.unit
+
 
 def test_stock_daily_model_import():
     """StockDailyモデルのインポートテスト"""
-    from models import StockDaily, Base
+    from models import Base, StockDaily
 
     # モデルクラスの基本チェック
-    assert StockDaily.__tablename__ == 'stocks_1d'
-    assert hasattr(StockDaily, 'id')
-    assert hasattr(StockDaily, 'symbol')
-    assert hasattr(StockDaily, 'date')
-    assert hasattr(StockDaily, 'open')
-    assert hasattr(StockDaily, 'high')
-    assert hasattr(StockDaily, 'low')
-    assert hasattr(StockDaily, 'close')
-    assert hasattr(StockDaily, 'volume')
+    assert StockDaily.__tablename__ == "stocks_1d"
+    assert hasattr(StockDaily, "id")
+    assert hasattr(StockDaily, "symbol")
+    assert hasattr(StockDaily, "date")
+    assert hasattr(StockDaily, "open")
+    assert hasattr(StockDaily, "high")
+    assert hasattr(StockDaily, "low")
+    assert hasattr(StockDaily, "close")
+    assert hasattr(StockDaily, "volume")
 
 
 def test_stock_daily_repr():

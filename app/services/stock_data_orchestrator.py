@@ -3,23 +3,25 @@
 データ取得から保存、整合性チェックまでを統合的に管理します。
 """
 
-from typing import List, Dict, Any, Optional
-import logging
 from datetime import datetime
+import logging
+from typing import Any, Dict, List, Optional
 
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
-from services.stock_data_saver import StockDataSaver, StockDataSaveError
+from services.stock_data_saver import StockDataSaveError, StockDataSaver
 from utils.timeframe_utils import (
     get_all_intervals,
     get_display_name,
-    validate_interval
+    validate_interval,
 )
+
 
 logger = logging.getLogger(__name__)
 
 
 class StockDataOrchestrationError(Exception):
     """オーケストレーションエラー"""
+
     pass
 
 
@@ -35,9 +37,9 @@ class StockDataOrchestrator:
     def fetch_and_save(
         self,
         symbol: str,
-        interval: str = '1d',
+        interval: str = "1d",
         period: Optional[str] = None,
-        force_update: bool = False
+        force_update: bool = False,
     ) -> Dict[str, Any]:
         """
         株価データの取得と保存を実行
@@ -59,9 +61,7 @@ class StockDataOrchestrator:
 
             # データ取得
             df = self.fetcher.fetch_stock_data(
-                symbol=symbol,
-                interval=interval,
-                period=period
+                symbol=symbol, interval=interval, period=period
             )
 
             # データ変換
@@ -69,25 +69,22 @@ class StockDataOrchestrator:
 
             # データ保存
             save_result = self.saver.save_stock_data(
-                symbol=symbol,
-                interval=interval,
-                data_list=data_list
+                symbol=symbol, interval=interval, data_list=data_list
             )
 
             # 整合性チェック
             integrity_check = self.check_data_integrity(
-                symbol=symbol,
-                interval=interval
+                symbol=symbol, interval=interval
             )
 
             result = {
-                'success': True,
-                'symbol': symbol,
-                'interval': interval,
-                'fetch_count': len(data_list),
-                'save_result': save_result,
-                'integrity_check': integrity_check,
-                'timestamp': datetime.now().isoformat()
+                "success": True,
+                "symbol": symbol,
+                "interval": interval,
+                "fetch_count": len(data_list),
+                "save_result": save_result,
+                "integrity_check": integrity_check,
+                "timestamp": datetime.now().isoformat(),
             }
 
             self.logger.info(
@@ -102,18 +99,18 @@ class StockDataOrchestrator:
             error_msg = f"データ取得・保存エラー: {symbol} ({interval}): {e}"
             self.logger.error(error_msg)
             return {
-                'success': False,
-                'symbol': symbol,
-                'interval': interval,
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
+                "success": False,
+                "symbol": symbol,
+                "interval": interval,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat(),
             }
 
     def fetch_and_save_multiple_timeframes(
         self,
         symbol: str,
         intervals: Optional[List[str]] = None,
-        period: Optional[str] = None
+        period: Optional[str] = None,
     ) -> Dict[str, Dict[str, Any]]:
         """
         複数時間軸のデータを取得・保存
@@ -138,12 +135,10 @@ class StockDataOrchestrator:
 
         for interval in intervals:
             results[interval] = self.fetch_and_save(
-                symbol=symbol,
-                interval=interval,
-                period=period
+                symbol=symbol, interval=interval, period=period
             )
 
-        success_count = sum(1 for r in results.values() if r.get('success'))
+        success_count = sum(1 for r in results.values() if r.get("success"))
         self.logger.info(
             f"複数時間軸データ取得・保存完了: {symbol} - "
             f"成功: {success_count}/{len(intervals)}"
@@ -152,9 +147,7 @@ class StockDataOrchestrator:
         return results
 
     def check_data_integrity(
-        self,
-        symbol: str,
-        interval: str
+        self, symbol: str, interval: str
     ) -> Dict[str, Any]:
         """
         データ整合性をチェック
@@ -177,12 +170,14 @@ class StockDataOrchestrator:
             is_valid = record_count > 0
 
             result = {
-                'valid': is_valid,
-                'record_count': record_count,
-                'latest_date': latest_date.isoformat() if latest_date else None,
-                'checks': {
-                    'has_data': record_count > 0,
-                }
+                "valid": is_valid,
+                "record_count": record_count,
+                "latest_date": (
+                    latest_date.isoformat() if latest_date else None
+                ),
+                "checks": {
+                    "has_data": record_count > 0,
+                },
             }
 
             if is_valid:
@@ -202,15 +197,10 @@ class StockDataOrchestrator:
             self.logger.error(
                 f"整合性チェックエラー: {symbol} ({interval}): {e}"
             )
-            return {
-                'valid': False,
-                'error': str(e)
-            }
+            return {"valid": False, "error": str(e)}
 
     def get_status(
-        self,
-        symbol: str,
-        intervals: Optional[List[str]] = None
+        self, symbol: str, intervals: Optional[List[str]] = None
     ) -> Dict[str, Dict[str, Any]]:
         """
         各時間軸のデータ状態を取得
@@ -233,26 +223,26 @@ class StockDataOrchestrator:
                 latest_date = self.saver.get_latest_date(symbol, interval)
 
                 status[interval] = {
-                    'interval': interval,
-                    'display_name': get_display_name(interval),
-                    'record_count': record_count,
-                    'latest_date': latest_date.isoformat() if latest_date else None,
-                    'has_data': record_count > 0
+                    "interval": interval,
+                    "display_name": get_display_name(interval),
+                    "record_count": record_count,
+                    "latest_date": (
+                        latest_date.isoformat() if latest_date else None
+                    ),
+                    "has_data": record_count > 0,
                 }
 
             except Exception as e:
                 status[interval] = {
-                    'interval': interval,
-                    'display_name': get_display_name(interval),
-                    'error': str(e)
+                    "interval": interval,
+                    "display_name": get_display_name(interval),
+                    "error": str(e),
                 }
 
         return status
 
     def update_all_timeframes(
-        self,
-        symbol: str,
-        intervals: Optional[List[str]] = None
+        self, symbol: str, intervals: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         全時間軸のデータを更新（差分更新）
@@ -270,27 +260,25 @@ class StockDataOrchestrator:
         self.logger.info(f"全時間軸データ更新開始: {symbol}")
 
         results = self.fetch_and_save_multiple_timeframes(
-            symbol=symbol,
-            intervals=intervals,
-            period=None  # 推奨期間を使用
+            symbol=symbol, intervals=intervals, period=None  # 推奨期間を使用
         )
 
         # サマリー作成
-        success_count = sum(1 for r in results.values() if r.get('success'))
+        success_count = sum(1 for r in results.values() if r.get("success"))
         total_saved = sum(
-            r.get('save_result', {}).get('saved', 0)
+            r.get("save_result", {}).get("saved", 0)
             for r in results.values()
-            if r.get('success')
+            if r.get("success")
         )
 
         summary = {
-            'symbol': symbol,
-            'total_intervals': len(intervals),
-            'success_count': success_count,
-            'failed_count': len(intervals) - success_count,
-            'total_saved_records': total_saved,
-            'results': results,
-            'timestamp': datetime.now().isoformat()
+            "symbol": symbol,
+            "total_intervals": len(intervals),
+            "success_count": success_count,
+            "failed_count": len(intervals) - success_count,
+            "total_saved_records": total_saved,
+            "results": results,
+            "timestamp": datetime.now().isoformat(),
         }
 
         self.logger.info(

@@ -13,30 +13,30 @@
 -- =====================================================
 
 -- 現在のデータベース情報を表示
-SELECT 
+SELECT
     current_database() as database_name,
     current_user as current_user,
     now() as execution_time;
 
 -- stocks_daily テーブルの存在確認
-SELECT 
+SELECT
     schemaname,
     tablename,
     tableowner,
     hasindexes,
     hasrules,
     hastriggers
-FROM pg_tables 
+FROM pg_tables
 WHERE tablename = 'stocks_daily';
 
 -- stocks_daily テーブルのレコード数確認
-SELECT 
+SELECT
     'stocks_daily' as table_name,
     COUNT(*) as record_count
 FROM stocks_daily;
 
 -- stocks_1d テーブルのレコード数確認（移行先）
-SELECT 
+SELECT
     'stocks_1d' as table_name,
     COUNT(*) as record_count
 FROM stocks_1d;
@@ -46,7 +46,7 @@ FROM stocks_1d;
 -- =====================================================
 
 -- stocks_daily テーブルに対する外部キー制約の確認
-SELECT 
+SELECT
     tc.table_name,
     tc.constraint_name,
     tc.constraint_type,
@@ -64,7 +64,7 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
     AND (tc.table_name = 'stocks_daily' OR ccu.table_name = 'stocks_daily');
 
 -- stocks_daily テーブルを参照するビューの確認
-SELECT 
+SELECT
     schemaname,
     viewname,
     definition
@@ -76,14 +76,14 @@ WHERE definition LIKE '%stocks_daily%';
 -- =====================================================
 
 -- stocks_daily テーブルのインデックス一覧
-SELECT 
+SELECT
     indexname,
     indexdef
 FROM pg_indexes
 WHERE tablename = 'stocks_daily';
 
 -- stocks_daily テーブルのトリガー一覧
-SELECT 
+SELECT
     trigger_name,
     event_manipulation,
     action_timing,
@@ -96,7 +96,7 @@ WHERE event_object_table = 'stocks_daily';
 -- =====================================================
 
 -- 以下のメッセージを確認してから削除を実行してください
-SELECT 
+SELECT
     '警告: stocks_daily テーブルを削除しようとしています。' as warning_message,
     '続行する場合は、以下の削除コマンドのコメントアウトを解除して実行してください。' as instruction;
 
@@ -128,19 +128,19 @@ SELECT
 -- 削除実行後に以下のクエリで確認してください（削除実行時にコメントアウトを解除）
 
 -- stocks_daily テーブルが削除されたことを確認
--- SELECT 
+-- SELECT
 --     COUNT(*) as table_count
 -- FROM information_schema.tables
 -- WHERE table_name = 'stocks_daily';
 
 -- stocks_1d テーブルが正常に存在することを確認
--- SELECT 
+-- SELECT
 --     'stocks_1d' as table_name,
 --     COUNT(*) as record_count
 -- FROM stocks_1d;
 
 -- 削除完了メッセージ
--- SELECT 
+-- SELECT
 --     'stocks_daily テーブルの削除が完了しました。' as completion_message,
 --     now() as completion_time;
 
@@ -170,9 +170,9 @@ SELECT
 -- \echo '実行日時: ' `date`
 -- \echo '実行ユーザー: ' `whoami`
 -- \echo '=================================='
--- 
+--
 -- 上記の削除コマンドを実行
--- 
+--
 -- \echo '削除処理完了'
 -- \o
 

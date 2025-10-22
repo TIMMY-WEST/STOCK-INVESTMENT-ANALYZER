@@ -2,17 +2,25 @@
 """
 全ての株式データテーブル（1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo）の全レコードを削除するスクリプト
 """
-import sys
 import os
+import sys
+
 
 # プロジェクトのルートディレクトリをパスに追加
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "app"))
 
 from models import (
-    Stocks1m, Stocks5m, Stocks15m, Stocks30m,
-    Stocks1h, Stocks1d, Stocks1wk, Stocks1mo,
-    get_db_session
+    Stocks1d,
+    Stocks1h,
+    Stocks1m,
+    Stocks1mo,
+    Stocks1wk,
+    Stocks5m,
+    Stocks15m,
+    Stocks30m,
+    get_db_session,
 )
+
 
 def main():
     # 全ての株式データテーブル
@@ -51,10 +59,12 @@ def main():
                 return
 
             # 確認メッセージ
-            print(f"\n警告: 全テーブルから合計 {total_count:,} 件のレコードを削除しようとしています。")
+            print(
+                f"\n警告: 全テーブルから合計 {total_count:,} 件のレコードを削除しようとしています。"
+            )
             response = input("本当に削除しますか? (yes/no): ")
 
-            if response.lower() != 'yes':
+            if response.lower() != "yes":
                 print("\n削除をキャンセルしました。")
                 return
 
@@ -91,6 +101,7 @@ def main():
             session.rollback()
             print(f"\nエラーが発生しました: {e}", file=sys.stderr)
             sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

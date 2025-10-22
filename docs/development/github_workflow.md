@@ -346,44 +346,44 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run linting
         run: npm run lint
-        
+
       - name: Run tests
         run: npm test
-        
+
       - name: Run type checking
         run: npm run type-check
-        
+
   build:
     runs-on: ubuntu-latest
     needs: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build application
         run: npm run build
-        
+
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -397,7 +397,7 @@ jobs:
 ```yaml
 # PRマージ前に必須チェック項目
 - ✅ Linting pass
-- ✅ Type checking pass  
+- ✅ Type checking pass
 - ✅ Unit tests pass
 - ✅ Build successful
 ```
@@ -426,10 +426,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Run npm audit
         run: npm audit --audit-level moderate
-        
+
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
         if: github.event_name == 'pull_request'
@@ -450,19 +450,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Code coverage
         run: npm run test:coverage
-        
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -485,23 +485,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build for production
         run: npm run build:prod
-        
+
       - name: Deploy to server
         run: |
           # デプロイスクリプトの実行
@@ -538,7 +538,7 @@ DEPLOY_TOKEN=your-deploy-token
 env:
   NODE_ENV: production
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
-  
+
 steps:
   - name: Run with secrets
     run: npm run migrate
@@ -553,7 +553,7 @@ steps:
 ❌ npm ci が失敗する
 → package-lock.json のコミット確認
 
-❌ テストがタイムアウトする  
+❌ テストがタイムアウトする
 → jest.config.js のtimeout設定を確認
 
 ❌ ビルドが失敗する

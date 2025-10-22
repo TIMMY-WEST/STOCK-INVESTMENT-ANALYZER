@@ -254,7 +254,7 @@ const UIComponents = {
         // 日時フィールドの処理: datetimeフィールドがあれば使用、なければdateフィールドを使用
         const dateTimeValue = stock.datetime || stock.date;
         const formattedDateTime = stock.datetime ? Utils.formatDateTime(stock.datetime) : Utils.formatDate(stock.date);
-        
+
         return `
             <tr data-stock-id="${stock.id}">
                 <td>${stock.id}</td>
@@ -1658,7 +1658,7 @@ const JPXAutomationManager = {
 
             const bulkResult = await bulkResponse.json();
             console.log('[JPXAutomationManager] 一括取得開始成功:', bulkResult);
-            
+
             JPXAutomationManager.currentJobId = bulkResult.job_id;
 
             JPXAutomationManager.showProgressSection();
@@ -1701,7 +1701,7 @@ const JPXAutomationManager = {
                 if (response.ok) {
                     const data = await response.json();
                     console.log('[JPXAutomationManager] ステータスデータ:', data);
-                    
+
                     if (data.success && data.job) {
                         const job = data.job;
                         console.log(`[JPXAutomationManager] ジョブステータス: ${job.status}, 進捗: ${job.progress?.progress_percentage || 0}%`);

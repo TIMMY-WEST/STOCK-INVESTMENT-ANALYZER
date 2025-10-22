@@ -4,12 +4,12 @@ Phase 2要件: バッチ処理の詳細なログ出力とメトリクス収集�
 仕様書: docs/api_bulk_fetch.md (772-787行目)
 """
 
+from datetime import datetime
 import json
 import logging
 import logging.handlers
-from datetime import datetime
-from typing import Any, Dict, Optional
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 class StructuredFormatter(logging.Formatter):
@@ -25,24 +25,24 @@ class StructuredFormatter(logging.Formatter):
         }
 
         # 追加のフィールドがあれば含める
-        if hasattr(record, 'batch_id'):
-            log_data['batch_id'] = record.batch_id
-        if hasattr(record, 'worker_id'):
-            log_data['worker_id'] = record.worker_id
-        if hasattr(record, 'stock_code'):
-            log_data['stock_code'] = record.stock_code
-        if hasattr(record, 'action'):
-            log_data['action'] = record.action
-        if hasattr(record, 'status'):
-            log_data['status'] = record.status
-        if hasattr(record, 'duration_ms'):
-            log_data['duration_ms'] = record.duration_ms
-        if hasattr(record, 'records_count'):
-            log_data['records_count'] = record.records_count
-        if hasattr(record, 'error_message'):
-            log_data['error_message'] = record.error_message
-        if hasattr(record, 'retry_count'):
-            log_data['retry_count'] = record.retry_count
+        if hasattr(record, "batch_id"):
+            log_data["batch_id"] = record.batch_id
+        if hasattr(record, "worker_id"):
+            log_data["worker_id"] = record.worker_id
+        if hasattr(record, "stock_code"):
+            log_data["stock_code"] = record.stock_code
+        if hasattr(record, "action"):
+            log_data["action"] = record.action
+        if hasattr(record, "status"):
+            log_data["status"] = record.status
+        if hasattr(record, "duration_ms"):
+            log_data["duration_ms"] = record.duration_ms
+        if hasattr(record, "records_count"):
+            log_data["records_count"] = record.records_count
+        if hasattr(record, "error_message"):
+            log_data["error_message"] = record.error_message
+        if hasattr(record, "retry_count"):
+            log_data["retry_count"] = record.retry_count
 
         return json.dumps(log_data, ensure_ascii=False)
 
@@ -55,25 +55,25 @@ class BatchLoggerAdapter(logging.LoggerAdapter):
 
     def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple:
         """ログメッセージに追加情報を付与"""
-        extra = kwargs.get('extra', {})
+        extra = kwargs.get("extra", {})
 
         # コンテキスト情報をマージ
         if self.extra:
             extra.update(self.extra)
 
-        kwargs['extra'] = extra
+        kwargs["extra"] = extra
         return msg, kwargs
 
     def log_batch_action(
         self,
         action: str,
         stock_code: Optional[str] = None,
-        status: str = 'success',
+        status: str = "success",
         duration_ms: Optional[int] = None,
         records_count: Optional[int] = None,
         error_message: Optional[str] = None,
         retry_count: int = 0,
-        **kwargs
+        **kwargs,
     ):
         """バッチ処理のアクションをログ出力
 
@@ -88,39 +88,47 @@ class BatchLoggerAdapter(logging.LoggerAdapter):
             **kwargs: 追加のログ情報
         """
         extra = {
-            'action': action,
-            'status': status,
-            'retry_count': retry_count
+            "action": action,
+            "status": status,
+            "retry_count": retry_count,
         }
 
         if stock_code:
-            extra['stock_code'] = stock_code
+            extra["stock_code"] = stock_code
         if duration_ms is not None:
-            extra['duration_ms'] = duration_ms
+            extra["duration_ms"] = duration_ms
         if records_count is not None:
-            extra['records_count'] = records_count
+            extra["records_count"] = records_count
         if error_message:
-            extra['error_message'] = error_message
+            extra["error_message"] = error_message
 
         # 追加のフィールドを含める
         extra.update(kwargs)
 
         # ステータスに応じたログレベルを選択
-        if status == 'failed':
-            self.error(f"[{action}] {stock_code or 'N/A'}: {error_message or 'Unknown error'}", extra=extra)
-        elif status == 'retry':
-            self.warning(f"[{action}] {stock_code or 'N/A'}: Retry {retry_count}", extra=extra)
+        if status == "failed":
+            self.error(
+                f"[{action}] {stock_code or 'N/A'}: {error_message or 'Unknown error'}",
+                extra=extra,
+            )
+        elif status == "retry":
+            self.warning(
+                f"[{action}] {stock_code or 'N/A'}: Retry {retry_count}",
+                extra=extra,
+            )
         else:
-            self.info(f"[{action}] {stock_code or 'N/A'}: Success", extra=extra)
+            self.info(
+                f"[{action}] {stock_code or 'N/A'}: Success", extra=extra
+            )
 
 
 def setup_structured_logging(
-    log_dir: str = 'logs',
+    log_dir: str = "logs",
     log_level: int = logging.INFO,
     max_bytes: int = 10 * 1024 * 1024,  # 10MB
     backup_count: int = 10,
     enable_console: bool = True,
-    enable_file: bool = True
+    enable_file: bool = True,
 ) -> logging.Logger:
     """構造化ログ設定
 
@@ -140,7 +148,7 @@ def setup_structured_logging(
     log_path.mkdir(exist_ok=True)
 
     # ルートロガーの取得
-    logger = logging.getLogger('bulk_batch')
+    logger = logging.getLogger("bulk_batch")
     logger.setLevel(log_level)
     logger.handlers.clear()  # 既存のハンドラをクリア
 
@@ -149,10 +157,10 @@ def setup_structured_logging(
     # ファイルハンドラ（ローテーション付き）
     if enable_file:
         file_handler = logging.handlers.RotatingFileHandler(
-            filename=log_path / 'batch_bulk.log',
+            filename=log_path / "batch_bulk.log",
             maxBytes=max_bytes,
             backupCount=backup_count,
-            encoding='utf-8'
+            encoding="utf-8",
         )
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
@@ -164,8 +172,8 @@ def setup_structured_logging(
         console_handler.setLevel(log_level)
         # コンソールは人間が読みやすい形式
         console_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
@@ -174,8 +182,7 @@ def setup_structured_logging(
 
 
 def get_batch_logger(
-    batch_id: Optional[str] = None,
-    worker_id: Optional[int] = None
+    batch_id: Optional[str] = None, worker_id: Optional[int] = None
 ) -> BatchLoggerAdapter:
     """バッチ処理用ロガーを取得
 
@@ -186,12 +193,12 @@ def get_batch_logger(
     Returns:
         バッチロガーアダプター
     """
-    logger = logging.getLogger('bulk_batch')
+    logger = logging.getLogger("bulk_batch")
 
     extra = {}
     if batch_id:
-        extra['batch_id'] = batch_id
+        extra["batch_id"] = batch_id
     if worker_id is not None:
-        extra['worker_id'] = worker_id
+        extra["worker_id"] = worker_id
 
     return BatchLoggerAdapter(logger, extra)

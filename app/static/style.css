@@ -1198,16 +1198,16 @@ body {
     .timeframe-selector-container {
         gap: 0.75rem;
     }
-    
+
     .timeframe-indicator {
         padding: 0.75rem;
         font-size: 0.8rem;
     }
-    
+
     .timeframe-indicator::before {
         font-size: 0.9rem;
     }
-    
+
     .timeframe-selector {
         font-size: 1rem;
         padding: 0.75rem 2.5rem 0.75rem 0.75rem;
@@ -1218,16 +1218,16 @@ body {
     .form-row {
         flex-direction: column;
     }
-    
+
     .form-col {
         width: 100%;
         margin-bottom: 1rem;
     }
-    
+
     .timeframe-indicator {
         text-align: center;
     }
-    
+
     .indicator-text {
         font-size: 0.875rem;
     }
@@ -1238,13 +1238,13 @@ body {
     .timeframe-selector {
         border: 3px solid #000;
     }
-    
+
     .timeframe-indicator {
         border: 2px solid #000;
         background: #fff;
         color: #000;
     }
-    
+
     .field-error {
         font-weight: 700;
     }
@@ -1257,7 +1257,7 @@ body {
     .field-error {
         transition: none;
     }
-    
+
     @keyframes fadeInError {
         from, to {
             opacity: 1;
@@ -1424,16 +1424,16 @@ body {
     .interval-selector-container {
         gap: 0.75rem;
     }
-    
+
     .interval-indicator {
         padding: 0.75rem;
         font-size: 0.8rem;
     }
-    
+
     .interval-indicator::before {
         font-size: 0.9rem;
     }
-    
+
     .interval-selector {
         font-size: 1rem;
         padding: 0.75rem 2.5rem 0.75rem 0.75rem;
@@ -1444,7 +1444,7 @@ body {
     .interval-indicator {
         text-align: center;
     }
-    
+
     .interval-indicator .indicator-text {
         font-size: 0.875rem;
     }
@@ -1455,7 +1455,7 @@ body {
     .interval-selector {
         border: 3px solid #000;
     }
-    
+
     .interval-indicator {
         border: 2px solid #000;
         background: #fff;

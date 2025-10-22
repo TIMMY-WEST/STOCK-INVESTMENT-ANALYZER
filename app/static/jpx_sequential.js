@@ -321,7 +321,7 @@ function showJpxSequentialResult(job) {
     const resultContainer = document.getElementById('jpx-seq-result-container');
 
     const summary = job.summary || {};
-    
+
     // interval_resultsから成功・失敗を計算
     const intervalResults = summary.interval_results || job.interval_results || [];
     const totalIntervals = intervalResults.length || summary.total_intervals || 8;

@@ -4,14 +4,16 @@
 APSchedulerを使用した実装例です。
 """
 
-from typing import List, Optional, Callable
-import logging
 from datetime import datetime
+import logging
+from typing import Callable, List, Optional
+
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 
 from services.stock_data_orchestrator import StockDataOrchestrator
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +31,9 @@ class StockDataScheduler:
     def _setup_event_listeners(self):
         """イベントリスナーの設定"""
         self.scheduler.add_listener(
-            self._job_executed_listener,
-            EVENT_JOB_EXECUTED
+            self._job_executed_listener, EVENT_JOB_EXECUTED
         )
-        self.scheduler.add_listener(
-            self._job_error_listener,
-            EVENT_JOB_ERROR
-        )
+        self.scheduler.add_listener(self._job_error_listener, EVENT_JOB_ERROR)
 
     def _job_executed_listener(self, event):
         """ジョブ実行成功時のリスナー"""
@@ -53,7 +51,7 @@ class StockDataScheduler:
         intervals: Optional[List[str]] = None,
         hour: int = 18,
         minute: int = 0,
-        job_id: Optional[str] = None
+        job_id: Optional[str] = None,
     ):
         """
         日次更新ジョブを追加
@@ -68,11 +66,7 @@ class StockDataScheduler:
         if job_id is None:
             job_id = f"daily_update_{symbol}_{datetime.now().timestamp()}"
 
-        trigger = CronTrigger(
-            hour=hour,
-            minute=minute,
-            timezone='Asia/Tokyo'
-        )
+        trigger = CronTrigger(hour=hour, minute=minute, timezone="Asia/Tokyo")
 
         self.scheduler.add_job(
             func=self._update_job,
@@ -80,7 +74,7 @@ class StockDataScheduler:
             args=[symbol, intervals],
             id=job_id,
             name=f"日次更新: {symbol}",
-            replace_existing=True
+            replace_existing=True,
         )
 
         self.logger.info(
@@ -95,7 +89,7 @@ class StockDataScheduler:
         interval_minutes: int = 5,
         start_hour: int = 9,
         end_hour: int = 15,
-        job_id: Optional[str] = None
+        job_id: Optional[str] = None,
     ):
         """
         日中更新ジョブを追加（分足・時間足データ用）
@@ -113,10 +107,10 @@ class StockDataScheduler:
 
         # 営業日の指定時間帯のみ実行
         trigger = CronTrigger(
-            day_of_week='mon-fri',
-            hour=f'{start_hour}-{end_hour}',
-            minute=f'*/{interval_minutes}',
-            timezone='Asia/Tokyo'
+            day_of_week="mon-fri",
+            hour=f"{start_hour}-{end_hour}",
+            minute=f"*/{interval_minutes}",
+            timezone="Asia/Tokyo",
         )
 
         self.scheduler.add_job(
@@ -125,7 +119,7 @@ class StockDataScheduler:
             args=[symbol, intervals],
             id=job_id,
             name=f"日中更新: {symbol}",
-            replace_existing=True
+            replace_existing=True,
         )
 
         self.logger.info(
@@ -134,12 +128,7 @@ class StockDataScheduler:
         )
 
     def add_custom_job(
-        self,
-        func: Callable,
-        trigger,
-        job_id: str,
-        name: str,
-        **kwargs
+        self, func: Callable, trigger, job_id: str, name: str, **kwargs
     ):
         """
         カスタムジョブを追加
@@ -157,7 +146,7 @@ class StockDataScheduler:
             id=job_id,
             name=name,
             replace_existing=True,
-            **kwargs
+            **kwargs,
         )
 
         self.logger.info(f"カスタムジョブ追加: {name} (ID: {job_id})")
@@ -174,8 +163,7 @@ class StockDataScheduler:
             self.logger.info(f"更新ジョブ開始: {symbol}")
 
             result = self.orchestrator.update_all_timeframes(
-                symbol=symbol,
-                intervals=intervals
+                symbol=symbol, intervals=intervals
             )
 
             self.logger.info(
