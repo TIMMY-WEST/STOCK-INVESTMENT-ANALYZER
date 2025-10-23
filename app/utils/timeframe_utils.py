@@ -68,7 +68,7 @@ TIMEFRAME_RECOMMENDED_PERIOD: Dict[str, str] = {
 
 
 def get_model_for_interval(interval: str) -> Type[StockDataBase]:
-    """yfinance intervalに対応するデータベースモデルを取得.
+    """Yfinance intervalに対応するデータベースモデルを取得.
 
     Args:
         interval: yfinance interval ('1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo')

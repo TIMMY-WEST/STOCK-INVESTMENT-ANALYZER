@@ -1,3 +1,9 @@
+"""Bulk data API endpoints.
+
+This module provides API endpoints for bulk data fetching operations,
+including job management and progress tracking.
+"""
+
 from functools import wraps
 import logging
 import os
@@ -622,6 +628,14 @@ def get_job_status(job_id: str):
 @require_api_key
 @rate_limit()
 def stop_job(job_id: str):
+    """Stop a running job by job ID.
+
+    Args:
+        job_id: The ID of the job to stop.
+
+    Returns:
+        JSON response with success status.
+    """
     job = JOBS.get(job_id)
     if not job:
         return (

@@ -1,4 +1,8 @@
-# This file makes the app directory a Python package
+"""Application package initialization.
+
+This package contains the main Flask application and its components.
+"""
+
 from .app import app, socketio
 
 

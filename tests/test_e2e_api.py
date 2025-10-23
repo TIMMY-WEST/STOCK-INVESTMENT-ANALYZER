@@ -1,5 +1,4 @@
-"""API E2Eテスト - ブラウザを使わずにFlaskアプリケーションのAPIをテスト.
-"""
+"""API E2Eテスト - ブラウザを使わずにFlaskアプリケーションのAPIをテスト."""
 
 import os
 import sys

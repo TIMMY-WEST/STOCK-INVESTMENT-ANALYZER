@@ -1,4 +1,5 @@
 """Issue #67: 時間軸選択UI機能のテストコード.
+
 Enhanced Timeframe Selector UI Tests
 
 このテストファイルは、時間軸選択UIの基本機能をテストします：

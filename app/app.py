@@ -1,3 +1,9 @@
+"""Flask application main module.
+
+This module initializes and configures the Flask application,
+including WebSocket support, database setup, and API blueprints.
+"""
+
 from datetime import date, datetime
 import os
 
@@ -57,6 +63,11 @@ def handle_disconnect():
 
 @app.route("/")
 def index():
+    """Render the main index page.
+
+    Returns:
+        Rendered HTML template for the index page.
+    """
     return render_template("index.html")
 
 
@@ -98,6 +109,11 @@ def test_connection():
 
 @app.route("/api/fetch-data", methods=["POST"])
 def fetch_data():
+    """Fetch stock data for a given symbol and period.
+
+    Returns:
+        JSON response with stock data or error information.
+    """
     try:
         data = request.get_json()
         symbol = data.get("symbol", "7203.T")

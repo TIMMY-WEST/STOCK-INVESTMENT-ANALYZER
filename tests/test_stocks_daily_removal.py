@@ -1,4 +1,5 @@
 """stocks_daily テーブル削除に関するテストコード.
+
 Issue #65: Remove stocks_daily table after migration
 
 このテストは以下を検証します:
@@ -112,7 +113,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
             )
 
     def test_stock_daily_alias_works(self):
-        """StockDaily エイリアスが正常に動作することを確認."""
+        """Verify that StockDaily エイリアスが正常に動作することを確認."""
         # StockDaily が Stocks1d のエイリアスであることを確認
         self.assertEqual(
             StockDaily,

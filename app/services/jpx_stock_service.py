@@ -47,6 +47,10 @@ class JPXStockService:
     REQUEST_TIMEOUT = 30
 
     def __init__(self):
+        """Initialize JPXStockService with configured HTTP session.
+
+        Sets up a requests session with appropriate headers.
+        """
         self.session = requests.Session()
         # User-Agentを設定してブロックを回避
         self.session.headers.update(

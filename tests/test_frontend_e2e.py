@@ -1,4 +1,5 @@
 """フロントエンドE2Eテスト.
+
 UIバグやページネーション表示問題を検知するためのテスト。
 """
 
@@ -21,6 +22,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 # テスト用のFlaskアプリケーションサーバー
 class FlaskTestServer:
     def __init__(self, port=8001):
+        """Initialize Flask test server.
+
+        Args:
+            port: Port number for the test server (default: 8001).
+        """
         self.port = port
         self.process = None
 

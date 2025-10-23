@@ -1,5 +1,4 @@
-"""JPX銘柄マスタAPIエンドポイントのテストコード.
-"""
+"""JPX銘柄マスタAPIエンドポイントのテストコード."""
 
 import json
 from unittest.mock import Mock, patch
