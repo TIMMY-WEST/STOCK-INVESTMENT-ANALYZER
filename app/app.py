@@ -6,6 +6,7 @@ from api.stock_master import stock_master_api
 from api.system_monitoring import system_api
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
+from flask_socketio import SocketIO
 
 from models import (
     Base,
@@ -29,9 +30,6 @@ load_dotenv()
 app = Flask(__name__)
 
 # WebSocket初期化
-from flask_socketio import SocketIO
-
-
 socketio = SocketIO(app, cors_allowed_origins="*")
 app.config["SOCKETIO"] = socketio
 

@@ -74,7 +74,7 @@ class TestD212DocstringFormat:
                         # docstringの開始行にサマリーが含まれている（正しい形式）
                         assert (
                             '"""' in line and len(line.strip()) > 3
-                        ), f"{file_path}:{i+1} - docstringの開始行が空です"
+                        ), f"{file_path}:{i + 1} - docstringの開始行が空です"
 
             except FileNotFoundError:
                 pytest.skip(f"テストファイル {file_path} が見つかりません")

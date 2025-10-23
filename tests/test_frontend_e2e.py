@@ -123,7 +123,7 @@ def driver():
         try:
             if "driver" in locals():
                 driver.quit()
-        except:
+        except Exception:
             pass
 
 

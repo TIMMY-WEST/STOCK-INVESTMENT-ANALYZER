@@ -9,11 +9,11 @@ sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app"))
 )
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
-import app as flask_app
+import app as flask_app  # noqa: E402
 
 
 @pytest.fixture

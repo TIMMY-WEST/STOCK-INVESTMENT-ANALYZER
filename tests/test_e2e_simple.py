@@ -61,7 +61,7 @@ class TestE2ESimple:
             try:
                 if "driver" in locals():
                     driver.quit()
-            except:
+            except Exception:
                 pass
 
     def test_static_file_access(self, driver):

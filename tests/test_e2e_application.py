@@ -109,7 +109,7 @@ class TestE2EApplication:
             try:
                 if "driver" in locals():
                     driver.quit()
-            except:
+            except Exception:
                 pass
 
     def test_application_startup_and_homepage_load(self, app_server, driver):

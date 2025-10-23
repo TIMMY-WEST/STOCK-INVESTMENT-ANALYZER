@@ -12,10 +12,15 @@ sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
 
-import logging
+import logging  # noqa: E402
 
-from app.services.stock_data_orchestrator import StockDataOrchestrator
-from app.utils.timeframe_utils import get_all_intervals, get_display_name
+from app.services.stock_data_orchestrator import (  # noqa: E402
+    StockDataOrchestrator,
+)
+from app.utils.timeframe_utils import (  # noqa: E402
+    get_all_intervals,
+    get_display_name,
+)
 
 
 # ロギング設定
@@ -29,9 +34,9 @@ logger = logging.getLogger(__name__)
 
 def test_single_timeframe(symbol: str, interval: str):
     """単一時間軸のテスト."""
-    logger.info(f"\n{'='*80}")
+    logger.info(f"\n{'=' * 80}")
     logger.info(f"単一時間軸テスト: {symbol} ({get_display_name(interval)})")
-    logger.info(f"{'='*80}")
+    logger.info(f"{'=' * 80}")
 
     orchestrator = StockDataOrchestrator()
 
@@ -61,9 +66,9 @@ def test_single_timeframe(symbol: str, interval: str):
 
 def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
     """複数時間軸のテスト."""
-    logger.info(f"\n{'='*80}")
+    logger.info(f"\n{'=' * 80}")
     logger.info(f"複数時間軸テスト: {symbol}")
-    logger.info(f"{'='*80}")
+    logger.info(f"{'=' * 80}")
 
     if intervals is None:
         intervals = get_all_intervals()
@@ -76,9 +81,9 @@ def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
         )
 
         # サマリー表示
-        logger.info(f"\n{'='*80}")
+        logger.info(f"\n{'=' * 80}")
         logger.info("実行結果サマリー")
-        logger.info(f"{'='*80}")
+        logger.info(f"{'=' * 80}")
 
         success_count = 0
         total_saved = 0
@@ -109,9 +114,9 @@ def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
 
 def test_status(symbol: str):
     """データ状態の確認."""
-    logger.info(f"\n{'='*80}")
+    logger.info(f"\n{'=' * 80}")
     logger.info(f"データ状態確認: {symbol}")
-    logger.info(f"{'='*80}")
+    logger.info(f"{'=' * 80}")
 
     orchestrator = StockDataOrchestrator()
 
@@ -142,10 +147,10 @@ def main():
     # テスト対象銘柄
     test_symbol = "7203.T"  # トヨタ自動車
 
-    logger.info(f"\n{'#'*80}")
-    logger.info(f"# 複数時間軸データ取得テスト")
+    logger.info(f"\n{'#' * 80}")
+    logger.info("# 複数時間軸データ取得テスト")
     logger.info(f"# テスト銘柄: {test_symbol}")
-    logger.info(f"{'#'*80}")
+    logger.info(f"{'#' * 80}")
 
     # 1. 単一時間軸テスト（日足）
     logger.info("\n" + "=" * 80)
@@ -172,9 +177,9 @@ def main():
     logger.info("=" * 80)
     test_status(test_symbol)
 
-    logger.info(f"\n{'#'*80}")
+    logger.info(f"\n{'#' * 80}")
     logger.info("# テスト完了")
-    logger.info(f"{'#'*80}\n")
+    logger.info(f"{'#' * 80}\n")
 
 
 if __name__ == "__main__":

@@ -153,7 +153,7 @@ def main():
         else:
             failed_files.append((filepath, lineno))
 
-    print(f"\n修正完了:")
+    print("\n修正完了:")
     print(f"  成功: {fixed_count}件")
     print(f"  失敗: {len(failed_files)}件")
 

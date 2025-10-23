@@ -210,7 +210,7 @@ class TestFrontendErrorDisplay:
         responses = []
 
         for i in range(5):
-            response = client.get(f"/api/stocks?limit=-{i+1}")
+            response = client.get(f"/api/stocks?limit=-{i + 1}")
             responses.append(response)
 
         # 全てのレスポンスが適切にエラーを返すことを確認
