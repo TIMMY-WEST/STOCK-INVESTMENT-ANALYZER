@@ -207,7 +207,7 @@ class TestBulkDataService:
         # 検証
         assert result["success"] is False
         assert result["error"] == "永続的なエラー"
-        assert result["attempts"] == 3  # 初回 + 2回のリトライ = 3回
+        assert result["attempts"] == 2  # retry_count=2なので2回試行
         assert (
             service.fetcher.fetch_stock_data.call_count == 2
         )  # 実際の呼び出し回数は2回

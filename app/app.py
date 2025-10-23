@@ -356,13 +356,109 @@ def get_stock_by_id(stock_id):
         )
 
 
+def _validate_pagination_params(limit: int, offset: int) -> tuple[bool, dict]:
+    """ページネーションパラメータのバリデーション.
+
+    Args:
+        limit: 取得件数の上限
+        offset: オフセット
+
+    Returns:
+        (バリデーション成功フラグ, エラーレスポンス辞書)
+    """
+    if limit <= 0:
+        return False, {
+            "success": False,
+            "error": "VALIDATION_ERROR",
+            "message": "limit は1以上の値を指定してください",
+        }
+
+    if offset < 0:
+        return False, {
+            "success": False,
+            "error": "VALIDATION_ERROR",
+            "message": "offset は0以上の値を指定してください",
+        }
+
+    return True, {}
+
+
+def _parse_date_param(
+    date_str: str, param_name: str
+) -> tuple[bool, date | None, dict]:
+    """日付パラメータのパース.
+
+    Args:
+        date_str: 日付文字列
+        param_name: パラメータ名（エラーメッセージ用）
+
+    Returns:
+        (パース成功フラグ, パースされた日付, エラーレスポンス辞書)
+    """
+    try:
+        parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        return True, parsed_date, {}
+    except ValueError:
+        return (
+            False,
+            None,
+            {
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": f"{param_name} の形式が正しくありません (YYYY-MM-DD)",
+            },
+        )
+
+
+def _build_stock_query(
+    session,
+    model_class,
+    symbol: str | None,
+    start_date: date | None,
+    end_date: date | None,
+):
+    """株価データクエリの構築.
+
+    Args:
+        session: データベースセッション
+        model_class: モデルクラス
+        symbol: 銘柄コード（オプション）
+        start_date: 開始日（オプション）
+        end_date: 終了日（オプション）
+
+    Returns:
+        構築されたクエリオブジェクト
+    """
+    # 時間軸に応じた日時カラム名を決定
+    time_column = (
+        model_class.datetime
+        if hasattr(model_class, "datetime")
+        else model_class.date
+    )
+
+    # クエリベースの構築
+    query = session.query(model_class)
+
+    # 銘柄フィルタ
+    if symbol:
+        query = query.filter(model_class.symbol == symbol)
+
+    # 日付範囲フィルタ
+    if start_date:
+        query = query.filter(time_column >= start_date)
+    if end_date:
+        query = query.filter(time_column <= end_date)
+
+    return query, time_column
+
+
 @app.route("/api/stocks", methods=["GET"])
 def get_stocks():
     """株価データを取得（クエリパラメータに応じて）."""
     try:
         # クエリパラメータの取得
         symbol = request.args.get("symbol")
-        interval = request.args.get("interval", "1d")  # デフォルトは1日足
+        interval = request.args.get("interval", "1d")
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
         start_date = request.args.get("start_date")
@@ -381,92 +477,41 @@ def get_stocks():
                 400,
             )
 
+        # ページネーションパラメータのバリデーション
+        valid, error_response = _validate_pagination_params(limit, offset)
+        if not valid:
+            return jsonify(error_response), 400
+
         # 日付のパース
         parsed_start_date = None
         parsed_end_date = None
+
         if start_date:
-            try:
-                parsed_start_date = datetime.strptime(
-                    start_date, "%Y-%m-%d"
-                ).date()
-            except ValueError:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": "VALIDATION_ERROR",
-                            "message": "start_date の形式が正しくありません (YYYY-MM-DD)",
-                        }
-                    ),
-                    400,
-                )
+            valid, parsed_start_date, error_response = _parse_date_param(
+                start_date, "start_date"
+            )
+            if not valid:
+                return jsonify(error_response), 400
 
         if end_date:
-            try:
-                parsed_end_date = datetime.strptime(
-                    end_date, "%Y-%m-%d"
-                ).date()
-            except ValueError:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": "VALIDATION_ERROR",
-                            "message": "end_date の形式が正しくありません (YYYY-MM-DD)",
-                        }
-                    ),
-                    400,
-                )
-
-        # バリデーション
-        if limit <= 0:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "VALIDATION_ERROR",
-                        "message": "limit は1以上の値を指定してください",
-                    }
-                ),
-                400,
+            valid, parsed_end_date, error_response = _parse_date_param(
+                end_date, "end_date"
             )
-
-        if offset < 0:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "VALIDATION_ERROR",
-                        "message": "offset は0以上の値を指定してください",
-                    }
-                ),
-                400,
-            )
+            if not valid:
+                return jsonify(error_response), 400
 
         # 時間軸に応じたモデルクラスを取得
         model_class = get_model_for_interval(interval)
 
-        # 時間軸に応じた日時カラム名を決定
-        # 1分〜1時間足は datetime、日足以上は date
-        time_column = (
-            model_class.datetime
-            if hasattr(model_class, "datetime")
-            else model_class.date
-        )
-
         with get_db_session() as session:
-            # クエリベースの構築
-            query = session.query(model_class)
-
-            # 銘柄フィルタ
-            if symbol:
-                query = query.filter(model_class.symbol == symbol)
-
-            # 日付範囲フィルタ
-            if parsed_start_date:
-                query = query.filter(time_column >= parsed_start_date)
-            if parsed_end_date:
-                query = query.filter(time_column <= parsed_end_date)
+            # クエリの構築
+            query, time_column = _build_stock_query(
+                session,
+                model_class,
+                symbol,
+                parsed_start_date,
+                parsed_end_date,
+            )
 
             # 総件数取得
             total_count = query.count()

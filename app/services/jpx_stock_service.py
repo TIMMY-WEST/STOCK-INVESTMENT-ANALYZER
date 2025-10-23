@@ -103,6 +103,21 @@ class JPXStockService:
             logger.error(error_msg)
             raise JPXParseError(error_msg) from e
 
+    def _get_safe_value(self, row, key: str) -> Optional[str]:
+        """行から安全に値を取得（空文字列やNaNの場合はNoneを返す）.
+
+        Args:
+            row: データ行
+            key: キー
+
+        Returns:
+            値またはNone
+        """
+        value = row[key]
+        if pd.notna(value) and value != "":
+            return value
+        return None
+
     def _normalize_jpx_data(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
         """JPXのExcelデータを正規化する.
 
@@ -117,7 +132,6 @@ class JPXStockService:
         """
         try:
             # JPXのExcelフォーマットに応じて列名をマッピング
-            # 実際のJPXファイルの列名に合わせて調整が必要
             expected_columns = [
                 "コード",
                 "銘柄名",
@@ -135,17 +149,17 @@ class JPXStockService:
             logger.debug(f"利用可能な列: {available_columns}")
 
             # 必要な列を抽出（存在する列のみ）
-            column_mapping = {}
-            for expected_col in expected_columns:
-                if expected_col in available_columns:
-                    column_mapping[expected_col] = expected_col
+            column_mapping = {
+                col: col
+                for col in expected_columns
+                if col in available_columns
+            }
 
             # 最低限必要な列（コード、銘柄名）が存在するかチェック
             if (
                 "コード" not in column_mapping
                 and "stock_code" not in available_columns
             ):
-                # フォールバック: 最初の列をコードとして使用
                 if len(available_columns) >= 1:
                     column_mapping[available_columns[0]] = "コード"
 
@@ -153,7 +167,6 @@ class JPXStockService:
                 "銘柄名" not in column_mapping
                 and "stock_name" not in available_columns
             ):
-                # フォールバック: 2番目の列を銘柄名として使用
                 if len(available_columns) >= 2:
                     column_mapping[available_columns[1]] = "銘柄名"
 
@@ -208,47 +221,24 @@ class JPXStockService:
                     {
                         "stock_code": row["stock_code"],
                         "stock_name": row["stock_name"],
-                        "market_category": (
-                            row["market_category"]
-                            if pd.notna(row["market_category"])
-                            and row["market_category"] != ""
-                            else None
+                        "market_category": self._get_safe_value(
+                            row, "market_category"
                         ),
-                        "sector_code_33": (
-                            row["sector_code_33"]
-                            if pd.notna(row["sector_code_33"])
-                            and row["sector_code_33"] != ""
-                            else None
+                        "sector_code_33": self._get_safe_value(
+                            row, "sector_code_33"
                         ),
-                        "sector_name_33": (
-                            row["sector_name_33"]
-                            if pd.notna(row["sector_name_33"])
-                            and row["sector_name_33"] != ""
-                            else None
+                        "sector_name_33": self._get_safe_value(
+                            row, "sector_name_33"
                         ),
-                        "sector_code_17": (
-                            row["sector_code_17"]
-                            if pd.notna(row["sector_code_17"])
-                            and row["sector_code_17"] != ""
-                            else None
+                        "sector_code_17": self._get_safe_value(
+                            row, "sector_code_17"
                         ),
-                        "sector_name_17": (
-                            row["sector_name_17"]
-                            if pd.notna(row["sector_name_17"])
-                            and row["sector_name_17"] != ""
-                            else None
+                        "sector_name_17": self._get_safe_value(
+                            row, "sector_name_17"
                         ),
-                        "scale_code": (
-                            row["scale_code"]
-                            if pd.notna(row["scale_code"])
-                            and row["scale_code"] != ""
-                            else None
-                        ),
-                        "scale_category": (
-                            row["scale_category"]
-                            if pd.notna(row["scale_category"])
-                            and row["scale_category"] != ""
-                            else None
+                        "scale_code": self._get_safe_value(row, "scale_code"),
+                        "scale_category": self._get_safe_value(
+                            row, "scale_category"
                         ),
                         "data_date": row["data_date"],
                     }

@@ -152,6 +152,93 @@ def update_stock_master():
         )
 
 
+def _validate_pagination_params_stock_master(
+    limit_str: str, offset_str: str
+) -> tuple[bool, int, int, dict]:
+    """ページネーションパラメータのバリデーション.
+
+    Args:
+        limit_str: limit文字列
+        offset_str: offset文字列
+
+    Returns:
+        (バリデーション成功フラグ, limit値, offset値, エラーレスポンス辞書)
+    """
+    # 数値への変換
+    try:
+        limit = int(limit_str)
+        offset = int(offset_str)
+    except ValueError:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "limitとoffsetは数値である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    # 範囲チェック
+    if limit < 1 or limit > 1000:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "limitは1から1000の間である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    if offset < 0:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "offsetは0以上である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    return True, limit, offset, {}
+
+
+def _parse_is_active_param(
+    is_active_param: str,
+) -> tuple[bool, bool | None, dict]:
+    """is_activeパラメータのパース.
+
+    Args:
+        is_active_param: is_active文字列
+
+    Returns:
+        (パース成功フラグ, is_active値, エラーレスポンス辞書)
+    """
+    is_active_param = is_active_param.lower()
+
+    if is_active_param == "all":
+        return True, None, {}
+    elif is_active_param == "true":
+        return True, True, {}
+    elif is_active_param == "false":
+        return True, False, {}
+    else:
+        return (
+            False,
+            None,
+            {
+                "status": "error",
+                "message": 'is_activeは "true", "false", "all" のいずれかである必要があります',
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+
 @stock_master_api.route("/api/stock-master/list", methods=["GET"])
 @require_api_key
 def get_stock_master_list():
@@ -202,69 +289,27 @@ def get_stock_master_list():
     """
     try:
         # クエリパラメータを取得
-        is_active_param = request.args.get("is_active", "true").lower()
+        is_active_param = request.args.get("is_active", "true")
         market_category = request.args.get("market_category")
-        limit = request.args.get("limit", "100")
-        offset = request.args.get("offset", "0")
+        limit_str = request.args.get("limit", "100")
+        offset_str = request.args.get("offset", "0")
 
-        # パラメータの検証
-        try:
-            limit = int(limit)
-            offset = int(offset)
-        except ValueError:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "limitとoffsetは数値である必要があります",
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
+        # ページネーションパラメータのバリデーション
+        (
+            valid,
+            limit,
+            offset,
+            error_response,
+        ) = _validate_pagination_params_stock_master(limit_str, offset_str)
+        if not valid:
+            return jsonify(error_response), 400
 
-        if limit < 1 or limit > 1000:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "limitは1から1000の間である必要があります",
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
-
-        if offset < 0:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "offsetは0以上である必要があります",
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
-
-        # is_activeパラメータの処理
-        if is_active_param == "all":
-            is_active = None
-        elif is_active_param == "true":
-            is_active = True
-        elif is_active_param == "false":
-            is_active = False
-        else:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": 'is_activeは "true", "false", "all" のいずれかである必要があります',
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
+        # is_activeパラメータのパース
+        valid, is_active, error_response = _parse_is_active_param(
+            is_active_param
+        )
+        if not valid:
+            return jsonify(error_response), 400
 
         logger.info(
             f"銘柄一覧取得: is_active={is_active}, market_category={market_category}, limit={limit}, offset={offset}"

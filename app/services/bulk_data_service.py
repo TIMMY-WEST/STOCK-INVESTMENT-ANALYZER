@@ -218,10 +218,87 @@ class BulkDataService:
             backoff_multiplier=3.0,  # バックオフ倍率を3.0に増加
         )
 
+    def _fetch_and_convert_data(
+        self, symbol: str, interval: str, period: Optional[str]
+    ) -> tuple[bool, list, int]:
+        """データの取得と変換.
+
+        Args:
+            symbol: 銘柄コード
+            interval: 時間軸
+            period: 取得期間
+
+        Returns:
+            (成功フラグ, 変換済みデータリスト, 処理時間(ms))
+        """
+        fetch_start = time.time()
+        df = self.fetcher.fetch_stock_data(
+            symbol=symbol, interval=interval, period=period
+        )
+        fetch_duration = int((time.time() - fetch_start) * 1000)
+
+        # 構造化ログ: データ取得成功
+        self.batch_logger.log_batch_action(
+            action="data_fetch",
+            stock_code=symbol,
+            status="success",
+            duration_ms=fetch_duration,
+            records_count=len(df),
+        )
+
+        # データ変換
+        try:
+            data_list = self.fetcher.convert_to_dict(df, interval)
+            if not data_list:
+                self.logger.warning(f"変換後のデータが空です: {symbol}")
+                return False, [], fetch_duration
+
+            return True, data_list, fetch_duration
+
+        except Exception as e:
+            self.logger.error(f"データ変換エラー: {symbol}: {e}")
+            return False, [], fetch_duration
+
+    def _handle_retry_action(
+        self,
+        action: "ErrorAction",
+        symbol: str,
+        error: Exception,
+        retry_count: int,
+    ) -> bool:
+        """リトライアクションの処理.
+
+        Args:
+            action: エラーアクション
+            symbol: 銘柄コード
+            error: エラー
+            retry_count: 現在のリトライ回数
+
+        Returns:
+            継続フラグ（Trueなら継続、Falseなら終了）
+        """
+        if action == ErrorAction.RETRY:
+            if retry_count < self.retry_count - 1:
+                self.logger.info(
+                    f"リトライ {retry_count + 1}/{self.retry_count}: {symbol}"
+                )
+                return True
+            else:
+                self.logger.error(f"最大リトライ回数に達しました: {symbol}")
+                return False
+        elif action == ErrorAction.SKIP:
+            return False
+        elif action == ErrorAction.ABORT:
+            raise BulkDataServiceError(
+                f"システムエラー: {symbol}: {error}"
+            ) from error
+
+        return False
+
     def fetch_single_stock(
         self, symbol: str, interval: str = "1d", period: Optional[str] = None
     ) -> Dict[str, Any]:
-        """単一銘柄のデータを取得・保存（ErrorHandlerによるリトライ機能付き）.
+        """単一銘柄のデータを取得・保存（ErrorHandlerによるリトライ機能付き).
 
         Args:
             symbol: 銘柄コード
@@ -232,37 +309,19 @@ class BulkDataService:
             処理結果。
         """
         last_error = None
-        retry_count = 0
         start_time = time.time()
+        retry_count_for_handler = 0
 
-        for attempt in range(self.retry_count):
+        for _ in range(self.retry_count):
             try:
-                # データ取得
-                fetch_start = time.time()
-                df = self.fetcher.fetch_stock_data(
-                    symbol=symbol, interval=interval, period=period
-                )
-                fetch_duration = int((time.time() - fetch_start) * 1000)
+                # データ取得と変換
+                (
+                    success,
+                    data_list,
+                    fetch_duration,
+                ) = self._fetch_and_convert_data(symbol, interval, period)
 
-                # 構造化ログ: データ取得成功
-                self.batch_logger.log_batch_action(
-                    action="data_fetch",
-                    stock_code=symbol,
-                    status="success",
-                    duration_ms=fetch_duration,
-                    records_count=len(df),
-                )
-
-                # データ変換
-                try:
-                    data_list = self.fetcher.convert_to_dict(df, interval)
-                    if not data_list:
-                        self.logger.warning(
-                            f"変換後のデータが空です: {symbol}"
-                        )
-                        continue
-                except Exception as e:
-                    self.logger.error(f"データ変換エラー: {symbol}: {e}")
+                if not success:
                     continue
 
                 # データ保存
@@ -285,7 +344,7 @@ class BulkDataService:
                     "records_fetched": len(data_list),
                     "records_saved": save_result.get("saved", 0),
                     "duration_ms": total_duration,
-                    "attempt": retry_count + 1,
+                    "attempt": retry_count_for_handler + 1,
                 }
 
             except Exception as e:
@@ -294,29 +353,18 @@ class BulkDataService:
 
                 # エラーハンドラーでアクションを決定
                 action = self.error_handler.handle_error(
-                    e, symbol, {"retry_count": retry_count}
+                    e, symbol, {"retry_count": retry_count_for_handler}
                 )
 
-                if action == ErrorAction.RETRY:
-                    retry_count += 1
-                    if retry_count < self.retry_count:
-                        self.logger.info(
-                            f"リトライ {retry_count}/{self.retry_count}: {symbol}"
-                        )
-                        continue
-                    else:
-                        self.logger.error(
-                            f"最大リトライ回数に達しました: {symbol}"
-                        )
-                        break
-                elif action == ErrorAction.SKIP:
-                    # スキップして処理終了
+                # リトライカウントをインクリメント（ブレイク前に実行）
+                retry_count_for_handler += 1
+
+                # アクション処理
+                should_continue = self._handle_retry_action(
+                    action, symbol, e, retry_count_for_handler - 1
+                )
+                if not should_continue:
                     break
-                elif action == ErrorAction.ABORT:
-                    # システムエラー - 例外を再発生させる
-                    raise BulkDataServiceError(
-                        f"システムエラー: {symbol}: {e}"
-                    ) from e
 
         # 構造化ログ: エラー発生
         total_duration = int((time.time() - start_time) * 1000)
@@ -325,7 +373,7 @@ class BulkDataService:
             stock_code=symbol,
             status="failed",
             error_message=str(last_error),
-            retry_count=retry_count,
+            retry_count=retry_count_for_handler - 1,
             duration_ms=total_duration,
         )
 
@@ -334,8 +382,8 @@ class BulkDataService:
             "symbol": symbol,
             "interval": interval,
             "error": str(last_error),
-            "attempts": retry_count + 1,
-            "retry_count": retry_count,
+            "attempts": retry_count_for_handler,
+            "retry_count": retry_count_for_handler - 1,
             "duration_ms": total_duration,
         }
 
@@ -370,6 +418,138 @@ class BulkDataService:
                 symbols, interval, period, progress_callback
             )
 
+    def _process_batch_data_conversion(
+        self, batch_data: dict, interval: str
+    ) -> tuple[dict, list]:
+        """バッチデータの変換処理.
+
+        Args:
+            batch_data: バッチデータ
+            interval: 時間軸
+
+        Returns:
+            (変換済みデータ辞書, エラーリスト)
+        """
+        symbols_data = {}
+        conversion_errors = []
+
+        for symbol, df in batch_data.items():
+            try:
+                data_list = self.fetcher.convert_to_dict(df, interval)
+                if data_list:
+                    symbols_data[symbol] = data_list
+                else:
+                    self.logger.warning(f"データ変換後が空: {symbol}")
+            except Exception as e:
+                conversion_errors.append(f"{symbol}: {e}")
+                self.logger.error(f"データ変換エラー: {symbol}: {e}")
+
+        if conversion_errors:
+            self.logger.warning(
+                f"データ変換エラー: {len(conversion_errors)}件 - "
+                f"{', '.join(conversion_errors[:5])}"
+                + ("..." if len(conversion_errors) > 5 else "")
+            )
+
+        return symbols_data, conversion_errors
+
+    def _save_batch_if_data_exists(
+        self, symbols_data: dict, interval: str, batch_index: int
+    ) -> tuple[dict, int]:
+        """データが存在する場合の保存処理.
+
+        Args:
+            symbols_data: 変換済みデータ
+            interval: 時間軸
+            batch_index: バッチインデックス
+
+        Returns:
+            (保存結果辞書, 処理時間(ms))
+        """
+        if not symbols_data:
+            self.logger.warning(f"保存可能なデータなし: バッチ {batch_index}")
+            return {
+                "total_symbols": 0,
+                "total_saved": 0,
+                "results_by_symbol": {},
+            }, 0
+
+        save_start = time.time()
+        save_result = self.saver.save_batch_stock_data(
+            symbols_data=symbols_data, interval=interval
+        )
+        save_duration = int((time.time() - save_start) * 1000)
+        self.logger.debug(
+            f"バッチ保存完了: {len(symbols_data)}銘柄 - {save_duration}ms"
+        )
+        return save_result, save_duration
+
+    def _record_batch_result(
+        self,
+        symbol: str,
+        interval: str,
+        symbols_data: dict,
+        save_result: dict,
+        batch_duration: int,
+        batch_size: int,
+        tracker,
+        all_results: list,
+    ) -> None:
+        """バッチ処理結果の記録.
+
+        Args:
+            symbol: 銘柄コード
+            interval: 時間軸
+            symbols_data: 変換済みデータ
+            save_result: 保存結果
+            batch_duration: バッチ処理時間(ms)
+            batch_size: バッチサイズ
+            tracker: 進捗トラッカー
+            all_results: 全結果リスト
+        """
+        if symbol in symbols_data and len(symbols_data[symbol]) > 0:
+            data_list = symbols_data[symbol]
+            symbol_save_result = save_result.get("results_by_symbol", {}).get(
+                symbol, {}
+            )
+
+            self.logger.info(
+                f"バッチ保存完了: {symbol} ({interval}) - "
+                f"有効データ: {len(data_list)}件, 保存: {symbol_save_result.get('saved', 0)}件"
+            )
+
+            result = {
+                "success": True,
+                "symbol": symbol,
+                "interval": interval,
+                "records_fetched": len(data_list),
+                "records_saved": symbol_save_result.get("saved", 0),
+                "duration_ms": batch_duration // batch_size,
+            }
+            all_results.append(result)
+
+            tracker.update(
+                symbol=symbol,
+                success=True,
+                duration_ms=batch_duration // batch_size,
+                records_fetched=len(data_list),
+                records_saved=symbol_save_result.get("saved", 0),
+            )
+        else:
+            # データ取得失敗
+            result = {
+                "success": False,
+                "symbol": symbol,
+                "interval": interval,
+                "error": "データ取得失敗",
+            }
+            all_results.append(result)
+            tracker.update(
+                symbol=symbol,
+                success=False,
+                error_message="データ取得失敗",
+            )
+
     def _fetch_multiple_stocks_batch(
         self,
         symbols: List[str],
@@ -395,7 +575,6 @@ class BulkDataService:
             f"(時間軸: {interval}, バッチサイズ: {batch_size})"
         )
 
-        # 進捗トラッカー初期化
         tracker = ProgressTracker(total=len(symbols))
         all_results = []
 
@@ -403,9 +582,10 @@ class BulkDataService:
         for i in range(0, len(symbols), batch_size):
             batch_symbols = symbols[i : i + batch_size]
             batch_start_time = time.time()
+            batch_index = i // batch_size + 1
 
             self.logger.info(
-                f"バッチ {i // batch_size + 1}/{(len(symbols) + batch_size - 1) // batch_size} 処理開始: "
+                f"バッチ {batch_index}/{(len(symbols) + batch_size - 1) // batch_size} 処理開始: "
                 f"{len(batch_symbols)}銘柄"
             )
 
@@ -420,109 +600,30 @@ class BulkDataService:
                     f"バッチフェッチ完了: {len(batch_symbols)}銘柄 - {fetch_duration}ms"
                 )
 
-                # データ変換（エラーハンドリング強化）
-                symbols_data = {}
-                conversion_errors = []
-                for symbol, df in batch_data.items():
-                    try:
-                        data_list = self.fetcher.convert_to_dict(df, interval)
-                        if data_list:  # 空でない場合のみ追加
-                            symbols_data[symbol] = data_list
-                        else:
-                            self.logger.warning(f"データ変換後が空: {symbol}")
-                    except Exception as e:
-                        conversion_errors.append(f"{symbol}: {e}")
-                        self.logger.error(f"データ変換エラー: {symbol}: {e}")
+                # データ変換
+                symbols_data, _ = self._process_batch_data_conversion(
+                    batch_data, interval
+                )
 
-                if conversion_errors:
-                    self.logger.warning(
-                        f"データ変換エラー: {len(conversion_errors)}件 - "
-                        f"{', '.join(conversion_errors[:5])}"
-                        + ("..." if len(conversion_errors) > 5 else "")
-                    )
-
-                # バッチ保存（データがある場合のみ）
-                if symbols_data:
-                    save_start = time.time()
-                    save_result = self.saver.save_batch_stock_data(
-                        symbols_data=symbols_data, interval=interval
-                    )
-                    save_duration = int((time.time() - save_start) * 1000)
-                    self.logger.debug(
-                        f"バッチ保存完了: {len(symbols_data)}銘柄 - {save_duration}ms"
-                    )
-                else:
-                    self.logger.warning(
-                        f"保存可能なデータなし: バッチ {i // batch_size + 1}"
-                    )
-                    save_result = {
-                        "total_symbols": 0,
-                        "total_saved": 0,
-                        "results_by_symbol": {},
-                    }
-                    save_duration = 0
+                # バッチ保存
+                save_result, _ = self._save_batch_if_data_exists(
+                    symbols_data, interval, batch_index
+                )
 
                 batch_duration = int((time.time() - batch_start_time) * 1000)
 
                 # 結果を記録
                 for symbol in batch_symbols:
-                    if (
-                        symbol in symbols_data
-                        and len(symbols_data[symbol]) > 0
-                    ):
-                        data_list = symbols_data[
-                            symbol
-                        ]  # 既に変換済みのデータを使用
-
-                        # バッチ保存結果から該当銘柄の結果を取得
-                        symbol_save_result = save_result.get(
-                            "results_by_symbol", {}
-                        ).get(symbol, {})
-
-                        # 成功ログ
-                        self.logger.info(
-                            f"バッチ保存完了: {symbol} ({interval}) - "
-                            f"有効データ: {len(data_list)}件, 保存: {symbol_save_result.get('saved', 0)}件"
-                        )
-
-                        # 結果記録
-                        result = {
-                            "success": True,
-                            "symbol": symbol,
-                            "interval": interval,
-                            "records_fetched": len(
-                                data_list
-                            ),  # 有効データ数を記録
-                            "records_saved": symbol_save_result.get(
-                                "saved", 0
-                            ),
-                            "duration_ms": batch_duration
-                            // len(batch_symbols),
-                        }
-                        all_results.append(result)
-
-                        # 進捗更新
-                        tracker.update(
-                            symbol=symbol,
-                            success=True,
-                            duration_ms=batch_duration // len(batch_symbols),
-                            records_fetched=len(data_list),  # 有効データ数
-                            records_saved=symbol_save_result.get("saved", 0),
-                        )
-                    else:
-                        # データ取得失敗
-                        result = {
-                            "success": False,
-                            "symbol": symbol,
-                            "interval": interval,
-                            "error": "データ取得失敗",
-                        }
-                        all_results.append(result)
-                        tracker.update(
-                            symbol=symbol,
-                            success=False,
-                            error_message="データ取得失敗",
-                        )
+                    self._record_batch_result(
+                        symbol,
+                        interval,
+                        symbols_data,
+                        save_result,
+                        batch_duration,
+                        len(batch_symbols),
+                        tracker,
+                        all_results,
+                    )
 
                 # 進捗コールバック実行
                 if progress_callback:
