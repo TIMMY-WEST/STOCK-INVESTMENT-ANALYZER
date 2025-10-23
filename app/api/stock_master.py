@@ -22,7 +22,10 @@ stock_master_api = Blueprint("stock_master_api", __name__)
 
 # APIキー認証
 def require_api_key(f):
-    """API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。"""
+    """API key authentication decorator.
+
+    Skips authentication if API_KEY environment variable is not set (for development).
+    """
 
     @wraps(f)
     def decorated_function(*args, **kwargs):

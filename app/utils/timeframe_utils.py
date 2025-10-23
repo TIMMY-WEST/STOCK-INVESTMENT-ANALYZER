@@ -1,5 +1,4 @@
-"""yfinanceの時間軸(interval)とデータベースモデルのマッピングを提供します。
-"""
+"""Provides mapping between yfinance intervals and database models."""
 
 from typing import Dict, Literal, Type
 

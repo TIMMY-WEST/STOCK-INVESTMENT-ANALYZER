@@ -1,8 +1,7 @@
-"""Phase 1のインメモリ管理からPhase 2のデータベース永続化への移行。
+"""Phase 1のインメモリ管理からPhase 2のデータベース永続化への移行.
 バッチ実行情報をデータベースに保存し、永続的に管理します。
 
-参照仕様書: docs/api_bulk_fetch.md (Phase 2)。
-"""
+参照仕様書: docs/api_bulk_fetch.md (Phase 2)。"""
 
 from datetime import datetime
 import logging

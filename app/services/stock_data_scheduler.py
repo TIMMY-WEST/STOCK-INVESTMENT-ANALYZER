@@ -1,6 +1,4 @@
-"""定期的なデータ取得をスケジュールします。
-APSchedulerを使用した実装例です。
-"""
+"""Schedules periodic data fetching using APScheduler."""
 
 from datetime import datetime
 import logging

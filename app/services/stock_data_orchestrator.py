@@ -1,5 +1,4 @@
-"""データ取得から保存、整合性チェックまでを統合的に管理します。
-"""
+"""Orchestrates data fetching, saving, and integrity checks."""
 
 from datetime import datetime
 import logging

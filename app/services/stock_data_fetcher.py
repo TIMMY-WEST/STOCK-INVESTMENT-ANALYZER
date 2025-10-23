@@ -1,4 +1,6 @@
-"""yfinanceを使用して各時間軸の株価データを取得します。
+"""yfinanceを使用して各時間軸の株価データを取得します.
+
+このモジュールは株価データの取得、検証、変換機能を提供します。
 """
 
 from datetime import date, datetime

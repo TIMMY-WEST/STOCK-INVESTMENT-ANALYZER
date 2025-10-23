@@ -36,7 +36,7 @@ def _client_key() -> str:
 
 
 def require_api_key(func: Callable):
-    """API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。"""
+    """API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):

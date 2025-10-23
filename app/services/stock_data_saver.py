@@ -1,5 +1,4 @@
-"""各時間軸の株価データをデータベースに保存します。
-"""
+"""Saves stock price data for each timeframe to the database."""
 
 from datetime import date, datetime
 import logging
