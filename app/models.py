@@ -6,6 +6,7 @@
 
 from contextlib import contextmanager
 from datetime import date, datetime
+from decimal import Decimal
 import os
 from typing import Any, Dict, List, Optional
 
@@ -13,7 +14,6 @@ from dotenv import load_dotenv
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
-    Column,
     Date,
     DateTime,
     Index,
@@ -24,14 +24,23 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    Session,
+    mapped_column,
+    sessionmaker,
+)
 from sqlalchemy.sql import func
 
 
 load_dotenv()
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """全てのモデルクラスの基底クラス."""
+
+    pass
 
 
 class DatabaseError(Exception):
@@ -55,15 +64,19 @@ class StockDataBase:
     """
 
     # 共通カラム
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    symbol = Column(String(20), nullable=False)
-    open = Column(Numeric(10, 2), nullable=False)
-    high = Column(Numeric(10, 2), nullable=False)
-    low = Column(Numeric(10, 2), nullable=False)
-    close = Column(Numeric(10, 2), nullable=False)
-    volume = Column(BigInteger, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    open: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    high: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    low: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    close: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    volume: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
@@ -109,7 +122,9 @@ class Stocks1m(Base, StockDataBase):
 
     __tablename__ = "stocks_1m"
 
-    datetime = Column(DateTime(timezone=True), nullable=False)
+    datetime: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -147,7 +162,9 @@ class Stocks5m(Base, StockDataBase):
 
     __tablename__ = "stocks_5m"
 
-    datetime = Column(DateTime(timezone=True), nullable=False)
+    datetime: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -185,7 +202,9 @@ class Stocks15m(Base, StockDataBase):
 
     __tablename__ = "stocks_15m"
 
-    datetime = Column(DateTime(timezone=True), nullable=False)
+    datetime: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -223,7 +242,9 @@ class Stocks30m(Base, StockDataBase):
 
     __tablename__ = "stocks_30m"
 
-    datetime = Column(DateTime(timezone=True), nullable=False)
+    datetime: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -261,7 +282,9 @@ class Stocks1h(Base, StockDataBase):
 
     __tablename__ = "stocks_1h"
 
-    datetime = Column(DateTime(timezone=True), nullable=False)
+    datetime: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -299,7 +322,7 @@ class Stocks1d(Base, StockDataBase):
 
     __tablename__ = "stocks_1d"
 
-    date = Column(Date, nullable=False)
+    date: Mapped[date] = mapped_column(Date, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("symbol", "date", name="uk_stocks_1d_symbol_date"),
@@ -335,7 +358,7 @@ class Stocks1wk(Base, StockDataBase):
 
     __tablename__ = "stocks_1wk"
 
-    date = Column(Date, nullable=False)
+    date: Mapped[date] = mapped_column(Date, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("symbol", "date", name="uk_stocks_1wk_symbol_date"),
@@ -371,7 +394,7 @@ class Stocks1mo(Base, StockDataBase):
 
     __tablename__ = "stocks_1mo"
 
-    date = Column(Date, nullable=False)
+    date: Mapped[date] = mapped_column(Date, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("symbol", "date", name="uk_stocks_1mo_symbol_date"),
@@ -412,36 +435,52 @@ class StockMaster(Base):
 
     __tablename__ = "stock_master"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
 
     # 基本情報
-    stock_code = Column(
+    stock_code: Mapped[str] = mapped_column(
         String(10), unique=True, nullable=False
     )  # 銘柄コード（例: "7203"）
-    stock_name = Column(
+    stock_name: Mapped[str] = mapped_column(
         String(100), nullable=False
     )  # 銘柄名（例: "トヨタ自動車"）
-    market_category = Column(
+    market_category: Mapped[Optional[str]] = mapped_column(
         String(50)
     )  # 市場区分（例: "プライム（内国株式）"）
 
     # 業種情報
-    sector_code_33 = Column(String(10))  # 33業種コード
-    sector_name_33 = Column(String(100))  # 33業種区分
-    sector_code_17 = Column(String(10))  # 17業種コード
-    sector_name_17 = Column(String(100))  # 17業種区分
+    sector_code_33: Mapped[Optional[str]] = mapped_column(
+        String(10)
+    )  # 33業種コード
+    sector_name_33: Mapped[Optional[str]] = mapped_column(
+        String(100)
+    )  # 33業種区分
+    sector_code_17: Mapped[Optional[str]] = mapped_column(
+        String(10)
+    )  # 17業種コード
+    sector_name_17: Mapped[Optional[str]] = mapped_column(
+        String(100)
+    )  # 17業種区分
 
     # 規模情報
-    scale_code = Column(String(10))  # 規模コード
-    scale_category = Column(String(50))  # 規模区分（TOPIX分類）
+    scale_code: Mapped[Optional[str]] = mapped_column(String(10))  # 規模コード
+    scale_category: Mapped[Optional[str]] = mapped_column(
+        String(50)
+    )  # 規模区分（TOPIX分類）
 
     # データ管理
-    data_date = Column(String(8))  # データ取得日（YYYYMMDD形式）
-    is_active = Column(
+    data_date: Mapped[Optional[str]] = mapped_column(
+        String(8)
+    )  # データ取得日（YYYYMMDD形式）
+    is_active: Mapped[Optional[int]] = mapped_column(
         Integer, default=1, nullable=False
     )  # 有効フラグ（1=有効, 0=無効）
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
@@ -498,16 +537,36 @@ class StockMasterUpdate(Base):
 
     __tablename__ = "stock_master_updates"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    update_type = Column(String(20), nullable=False)  # 'manual', 'scheduled'
-    total_stocks = Column(Integer, nullable=False)  # 総銘柄数
-    added_stocks = Column(Integer, default=0)  # 新規追加銘柄数
-    updated_stocks = Column(Integer, default=0)  # 更新銘柄数
-    removed_stocks = Column(Integer, default=0)  # 削除（無効化）銘柄数
-    status = Column(String(20), nullable=False)  # 'success', 'failed'
-    error_message = Column(String)  # エラーメッセージ
-    started_at = Column(DateTime(timezone=True), server_default=func.now())
-    completed_at = Column(DateTime(timezone=True))
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    update_type: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # 'manual', 'scheduled'
+    total_stocks: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )  # 総銘柄数
+    added_stocks: Mapped[Optional[int]] = mapped_column(
+        Integer, default=0
+    )  # 新規追加銘柄数
+    updated_stocks: Mapped[Optional[int]] = mapped_column(
+        Integer, default=0
+    )  # 更新銘柄数
+    removed_stocks: Mapped[Optional[int]] = mapped_column(
+        Integer, default=0
+    )  # 削除（無効化）銘柄数
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # 'success', 'failed'
+    error_message: Mapped[Optional[str]] = mapped_column(
+        String
+    )  # エラーメッセージ
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )
 
     def __repr__(self):
         """オブジェクトの文字列表現を返す.
@@ -551,21 +610,39 @@ class BatchExecution(Base):
 
     __tablename__ = "batch_executions"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    batch_type = Column(
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    batch_type: Mapped[str] = mapped_column(
         String(50), nullable=False
     )  # 'all_stocks', 'partial', etc.
-    status = Column(
+    status: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'running', 'completed', 'failed', 'paused'
-    total_stocks = Column(Integer, nullable=False)  # 総銘柄数
-    processed_stocks = Column(Integer, default=0)  # 処理済み銘柄数
-    successful_stocks = Column(Integer, default=0)  # 成功銘柄数
-    failed_stocks = Column(Integer, default=0)  # 失敗銘柄数
-    start_time = Column(DateTime(timezone=True), server_default=func.now())
-    end_time = Column(DateTime(timezone=True))
-    error_message = Column(String)  # エラーメッセージ
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    total_stocks: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )  # 総銘柄数
+    processed_stocks: Mapped[Optional[int]] = mapped_column(
+        Integer, default=0
+    )  # 処理済み銘柄数
+    successful_stocks: Mapped[Optional[int]] = mapped_column(
+        Integer, default=0
+    )  # 成功銘柄数
+    failed_stocks: Mapped[Optional[int]] = mapped_column(
+        Integer, default=0
+    )  # 失敗銘柄数
+    start_time: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    end_time: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )
+    error_message: Mapped[Optional[str]] = mapped_column(
+        String
+    )  # エラーメッセージ
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     __table_args__ = (
         Index("idx_batch_executions_status", "status"),
@@ -614,7 +691,8 @@ class BatchExecution(Base):
         """
         if self.total_stocks == 0:
             return 0.0
-        return (self.processed_stocks / self.total_stocks) * 100.0
+        processed = self.processed_stocks or 0
+        return (processed / self.total_stocks) * 100.0
 
     @property
     def duration_seconds(self) -> Optional[float]:
@@ -639,19 +717,33 @@ class BatchExecutionDetail(Base):
 
     __tablename__ = "batch_execution_details"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    batch_execution_id = Column(
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    batch_execution_id: Mapped[int] = mapped_column(
         Integer, nullable=False
     )  # batch_executionsテーブルへの外部キー
-    stock_code = Column(String(10), nullable=False)  # 銘柄コード
-    status = Column(
+    stock_code: Mapped[str] = mapped_column(
+        String(10), nullable=False
+    )  # 銘柄コード
+    status: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'pending', 'processing', 'completed', 'failed'
-    start_time = Column(DateTime(timezone=True))
-    end_time = Column(DateTime(timezone=True))
-    error_message = Column(String)  # エラーメッセージ
-    records_inserted = Column(Integer, default=0)  # 挿入されたレコード数
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    start_time: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )
+    end_time: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )
+    error_message: Mapped[Optional[str]] = mapped_column(
+        String
+    )  # エラーメッセージ
+    records_inserted: Mapped[Optional[int]] = mapped_column(
+        Integer, default=0
+    )  # 挿入されたレコード数
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     __table_args__ = (
         Index("idx_batch_execution_details_batch_id", "batch_execution_id"),
@@ -974,7 +1066,7 @@ class StockDailyCRUD:
                 if hasattr(stock_data, key):
                     setattr(stock_data, key, value)
 
-            stock_data.updated_at = datetime.utcnow()
+            # updated_atはonupdateで自動更新されるため、明示的な設定は不要
             session.flush()
             return stock_data
         except IntegrityError as e:
