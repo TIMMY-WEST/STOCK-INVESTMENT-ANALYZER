@@ -58,8 +58,7 @@ class ErrorHandler:
         retry_delay: int = 2,
         backoff_multiplier: int = 2,
     ):
-        """
-        初期化.
+        """初期化.
 
         Args:
             max_retries: 最大リトライ回数
@@ -79,8 +78,7 @@ class ErrorHandler:
         self.logger = logger
 
     def classify_error(self, error: Exception) -> ErrorType:
-        """
-        エラーを分類.
+        """エラーを分類.
 
         Args:
             error: 発生した例外
@@ -141,8 +139,7 @@ class ErrorHandler:
         stock_code: str,
         context: Optional[Dict[str, Any]] = None,
     ) -> ErrorAction:
-        """
-        エラー処理を判定.
+        """エラー処理を判定.
 
         Args:
             error: 発生した例外
@@ -189,8 +186,7 @@ class ErrorHandler:
     def _handle_temporary_error(
         self, error: Exception, stock_code: str, context: Dict[str, Any]
     ) -> ErrorAction:
-        """
-        一時的エラーの処理.
+        """一時的エラーの処理.
 
         Args:
             error: 発生した例外
@@ -217,8 +213,7 @@ class ErrorHandler:
     def _handle_permanent_error(
         self, error: Exception, stock_code: str, context: Dict[str, Any]
     ) -> ErrorAction:
-        """
-        永続的エラーの処理.
+        """永続的エラーの処理.
 
         Args:
             error: 発生した例外
@@ -236,8 +231,7 @@ class ErrorHandler:
     def _handle_system_error(
         self, error: Exception, stock_code: str, context: Dict[str, Any]
     ) -> ErrorAction:
-        """
-        システムエラーの処理.
+        """システムエラーの処理.
 
         Args:
             error: 発生した例外
@@ -253,8 +247,7 @@ class ErrorHandler:
         return ErrorAction.ABORT
 
     def retry_with_backoff(self, retry_count: int) -> float:
-        """
-        指数バックオフでリトライ待機時間を計算.
+        """指数バックオフでリトライ待機時間を計算.
 
         Args:
             retry_count: 現在のリトライ回数
@@ -268,8 +261,7 @@ class ErrorHandler:
         return delay
 
     def _log_error(self, error_record: ErrorRecord, action: ErrorAction):
-        """
-        エラーログを記録.
+        """エラーログを記録.
 
         Args:
             error_record: エラー記録
@@ -293,8 +285,7 @@ class ErrorHandler:
             self.logger.info(log_message)
 
     def generate_error_report(self) -> Dict[str, Any]:
-        """
-        エラーレポートを生成.
+        """エラーレポートを生成.
 
         Returns:
             Dict[str, Any]: エラーレポート。
@@ -348,8 +339,7 @@ class ErrorHandler:
         return report
 
     def get_error_statistics(self) -> Dict[str, Any]:
-        """
-        エラー統計情報を取得.
+        """エラー統計情報を取得.
 
         Returns:
             Dict[str, Any]: エラー統計。

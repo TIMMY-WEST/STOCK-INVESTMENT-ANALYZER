@@ -1,5 +1,4 @@
-"""
-JPX銘柄マスタ管理API.
+"""JPX銘柄マスタ管理API.
 
 JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント。
 """
@@ -23,10 +22,7 @@ stock_master_api = Blueprint("stock_master_api", __name__)
 
 # APIキー認証
 def require_api_key(f):
-    """APIキー認証デコレータ.
-
-    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。
-    """
+    """API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。"""
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -50,8 +46,7 @@ def require_api_key(f):
 @stock_master_api.route("/api/stock-master/update", methods=["POST"])
 @require_api_key
 def update_stock_master():
-    """
-    JPX銘柄マスタ更新API.
+    """JPX銘柄マスタ更新API.
 
     JPXから最新の銘柄一覧を取得してデータベースを更新します。
 
@@ -159,8 +154,7 @@ def update_stock_master():
 @stock_master_api.route("/api/stock-master/list", methods=["GET"])
 @require_api_key
 def get_stock_master_list():
-    """
-    JPX銘柄マスタ一覧取得API.
+    """JPX銘柄マスタ一覧取得API.
 
     データベースに保存されている銘柄マスタ一覧を取得します。
 
@@ -329,8 +323,7 @@ def get_stock_master_list():
 @stock_master_api.route("/api/stock-master/status", methods=["GET"])
 @require_api_key
 def get_stock_master_status():
-    """
-    JPX銘柄マスタ状態取得API.
+    """JPX銘柄マスタ状態取得API.
 
     銘柄マスタの現在の状態と最新の更新履歴を取得します。
 

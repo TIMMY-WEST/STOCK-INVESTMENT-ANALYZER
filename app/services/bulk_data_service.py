@@ -45,8 +45,7 @@ class ProgressTracker:
     """
 
     def __init__(self, total: int):
-        """
-        初期化.
+        """初期化.
 
         Args:
             total: 処理対象の総数。
@@ -72,8 +71,7 @@ class ProgressTracker:
         records_fetched: int = 0,
         records_saved: int = 0,
     ):
-        """
-        進捗を更新.
+        """進捗を更新.
 
         Args:
             symbol: 処理した銘柄コード
@@ -105,8 +103,7 @@ class ProgressTracker:
                 )
 
     def get_progress(self) -> Dict[str, Any]:
-        """
-        現在の進捗情報を取得.
+        """現在の進捗情報を取得.
 
         Returns:
             進捗情報の辞書（メトリクス含む）。
@@ -179,8 +176,7 @@ class ProgressTracker:
         }
 
     def get_summary(self) -> Dict[str, Any]:
-        """
-        処理完了後のサマリーを取得.
+        """処理完了後のサマリーを取得.
 
         Returns:
             サマリー情報の辞書。
@@ -203,8 +199,7 @@ class BulkDataService:
         retry_count: int = 5,
         batch_id: Optional[str] = None,
     ):
-        """
-        初期化.
+        """初期化.
 
         Args:
             max_workers: 最大並列ワーカー数（レート制限対策で3に削減）
@@ -228,8 +223,7 @@ class BulkDataService:
     def fetch_single_stock(
         self, symbol: str, interval: str = "1d", period: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        単一銘柄のデータを取得・保存（ErrorHandlerによるリトライ機能付き）.
+        """単一銘柄のデータを取得・保存（ErrorHandlerによるリトライ機能付き）.
 
         Args:
             symbol: 銘柄コード
@@ -356,8 +350,7 @@ class BulkDataService:
         use_batch: bool = True,
         batch_size: int = 100,
     ) -> Dict[str, Any]:
-        """
-        複数銘柄のデータを取得・保存（バッチ処理対応）.
+        """複数銘柄のデータを取得・保存（バッチ処理対応）.
 
         Args:
             symbols: 銘柄コードのリスト
@@ -387,8 +380,7 @@ class BulkDataService:
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
         batch_size: int = 100,
     ) -> Dict[str, Any]:
-        """
-        複数銘柄のデータをバッチ処理で取得・保存.
+        """複数銘柄のデータをバッチ処理で取得・保存.
 
         Args:
             symbols: 銘柄コードのリスト
@@ -596,8 +588,7 @@ class BulkDataService:
         period: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Dict[str, Any]:
-        """
-        複数銘柄のデータを並列取得・保存（旧実装）.
+        """複数銘柄のデータを並列取得・保存（旧実装）.
 
         Args:
             symbols: 銘柄コードのリスト
@@ -723,8 +714,7 @@ class BulkDataService:
         period: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Dict[str, Any]:
-        """
-        ファイルから銘柄リストを読み込んで一括取得.
+        """ファイルから銘柄リストを読み込んで一括取得.
 
         Args:
             file_path: 銘柄コードリストファイルのパス（1行1銘柄）
@@ -762,8 +752,7 @@ class BulkDataService:
     def estimate_completion_time(
         self, symbol_count: int, interval: str = "1d"
     ) -> Dict[str, Any]:
-        """
-        処理完了時間を推定.
+        """処理完了時間を推定.
 
         Args:
             symbol_count: 銘柄数
@@ -771,8 +760,7 @@ class BulkDataService:
 
         Returns:
             推定情報。
-        """
-        # サンプル銘柄で処理時間を計測
+        """  # サンプル銘柄で処理時間を計測
         sample_symbol = "7203.T"  # トヨタ
 
         try:

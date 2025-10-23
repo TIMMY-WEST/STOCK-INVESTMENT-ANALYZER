@@ -1,6 +1,4 @@
-"""バッチ管理サービス (Phase 2).
-
-Phase 1のインメモリ管理からPhase 2のデータベース永続化への移行。
+"""Phase 1のインメモリ管理からPhase 2のデータベース永続化への移行。
 バッチ実行情報をデータベースに保存し、永続的に管理します。
 
 参照仕様書: docs/api_bulk_fetch.md (Phase 2)。
@@ -31,8 +29,7 @@ class BatchService:
     def create_batch(
         batch_type: str, total_stocks: int, session: Optional[Session] = None
     ) -> Dict[str, Any]:
-        """
-        新しいバッチ実行レコードを作成.
+        """新しいバッチ実行レコードを作成.
 
         Args:
             batch_type: バッチタイプ ('all_stocks', 'partial', etc.)
@@ -84,8 +81,7 @@ class BatchService:
     def get_batch(
         batch_id: int, session: Optional[Session] = None
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチ実行情報を取得.
+        """バッチ実行情報を取得.
 
         Args:
             batch_id: バッチID
@@ -128,8 +124,7 @@ class BatchService:
         failed_stocks: int,
         session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチの進捗を更新.
+        """バッチの進捗を更新.
 
         Args:
             batch_id: バッチID
@@ -190,8 +185,7 @@ class BatchService:
         error_message: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチを完了状態にする.
+        """バッチを完了状態にする.
 
         Args:
             batch_id: バッチID
@@ -253,8 +247,7 @@ class BatchService:
         status: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> List[Dict[str, Any]]:
-        """
-        バッチ実行情報一覧を取得.
+        """バッチ実行情報一覧を取得.
 
         Args:
             limit: 取得件数上限
@@ -300,8 +293,7 @@ class BatchService:
         status: str = "pending",
         session: Optional[Session] = None,
     ) -> Dict[str, Any]:
-        """
-        バッチ実行詳細レコードを作成.
+        """バッチ実行詳細レコードを作成.
 
         Args:
             batch_execution_id: バッチ実行ID
@@ -354,8 +346,7 @@ class BatchService:
         error_message: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチ実行詳細を更新.
+        """バッチ実行詳細を更新.
 
         Args:
             detail_id: バッチ詳細ID
@@ -417,8 +408,7 @@ class BatchService:
     def get_batch_details(
         batch_execution_id: int, session: Optional[Session] = None
     ) -> List[Dict[str, Any]]:
-        """
-        バッチ実行詳細一覧を取得.
+        """バッチ実行詳細一覧を取得.
 
         Args:
             batch_execution_id: バッチ実行ID

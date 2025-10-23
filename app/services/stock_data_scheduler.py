@@ -1,6 +1,4 @@
-"""株価データ取得スケジューラー.
-
-定期的なデータ取得をスケジュールします。
+"""定期的なデータ取得をスケジュールします。
 APSchedulerを使用した実装例です。
 """
 
@@ -53,8 +51,7 @@ class StockDataScheduler:
         minute: int = 0,
         job_id: Optional[str] = None,
     ):
-        """
-        日次更新ジョブを追加.
+        """日次更新ジョブを追加.
 
         Args:
             symbol: 銘柄コード
@@ -91,8 +88,7 @@ class StockDataScheduler:
         end_hour: int = 15,
         job_id: Optional[str] = None,
     ):
-        """
-        日中更新ジョブを追加（分足・時間足データ用）.
+        """日中更新ジョブを追加（分足・時間足データ用）.
 
         Args:
             symbol: 銘柄コード
@@ -130,8 +126,7 @@ class StockDataScheduler:
     def add_custom_job(
         self, func: Callable, trigger, job_id: str, name: str, **kwargs
     ):
-        """
-        カスタムジョブを追加.
+        """カスタムジョブを追加.
 
         Args:
             func: 実行する関数
@@ -152,8 +147,7 @@ class StockDataScheduler:
         self.logger.info(f"カスタムジョブ追加: {name} (ID: {job_id})")
 
     def _update_job(self, symbol: str, intervals: Optional[List[str]] = None):
-        """
-        更新ジョブの実行（内部メソッド）.
+        """更新ジョブの実行（内部メソッド）.
 
         Args:
             symbol: 銘柄コード
@@ -175,8 +169,7 @@ class StockDataScheduler:
             self.logger.error(f"更新ジョブエラー: {symbol}: {e}")
 
     def remove_job(self, job_id: str):
-        """
-        ジョブを削除.
+        """ジョブを削除.
 
         Args:
             job_id: ジョブID。
@@ -194,8 +187,7 @@ class StockDataScheduler:
             self.logger.info("スケジューラー開始")
 
     def shutdown(self, wait: bool = True):
-        """
-        スケジューラーを停止.
+        """スケジューラーを停止.
 
         Args:
             wait: True の場合、実行中のジョブが完了するまで待機。
@@ -205,8 +197,7 @@ class StockDataScheduler:
             self.logger.info("スケジューラー停止")
 
     def get_jobs(self):
-        """
-        登録されているジョブのリストを取得.
+        """登録されているジョブのリストを取得.
 
         Returns:
             ジョブのリスト。
@@ -234,8 +225,7 @@ _global_scheduler: Optional[StockDataScheduler] = None
 
 
 def get_scheduler() -> StockDataScheduler:
-    """
-    グローバルスケジューラーインスタンスを取得.
+    """グローバルスケジューラーインスタンスを取得.
 
     Returns:
         StockDataSchedulerインスタンス。

@@ -1,5 +1,4 @@
-"""
-WebSocket進捗配信機能のテスト.
+"""WebSocket進捗配信機能のテスト.
 """
 
 from flask_socketio import SocketIOTestClient

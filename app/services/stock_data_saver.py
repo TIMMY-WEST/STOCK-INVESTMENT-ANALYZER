@@ -1,6 +1,4 @@
-"""株価データ保存サービス.
-
-各時間軸の株価データをデータベースに保存します。
+"""各時間軸の株価データをデータベースに保存します。
 """
 
 from datetime import date, datetime
@@ -42,8 +40,7 @@ class StockDataSaver:
         data_list: List[Dict[str, Any]],
         session: Optional[Session] = None,
     ) -> Dict[str, Any]:
-        """
-        株価データを保存.
+        """株価データを保存.
 
         Args:
             symbol: 銘柄コード
@@ -83,8 +80,7 @@ class StockDataSaver:
         model_class: type,
         data_list: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """
-        セッションを使用してデータを保存（内部メソッド）.
+        """セッションを使用してデータを保存（内部メソッド）.
 
         Args:
             session: SQLAlchemyセッション
@@ -178,8 +174,7 @@ class StockDataSaver:
     def save_multiple_timeframes(
         self, symbol: str, data_dict: Dict[str, List[Dict[str, Any]]]
     ) -> Dict[str, Dict[str, Any]]:
-        """
-        複数時間軸のデータを一度に保存.
+        """複数時間軸のデータを一度に保存.
 
         Args:
             symbol: 銘柄コード
@@ -219,8 +214,7 @@ class StockDataSaver:
     def save_batch_stock_data(
         self, symbols_data: Dict[str, List[Dict[str, Any]]], interval: str
     ) -> Dict[str, Any]:
-        """
-        複数銘柄のデータをバッチ保存（重複データ事前除外方式）.
+        """複数銘柄のデータをバッチ保存（重複データ事前除外方式）.
 
         Args:
             symbols_data: {銘柄コード: データリスト} の辞書
@@ -327,8 +321,7 @@ class StockDataSaver:
         symbols_data: Dict[str, List[Dict[str, Any]]],
         interval: str,
     ) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        重複データを事前に除外.
+        """重複データを事前に除外.
 
         Args:
             session: SQLAlchemyセッション
@@ -394,8 +387,7 @@ class StockDataSaver:
     def get_latest_date(
         self, symbol: str, interval: str, session: Optional[Session] = None
     ) -> Optional[datetime | date]:
-        """
-        データベース内の最新データ日時を取得.
+        """データベース内の最新データ日時を取得.
 
         Args:
             symbol: 銘柄コード
@@ -443,8 +435,7 @@ class StockDataSaver:
     def count_records(
         self, symbol: str, interval: str, session: Optional[Session] = None
     ) -> int:
-        """
-        データベース内のレコード数を取得.
+        """データベース内のレコード数を取得.
 
         Args:
             symbol: 銘柄コード
@@ -453,8 +444,7 @@ class StockDataSaver:
 
         Returns:
             レコード数。
-        """
-        # 時間軸の検証
+        """  # 時間軸の検証
         if not validate_interval(interval):
             raise ValueError(f"サポートされていない時間軸: {interval}")
 

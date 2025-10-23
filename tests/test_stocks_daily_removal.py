@@ -1,5 +1,4 @@
-"""
-stocks_daily テーブル削除に関するテストコード.
+"""stocks_daily テーブル削除に関するテストコード.
 Issue #65: Remove stocks_daily table after migration
 
 このテストは以下を検証します:

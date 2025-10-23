@@ -1,6 +1,4 @@
-"""株価データ取得・保存オーケストレーター.
-
-データ取得から保存、整合性チェックまでを統合的に管理します。
+"""データ取得から保存、整合性チェックまでを統合的に管理します。
 """
 
 from datetime import datetime
@@ -41,8 +39,7 @@ class StockDataOrchestrator:
         period: Optional[str] = None,
         force_update: bool = False,
     ) -> Dict[str, Any]:
-        """
-        株価データの取得と保存を実行.
+        """株価データの取得と保存を実行.
 
         Args:
             symbol: 銘柄コード
@@ -112,8 +109,7 @@ class StockDataOrchestrator:
         intervals: Optional[List[str]] = None,
         period: Optional[str] = None,
     ) -> Dict[str, Dict[str, Any]]:
-        """
-        複数時間軸のデータを取得・保存.
+        """複数時間軸のデータを取得・保存.
 
         Args:
             symbol: 銘柄コード
@@ -149,8 +145,7 @@ class StockDataOrchestrator:
     def check_data_integrity(
         self, symbol: str, interval: str
     ) -> Dict[str, Any]:
-        """
-        データ整合性をチェック.
+        """データ整合性をチェック.
 
         Args:
             symbol: 銘柄コード
@@ -202,8 +197,7 @@ class StockDataOrchestrator:
     def get_status(
         self, symbol: str, intervals: Optional[List[str]] = None
     ) -> Dict[str, Dict[str, Any]]:
-        """
-        各時間軸のデータ状態を取得.
+        """各時間軸のデータ状態を取得.
 
         Args:
             symbol: 銘柄コード
@@ -244,8 +238,7 @@ class StockDataOrchestrator:
     def update_all_timeframes(
         self, symbol: str, intervals: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """
-        全時間軸のデータを更新（差分更新）.
+        """全時間軸のデータを更新（差分更新）.
 
         Args:
             symbol: 銘柄コード

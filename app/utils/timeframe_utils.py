@@ -1,6 +1,4 @@
-"""時間軸ユーティリティ.
-
-yfinanceの時間軸(interval)とデータベースモデルのマッピングを提供します。
+"""yfinanceの時間軸(interval)とデータベースモデルのマッピングを提供します。
 """
 
 from typing import Dict, Literal, Type
@@ -71,8 +69,7 @@ TIMEFRAME_RECOMMENDED_PERIOD: Dict[str, str] = {
 
 
 def get_model_for_interval(interval: str) -> Type[StockDataBase]:
-    """
-    yfinance intervalに対応するデータベースモデルを取得.
+    """yfinance intervalに対応するデータベースモデルを取得.
 
     Args:
         interval: yfinance interval ('1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo')
@@ -92,8 +89,7 @@ def get_model_for_interval(interval: str) -> Type[StockDataBase]:
 
 
 def get_display_name(interval: str) -> str:
-    """
-    時間軸の表示名を取得.
+    """時間軸の表示名を取得.
 
     Args:
         interval: yfinance interval
@@ -105,8 +101,7 @@ def get_display_name(interval: str) -> str:
 
 
 def get_recommended_period(interval: str) -> str:
-    """
-    時間軸の推奨取得期間を取得.
+    """時間軸の推奨取得期間を取得.
 
     Args:
         interval: yfinance interval
@@ -118,8 +113,7 @@ def get_recommended_period(interval: str) -> str:
 
 
 def is_intraday_interval(interval: str) -> bool:
-    """
-    分足・時間足（日内）の時間軸かどうかを判定.
+    """分足・時間足（日内）の時間軸かどうかを判定.
 
     Args:
         interval: yfinance interval
@@ -132,8 +126,7 @@ def is_intraday_interval(interval: str) -> bool:
 
 
 def get_all_intervals() -> list[str]:
-    """
-    サポートされている全ての時間軸を取得.
+    """サポートされている全ての時間軸を取得.
 
     Returns:
         時間軸のリスト。
@@ -142,8 +135,7 @@ def get_all_intervals() -> list[str]:
 
 
 def validate_interval(interval: str) -> bool:
-    """
-    時間軸が有効かどうかを検証.
+    """時間軸が有効かどうかを検証.
 
     Args:
         interval: 検証する時間軸
@@ -156,8 +148,7 @@ def validate_interval(interval: str) -> bool:
 
 
 def get_table_name(interval: str) -> str:
-    """
-    時間軸に対応するテーブル名を取得.
+    """時間軸に対応するテーブル名を取得.
 
     Args:
         interval: yfinance interval

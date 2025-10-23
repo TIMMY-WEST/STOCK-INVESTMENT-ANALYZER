@@ -1,5 +1,4 @@
-"""
-JPX銘柄一覧取得・更新サービス.
+"""JPX銘柄一覧取得・更新サービス.
 
 JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、
 データベースの銘柄マスタを更新する機能を提供します。
@@ -58,8 +57,7 @@ class JPXStockService:
         )
 
     def fetch_jpx_stock_list(self) -> pd.DataFrame:
-        """
-        JPXから銘柄一覧を取得してDataFrameとして返す.
+        """JPXから銘柄一覧を取得してDataFrameとして返す.
 
         Returns:
             pd.DataFrame: 正規化された銘柄一覧データ
@@ -107,8 +105,7 @@ class JPXStockService:
             raise JPXParseError(error_msg) from e
 
     def _normalize_jpx_data(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
-        """
-        JPXのExcelデータを正規化する.
+        """JPXのExcelデータを正規化する.
 
         Args:
             df: 生のJPXデータ
@@ -268,8 +265,7 @@ class JPXStockService:
     def update_stock_master(
         self, update_type: str = "manual"
     ) -> Dict[str, Any]:
-        """
-        銘柄マスタを更新する.
+        """銘柄マスタを更新する.
 
         Args:
             update_type: 更新タイプ ('manual' または 'scheduled')
@@ -460,8 +456,7 @@ class JPXStockService:
         limit: Optional[int] = 100,
         offset: Optional[int] = 0,
     ) -> Dict[str, Any]:
-        """
-        銘柄マスタ一覧を取得.
+        """銘柄マスタ一覧を取得.
 
         Args:
             is_active: 有効フラグでフィルタ (None=全て, True=有効のみ, False=無効のみ)

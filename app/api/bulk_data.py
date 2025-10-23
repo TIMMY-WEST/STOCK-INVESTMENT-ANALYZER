@@ -36,10 +36,7 @@ def _client_key() -> str:
 
 
 def require_api_key(func: Callable):
-    """単純なAPIキー認証（ヘッダ: X-API-KEY）.
-
-    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。
-    """
+    """API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。"""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -113,8 +110,7 @@ def rate_limit(max_per_minute: Optional[int] = None):
 def _make_progress_callback(
     job_id: str, batch_db_id: Optional[int] = None
 ) -> Callable[[Dict[str, Any]], None]:
-    """
-    進捗更新コールバックを生成.
+    """進捗更新コールバックを生成.
 
     Args:
         job_id: Phase 1のジョブID
@@ -204,8 +200,7 @@ def _run_job(
     period: Optional[str],
     batch_db_id: Optional[int] = None,
 ):
-    """
-    バッチ処理を実行.
+    """バッチ処理を実行.
 
     Args:
         app: Flaskアプリケーションインスタンス
@@ -334,8 +329,7 @@ def _run_job(
 @require_api_key
 @rate_limit()
 def start_bulk_fetch():
-    """
-    一括取得のジョブを開始.
+    """一括取得のジョブを開始.
 
     Phase 1とPhase 2の両方に対応:
     - Phase 1: インメモリ管理 (job_id)
@@ -467,8 +461,7 @@ def start_bulk_fetch():
 @require_api_key
 @rate_limit()
 def get_job_status(job_id: str):
-    """
-    ジョブステータスを取得.
+    """ジョブステータスを取得.
 
     Phase 1とPhase 2の両方に対応:
     - job_idが "job-" で始まる場合: Phase 1のインメモリ管理から取得
@@ -606,8 +599,7 @@ JPX_SEQUENTIAL_INTERVALS = [
 @require_api_key
 @rate_limit()
 def get_jpx_symbols():
-    """
-    JPX銘柄マスタから銘柄コード一覧を取得.
+    """JPX銘柄マスタから銘柄コード一覧を取得.
 
     Query Parameters:
         - limit: 取得件数上限（デフォルト: 5000、最大: 5000）
@@ -704,8 +696,7 @@ def get_jpx_symbols():
 def _run_jpx_sequential_job(
     app, job_id: str, symbols: List[str], batch_db_id: Optional[int] = None
 ):
-    """
-    JPX全銘柄順次取得ジョブを実行.
+    """JPX全銘柄順次取得ジョブを実行.
 
     Args:
         app: Flaskアプリケーションインスタンス
@@ -865,8 +856,7 @@ def _run_jpx_sequential_job(
 @require_api_key
 @rate_limit()
 def start_jpx_sequential():
-    """
-    JPX全銘柄順次取得を開始.
+    """JPX全銘柄順次取得を開始.
 
     Request Body:
         {

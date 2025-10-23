@@ -1,5 +1,4 @@
-"""
-システム監視API.
+"""システム監視API.
 
 データベース接続テスト、Yahoo Finance API接続テスト、統合ヘルスチェック機能を提供。
 """
@@ -19,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 @system_api.route("/db-connection-test", methods=["POST"])
 def test_database_connection():
-    """
-    データベース接続テスト.
+    """データベース接続テスト.
 
     Returns:
         JSONレスポンス: データベース接続の状態と詳細情報。
@@ -96,8 +94,7 @@ def test_database_connection():
 
 @system_api.route("/api-connection-test", methods=["POST"])
 def test_api_connection():
-    """
-    Yahoo Finance API接続テスト.
+    """Yahoo Finance API接続テスト.
 
     Request Body:
         symbol (str): テスト用の銘柄コード（デフォルト: 7203.T）
@@ -178,8 +175,7 @@ def test_api_connection():
 
 @system_api.route("/health-check", methods=["GET"])
 def health_check():
-    """
-    統合ヘルスチェック.
+    """統合ヘルスチェック.
 
     データベースとYahoo Finance APIの両方の状態をチェック
 

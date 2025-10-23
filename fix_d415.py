@@ -1,7 +1,8 @@
 """D415エラーを自動修正するスクリプト（v3 - 英語ピリオドのみ使用）."""
+
+from pathlib import Path
 import re
 import subprocess
-from pathlib import Path
 
 
 def get_d415_errors():
@@ -51,23 +52,27 @@ def fix_docstring_punctuation(filepath, lineno):
         if line.count(quote) == 2:
             # クォートの間の内容を取得
             match = re.match(
-                r'^(\s*)' + re.escape(quote) + r'(.+?)' + re.escape(quote) + r'(.*)$',
-                line
+                r"^(\s*)"
+                + re.escape(quote)
+                + r"(.+?)"
+                + re.escape(quote)
+                + r"(.*)$",
+                line,
             )
             if match:
                 indent, content, rest = match.groups()
                 content = content.rstrip()
                 # 既に英語の句読点がある場合はスキップ
-                if content and content[-1] not in '.?!':
+                if content and content[-1] not in ".?!":
                     # 日本語の句読点がある場合は削除してから英語のピリオドを追加
-                    if content[-1] in '。！？':
+                    if content[-1] in "。！？":
                         content = content[:-1]
                     # 英語のピリオドを追加
-                    content = content + '.'
+                    content = content + "."
 
-                    new_line = f'{indent}{quote}{content}{quote}{rest}'
-                    if line.endswith('\n'):
-                        new_line += '\n'
+                    new_line = f"{indent}{quote}{content}{quote}{rest}"
+                    if line.endswith("\n"):
+                        new_line += "\n"
                     lines[target_line_idx] = new_line
 
                     with open(path, "w", encoding="utf-8") as f:
@@ -76,21 +81,18 @@ def fix_docstring_punctuation(filepath, lineno):
         else:
             # 複数行docstringの場合
             # 開始行に内容がある場合（例: """これは説明）
-            match = re.match(
-                r'^(\s*)' + re.escape(quote) + r'(.+)$',
-                line
-            )
+            match = re.match(r"^(\s*)" + re.escape(quote) + r"(.+)$", line)
             if match:
                 indent, content = match.groups()
                 content = content.rstrip()
                 # 既に英語の句読点がある場合はスキップ
-                if content and content[-1] not in '.?!':
+                if content and content[-1] not in ".?!":
                     # 日本語の句読点がある場合は削除してから英語のピリオドを追加
-                    if content[-1] in '。！？':
+                    if content[-1] in "。！？":
                         content = content[:-1]
                     # 英語のピリオドを追加
-                    content = content + '.'
-                    lines[target_line_idx] = f'{indent}{quote}{content}\n'
+                    content = content + "."
+                    lines[target_line_idx] = f"{indent}{quote}{content}\n"
 
                     with open(path, "w", encoding="utf-8") as f:
                         f.writelines(lines)
@@ -104,8 +106,8 @@ def fix_docstring_punctuation(filepath, lineno):
 
                     # 終了クォートの行は無視
                     if quote in next_line_stripped and (
-                        next_line_stripped == quote or
-                        next_line_stripped.startswith(quote)
+                        next_line_stripped == quote
+                        or next_line_stripped.startswith(quote)
                     ):
                         break
 
@@ -115,12 +117,12 @@ def fix_docstring_punctuation(filepath, lineno):
 
                     # 最初の非空行を発見
                     content = next_line.rstrip()
-                    if content and content[-1] not in '.?!':
+                    if content and content[-1] not in ".?!":
                         # 日本語の句読点がある場合は削除してから英語のピリオドを追加
-                        if content[-1] in '。！？':
+                        if content[-1] in "。！？":
                             content = content[:-1]
                         # 英語のピリオドを追加
-                        lines[i] = content + '.\n'
+                        lines[i] = content + ".\n"
 
                         with open(path, "w", encoding="utf-8") as f:
                             f.writelines(lines)

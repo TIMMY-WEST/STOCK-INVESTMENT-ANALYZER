@@ -1,5 +1,4 @@
-"""
-JPX銘柄サービスのテストコード.
+"""JPX銘柄サービスのテストコード.
 """
 
 from datetime import datetime

@@ -1,6 +1,4 @@
-"""株価データ取得サービス.
-
-yfinanceを使用して各時間軸の株価データを取得します。
+"""yfinanceを使用して各時間軸の株価データを取得します。
 """
 
 from datetime import date, datetime
@@ -35,8 +33,7 @@ class StockDataFetcher:
         self.logger = logger
 
     def _is_valid_stock_code(self, symbol: str) -> bool:
-        """
-        有効な銘柄コードかチェック.
+        """有効な銘柄コードかチェック.
 
         Args:
             symbol: 銘柄コード
@@ -65,8 +62,7 @@ class StockDataFetcher:
         return False
 
     def _format_symbol_for_yahoo(self, symbol: str) -> str:
-        """
-        Yahoo Finance用に銘柄コードをフォーマット.
+        """Yahoo Finance用に銘柄コードをフォーマット.
 
         Args:
             symbol: 元の銘柄コード（例: '1301', '7203.T'）
@@ -97,8 +93,7 @@ class StockDataFetcher:
         start: Optional[str] = None,
         end: Optional[str] = None,
     ) -> pd.DataFrame:
-        """
-        株価データを取得.
+        """株価データを取得.
 
         Args:
             symbol: 銘柄コード（例: '7203.T'）
@@ -179,8 +174,7 @@ class StockDataFetcher:
     def fetch_multiple_timeframes(
         self, symbol: str, intervals: list[str], period: Optional[str] = None
     ) -> Dict[str, pd.DataFrame]:
-        """
-        複数時間軸のデータを一度に取得.
+        """複数時間軸のデータを一度に取得.
 
         Args:
             symbol: 銘柄コード
@@ -224,8 +218,7 @@ class StockDataFetcher:
         start: Optional[str] = None,
         end: Optional[str] = None,
     ) -> Dict[str, pd.DataFrame]:
-        """
-        複数銘柄の株価データを一括取得（バッチダウンロード）.
+        """複数銘柄の株価データを一括取得（バッチダウンロード）.
 
         Args:
             symbols: 銘柄コードのリスト（例: ['7203.T', '6758.T', '9984.T']）
@@ -353,8 +346,7 @@ class StockDataFetcher:
     def convert_to_dict(
         self, df: pd.DataFrame, interval: str
     ) -> list[Dict[str, Any]]:
-        """
-        DataFrameを辞書リストに変換（データベース保存用）.
+        """DataFrameを辞書リストに変換（データベース保存用）.
 
         Args:
             df: yfinanceから取得したDataFrame
@@ -471,8 +463,7 @@ class StockDataFetcher:
     def get_latest_data_date(
         self, symbol: str, interval: str = "1d"
     ) -> Optional[datetime]:
-        """
-        最新データの日時を取得（データベース更新判定用）.
+        """最新データの日時を取得（データベース更新判定用）.
 
         Args:
             symbol: 銘柄コード
