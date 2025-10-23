@@ -6,11 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_saver import StockDataSaveError, StockDataSaver
-from utils.timeframe_utils import (
-    get_all_intervals,
-    get_display_name,
-    validate_interval,
-)
+from utils.timeframe_utils import get_all_intervals, get_display_name
 
 
 logger = logging.getLogger(__name__)

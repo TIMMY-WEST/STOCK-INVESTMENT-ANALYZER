@@ -6,11 +6,9 @@ JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント�
 from functools import wraps
 import logging
 import os
-from typing import Any, Dict
 
 from flask import Blueprint, jsonify, request
 
-from models import get_db_session
 from services.jpx_stock_service import JPXStockService, JPXStockServiceError
 
 

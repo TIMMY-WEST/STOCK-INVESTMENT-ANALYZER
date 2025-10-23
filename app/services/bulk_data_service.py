@@ -3,17 +3,15 @@
 全銘柄の株価データを並列処理で効率的に一括取得します。
 """
 
-import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 import logging
-import random
 import time
 from typing import Any, Callable, Dict, List, Optional
 
 from services.error_handler import ErrorAction, ErrorHandler
-from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
-from services.stock_data_saver import StockDataSaveError, StockDataSaver
+from services.stock_data_fetcher import StockDataFetcher
+from services.stock_data_saver import StockDataSaver
 from utils.structured_logger import get_batch_logger, setup_structured_logging
 
 
@@ -418,6 +416,9 @@ class BulkDataService:
                     symbols=batch_symbols, interval=interval, period=period
                 )
                 fetch_duration = int((time.time() - fetch_start) * 1000)
+                self.logger.debug(
+                    f"バッチフェッチ完了: {len(batch_symbols)}銘柄 - {fetch_duration}ms"
+                )
 
                 # データ変換（エラーハンドリング強化）
                 symbols_data = {}
@@ -447,6 +448,9 @@ class BulkDataService:
                         symbols_data=symbols_data, interval=interval
                     )
                     save_duration = int((time.time() - save_start) * 1000)
+                    self.logger.debug(
+                        f"バッチ保存完了: {len(symbols_data)}銘柄 - {save_duration}ms"
+                    )
                 else:
                     self.logger.warning(
                         f"保存可能なデータなし: バッチ {i // batch_size + 1}"

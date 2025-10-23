@@ -6,13 +6,10 @@ from api.stock_master import stock_master_api
 from api.system_monitoring import system_api
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
-from sqlalchemy import func
-import yfinance as yf
 
 from models import (
     Base,
     DatabaseError,
-    StockDaily,
     StockDailyCRUD,
     StockDataError,
     engine,
@@ -20,7 +17,6 @@ from models import (
 )
 from services.stock_data_orchestrator import StockDataOrchestrator
 from utils.timeframe_utils import (
-    get_display_name,
     get_model_for_interval,
     get_table_name,
     validate_interval,

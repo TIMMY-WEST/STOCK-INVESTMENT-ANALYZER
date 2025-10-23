@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Set
 
 import pandas as pd
 import requests
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from models import StockMaster, StockMasterUpdate, get_db_session

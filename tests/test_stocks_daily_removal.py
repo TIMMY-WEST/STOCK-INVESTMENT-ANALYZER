@@ -356,7 +356,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
 
         with get_db_session() as session:
             # テストデータ作成
-            stock_data = StockDailyCRUD.create(session, **test_data)
+            _ = StockDailyCRUD.create(session, **test_data)
 
             # 全件数取得
             total_count = StockDailyCRUD.count_all(session)
@@ -382,7 +382,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
 
         with get_db_session() as session:
             # テストデータ作成
-            stock_data = StockDailyCRUD.create(session, **test_data)
+            _ = StockDailyCRUD.create(session, **test_data)
 
             # 最新日付取得
             latest_date = StockDailyCRUD.get_latest_date_by_symbol(

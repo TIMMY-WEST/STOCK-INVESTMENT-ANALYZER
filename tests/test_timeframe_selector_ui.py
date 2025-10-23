@@ -211,7 +211,7 @@ class TestTimeframeSelectorConfiguration:
             css_content = f.read()
 
         # モバイル対応のスタイルが含まれているか確認
-        mobile_styles = ["font-size", "padding", "margin", "width"]
+        _ = ["font-size", "padding", "margin", "width"]
 
         # メディアクエリ内でモバイル用スタイルが定義されているか確認
         media_query_pattern = r"@media\s*\([^)]*max-width[^)]*\)\s*\{[^}]*\}"

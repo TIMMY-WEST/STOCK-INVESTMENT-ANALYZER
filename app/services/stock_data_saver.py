@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from models import StockDataBase, get_db_session
+from models import get_db_session
 from utils.timeframe_utils import (
     get_display_name,
     get_model_for_interval,
@@ -122,7 +122,7 @@ class StockDataSaver:
 
                 saved_count += 1
 
-            except IntegrityError as e:
+            except IntegrityError:
                 # ユニーク制約違反（重複データ）
                 session.rollback()
                 skipped_count += 1

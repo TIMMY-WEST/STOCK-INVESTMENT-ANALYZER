@@ -139,7 +139,7 @@ class TestE2EApplication:
             EC.presence_of_element_located((By.ID, "symbol"))
         )
         period_select = driver.find_element(By.ID, "period")
-        fetch_button = driver.find_element(By.ID, "fetch-btn")
+        _ = driver.find_element(By.ID, "fetch-btn")
 
         # デフォルト値の確認
         assert symbol_input.get_attribute("value") == "7203.T"
@@ -284,13 +284,13 @@ class TestE2EApplication:
         assert "メインコンテンツへスキップ" in skip_link.text
 
         # フォームラベルの関連付け確認
-        symbol_input = driver.find_element(By.ID, "symbol")
+        _ = driver.find_element(By.ID, "symbol")
         symbol_label = driver.find_element(
             By.CSS_SELECTOR, "label[for='symbol']"
         )
         assert symbol_label.text == "銘柄コード"
 
-        period_input = driver.find_element(By.ID, "period")
+        _ = driver.find_element(By.ID, "period")
         period_label = driver.find_element(
             By.CSS_SELECTOR, "label[for='period']"
         )

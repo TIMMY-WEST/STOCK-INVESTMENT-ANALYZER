@@ -28,7 +28,7 @@ def test_database_connection():
     try:
         from sqlalchemy import text
 
-        from models import Stocks1d, get_db_session
+        from models import get_db_session
 
         # データベースセッションを取得（コンテキストマネージャーとして使用）
         with get_db_session() as session:

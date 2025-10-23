@@ -647,10 +647,7 @@ def get_jpx_symbols():
         )
 
         # JPX銘柄サービスを使用して銘柄一覧を取得
-        from services.jpx_stock_service import (
-            JPXStockService,
-            JPXStockServiceError,
-        )
+        from services.jpx_stock_service import JPXStockService
 
         service = JPXStockService()
         result = service.get_stock_list(

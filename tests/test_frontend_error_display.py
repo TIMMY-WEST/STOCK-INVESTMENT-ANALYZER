@@ -91,7 +91,7 @@ class TestFrontendErrorDisplay:
 
     def test_error_code_coverage(self, client):
         """定義されたエラーコードの網羅的テスト."""
-        expected_error_codes = [
+        _ = [
             "INVALID_SYMBOL",
             "VALIDATION_ERROR",
             "DATA_FETCH_ERROR",
