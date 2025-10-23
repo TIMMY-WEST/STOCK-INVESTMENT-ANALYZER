@@ -1,4 +1,4 @@
-"""複数時間軸データ取得のテストスクリプト
+"""複数時間軸データ取得のテストスクリプト.
 
 各時間軸でのデータ取得・保存機能を動作確認します。
 """
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def test_single_timeframe(symbol: str, interval: str):
-    """単一時間軸のテスト"""
+    """単一時間軸のテスト."""
     logger.info(f"\n{'='*80}")
     logger.info(f"単一時間軸テスト: {symbol} ({get_display_name(interval)})")
     logger.info(f"{'='*80}")
@@ -60,7 +60,7 @@ def test_single_timeframe(symbol: str, interval: str):
 
 
 def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
-    """複数時間軸のテスト"""
+    """複数時間軸のテスト."""
     logger.info(f"\n{'='*80}")
     logger.info(f"複数時間軸テスト: {symbol}")
     logger.info(f"{'='*80}")
@@ -108,7 +108,7 @@ def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
 
 
 def test_status(symbol: str):
-    """データ状態の確認"""
+    """データ状態の確認."""
     logger.info(f"\n{'='*80}")
     logger.info(f"データ状態確認: {symbol}")
     logger.info(f"{'='*80}")
@@ -138,7 +138,7 @@ def test_status(symbol: str):
 
 
 def main():
-    """メイン処理"""
+    """メイン処理."""
     # テスト対象銘柄
     test_symbol = "7203.T"  # トヨタ自動車
 

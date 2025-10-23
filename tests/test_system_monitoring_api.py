@@ -1,5 +1,5 @@
 """
-システム監視APIのテスト
+システム監視APIのテスト.
 """
 
 import os
@@ -19,18 +19,18 @@ import app as flask_app
 
 @pytest.fixture
 def client():
-    """テスト用のFlaskクライアントを作成"""
+    """テスト用のFlaskクライアントを作成."""
     flask_app.app.config["TESTING"] = True
     with flask_app.app.test_client() as client:
         yield client
 
 
 class TestDatabaseConnectionTest:
-    """データベース接続テストのテストクラス"""
+    """データベース接続テストのテストクラス."""
 
     @patch("models.get_db_session")
     def test_db_connection_success(self, mock_get_session, client):
-        """正常系: データベース接続テスト成功"""
+        """正常系: データベース接続テスト成功."""
         # モックセッションの設定
         mock_session = MagicMock()
 
@@ -68,7 +68,7 @@ class TestDatabaseConnectionTest:
 
     @patch("models.get_db_session")
     def test_db_connection_failure(self, mock_get_session, client):
-        """異常系: データベース接続テスト失敗"""
+        """異常系: データベース接続テスト失敗."""
         # エラーをスローするモックを設定
         mock_get_session.side_effect = Exception("接続エラー")
 
@@ -83,11 +83,11 @@ class TestDatabaseConnectionTest:
 
 
 class TestAPIConnectionTest:
-    """Yahoo Finance API接続テストのテストクラス"""
+    """Yahoo Finance API接続テストのテストクラス."""
 
     @patch("services.stock_data_fetcher.StockDataFetcher")
     def test_api_connection_success(self, mock_fetcher_class, client):
-        """正常系: Yahoo Finance API接続テスト成功"""
+        """正常系: Yahoo Finance API接続テスト成功."""
         # モックの設定
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_stock_data.return_value = [
@@ -111,7 +111,7 @@ class TestAPIConnectionTest:
 
     @patch("services.stock_data_fetcher.StockDataFetcher")
     def test_api_connection_no_data(self, mock_fetcher_class, client):
-        """異常系: データ取得失敗"""
+        """異常系: データ取得失敗."""
         # モックの設定（データなし）
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_stock_data.return_value = []
@@ -130,7 +130,7 @@ class TestAPIConnectionTest:
 
     @patch("services.stock_data_fetcher.StockDataFetcher")
     def test_api_connection_failure(self, mock_fetcher_class, client):
-        """異常系: API接続エラー"""
+        """異常系: API接続エラー."""
         # エラーをスローするモックを設定
         mock_fetcher_class.side_effect = Exception("API接続エラー")
 
@@ -145,14 +145,14 @@ class TestAPIConnectionTest:
 
 
 class TestHealthCheck:
-    """統合ヘルスチェックのテストクラス"""
+    """統合ヘルスチェックのテストクラス."""
 
     @patch("services.stock_data_fetcher.StockDataFetcher")
     @patch("models.get_db_session")
     def test_health_check_all_healthy(
         self, mock_get_session, mock_fetcher_class, client
     ):
-        """正常系: 全てのサービスが正常"""
+        """正常系: 全てのサービスが正常."""
         # データベースモック（コンテキストマネージャー対応）
         mock_session = MagicMock()
         mock_get_session.return_value.__enter__.return_value = mock_session
@@ -178,7 +178,7 @@ class TestHealthCheck:
     def test_health_check_db_error(
         self, mock_get_session, mock_fetcher_class, client
     ):
-        """異常系: データベースエラー"""
+        """異常系: データベースエラー."""
         # データベースエラー
         mock_get_session.side_effect = Exception("DB接続エラー")
 
@@ -201,7 +201,7 @@ class TestHealthCheck:
     def test_health_check_api_warning(
         self, mock_get_session, mock_fetcher_class, client
     ):
-        """正常系: APIから警告（データなし）"""
+        """正常系: APIから警告（データなし）."""
         # データベースモック（コンテキストマネージャー対応）
         mock_session = MagicMock()
         mock_get_session.return_value.__enter__.return_value = mock_session

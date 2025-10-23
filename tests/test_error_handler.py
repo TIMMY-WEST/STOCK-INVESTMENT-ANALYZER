@@ -1,4 +1,4 @@
-"""ErrorHandlerクラスのテスト"""
+"""ErrorHandlerクラスのテスト."""
 
 from unittest.mock import Mock, patch
 
@@ -14,29 +14,29 @@ from services.error_handler import (
 
 
 class TestErrorHandler:
-    """ErrorHandlerクラスのテストケース"""
+    """ErrorHandlerクラスのテストケース."""
 
     @pytest.fixture
     def error_handler(self):
-        """ErrorHandlerインスタンスを作成"""
+        """ErrorHandlerインスタンスを作成."""
         return ErrorHandler(max_retries=3, retry_delay=1, backoff_multiplier=2)
 
     # ===== エラー分類テスト =====
 
     def test_classify_timeout_error_as_temporary(self, error_handler):
-        """タイムアウトエラーを一時的エラーとして分類"""
+        """タイムアウトエラーを一時的エラーとして分類."""
         error = Timeout("Request timed out")
         error_type = error_handler.classify_error(error)
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_connection_error_as_temporary(self, error_handler):
-        """接続エラーを一時的エラーとして分類"""
+        """接続エラーを一時的エラーとして分類."""
         error = ConnectionError("Failed to connect")
         error_type = error_handler.classify_error(error)
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_429_as_temporary(self, error_handler):
-        """429エラー（Rate Limit）を一時的エラーとして分類"""
+        """429エラー（Rate Limit）を一時的エラーとして分類."""
         # HTTPErrorのモック作成
         response_mock = Mock()
         response_mock.status_code = 429
@@ -47,7 +47,7 @@ class TestErrorHandler:
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_503_as_temporary(self, error_handler):
-        """503エラー（Service Unavailable）を一時的エラーとして分類"""
+        """503エラー（Service Unavailable）を一時的エラーとして分類."""
         response_mock = Mock()
         response_mock.status_code = 503
         error = HTTPError()
@@ -57,7 +57,7 @@ class TestErrorHandler:
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_404_as_permanent(self, error_handler):
-        """404エラーを永続的エラーとして分類"""
+        """404エラーを永続的エラーとして分類."""
         response_mock = Mock()
         response_mock.status_code = 404
         error = HTTPError()
@@ -67,7 +67,7 @@ class TestErrorHandler:
         assert error_type == ErrorType.PERMANENT
 
     def test_classify_value_error_as_permanent(self, error_handler):
-        """ValueErrorを永続的エラーとして分類"""
+        """ValueErrorを永続的エラーとして分類."""
         error = ValueError("Invalid data format")
         error_type = error_handler.classify_error(error)
         assert error_type == ErrorType.PERMANENT
@@ -75,7 +75,7 @@ class TestErrorHandler:
     # ===== エラー処理テスト =====
 
     def test_handle_temporary_error_returns_retry(self, error_handler):
-        """一時的エラーの場合、RETRYアクションを返す"""
+        """一時的エラーの場合、RETRYアクションを返す."""
         error = Timeout("Request timed out")
         action = error_handler.handle_error(
             error, "7203.T", {"retry_count": 0}
@@ -85,7 +85,7 @@ class TestErrorHandler:
     def test_handle_temporary_error_max_retries_returns_skip(
         self, error_handler
     ):
-        """最大リトライ回数到達時、SKIPアクションを返す"""
+        """最大リトライ回数到達時、SKIPアクションを返す."""
         error = Timeout("Request timed out")
         action = error_handler.handle_error(
             error, "7203.T", {"retry_count": 3}
@@ -93,7 +93,7 @@ class TestErrorHandler:
         assert action == ErrorAction.SKIP
 
     def test_handle_permanent_error_returns_skip(self, error_handler):
-        """永続的エラーの場合、SKIPアクションを返す"""
+        """永続的エラーの場合、SKIPアクションを返す."""
         error = ValueError("Invalid data")
         action = error_handler.handle_error(
             error, "7203.T", {"retry_count": 0}
@@ -106,7 +106,7 @@ class TestErrorHandler:
     def test_retry_with_backoff_delays_correctly(
         self, mock_sleep, error_handler
     ):
-        """指数バックオフで正しい待機時間を計算"""
+        """指数バックオフで正しい待機時間を計算."""
         # 1回目のリトライ: 1 * (2 ^ 0) = 1秒
         error_handler.retry_with_backoff(0)
         mock_sleep.assert_called_with(1)
@@ -122,7 +122,7 @@ class TestErrorHandler:
     # ===== エラー記録テスト =====
 
     def test_error_records_are_saved(self, error_handler):
-        """エラー記録が保存される"""
+        """エラー記録が保存される."""
         error = ValueError("Test error")
         error_handler.handle_error(error, "7203.T", {"retry_count": 0})
 
@@ -133,7 +133,7 @@ class TestErrorHandler:
         assert record.exception_class == "ValueError"
 
     def test_error_statistics_are_updated(self, error_handler):
-        """エラー統計が更新される"""
+        """エラー統計が更新される."""
         error_handler.handle_error(
             Timeout("timeout"), "7203.T", {"retry_count": 0}
         )
@@ -149,7 +149,7 @@ class TestErrorHandler:
     # ===== エラーレポート生成テスト =====
 
     def test_generate_error_report(self, error_handler):
-        """エラーレポートが正しく生成される"""
+        """エラーレポートが正しく生成される."""
         # 複数のエラーを記録
         error_handler.handle_error(
             Timeout("timeout"), "7203.T", {"retry_count": 0}
@@ -179,7 +179,7 @@ class TestErrorHandler:
         assert report["statistics"]["permanent_errors"] == 1
 
     def test_clear_error_records(self, error_handler):
-        """エラー記録がクリアされる"""
+        """エラー記録がクリアされる."""
         error_handler.handle_error(
             Timeout("timeout"), "7203.T", {"retry_count": 0}
         )
@@ -192,7 +192,7 @@ class TestErrorHandler:
     # ===== 統合テスト =====
 
     def test_full_error_handling_workflow(self, error_handler):
-        """エラーハンドリングの全体フローをテスト"""
+        """エラーハンドリングの全体フローをテスト."""
         # シナリオ: 一時的エラーが2回発生し、3回目に成功
         errors = [Timeout("timeout 1"), Timeout("timeout 2")]
 
@@ -212,10 +212,10 @@ class TestErrorHandler:
 
 
 class TestErrorRecord:
-    """ErrorRecordクラスのテスト"""
+    """ErrorRecordクラスのテスト."""
 
     def test_error_record_creation(self):
-        """ErrorRecordが正しく作成される"""
+        """ErrorRecordが正しく作成される."""
         record = ErrorRecord(
             timestamp="2024-01-01T00:00:00",
             error_type="temporary",

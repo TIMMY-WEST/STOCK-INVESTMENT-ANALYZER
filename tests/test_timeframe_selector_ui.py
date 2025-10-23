@@ -1,11 +1,11 @@
 """
-Issue #67: 時間軸選択UI機能のテストコード
+Issue #67: 時間軸選択UI機能のテストコード.
 Enhanced Timeframe Selector UI Tests
 
 このテストファイルは、時間軸選択UIの基本機能をテストします：
 - HTMLテンプレートの構造確認
 - CSSスタイルの存在確認
-- JavaScriptファイルの構文確認
+- JavaScriptファイルの構文確認。
 """
 
 import os
@@ -21,10 +21,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 class TestTimeframeSelectorUI:
-    """時間軸選択UI機能のテストクラス"""
+    """時間軸選択UI機能のテストクラス."""
 
     def test_html_template_structure(self):
-        """HTMLテンプレートの構造確認テスト"""
+        """HTMLテンプレートの構造確認テスト."""
         template_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
         )
@@ -55,7 +55,7 @@ class TestTimeframeSelectorUI:
         ), "時間軸インジケーターが見つかりません"
 
     def test_css_styles_exist(self):
-        """CSSスタイルの存在確認テスト"""
+        """CSSスタイルの存在確認テスト."""
         css_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "style.css"
         )
@@ -88,7 +88,7 @@ class TestTimeframeSelectorUI:
         ), "モバイル用メディアクエリが見つかりません"
 
     def test_javascript_functions_exist(self):
-        """JavaScript関数の存在確認テスト"""
+        """JavaScript関数の存在確認テスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "script.js"
         )
@@ -115,7 +115,7 @@ class TestTimeframeSelectorUI:
             ), f"JavaScript関数 {function_name} が見つかりません"
 
     def test_timeframe_config_structure(self):
-        """時間軸設定の構造確認テスト"""
+        """時間軸設定の構造確認テスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "script.js"
         )
@@ -130,7 +130,7 @@ class TestTimeframeSelectorUI:
         assert "max-term" in js_content, "最大期間設定が見つかりません"
 
     def test_accessibility_attributes(self):
-        """アクセシビリティ属性の確認テスト"""
+        """アクセシビリティ属性の確認テスト."""
         template_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
         )
@@ -150,7 +150,7 @@ class TestTimeframeSelectorUI:
         ), "aria-describedby属性が見つかりません"
 
     def test_form_validation_integration(self):
-        """フォームバリデーション統合の確認テスト"""
+        """フォームバリデーション統合の確認テスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "script.js"
         )
@@ -170,10 +170,10 @@ class TestTimeframeSelectorUI:
 
 
 class TestTimeframeSelectorConfiguration:
-    """時間軸選択設定のテストクラス"""
+    """時間軸選択設定のテストクラス."""
 
     def test_timeframe_options_completeness(self):
-        """時間軸オプションの完全性テスト"""
+        """時間軸オプションの完全性テスト."""
         template_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
         )
@@ -203,7 +203,7 @@ class TestTimeframeSelectorConfiguration:
                 ), "オプションにテキストがありません"
 
     def test_css_responsive_design(self):
-        """CSSレスポンシブデザインのテスト"""
+        """CSSレスポンシブデザインのテスト."""
         css_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "style.css"
         )

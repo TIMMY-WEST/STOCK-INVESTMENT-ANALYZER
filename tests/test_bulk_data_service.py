@@ -1,4 +1,4 @@
-"""bulk_data_serviceのテスト"""
+"""bulk_data_serviceのテスト."""
 
 from datetime import datetime
 from unittest.mock import MagicMock, Mock, mock_open, patch
@@ -16,10 +16,10 @@ from services.stock_data_saver import StockDataSaveError
 
 
 class TestProgressTracker:
-    """ProgressTrackerクラスのテスト"""
+    """ProgressTrackerクラスのテスト."""
 
     def test_init(self):
-        """初期化のテスト"""
+        """初期化のテスト."""
         tracker = ProgressTracker(total=100)
 
         assert tracker.total == 100
@@ -31,7 +31,7 @@ class TestProgressTracker:
         assert tracker.error_details == []
 
     def test_update_success(self):
-        """成功時の更新テスト"""
+        """成功時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
         tracker.update(symbol="7203.T", success=True)
@@ -43,7 +43,7 @@ class TestProgressTracker:
         assert len(tracker.error_details) == 0
 
     def test_update_failure(self):
-        """失敗時の更新テスト"""
+        """失敗時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
         tracker.update(
@@ -59,7 +59,7 @@ class TestProgressTracker:
         assert tracker.error_details[0]["error"] == "データ取得エラー"
 
     def test_get_progress(self):
-        """進捗情報取得のテスト"""
+        """進捗情報取得のテスト."""
         tracker = ProgressTracker(total=100)
 
         for i in range(50):
@@ -78,7 +78,7 @@ class TestProgressTracker:
         assert "estimated_completion" in progress
 
     def test_get_summary(self):
-        """サマリー取得のテスト"""
+        """サマリー取得のテスト."""
         tracker = ProgressTracker(total=10)
 
         for i in range(8):
@@ -101,34 +101,34 @@ class TestProgressTracker:
 
 
 class TestBulkDataService:
-    """BulkDataServiceクラスのテスト"""
+    """BulkDataServiceクラスのテスト."""
 
     @pytest.fixture
     def service(self):
-        """テスト用サービスインスタンス"""
+        """テスト用サービスインスタンス."""
         return BulkDataService(max_workers=2, retry_count=2)
 
     @pytest.fixture
     def mock_fetcher(self):
-        """モックFetcher"""
+        """モックFetcher."""
         with patch("services.bulk_data_service.StockDataFetcher") as mock:
             yield mock
 
     @pytest.fixture
     def mock_saver(self):
-        """モックSaver"""
+        """モックSaver."""
         with patch("services.bulk_data_service.StockDataSaver") as mock:
             yield mock
 
     def test_init(self, service):
-        """初期化のテスト"""
+        """初期化のテスト."""
         assert service.max_workers == 2
         assert service.retry_count == 2
         assert service.fetcher is not None
         assert service.saver is not None
 
     def test_fetch_single_stock_success(self, service):
-        """単一銘柄取得成功のテスト"""
+        """単一銘柄取得成功のテスト."""
         # モックの設定
         mock_df = pd.DataFrame(
             {
@@ -169,7 +169,7 @@ class TestBulkDataService:
         service.saver.save_stock_data.assert_called_once()
 
     def test_fetch_single_stock_with_retry(self, service):
-        """リトライ機能のテスト"""
+        """リトライ機能のテスト."""
         # 1回目は失敗、2回目は成功
         mock_df = pd.DataFrame(
             {
@@ -196,7 +196,7 @@ class TestBulkDataService:
         assert service.fetcher.fetch_stock_data.call_count == 2
 
     def test_fetch_single_stock_all_retries_failed(self, service):
-        """全リトライ失敗のテスト"""
+        """全リトライ失敗のテスト."""
         service.fetcher.fetch_stock_data = Mock(
             side_effect=StockDataFetchError("永続的なエラー")
         )
@@ -213,7 +213,7 @@ class TestBulkDataService:
         )  # 実際の呼び出し回数は2回
 
     def test_fetch_multiple_stocks(self, service):
-        """複数銘柄取得のテスト"""
+        """複数銘柄取得のテスト."""
         symbols = ["7203.T", "6758.T", "9984.T"]
 
         # モックの設定
@@ -239,7 +239,7 @@ class TestBulkDataService:
         assert service.fetch_single_stock.call_count == 3
 
     def test_fetch_multiple_stocks_with_progress_callback(self, service):
-        """進捗コールバック付き複数銘柄取得のテスト"""
+        """進捗コールバック付き複数銘柄取得のテスト."""
         symbols = ["7203.T", "6758.T"]
         progress_updates = []
 
@@ -264,7 +264,7 @@ class TestBulkDataService:
         assert len(progress_updates) >= 2  # 最低2回は呼ばれる
 
     def test_fetch_all_stocks_from_list_file(self, service):
-        """ファイルから銘柄リスト読み込みのテスト"""
+        """ファイルから銘柄リスト読み込みのテスト."""
         file_content = "7203.T\n6758.T\n9984.T\n"
 
         with patch("builtins.open", mock_open(read_data=file_content)):
@@ -280,14 +280,14 @@ class TestBulkDataService:
             assert call_args[1]["symbols"] == ["7203.T", "6758.T", "9984.T"]
 
     def test_fetch_all_stocks_from_list_file_not_found(self, service):
-        """ファイルが見つからない場合のテスト"""
+        """ファイルが見つからない場合のテスト."""
         with pytest.raises(BulkDataServiceError) as exc_info:
             service.fetch_all_stocks_from_list_file("nonexistent.txt")
 
         assert "見つかりません" in str(exc_info.value)
 
     def test_estimate_completion_time(self, service):
-        """完了時間推定のテスト"""
+        """完了時間推定のテスト."""
         service.fetch_single_stock = Mock(return_value={"success": True})
 
         # テスト実行
@@ -301,7 +301,7 @@ class TestBulkDataService:
         assert estimation["max_workers"] == 2
 
     def test_estimate_completion_time_error(self, service):
-        """完了時間推定エラーのテスト"""
+        """完了時間推定エラーのテスト."""
         service.fetch_single_stock = Mock(
             side_effect=StockDataFetchError("エラー")
         )

@@ -1,7 +1,7 @@
 """
-フロントエンドエラー表示テスト (Issue #26)
+フロントエンドエラー表示テスト (Issue #26).
 
-APIサーバーエラー時のフロントエンド表示確認とエラーメッセージの表示内容確認
+APIサーバーエラー時のフロントエンド表示確認とエラーメッセージの表示内容確認。
 """
 
 import json
@@ -14,10 +14,10 @@ pytestmark = pytest.mark.unit
 
 
 class TestFrontendErrorDisplay:
-    """フロントエンドエラー表示テストクラス"""
+    """フロントエンドエラー表示テストクラス."""
 
     def test_index_page_loads_correctly(self, client):
-        """メインページが正常に読み込まれることを確認"""
+        """メインページが正常に読み込まれることを確認."""
         response = client.get("/")
 
         assert response.status_code == 200
@@ -25,7 +25,7 @@ class TestFrontendErrorDisplay:
         assert "株価データ管理システム".encode("utf-8") in response.data
 
     def test_error_message_format_consistency(self, client):
-        """エラーメッセージフォーマットの一貫性テスト"""
+        """エラーメッセージフォーマットの一貫性テスト."""
         # 無効な銘柄コードでテスト
         with patch("yfinance.Ticker") as mock_ticker:
             mock_ticker.return_value.history.return_value.empty = True
@@ -48,7 +48,7 @@ class TestFrontendErrorDisplay:
             assert len(data["message"]) > 0
 
     def test_user_friendly_error_messages(self, client):
-        """ユーザーフレンドリーなエラーメッセージの確認"""
+        """ユーザーフレンドリーなエラーメッセージの確認."""
         test_cases = [
             {
                 "name": "無効な銘柄コード",
@@ -91,7 +91,7 @@ class TestFrontendErrorDisplay:
                 ), f"{case['name']}: キーワード '{keyword}' がメッセージに含まれていません"
 
     def test_error_code_coverage(self, client):
-        """定義されたエラーコードの網羅的テスト"""
+        """定義されたエラーコードの網羅的テスト."""
         expected_error_codes = [
             "INVALID_SYMBOL",
             "VALIDATION_ERROR",
@@ -148,7 +148,7 @@ class TestFrontendErrorDisplay:
             ), f"エラーコード {expected_code} がテストされていません"
 
     def test_security_no_sensitive_info_leak(self, client):
-        """エラーメッセージに機密情報が含まれないことを確認"""
+        """エラーメッセージに機密情報が含まれないことを確認."""
         # データベースエラーをシミュレート
         with patch("models.get_db_session") as mock_session:
             mock_session.side_effect = Exception(
@@ -168,7 +168,7 @@ class TestFrontendErrorDisplay:
                 ), f"エラーメッセージに機密情報 '{keyword}' が含まれています"
 
     def test_error_message_length_limits(self, client):
-        """エラーメッセージの長さ制限テスト"""
+        """エラーメッセージの長さ制限テスト."""
         # 長大なエラーメッセージが発生する場合の処理
         with patch("yfinance.Ticker") as mock_ticker:
             long_error_message = "A" * 1000  # 1000文字のエラーメッセージ
@@ -188,7 +188,7 @@ class TestFrontendErrorDisplay:
             assert len(message) < 2000, "エラーメッセージが長すぎます"
 
     def test_api_response_time_on_errors(self, client):
-        """エラー時のAPIレスポンス時間テスト"""
+        """エラー時のAPIレスポンス時間テスト."""
         import time
 
         # エラーケースでも適切な時間内にレスポンスが返ることを確認
@@ -206,7 +206,7 @@ class TestFrontendErrorDisplay:
         assert response.status_code == 400
 
     def test_concurrent_error_handling(self, client):
-        """同時エラー発生時の処理テスト"""
+        """同時エラー発生時の処理テスト."""
         # 複数の不正リクエストを同時に送信
         responses = []
 

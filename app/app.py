@@ -51,13 +51,13 @@ app.register_blueprint(system_api)
 # WebSocketイベントハンドラ
 @socketio.on("connect")
 def handle_connect():
-    """クライアントがWebSocketに接続した時の処理"""
+    """クライアントがWebSocketに接続した時の処理."""
     print(f"クライアントが接続しました: {request.sid}")
 
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    """クライアントがWebSocketから切断した時の処理"""
+    """クライアントがWebSocketから切断した時の処理."""
     print(f"クライアントが切断しました: {request.sid}")
 
 
@@ -68,13 +68,13 @@ def index():
 
 @app.route("/websocket-test")
 def websocket_test():
-    """WebSocket進捗配信のテストページ"""
+    """WebSocket進捗配信のテストページ."""
     return render_template("websocket_test.html")
 
 
 @app.route("/api/test-connection", methods=["GET"])
 def test_connection():
-    """データベース接続テスト用エンドポイント"""
+    """データベース接続テスト用エンドポイント."""
     from sqlalchemy import text
 
     try:
@@ -223,7 +223,7 @@ def fetch_data():
 
 @app.route("/api/stocks", methods=["POST"])
 def create_stock():
-    """株価データを作成"""
+    """株価データを作成."""
     try:
         data = request.get_json()
         required_fields = [
@@ -318,7 +318,7 @@ def create_stock():
 
 @app.route("/api/stocks/<int:stock_id>", methods=["GET"])
 def get_stock_by_id(stock_id):
-    """ID で株価データを取得"""
+    """ID で株価データを取得."""
     try:
         with get_db_session() as session:
             stock_data = StockDailyCRUD.get_by_id(session, stock_id)
@@ -362,7 +362,7 @@ def get_stock_by_id(stock_id):
 
 @app.route("/api/stocks", methods=["GET"])
 def get_stocks():
-    """株価データを取得（クエリパラメータに応じて）"""
+    """株価データを取得（クエリパラメータに応じて）."""
     try:
         # クエリパラメータの取得
         symbol = request.args.get("symbol")
@@ -529,7 +529,7 @@ def get_stocks():
 
 @app.route("/api/stocks/<int:stock_id>", methods=["PUT"])
 def update_stock(stock_id):
-    """株価データを更新"""
+    """株価データを更新."""
     try:
         data = request.get_json()
 
@@ -610,7 +610,7 @@ def update_stock(stock_id):
 
 @app.route("/api/stocks/<int:stock_id>", methods=["DELETE"])
 def delete_stock(stock_id):
-    """株価データを削除"""
+    """株価データを削除."""
     try:
         with get_db_session() as session:
             if StockDailyCRUD.delete(session, stock_id):
@@ -658,7 +658,7 @@ def delete_stock(stock_id):
 
 @app.route("/api/stocks/test-data", methods=["POST"])
 def create_test_data():
-    """テスト用サンプルデータを作成"""
+    """テスト用サンプルデータを作成."""
     try:
         test_data = [
             {

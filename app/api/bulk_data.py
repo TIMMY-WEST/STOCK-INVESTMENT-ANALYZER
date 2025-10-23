@@ -23,12 +23,12 @@ ENABLE_PHASE2 = os.getenv("ENABLE_PHASE2", "true").lower() == "true"
 
 
 def get_bulk_service() -> BulkDataService:
-    """BulkDataServiceのインスタンスを取得（テストでモック可能）"""
+    """BulkDataServiceのインスタンスを取得（テストでモック可能）."""
     return BulkDataService()
 
 
 def _client_key() -> str:
-    """レート制限対象キー（APIキーがあればそれを使用、なければIP）"""
+    """レート制限対象キー（APIキーがあればそれを使用、なければIP）."""
     api_key = request.headers.get("X-API-KEY")
     if api_key:
         return f"key:{api_key}"
@@ -36,9 +36,9 @@ def _client_key() -> str:
 
 
 def require_api_key(func: Callable):
-    """単純なAPIキー認証（ヘッダ: X-API-KEY）
+    """単純なAPIキー認証（ヘッダ: X-API-KEY）.
 
-    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）
+    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。
     """
 
     @wraps(func)
@@ -72,7 +72,7 @@ _RATE_WINDOWS: Dict[str, Dict[str, Any]] = {}
 
 
 def rate_limit(max_per_minute: Optional[int] = None):
-    """簡易レート制限（分単位の固定ウィンドウ）"""
+    """簡易レート制限（分単位の固定ウィンドウ）."""
     limit_env = os.getenv("RATE_LIMIT_PER_MINUTE", "60")
     default_limit = int(limit_env) if limit_env.isdigit() else 60
     limit = max_per_minute or default_limit
@@ -114,14 +114,14 @@ def _make_progress_callback(
     job_id: str, batch_db_id: Optional[int] = None
 ) -> Callable[[Dict[str, Any]], None]:
     """
-    進捗更新コールバックを生成
+    進捗更新コールバックを生成.
 
     Args:
         job_id: Phase 1のジョブID
         batch_db_id: Phase 2のバッチDB ID
 
     Returns:
-        進捗更新コールバック関数
+        進捗更新コールバック関数。
     """
 
     def cb(progress: Dict[str, Any]):
@@ -205,7 +205,7 @@ def _run_job(
     batch_db_id: Optional[int] = None,
 ):
     """
-    バッチ処理を実行
+    バッチ処理を実行.
 
     Args:
         app: Flaskアプリケーションインスタンス
@@ -213,7 +213,7 @@ def _run_job(
         symbols: 銘柄コードのリスト
         interval: 時間軸
         period: 取得期間
-        batch_db_id: Phase 2のバッチDB ID（データベース永続化用）
+        batch_db_id: Phase 2のバッチDB ID（データベース永続化用）。
     """
     with app.app_context():
         logger.info(
@@ -335,7 +335,7 @@ def _run_job(
 @rate_limit()
 def start_bulk_fetch():
     """
-    一括取得のジョブを開始
+    一括取得のジョブを開始.
 
     Phase 1とPhase 2の両方に対応:
     - Phase 1: インメモリ管理 (job_id)
@@ -468,7 +468,7 @@ def start_bulk_fetch():
 @rate_limit()
 def get_job_status(job_id: str):
     """
-    ジョブステータスを取得
+    ジョブステータスを取得.
 
     Phase 1とPhase 2の両方に対応:
     - job_idが "job-" で始まる場合: Phase 1のインメモリ管理から取得
@@ -607,14 +607,14 @@ JPX_SEQUENTIAL_INTERVALS = [
 @rate_limit()
 def get_jpx_symbols():
     """
-    JPX銘柄マスタから銘柄コード一覧を取得
+    JPX銘柄マスタから銘柄コード一覧を取得.
 
     Query Parameters:
         - limit: 取得件数上限（デフォルト: 5000、最大: 5000）
         - market_category: 市場区分でフィルタ（オプション）
 
     Returns:
-        銘柄コード一覧
+        銘柄コード一覧。
     """
     try:
         logger.info("[jpx-sequential] JPX銘柄一覧取得リクエスト受信")
@@ -705,13 +705,13 @@ def _run_jpx_sequential_job(
     app, job_id: str, symbols: List[str], batch_db_id: Optional[int] = None
 ):
     """
-    JPX全銘柄順次取得ジョブを実行
+    JPX全銘柄順次取得ジョブを実行.
 
     Args:
         app: Flaskアプリケーションインスタンス
         job_id: ジョブID
         symbols: 銘柄コードのリスト
-        batch_db_id: バッチDB ID（オプション）
+        batch_db_id: バッチDB ID（オプション）。
     """
     with app.app_context():
         logger.info(
@@ -866,7 +866,7 @@ def _run_jpx_sequential_job(
 @rate_limit()
 def start_jpx_sequential():
     """
-    JPX全銘柄順次取得を開始
+    JPX全銘柄順次取得を開始.
 
     Request Body:
         {
@@ -874,7 +874,7 @@ def start_jpx_sequential():
         }
 
     Returns:
-        ジョブ情報
+        ジョブ情報。
     """
     try:
         logger.info("[jpx-sequential] 順次取得リクエスト受信")

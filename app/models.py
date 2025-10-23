@@ -29,20 +29,20 @@ Base = declarative_base()
 
 
 class DatabaseError(Exception):
-    """データベース操作エラーの基底クラス"""
+    """データベース操作エラーの基底クラス."""
 
     pass
 
 
 class StockDataError(DatabaseError):
-    """株価データ関連エラー"""
+    """株価データ関連エラー."""
 
     pass
 
 
 # ベースクラス：共通のカラムと制約を定義
 class StockDataBase:
-    """株価データの共通カラムと制約を定義するベースクラス"""
+    """株価データの共通カラムと制約を定義するベースクラス."""
 
     # 共通カラム
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -58,7 +58,7 @@ class StockDataBase:
     )
 
     def to_dict(self) -> Dict[str, Any]:
-        """モデルインスタンスを辞書形式に変換"""
+        """モデルインスタンスを辞書形式に変換."""
         result = {
             "id": self.id,
             "symbol": self.symbol,
@@ -310,7 +310,7 @@ StockDaily = Stocks1d
 
 # 銘柄マスタテーブル (Phase 2)
 class StockMaster(Base):
-    """銘柄マスタテーブル - JPX銘柄一覧を管理（全項目対応版）"""
+    """銘柄マスタテーブル - JPX銘柄一覧を管理（全項目対応版）."""
 
     __tablename__ = "stock_master"
 
@@ -358,7 +358,7 @@ class StockMaster(Base):
         return f"<StockMaster(stock_code='{self.stock_code}', stock_name='{self.stock_name}', is_active={self.is_active})>"
 
     def to_dict(self) -> Dict[str, Any]:
-        """モデルインスタンスを辞書形式に変換"""
+        """モデルインスタンスを辞書形式に変換."""
         return {
             "id": self.id,
             "stock_code": self.stock_code,
@@ -383,7 +383,7 @@ class StockMaster(Base):
 
 # 銘柄一覧更新履歴テーブル (Phase 2)
 class StockMasterUpdate(Base):
-    """銘柄一覧更新履歴テーブル - 銘柄マスタの更新履歴を管理"""
+    """銘柄一覧更新履歴テーブル - 銘柄マスタの更新履歴を管理."""
 
     __tablename__ = "stock_master_updates"
 
@@ -402,7 +402,7 @@ class StockMasterUpdate(Base):
         return f"<StockMasterUpdate(id={self.id}, update_type='{self.update_type}', status='{self.status}')>"
 
     def to_dict(self) -> Dict[str, Any]:
-        """モデルインスタンスを辞書形式に変換"""
+        """モデルインスタンスを辞書形式に変換."""
         return {
             "id": self.id,
             "update_type": self.update_type,
@@ -423,7 +423,7 @@ class StockMasterUpdate(Base):
 
 # バッチ実行情報テーブル (Phase 2)
 class BatchExecution(Base):
-    """バッチ実行情報テーブル - バッチ処理の実行状況を管理"""
+    """バッチ実行情報テーブル - バッチ処理の実行状況を管理."""
 
     __tablename__ = "batch_executions"
 
@@ -453,7 +453,7 @@ class BatchExecution(Base):
         return f"<BatchExecution(id={self.id}, batch_type='{self.batch_type}', status='{self.status}')>"
 
     def to_dict(self) -> Dict[str, Any]:
-        """モデルインスタンスを辞書形式に変換"""
+        """モデルインスタンスを辞書形式に変換."""
         return {
             "id": self.id,
             "batch_type": self.batch_type,
@@ -474,14 +474,14 @@ class BatchExecution(Base):
 
     @property
     def progress_percentage(self) -> float:
-        """進捗率を計算"""
+        """進捗率を計算."""
         if self.total_stocks == 0:
             return 0.0
         return (self.processed_stocks / self.total_stocks) * 100.0
 
     @property
     def duration_seconds(self) -> Optional[float]:
-        """実行時間を秒で計算"""
+        """実行時間を秒で計算."""
         if not self.start_time:
             return None
         end_time = self.end_time or datetime.now(self.start_time.tzinfo)
@@ -490,7 +490,7 @@ class BatchExecution(Base):
 
 # バッチ実行詳細テーブル (Phase 2)
 class BatchExecutionDetail(Base):
-    """バッチ実行詳細テーブル - 個別銘柄の処理状況を管理"""
+    """バッチ実行詳細テーブル - 個別銘柄の処理状況を管理."""
 
     __tablename__ = "batch_execution_details"
 
@@ -523,7 +523,7 @@ class BatchExecutionDetail(Base):
         return f"<BatchExecutionDetail(id={self.id}, batch_execution_id={self.batch_execution_id}, stock_code='{self.stock_code}', status='{self.status}')>"
 
     def to_dict(self) -> Dict[str, Any]:
-        """モデルインスタンスを辞書形式に変換"""
+        """モデルインスタンスを辞書形式に変換."""
         return {
             "id": self.id,
             "batch_execution_id": self.batch_execution_id,
@@ -542,7 +542,7 @@ class BatchExecutionDetail(Base):
 
     @property
     def duration_seconds(self) -> Optional[float]:
-        """処理時間を秒で計算"""
+        """処理時間を秒で計算."""
         if not self.start_time:
             return None
         end_time = self.end_time or datetime.now(self.start_time.tzinfo)
@@ -557,7 +557,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @contextmanager
 def get_db_session():
-    """データベースセッションのコンテキストマネージャー"""
+    """データベースセッションのコンテキストマネージャー."""
     session = SessionLocal()
     try:
         yield session
@@ -570,11 +570,11 @@ def get_db_session():
 
 
 class StockDailyCRUD:
-    """StockDailyモデルのCRUD操作クラス"""
+    """StockDailyモデルのCRUD操作クラス."""
 
     @staticmethod
     def create(session: Session, **kwargs) -> StockDaily:
-        """新しい株価データを作成"""
+        """新しい株価データを作成."""
         try:
             stock_data = StockDaily(**kwargs)
             session.add(stock_data)
@@ -591,7 +591,7 @@ class StockDailyCRUD:
 
     @staticmethod
     def get_by_id(session: Session, stock_id: int) -> Optional[StockDaily]:
-        """IDで株価データを取得"""
+        """IDで株価データを取得."""
         try:
             return (
                 session.query(StockDaily)
@@ -605,7 +605,7 @@ class StockDailyCRUD:
     def get_by_symbol_and_date(
         session: Session, symbol: str, date: date
     ) -> Optional[StockDaily]:
-        """銘柄コードと日付で株価データを取得"""
+        """銘柄コードと日付で株価データを取得."""
         try:
             return (
                 session.query(StockDaily)
@@ -624,7 +624,7 @@ class StockDailyCRUD:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> List[StockDaily]:
-        """銘柄コードで株価データを取得（日付降順）"""
+        """銘柄コードで株価データを取得（日付降順）."""
         try:
             query = session.query(StockDaily).filter(
                 StockDaily.symbol == symbol
@@ -655,7 +655,7 @@ class StockDailyCRUD:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> List[StockDaily]:
-        """フィルタ条件に基づく株価データを取得（日付降順）"""
+        """フィルタ条件に基づく株価データを取得（日付降順）."""
         try:
             query = session.query(StockDaily)
 
@@ -683,7 +683,7 @@ class StockDailyCRUD:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> List[StockDaily]:
-        """全ての株価データを取得（日付降順）"""
+        """全ての株価データを取得（日付降順）."""
         try:
             query = session.query(StockDaily).order_by(
                 StockDaily.date.desc(), StockDaily.symbol
@@ -702,7 +702,7 @@ class StockDailyCRUD:
     def update(
         session: Session, stock_id: int, **kwargs
     ) -> Optional[StockDaily]:
-        """株価データを更新"""
+        """株価データを更新."""
         try:
             stock_data = (
                 session.query(StockDaily)
@@ -730,7 +730,7 @@ class StockDailyCRUD:
 
     @staticmethod
     def delete(session: Session, stock_id: int) -> bool:
-        """株価データを削除"""
+        """株価データを削除."""
         try:
             stock_data = (
                 session.query(StockDaily)
@@ -750,7 +750,7 @@ class StockDailyCRUD:
     def bulk_create(
         session: Session, stock_data_list: List[Dict[str, Any]]
     ) -> List[StockDaily]:
-        """複数の株価データを一括作成"""
+        """複数の株価データを一括作成."""
         try:
             stock_objects = []
             for data in stock_data_list:
@@ -769,7 +769,7 @@ class StockDailyCRUD:
 
     @staticmethod
     def count_by_symbol(session: Session, symbol: str) -> int:
-        """銘柄のデータ件数を取得"""
+        """銘柄のデータ件数を取得."""
         try:
             return (
                 session.query(StockDaily)
@@ -783,7 +783,7 @@ class StockDailyCRUD:
     def get_latest_date_by_symbol(
         session: Session, symbol: str
     ) -> Optional[date]:
-        """銘柄の最新データ日付を取得"""
+        """銘柄の最新データ日付を取得."""
         try:
             result = (
                 session.query(StockDaily.date)
@@ -797,7 +797,7 @@ class StockDailyCRUD:
 
     @staticmethod
     def count_all(session: Session) -> int:
-        """全ての株価データ件数を取得"""
+        """全ての株価データ件数を取得."""
         try:
             return session.query(StockDaily).count()
         except SQLAlchemyError as e:
@@ -810,7 +810,7 @@ class StockDailyCRUD:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> int:
-        """フィルタ条件に基づく株価データ件数を取得"""
+        """フィルタ条件に基づく株価データ件数を取得."""
         try:
             query = session.query(StockDaily)
 

@@ -8,7 +8,7 @@ pytestmark = pytest.mark.unit
 
 
 def test_stock_daily_model_import():
-    """StockDailyモデルのインポートテスト"""
+    """StockDailyモデルのインポートテスト."""
     from models import Base, StockDaily
 
     # モデルクラスの基本チェック
@@ -24,7 +24,7 @@ def test_stock_daily_model_import():
 
 
 def test_stock_daily_repr():
-    """StockDailyモデルの文字列表現テスト"""
+    """StockDailyモデルの文字列表現テスト."""
     from models import StockDaily
 
     stock = StockDaily()

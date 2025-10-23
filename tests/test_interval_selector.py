@@ -1,12 +1,12 @@
 """
-足選択機能のテストコード
+足選択機能のテストコード.
 Interval Selector Feature Tests
 
 このテストファイルは、足選択機能の基本機能をテストします：
 - HTMLテンプレートの足選択要素確認
 - JavaScript関数の存在確認
 - バリデーション機能のテスト
-- APIリクエストでのintervalパラメータ処理テスト
+- APIリクエストでのintervalパラメータ処理テスト。
 """
 
 import json
@@ -25,10 +25,10 @@ from app.app import app
 
 
 class TestIntervalSelectorUI:
-    """足選択UI機能のテストクラス"""
+    """足選択UI機能のテストクラス."""
 
     def test_interval_selector_html_structure(self):
-        """足選択セレクターのHTML構造確認テスト"""
+        """足選択セレクターのHTML構造確認テスト."""
         template_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
         )
@@ -68,7 +68,7 @@ class TestIntervalSelectorUI:
             ), f"足種別 {interval} のオプションが見つかりません"
 
     def test_interval_selector_css_styles(self):
-        """足選択セレクターのCSSスタイル確認テスト"""
+        """足選択セレクターのCSSスタイル確認テスト."""
         css_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "style.css"
         )
@@ -85,7 +85,7 @@ class TestIntervalSelectorUI:
             ), f"CSSクラス {css_class} が見つかりません"
 
     def test_interval_selector_javascript_functions(self):
-        """足選択関連のJavaScript関数確認テスト"""
+        """足選択関連のJavaScript関数確認テスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "script.js"
         )
@@ -109,7 +109,7 @@ class TestIntervalSelectorUI:
             ), f"JavaScript関数 {function_name} が見つかりません"
 
     def test_interval_validation_logic(self):
-        """足選択バリデーションロジックのテスト"""
+        """足選択バリデーションロジックのテスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "script.js"
         )
@@ -129,16 +129,16 @@ class TestIntervalSelectorUI:
 
 
 class TestIntervalSelectorAPI:
-    """足選択機能のAPI統合テストクラス"""
+    """足選択機能のAPI統合テストクラス."""
 
     def setup_method(self):
-        """テストメソッドのセットアップ"""
+        """テストメソッドのセットアップ."""
         self.app = app
         self.app.config["TESTING"] = True
         self.client = self.app.test_client()
 
     def test_api_accepts_interval_parameter(self):
-        """APIが足パラメータを受け取るかテスト"""
+        """APIが足パラメータを受け取るかテスト."""
         # テストデータ
         test_data = {"symbol": "AAPL", "period": "1mo", "interval": "1d"}
 
@@ -166,7 +166,7 @@ class TestIntervalSelectorAPI:
             ), "レスポンスのdataにintervalが含まれていません"
 
     def test_api_validates_interval_parameter(self):
-        """APIが足パラメータをバリデーションするかテスト"""
+        """APIが足パラメータをバリデーションするかテスト."""
         # 無効な足種別でテスト
         test_data = {
             "symbol": "AAPL",
@@ -192,7 +192,7 @@ class TestIntervalSelectorAPI:
         ), "エラーレスポンスにerrorフィールドがありません"
 
     def test_api_handles_missing_interval_parameter(self):
-        """APIが足パラメータが欠けている場合を処理するかテスト"""
+        """APIが足パラメータが欠けている場合を処理するかテスト."""
         # intervalパラメータなしでテスト
         test_data = {"symbol": "AAPL", "period": "1mo"}
 
@@ -222,10 +222,10 @@ class TestIntervalSelectorAPI:
 
 
 class TestIntervalSelectorIntegration:
-    """足選択機能の統合テストクラス"""
+    """足選択機能の統合テストクラス."""
 
     def test_frontend_backend_integration(self):
-        """フロントエンドとバックエンドの統合確認テスト"""
+        """フロントエンドとバックエンドの統合確認テスト."""
         # app.jsファイルの確認
         app_js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "app.js"
@@ -253,7 +253,7 @@ class TestIntervalSelectorIntegration:
         ), "script.jsでintervalパラメータが送信されていません"
 
     def test_backend_interval_processing(self):
-        """バックエンドの足パラメータ処理確認テスト"""
+        """バックエンドの足パラメータ処理確認テスト."""
         app_py_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "app.py"
         )
@@ -278,10 +278,10 @@ class TestIntervalSelectorIntegration:
 
 
 class TestIntervalSelectorErrorHandling:
-    """足選択機能のエラーハンドリングテストクラス"""
+    """足選択機能のエラーハンドリングテストクラス."""
 
     def test_interval_error_display(self):
-        """足選択エラー表示のテスト"""
+        """足選択エラー表示のテスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "script.js"
         )
@@ -300,7 +300,7 @@ class TestIntervalSelectorErrorHandling:
         ), "足選択セレクター状態設定機能が実装されていません"
 
     def test_interval_error_clearing(self):
-        """足選択エラークリア機能のテスト"""
+        """足選択エラークリア機能のテスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "static", "script.js"
         )

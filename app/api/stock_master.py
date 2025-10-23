@@ -1,7 +1,7 @@
 """
-JPX銘柄マスタ管理API
+JPX銘柄マスタ管理API.
 
-JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント
+JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント。
 """
 
 from functools import wraps
@@ -23,9 +23,9 @@ stock_master_api = Blueprint("stock_master_api", __name__)
 
 # APIキー認証
 def require_api_key(f):
-    """APIキー認証デコレータ
+    """APIキー認証デコレータ.
 
-    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）
+    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）。
     """
 
     @wraps(f)
@@ -51,7 +51,7 @@ def require_api_key(f):
 @require_api_key
 def update_stock_master():
     """
-    JPX銘柄マスタ更新API
+    JPX銘柄マスタ更新API.
 
     JPXから最新の銘柄一覧を取得してデータベースを更新します。
 
@@ -80,7 +80,7 @@ def update_stock_master():
             "status": "error",
             "message": "エラーメッセージ",
             "error_code": "JPX_DOWNLOAD_ERROR" | "JPX_PARSE_ERROR" | "DATABASE_ERROR"
-        }
+        }.
     """
     try:
         # リクエストボディを取得
@@ -160,7 +160,7 @@ def update_stock_master():
 @require_api_key
 def get_stock_master_list():
     """
-    JPX銘柄マスタ一覧取得API
+    JPX銘柄マスタ一覧取得API.
 
     データベースに保存されている銘柄マスタ一覧を取得します。
 
@@ -203,7 +203,7 @@ def get_stock_master_list():
             "status": "error",
             "message": "エラーメッセージ",
             "error_code": "INVALID_PARAMETER" | "DATABASE_ERROR"
-        }
+        }.
     """
     try:
         # クエリパラメータを取得
@@ -330,7 +330,7 @@ def get_stock_master_list():
 @require_api_key
 def get_stock_master_status():
     """
-    JPX銘柄マスタ状態取得API
+    JPX銘柄マスタ状態取得API.
 
     銘柄マスタの現在の状態と最新の更新履歴を取得します。
 
@@ -355,7 +355,7 @@ def get_stock_master_status():
                     "completed_at": "2024-12-01T10:05:00Z"
                 }
             }
-        }
+        }.
     """
     try:
         from models import StockMaster, StockMasterUpdate, get_db_session

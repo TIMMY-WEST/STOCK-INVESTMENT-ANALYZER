@@ -1,6 +1,6 @@
 """
-フロントエンドE2Eテスト
-UIバグやページネーション表示問題を検知するためのテスト
+フロントエンドE2Eテスト.
+UIバグやページネーション表示問題を検知するためのテスト。
 """
 
 import os
@@ -26,7 +26,7 @@ class FlaskTestServer:
         self.process = None
 
     def start(self):
-        """テスト用サーバーを起動"""
+        """テスト用サーバーを起動."""
         try:
             # 既存のプロセスがあれば終了
             self.stop()
@@ -64,7 +64,7 @@ class FlaskTestServer:
             return False
 
     def stop(self):
-        """テスト用サーバーを停止"""
+        """テスト用サーバーを停止."""
         if self.process:
             self.process.terminate()
             self.process.wait()
@@ -73,7 +73,7 @@ class FlaskTestServer:
 
 @pytest.fixture(scope="session")
 def test_server():
-    """テスト用サーバーのフィクスチャ"""
+    """テスト用サーバーのフィクスチャ."""
     server = FlaskTestServer()
     if server.start():
         yield server
@@ -84,7 +84,7 @@ def test_server():
 
 @pytest.fixture(scope="session")
 def driver():
-    """Seleniumドライバーのフィクスチャ"""
+    """Seleniumドライバーのフィクスチャ."""
     try:
         options = Options()
         options.add_argument("--headless")  # ヘッドレスモード
@@ -130,10 +130,10 @@ def driver():
 
 @pytest.mark.e2e
 class TestFrontendUI:
-    """フロントエンドUIのテストクラス"""
+    """フロントエンドUIのテストクラス."""
 
     def test_page_load(self, driver, test_server):
-        """ページが正常に読み込まれることを確認"""
+        """ページが正常に読み込まれることを確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
         # ページタイトルを確認
@@ -145,7 +145,7 @@ class TestFrontendUI:
         assert driver.find_element(By.ID, "data-table")
 
     def test_pagination_display_initial_state(self, driver, test_server):
-        """初期状態でのページネーション表示を確認"""
+        """初期状態でのページネーション表示を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
         # ページが完全に読み込まれるまで少し待機
@@ -164,7 +164,7 @@ class TestFrontendUI:
             assert "NaN" not in initial_text
 
     def test_data_loading_pagination_display(self, driver, test_server):
-        """データ読み込み後のページネーション表示を確認"""
+        """データ読み込み後のページネーション表示を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
         # データ読み込みボタンをクリック
@@ -229,7 +229,7 @@ class TestFrontendUI:
             ), f"データ読み込み中にNaN表示が発生しました: {text}"
 
     def test_pagination_buttons_state(self, driver, test_server):
-        """ページネーションボタンの状態を確認"""
+        """ページネーションボタンの状態を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
         # データ読み込みボタンをクリック
@@ -263,7 +263,7 @@ class TestFrontendUI:
             # （データ量によって変わるため、存在確認のみ）
 
     def test_table_display_after_load(self, driver, test_server):
-        """データ読み込み後のテーブル表示を確認"""
+        """データ読み込み後のテーブル表示を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
         # データ読み込みボタンをクリック
@@ -311,7 +311,7 @@ class TestFrontendUI:
             ), f"予期しないテーブル状態: {table_text}"
 
     def test_ui_elements_visibility(self, driver, test_server):
-        """UI要素の可視性を確認"""
+        """UI要素の可視性を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
         # 主要なUI要素が表示されていることを確認

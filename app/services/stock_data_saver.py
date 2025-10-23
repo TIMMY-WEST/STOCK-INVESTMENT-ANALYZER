@@ -1,4 +1,4 @@
-"""株価データ保存サービス
+"""株価データ保存サービス.
 
 各時間軸の株価データをデータベースに保存します。
 """
@@ -23,16 +23,16 @@ logger = logging.getLogger(__name__)
 
 
 class StockDataSaveError(Exception):
-    """データ保存エラー"""
+    """データ保存エラー."""
 
     pass
 
 
 class StockDataSaver:
-    """株価データ保存クラス"""
+    """株価データ保存クラス."""
 
     def __init__(self):
-        """初期化"""
+        """初期化."""
         self.logger = logger
 
     def save_stock_data(
@@ -43,7 +43,7 @@ class StockDataSaver:
         session: Optional[Session] = None,
     ) -> Dict[str, Any]:
         """
-        株価データを保存
+        株価データを保存.
 
         Args:
             symbol: 銘柄コード
@@ -55,7 +55,7 @@ class StockDataSaver:
             保存結果の統計情報
 
         Raises:
-            StockDataSaveError: データ保存失敗時
+            StockDataSaveError: データ保存失敗時。
         """
         # 時間軸の検証
         if not validate_interval(interval):
@@ -84,7 +84,7 @@ class StockDataSaver:
         data_list: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """
-        セッションを使用してデータを保存（内部メソッド）
+        セッションを使用してデータを保存（内部メソッド）.
 
         Args:
             session: SQLAlchemyセッション
@@ -94,7 +94,7 @@ class StockDataSaver:
             data_list: 保存するデータのリスト
 
         Returns:
-            保存結果の統計情報
+            保存結果の統計情報。
         """
         saved_count = 0
         skipped_count = 0
@@ -179,7 +179,7 @@ class StockDataSaver:
         self, symbol: str, data_dict: Dict[str, List[Dict[str, Any]]]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        複数時間軸のデータを一度に保存
+        複数時間軸のデータを一度に保存.
 
         Args:
             symbol: 銘柄コード
@@ -189,7 +189,7 @@ class StockDataSaver:
             {interval: 保存結果} の辞書
 
         Raises:
-            StockDataSaveError: データ保存失敗時
+            StockDataSaveError: データ保存失敗時。
         """
         results = {}
 
@@ -220,7 +220,7 @@ class StockDataSaver:
         self, symbols_data: Dict[str, List[Dict[str, Any]]], interval: str
     ) -> Dict[str, Any]:
         """
-        複数銘柄のデータをバッチ保存（重複データ事前除外方式）
+        複数銘柄のデータをバッチ保存（重複データ事前除外方式）.
 
         Args:
             symbols_data: {銘柄コード: データリスト} の辞書
@@ -230,7 +230,7 @@ class StockDataSaver:
             バッチ保存結果の統計情報
 
         Raises:
-            StockDataSaveError: データ保存失敗時
+            StockDataSaveError: データ保存失敗時。
         """
         # 時間軸の検証
         if not validate_interval(interval):
@@ -328,7 +328,7 @@ class StockDataSaver:
         interval: str,
     ) -> Dict[str, List[Dict[str, Any]]]:
         """
-        重複データを事前に除外
+        重複データを事前に除外.
 
         Args:
             session: SQLAlchemyセッション
@@ -337,7 +337,7 @@ class StockDataSaver:
             interval: 時間軸
 
         Returns:
-            重複除外後のデータ
+            重複除外後のデータ。
         """
         filtered_data = {}
 
@@ -395,7 +395,7 @@ class StockDataSaver:
         self, symbol: str, interval: str, session: Optional[Session] = None
     ) -> Optional[datetime | date]:
         """
-        データベース内の最新データ日時を取得
+        データベース内の最新データ日時を取得.
 
         Args:
             symbol: 銘柄コード
@@ -403,7 +403,7 @@ class StockDataSaver:
             session: SQLAlchemyセッション（Noneの場合は新規作成）
 
         Returns:
-            最新データの日時、データがない場合はNone
+            最新データの日時、データがない場合はNone。
         """
         # 時間軸の検証
         if not validate_interval(interval):
@@ -444,7 +444,7 @@ class StockDataSaver:
         self, symbol: str, interval: str, session: Optional[Session] = None
     ) -> int:
         """
-        データベース内のレコード数を取得
+        データベース内のレコード数を取得.
 
         Args:
             symbol: 銘柄コード
@@ -452,7 +452,7 @@ class StockDataSaver:
             session: SQLAlchemyセッション（Noneの場合は新規作成）
 
         Returns:
-            レコード数
+            レコード数。
         """
         # 時間軸の検証
         if not validate_interval(interval):

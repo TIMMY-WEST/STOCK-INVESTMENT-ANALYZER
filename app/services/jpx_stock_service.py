@@ -1,5 +1,5 @@
 """
-JPX銘柄一覧取得・更新サービス
+JPX銘柄一覧取得・更新サービス.
 
 JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、
 データベースの銘柄マスタを更新する機能を提供します。
@@ -22,25 +22,25 @@ logger = logging.getLogger(__name__)
 
 
 class JPXStockServiceError(Exception):
-    """JPX銘柄サービス関連エラーの基底クラス"""
+    """JPX銘柄サービス関連エラーの基底クラス."""
 
     pass
 
 
 class JPXDownloadError(JPXStockServiceError):
-    """JPXからのダウンロードエラー"""
+    """JPXからのダウンロードエラー."""
 
     pass
 
 
 class JPXParseError(JPXStockServiceError):
-    """JPXデータのパースエラー"""
+    """JPXデータのパースエラー."""
 
     pass
 
 
 class JPXStockService:
-    """JPX銘柄一覧取得・更新サービス"""
+    """JPX銘柄一覧取得・更新サービス."""
 
     # JPX銘柄一覧のURL
     JPX_STOCK_LIST_URL = "https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls"
@@ -59,14 +59,14 @@ class JPXStockService:
 
     def fetch_jpx_stock_list(self) -> pd.DataFrame:
         """
-        JPXから銘柄一覧を取得してDataFrameとして返す
+        JPXから銘柄一覧を取得してDataFrameとして返す.
 
         Returns:
             pd.DataFrame: 正規化された銘柄一覧データ
 
         Raises:
             JPXDownloadError: ダウンロードに失敗した場合
-            JPXParseError: データのパースに失敗した場合
+            JPXParseError: データのパースに失敗した場合。
         """
         try:
             logger.info(
@@ -108,7 +108,7 @@ class JPXStockService:
 
     def _normalize_jpx_data(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
         """
-        JPXのExcelデータを正規化する
+        JPXのExcelデータを正規化する.
 
         Args:
             df: 生のJPXデータ
@@ -117,7 +117,7 @@ class JPXStockService:
             List[Dict[str, Any]]: 正規化されたデータ（辞書のリスト）
 
         Raises:
-            JPXParseError: データの正規化に失敗した場合
+            JPXParseError: データの正規化に失敗した場合。
         """
         try:
             # JPXのExcelフォーマットに応じて列名をマッピング
@@ -269,7 +269,7 @@ class JPXStockService:
         self, update_type: str = "manual"
     ) -> Dict[str, Any]:
         """
-        銘柄マスタを更新する
+        銘柄マスタを更新する.
 
         Args:
             update_type: 更新タイプ ('manual' または 'scheduled')
@@ -278,7 +278,7 @@ class JPXStockService:
             Dict[str, Any]: 更新結果のサマリー
 
         Raises:
-            JPXStockServiceError: 更新処理に失敗した場合
+            JPXStockServiceError: 更新処理に失敗した場合。
         """
         update_record = {
             "update_type": update_type,
@@ -358,7 +358,7 @@ class JPXStockService:
     def _create_update_record(
         self, session: Session, update_record: Dict[str, Any]
     ) -> int:
-        """更新履歴レコードを作成"""
+        """更新履歴レコードを作成."""
         update = StockMasterUpdate(
             update_type=update_record["update_type"],
             total_stocks=update_record["total_stocks"],
@@ -369,7 +369,7 @@ class JPXStockService:
         return update.id
 
     def _get_existing_stock_codes(self, session: Session) -> Set[str]:
-        """既存の有効な銘柄コード一覧を取得"""
+        """既存の有効な銘柄コード一覧を取得."""
         result = (
             session.query(StockMaster.stock_code)
             .filter(StockMaster.is_active == 1)
@@ -378,7 +378,7 @@ class JPXStockService:
         return {code[0] for code in result}
 
     def _insert_stock(self, session: Session, row: pd.Series) -> None:
-        """新規銘柄を挿入"""
+        """新規銘柄を挿入."""
         stock = StockMaster(
             stock_code=str(row["stock_code"]).strip(),
             stock_name=str(row["stock_name"]).strip(),
@@ -396,7 +396,7 @@ class JPXStockService:
         session.add(stock)
 
     def _update_stock(self, session: Session, row: pd.Series) -> None:
-        """既存銘柄を更新"""
+        """既存銘柄を更新."""
         stock = (
             session.query(StockMaster)
             .filter(StockMaster.stock_code == str(row["stock_code"]).strip())
@@ -430,7 +430,7 @@ class JPXStockService:
     def _deactivate_stocks(
         self, session: Session, stock_codes: Set[str]
     ) -> None:
-        """指定された銘柄を無効化"""
+        """指定された銘柄を無効化."""
         session.query(StockMaster).filter(
             StockMaster.stock_code.in_(stock_codes)
         ).update({"is_active": 0}, synchronize_session=False)
@@ -438,7 +438,7 @@ class JPXStockService:
     def _complete_update_record(
         self, session: Session, update_id: int, update_record: Dict[str, Any]
     ) -> None:
-        """更新履歴レコードを完了"""
+        """更新履歴レコードを完了."""
         update = (
             session.query(StockMasterUpdate)
             .filter(StockMasterUpdate.id == update_id)
@@ -461,7 +461,7 @@ class JPXStockService:
         offset: Optional[int] = 0,
     ) -> Dict[str, Any]:
         """
-        銘柄マスタ一覧を取得
+        銘柄マスタ一覧を取得.
 
         Args:
             is_active: 有効フラグでフィルタ (None=全て, True=有効のみ, False=無効のみ)
@@ -470,7 +470,7 @@ class JPXStockService:
             offset: オフセット
 
         Returns:
-            Dict[str, Any]: 銘柄一覧と総件数
+            Dict[str, Any]: 銘柄一覧と総件数。
         """
         try:
             with get_db_session() as session:

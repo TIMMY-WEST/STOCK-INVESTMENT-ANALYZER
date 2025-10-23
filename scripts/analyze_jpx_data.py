@@ -1,9 +1,9 @@
 """
-JPX銘柄一覧データの分析スクリプト
+JPX銘柄一覧データの分析スクリプト.
 
 目的:
 - JPXからダウンロードしたExcelファイル (data_j.xls) の構造を分析
-- 作成したstock_masterテーブルとの整合性を確認
+- 作成したstock_masterテーブルとの整合性を確認。
 """
 
 import io
@@ -20,10 +20,10 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 
 def analyze_jpx_data(file_path: str) -> None:
-    """JPXデータファイルを分析
+    """JPXデータファイルを分析.
 
     Args:
-        file_path: 分析対象のExcelファイルパス
+        file_path: 分析対象のExcelファイルパス。
     """
 
     print("=" * 80)
@@ -185,13 +185,13 @@ def analyze_jpx_data(file_path: str) -> None:
 
 
 def analyze_column_statistics(df: pd.DataFrame) -> Dict[str, Any]:
-    """カラムの統計情報を分析
+    """カラムの統計情報を分析.
 
     Args:
         df: 分析対象のDataFrame
 
     Returns:
-        統計情報の辞書
+        統計情報の辞書。
     """
     stats: Dict[str, Any] = {}
 
@@ -230,13 +230,13 @@ def analyze_column_statistics(df: pd.DataFrame) -> Dict[str, Any]:
 
 
 def validate_stock_master_compatibility(df: pd.DataFrame) -> Dict[str, bool]:
-    """stock_masterテーブルとの互換性をチェック
+    """stock_masterテーブルとの互換性をチェック.
 
     Args:
         df: JPXデータのDataFrame
 
     Returns:
-        検証結果の辞書
+        検証結果の辞書。
     """
     validation_results: Dict[str, bool] = {}
 
@@ -265,10 +265,10 @@ def validate_stock_master_compatibility(df: pd.DataFrame) -> Dict[str, bool]:
 
 
 def print_validation_results(results: Dict[str, bool]) -> None:
-    """検証結果を表示
+    """検証結果を表示.
 
     Args:
-        results: 検証結果の辞書
+        results: 検証結果の辞書。
     """
     print("\n[6] stock_masterテーブル互換性チェック")
     print("-" * 80)

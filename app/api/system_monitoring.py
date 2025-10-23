@@ -1,7 +1,7 @@
 """
-システム監視API
+システム監視API.
 
-データベース接続テスト、Yahoo Finance API接続テスト、統合ヘルスチェック機能を提供
+データベース接続テスト、Yahoo Finance API接続テスト、統合ヘルスチェック機能を提供。
 """
 
 from datetime import datetime
@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 @system_api.route("/db-connection-test", methods=["POST"])
 def test_database_connection():
     """
-    データベース接続テスト
+    データベース接続テスト.
 
     Returns:
-        JSONレスポンス: データベース接続の状態と詳細情報
+        JSONレスポンス: データベース接続の状態と詳細情報。
     """
     start_time = time.time()
 
@@ -97,13 +97,13 @@ def test_database_connection():
 @system_api.route("/api-connection-test", methods=["POST"])
 def test_api_connection():
     """
-    Yahoo Finance API接続テスト
+    Yahoo Finance API接続テスト.
 
     Request Body:
         symbol (str): テスト用の銘柄コード（デフォルト: 7203.T）
 
     Returns:
-        JSONレスポンス: API接続の状態と詳細情報
+        JSONレスポンス: API接続の状態と詳細情報。
     """
     start_time = time.time()
 
@@ -179,12 +179,12 @@ def test_api_connection():
 @system_api.route("/health-check", methods=["GET"])
 def health_check():
     """
-    統合ヘルスチェック
+    統合ヘルスチェック.
 
     データベースとYahoo Finance APIの両方の状態をチェック
 
     Returns:
-        JSONレスポンス: システム全体の健全性状態
+        JSONレスポンス: システム全体の健全性状態。
     """
     try:
         # データベース接続テスト

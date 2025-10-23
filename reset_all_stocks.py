@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-全ての株式データテーブル（1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo）の全レコードを削除するスクリプト
+全ての株式データテーブル（1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo）の全レコードを削除するスクリプト.
 """
 import os
 import sys

@@ -1,4 +1,4 @@
-"""株価データ取得サービス
+"""株価データ取得サービス.
 
 yfinanceを使用して各時間軸の株価データを取得します。
 """
@@ -22,27 +22,27 @@ logger = logging.getLogger(__name__)
 
 
 class StockDataFetchError(Exception):
-    """データ取得エラー"""
+    """データ取得エラー."""
 
     pass
 
 
 class StockDataFetcher:
-    """株価データ取得クラス"""
+    """株価データ取得クラス."""
 
     def __init__(self):
-        """初期化"""
+        """初期化."""
         self.logger = logger
 
     def _is_valid_stock_code(self, symbol: str) -> bool:
         """
-        有効な銘柄コードかチェック
+        有効な銘柄コードかチェック.
 
         Args:
             symbol: 銘柄コード
 
         Returns:
-            有効な場合True
+            有効な場合True。
         """
         if not symbol or not isinstance(symbol, str):
             return False
@@ -66,13 +66,13 @@ class StockDataFetcher:
 
     def _format_symbol_for_yahoo(self, symbol: str) -> str:
         """
-        Yahoo Finance用に銘柄コードをフォーマット
+        Yahoo Finance用に銘柄コードをフォーマット.
 
         Args:
             symbol: 元の銘柄コード（例: '1301', '7203.T'）
 
         Returns:
-            Yahoo Finance用の銘柄コード（例: '1301.T', '7203.T'）
+            Yahoo Finance用の銘柄コード（例: '1301.T', '7203.T'）。
         """
         # symbolがNoneまたは空文字列の場合はそのまま返す
         if not symbol:
@@ -98,7 +98,7 @@ class StockDataFetcher:
         end: Optional[str] = None,
     ) -> pd.DataFrame:
         """
-        株価データを取得
+        株価データを取得.
 
         Args:
             symbol: 銘柄コード（例: '7203.T'）
@@ -111,7 +111,7 @@ class StockDataFetcher:
             株価データのDataFrame
 
         Raises:
-            StockDataFetchError: データ取得失敗時
+            StockDataFetchError: データ取得失敗時。
         """
         try:
             # symbolの検証
@@ -180,7 +180,7 @@ class StockDataFetcher:
         self, symbol: str, intervals: list[str], period: Optional[str] = None
     ) -> Dict[str, pd.DataFrame]:
         """
-        複数時間軸のデータを一度に取得
+        複数時間軸のデータを一度に取得.
 
         Args:
             symbol: 銘柄コード
@@ -191,7 +191,7 @@ class StockDataFetcher:
             {interval: DataFrame} の辞書
 
         Raises:
-            StockDataFetchError: データ取得失敗時
+            StockDataFetchError: データ取得失敗時。
         """
         results = {}
         errors = []
@@ -225,7 +225,7 @@ class StockDataFetcher:
         end: Optional[str] = None,
     ) -> Dict[str, pd.DataFrame]:
         """
-        複数銘柄の株価データを一括取得（バッチダウンロード）
+        複数銘柄の株価データを一括取得（バッチダウンロード）.
 
         Args:
             symbols: 銘柄コードのリスト（例: ['7203.T', '6758.T', '9984.T']）
@@ -238,7 +238,7 @@ class StockDataFetcher:
             {銘柄コード: DataFrame} の辞書
 
         Raises:
-            StockDataFetchError: データ取得失敗時
+            StockDataFetchError: データ取得失敗時。
         """
         try:
             # 時間軸の検証
@@ -354,14 +354,14 @@ class StockDataFetcher:
         self, df: pd.DataFrame, interval: str
     ) -> list[Dict[str, Any]]:
         """
-        DataFrameを辞書リストに変換（データベース保存用）
+        DataFrameを辞書リストに変換（データベース保存用）.
 
         Args:
             df: yfinanceから取得したDataFrame
             interval: 時間軸
 
         Returns:
-            データベース保存用の辞書リスト
+            データベース保存用の辞書リスト。
         """
         records = []
         is_intraday = is_intraday_interval(interval)
@@ -472,14 +472,14 @@ class StockDataFetcher:
         self, symbol: str, interval: str = "1d"
     ) -> Optional[datetime]:
         """
-        最新データの日時を取得（データベース更新判定用）
+        最新データの日時を取得（データベース更新判定用）.
 
         Args:
             symbol: 銘柄コード
             interval: 時間軸
 
         Returns:
-            最新データの日時、データがない場合はNone
+            最新データの日時、データがない場合はNone。
         """
         try:
             df = self.fetch_stock_data(symbol, interval, period="1d")
