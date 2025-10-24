@@ -106,9 +106,9 @@ class StockDataSaver:
             # 現在のデータの日付を取得（保存成否に関わらず追跡）
             current_date = data.get("date") or data.get("datetime")
             if current_date:
-                if date_start is None or current_date < date_start:
+                if date_start is None or current_date < date_start:  # type: ignore[unreachable]
                     date_start = current_date
-                if date_end is None or current_date > date_end:
+                if date_end is None or current_date > date_end:  # type: ignore[unreachable]
                     date_end = current_date
 
             try:
@@ -331,7 +331,7 @@ class StockDataSaver:
         Returns:
             重複除外後のデータ。
         """
-        filtered_data = {}
+        filtered_data: Dict[str, List[Dict[str, Any]]] = {}
 
         # 時間軸に応じて適切なカラム名を決定
         date_column_name = (
@@ -349,7 +349,7 @@ class StockDataSaver:
             try:
                 existing_records = (
                     session.query(date_column)
-                    .filter(model_class.symbol == symbol)
+                    .filter(model_class.symbol == symbol)  # type: ignore[attr-defined]
                     .all()
                 )
                 existing_dates = {record[0] for record in existing_records}
@@ -409,17 +409,17 @@ class StockDataSaver:
             if is_intraday:
                 # 分足・時間足: datetime
                 result = (
-                    sess.query(model_class.datetime)
+                    sess.query(model_class.datetime)  # type: ignore[attr-defined]
                     .filter(model_class.symbol == symbol)
-                    .order_by(model_class.datetime.desc())
+                    .order_by(model_class.datetime.desc())  # type: ignore[attr-defined]
                     .first()
                 )
             else:
                 # 日足・週足・月足: date
                 result = (
-                    sess.query(model_class.date)
+                    sess.query(model_class.date)  # type: ignore[attr-defined]
                     .filter(model_class.symbol == symbol)
-                    .order_by(model_class.date.desc())
+                    .order_by(model_class.date.desc())  # type: ignore[attr-defined]
                     .first()
                 )
 

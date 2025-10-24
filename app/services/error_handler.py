@@ -291,8 +291,8 @@ class ErrorHandler:
             Dict[str, Any]: エラーレポート。
         """
         # エラー種別ごとの集計
-        error_by_type = defaultdict(int)
-        error_by_stock = defaultdict(int)
+        error_by_type: defaultdict[str, int] = defaultdict(int)
+        error_by_stock: defaultdict[str, int] = defaultdict(int)
 
         for record in self.error_records:
             error_by_type[record.error_type] += 1

@@ -9,7 +9,7 @@ import json
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, MutableMapping, Optional, Tuple
 
 
 class StructuredFormatter(logging.Formatter):
@@ -53,7 +53,9 @@ class BatchLoggerAdapter(logging.LoggerAdapter):
     構造化ログ出力用の追加情報を管理します。
     """
 
-    def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple:
+    def process(
+        self, msg: str, kwargs: MutableMapping[str, Any]
+    ) -> Tuple[str, MutableMapping[str, Any]]:
         """ログメッセージに追加情報を付与."""
         extra = kwargs.get("extra", {})
 
@@ -195,10 +197,10 @@ def get_batch_logger(
     """
     logger = logging.getLogger("bulk_batch")
 
-    extra = {}
+    extra: Dict[str, Any] = {}
     if batch_id:
         extra["batch_id"] = batch_id
     if worker_id is not None:
-        extra["worker_id"] = worker_id
+        extra["worker_id"] = str(worker_id)
 
     return BatchLoggerAdapter(logger, extra)

@@ -287,7 +287,7 @@ class StockDataFetcher:
         df_multi: pd.DataFrame,
         valid_symbols: list[str],
         yahoo_symbols: list[str],
-    ) -> dict[str, pd.DataFrame]:
+    ) -> tuple[dict[str, pd.DataFrame], int]:
         """複数銘柄結果を分割.
 
         Args:
@@ -513,7 +513,7 @@ class StockDataFetcher:
                     )
                     continue
 
-                record = {
+                record: Dict[str, Any] = {
                     "open": open_price,
                     "high": high_price,
                     "low": low_price,

@@ -53,7 +53,7 @@ class ProgressTracker:
         self.successful = 0
         self.failed = 0
         self.start_time = datetime.now()
-        self.current_symbol = None
+        self.current_symbol: Optional[str] = None
         self.error_details: List[Dict[str, Any]] = []
         # メトリクス収集用
         self.processing_times: List[float] = []  # 各銘柄の処理時間（ミリ秒）
@@ -215,7 +215,7 @@ class BulkDataService:
         self.error_handler = ErrorHandler(
             max_retries=retry_count,
             retry_delay=5,  # 初期遅延を5秒に増加（レート制限対策）
-            backoff_multiplier=3.0,  # バックオフ倍率を3.0に増加
+            backoff_multiplier=3,  # バックオフ倍率を3に増加
         )
 
     def _fetch_and_convert_data(
@@ -293,7 +293,7 @@ class BulkDataService:
                 f"システムエラー: {symbol}: {error}"
             ) from error
 
-        return False
+        return False  # type: ignore[unreachable]
 
     def fetch_single_stock(
         self, symbol: str, interval: str = "1d", period: Optional[str] = None
@@ -326,7 +326,7 @@ class BulkDataService:
 
                 # データ保存
                 save_result = self.saver.save_stock_data(
-                    symbol, data_list, interval
+                    symbol, interval, data_list
                 )
 
                 # 成功ログ
@@ -576,7 +576,7 @@ class BulkDataService:
         )
 
         tracker = ProgressTracker(total=len(symbols))
-        all_results = []
+        all_results: List[Dict[str, Any]] = []
 
         # 銘柄をバッチサイズごとに分割
         for i in range(0, len(symbols), batch_size):
@@ -661,12 +661,14 @@ class BulkDataService:
 
         # 詳細統計情報を集計
         total_downloaded = sum(
-            r.get("records_fetched", 0)
+            int(r.get("records_fetched", 0))
             for r in all_results
             if r.get("success")
         )
         total_saved = sum(
-            r.get("records_saved", 0) for r in all_results if r.get("success")
+            int(r.get("records_saved", 0))
+            for r in all_results
+            if r.get("success")
         )
         total_skipped = total_downloaded - total_saved
 

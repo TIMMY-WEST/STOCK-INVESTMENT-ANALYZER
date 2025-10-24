@@ -269,7 +269,7 @@ class JPXStockService:
         Raises:
             JPXStockServiceError: 更新処理に失敗した場合。
         """
-        update_record = {
+        update_record: Dict[str, Any] = {
             "update_type": update_type,
             "total_stocks": 0,
             "added_stocks": 0,
