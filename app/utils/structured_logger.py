@@ -1,7 +1,7 @@
-"""構造化ログ出力モジュール
+"""構造化ログ出力モジュール.
 
 Phase 2要件: バッチ処理の詳細なログ出力とメトリクス収集機能
-仕様書: docs/api_bulk_fetch.md (772-787行目)
+仕様書: docs/api_bulk_fetch.md (772-787行目)。
 """
 
 from datetime import datetime
@@ -9,14 +9,14 @@ import json
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, MutableMapping, Optional, Tuple
 
 
 class StructuredFormatter(logging.Formatter):
-    """JSON形式の構造化ログフォーマッター"""
+    """JSON形式の構造化ログフォーマッター."""
 
     def format(self, record: logging.LogRecord) -> str:
-        """ログレコードをJSON形式にフォーマット"""
+        """ログレコードをJSON形式にフォーマット."""
         log_data = {
             "timestamp": datetime.fromtimestamp(record.created).isoformat(),
             "level": record.levelname,
@@ -48,13 +48,15 @@ class StructuredFormatter(logging.Formatter):
 
 
 class BatchLoggerAdapter(logging.LoggerAdapter):
-    """バッチ処理用ログアダプター
+    """バッチ処理用ログアダプター.
 
     構造化ログ出力用の追加情報を管理します。
     """
 
-    def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple:
-        """ログメッセージに追加情報を付与"""
+    def process(
+        self, msg: str, kwargs: MutableMapping[str, Any]
+    ) -> Tuple[str, MutableMapping[str, Any]]:
+        """ログメッセージに追加情報を付与."""
         extra = kwargs.get("extra", {})
 
         # コンテキスト情報をマージ
@@ -75,7 +77,7 @@ class BatchLoggerAdapter(logging.LoggerAdapter):
         retry_count: int = 0,
         **kwargs,
     ):
-        """バッチ処理のアクションをログ出力
+        """バッチ処理のアクションをログ出力.
 
         Args:
             action: アクション種別 (data_fetch, data_save, error_occurred等)
@@ -85,7 +87,7 @@ class BatchLoggerAdapter(logging.LoggerAdapter):
             records_count: レコード数
             error_message: エラーメッセージ
             retry_count: リトライ回数
-            **kwargs: 追加のログ情報
+            **kwargs: 追加のログ情報。
         """
         extra = {
             "action": action,
@@ -130,7 +132,7 @@ def setup_structured_logging(
     enable_console: bool = True,
     enable_file: bool = True,
 ) -> logging.Logger:
-    """構造化ログ設定
+    """構造化ログ設定.
 
     Args:
         log_dir: ログディレクトリ
@@ -141,7 +143,7 @@ def setup_structured_logging(
         enable_file: ファイル出力を有効化
 
     Returns:
-        設定済みのロガー
+        設定済みのロガー。
     """
     # ログディレクトリの作成
     log_path = Path(log_dir)
@@ -184,21 +186,21 @@ def setup_structured_logging(
 def get_batch_logger(
     batch_id: Optional[str] = None, worker_id: Optional[int] = None
 ) -> BatchLoggerAdapter:
-    """バッチ処理用ロガーを取得
+    """バッチ処理用ロガーを取得.
 
     Args:
         batch_id: バッチID
         worker_id: ワーカーID
 
     Returns:
-        バッチロガーアダプター
+        バッチロガーアダプター。
     """
     logger = logging.getLogger("bulk_batch")
 
-    extra = {}
+    extra: Dict[str, Any] = {}
     if batch_id:
         extra["batch_id"] = batch_id
     if worker_id is not None:
-        extra["worker_id"] = worker_id
+        extra["worker_id"] = str(worker_id)
 
     return BatchLoggerAdapter(logger, extra)

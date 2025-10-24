@@ -1,7 +1,6 @@
-"""
-エラーケース・例外処理テスト (Issue #26)
+"""エラーケース・例外処理テスト (Issue #26).
 
-各種エラーケースでの適切なエラーハンドリングと表示の確認テスト
+各種エラーケースでの適切なエラーハンドリングと表示の確認テスト。
 """
 
 import json
@@ -17,10 +16,10 @@ pytestmark = pytest.mark.integration
 
 
 class TestErrorHandling:
-    """エラーハンドリングテストクラス"""
+    """エラーハンドリングテストクラス."""
 
     def test_fetch_data_invalid_symbol(self, client):
-        """存在しない銘柄コードでのエラーテスト"""
+        """存在しない銘柄コードでのエラーテスト."""
         # 存在しない銘柄コード（無効なフォーマット）でテスト
         invalid_symbols = [
             "INVALID.T",  # 存在しない銘柄
@@ -49,7 +48,7 @@ class TestErrorHandling:
                 assert "銘柄コード" in data["message"]
 
     def test_fetch_data_network_error(self, client):
-        """ネットワークエラー時の動作確認テスト"""
+        """ネットワークエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでConnectionErrorをシミュレート
         with patch(
             "services.stock_data_fetcher.StockDataFetcher.fetch_stock_data"
@@ -74,7 +73,7 @@ class TestErrorHandling:
             assert "データ取得に失敗" in data["message"]
 
     def test_fetch_data_timeout_error(self, client):
-        """タイムアウトエラー時の動作確認テスト"""
+        """タイムアウトエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでTimeoutErrorをシミュレート
         with patch(
             "services.stock_data_fetcher.StockDataFetcher.fetch_stock_data"
@@ -96,7 +95,7 @@ class TestErrorHandling:
             assert data["error"] == "EXTERNAL_API_ERROR"
 
     def test_fetch_data_database_error(self, client):
-        """データベース接続エラー時の動作確認テスト"""
+        """データベース接続エラー時の動作確認テスト."""
         # StockDataSaverのsave_stock_dataメソッドでDatabaseErrorをシミュレート
         import pandas as pd
 
@@ -140,7 +139,7 @@ class TestErrorHandling:
                 assert "データ取得に失敗" in data["message"]
 
     def test_get_stocks_invalid_date_format(self, client):
-        """不正な日付フォーマットでのバリデーションテスト"""
+        """不正な日付フォーマットでのバリデーションテスト."""
         # より明確に無効な日付のみテスト
         invalid_dates = [
             "invalid-date",  # 無効なフォーマット
@@ -162,7 +161,7 @@ class TestErrorHandling:
                 assert response.status_code == 200
 
     def test_get_stocks_invalid_limit_values(self, client):
-        """不正なlimit値でのバリデーションテスト"""
+        """不正なlimit値でのバリデーションテスト."""
         invalid_limits = [0, -1, -100]
 
         for limit in invalid_limits:
@@ -176,7 +175,7 @@ class TestErrorHandling:
             assert "limit" in data["message"]
 
     def test_get_stocks_invalid_offset_values(self, client):
-        """不正なoffset値でのバリデーションテスト"""
+        """不正なoffset値でのバリデーションテスト."""
         invalid_offsets = [-1, -100]
 
         for offset in invalid_offsets:
@@ -190,7 +189,7 @@ class TestErrorHandling:
             assert "offset" in data["message"]
 
     def test_get_stocks_database_error(self, client):
-        """GET /api/stocks でのデータベースエラー時の動作確認テスト"""
+        """GET /api/stocks でのデータベースエラー時の動作確認テスト."""
         with patch("models.StockDailyCRUD.get_with_filters") as mock_get:
             mock_get.side_effect = DatabaseError("Database query failed")
 
@@ -206,7 +205,7 @@ class TestErrorHandling:
                 assert response.status_code == 200
 
     def test_fetch_data_invalid_json_request(self, client):
-        """不正なJSONリクエストでのエラーテスト"""
+        """不正なJSONリクエストでのエラーテスト."""
         # Content-Typeがapplication/jsonでない場合
         response = client.post(
             "/api/fetch-data", data="invalid json", content_type="text/plain"
@@ -217,7 +216,7 @@ class TestErrorHandling:
         assert response.status_code in [400, 500, 502]
 
     def test_fetch_data_missing_required_fields(self, client):
-        """必須フィールド不足時のエラーテスト"""
+        """必須フィールド不足時のエラーテスト."""
         # symbolフィールドなしでリクエスト
         response = client.post(
             "/api/fetch-data",

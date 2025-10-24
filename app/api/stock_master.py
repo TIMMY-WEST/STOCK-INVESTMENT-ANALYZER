@@ -1,17 +1,14 @@
-"""
-JPX銘柄マスタ管理API
+"""JPX銘柄マスタ管理API.
 
-JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント
+JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント。
 """
 
 from functools import wraps
 import logging
 import os
-from typing import Any, Dict
 
 from flask import Blueprint, jsonify, request
 
-from models import get_db_session
 from services.jpx_stock_service import JPXStockService, JPXStockServiceError
 
 
@@ -23,9 +20,9 @@ stock_master_api = Blueprint("stock_master_api", __name__)
 
 # APIキー認証
 def require_api_key(f):
-    """APIキー認証デコレータ
+    """API key authentication decorator.
 
-    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）
+    Skips authentication if API_KEY environment variable is not set (for development).
     """
 
     @wraps(f)
@@ -50,8 +47,7 @@ def require_api_key(f):
 @stock_master_api.route("/api/stock-master/update", methods=["POST"])
 @require_api_key
 def update_stock_master():
-    """
-    JPX銘柄マスタ更新API
+    """JPX銘柄マスタ更新API.
 
     JPXから最新の銘柄一覧を取得してデータベースを更新します。
 
@@ -80,7 +76,7 @@ def update_stock_master():
             "status": "error",
             "message": "エラーメッセージ",
             "error_code": "JPX_DOWNLOAD_ERROR" | "JPX_PARSE_ERROR" | "DATABASE_ERROR"
-        }
+        }.
     """
     try:
         # リクエストボディを取得
@@ -156,11 +152,97 @@ def update_stock_master():
         )
 
 
+def _validate_pagination_params_stock_master(
+    limit_str: str, offset_str: str
+) -> tuple[bool, int, int, dict]:
+    """ページネーションパラメータのバリデーション.
+
+    Args:
+        limit_str: limit文字列
+        offset_str: offset文字列
+
+    Returns:
+        (バリデーション成功フラグ, limit値, offset値, エラーレスポンス辞書)
+    """
+    # 数値への変換
+    try:
+        limit = int(limit_str)
+        offset = int(offset_str)
+    except ValueError:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "limitとoffsetは数値である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    # 範囲チェック
+    if limit < 1 or limit > 1000:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "limitは1から1000の間である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    if offset < 0:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "offsetは0以上である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    return True, limit, offset, {}
+
+
+def _parse_is_active_param(
+    is_active_param: str,
+) -> tuple[bool, bool | None, dict]:
+    """is_activeパラメータのパース.
+
+    Args:
+        is_active_param: is_active文字列
+
+    Returns:
+        (パース成功フラグ, is_active値, エラーレスポンス辞書)
+    """
+    is_active_param = is_active_param.lower()
+
+    if is_active_param == "all":
+        return True, None, {}
+    elif is_active_param == "true":
+        return True, True, {}
+    elif is_active_param == "false":
+        return True, False, {}
+    else:
+        return (
+            False,
+            None,
+            {
+                "status": "error",
+                "message": 'is_activeは "true", "false", "all" のいずれかである必要があります',
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+
 @stock_master_api.route("/api/stock-master/list", methods=["GET"])
 @require_api_key
 def get_stock_master_list():
-    """
-    JPX銘柄マスタ一覧取得API
+    """JPX銘柄マスタ一覧取得API.
 
     データベースに保存されている銘柄マスタ一覧を取得します。
 
@@ -203,73 +285,31 @@ def get_stock_master_list():
             "status": "error",
             "message": "エラーメッセージ",
             "error_code": "INVALID_PARAMETER" | "DATABASE_ERROR"
-        }
+        }.
     """
     try:
         # クエリパラメータを取得
-        is_active_param = request.args.get("is_active", "true").lower()
+        is_active_param = request.args.get("is_active", "true")
         market_category = request.args.get("market_category")
-        limit = request.args.get("limit", "100")
-        offset = request.args.get("offset", "0")
+        limit_str = request.args.get("limit", "100")
+        offset_str = request.args.get("offset", "0")
 
-        # パラメータの検証
-        try:
-            limit = int(limit)
-            offset = int(offset)
-        except ValueError:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "limitとoffsetは数値である必要があります",
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
+        # ページネーションパラメータのバリデーション
+        (
+            valid,
+            limit,
+            offset,
+            error_response,
+        ) = _validate_pagination_params_stock_master(limit_str, offset_str)
+        if not valid:
+            return jsonify(error_response), 400
 
-        if limit < 1 or limit > 1000:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "limitは1から1000の間である必要があります",
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
-
-        if offset < 0:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "offsetは0以上である必要があります",
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
-
-        # is_activeパラメータの処理
-        if is_active_param == "all":
-            is_active = None
-        elif is_active_param == "true":
-            is_active = True
-        elif is_active_param == "false":
-            is_active = False
-        else:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": 'is_activeは "true", "false", "all" のいずれかである必要があります',
-                        "error_code": "INVALID_PARAMETER",
-                    }
-                ),
-                400,
-            )
+        # is_activeパラメータのパース
+        valid, is_active, error_response = _parse_is_active_param(
+            is_active_param
+        )
+        if not valid:
+            return jsonify(error_response), 400
 
         logger.info(
             f"銘柄一覧取得: is_active={is_active}, market_category={market_category}, limit={limit}, offset={offset}"
@@ -329,8 +369,7 @@ def get_stock_master_list():
 @stock_master_api.route("/api/stock-master/status", methods=["GET"])
 @require_api_key
 def get_stock_master_status():
-    """
-    JPX銘柄マスタ状態取得API
+    """JPX銘柄マスタ状態取得API.
 
     銘柄マスタの現在の状態と最新の更新履歴を取得します。
 
@@ -355,7 +394,7 @@ def get_stock_master_status():
                     "completed_at": "2024-12-01T10:05:00Z"
                 }
             }
-        }
+        }.
     """
     try:
         from models import StockMaster, StockMasterUpdate, get_db_session

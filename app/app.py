@@ -1,3 +1,9 @@
+"""Flask application main module.
+
+This module initializes and configures the Flask application,
+including WebSocket support, database setup, and API blueprints.
+"""
+
 from datetime import date, datetime
 import os
 
@@ -6,13 +12,11 @@ from api.stock_master import stock_master_api
 from api.system_monitoring import system_api
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
-from sqlalchemy import func
-import yfinance as yf
+from flask_socketio import SocketIO
 
 from models import (
     Base,
     DatabaseError,
-    StockDaily,
     StockDailyCRUD,
     StockDataError,
     engine,
@@ -20,7 +24,6 @@ from models import (
 )
 from services.stock_data_orchestrator import StockDataOrchestrator
 from utils.timeframe_utils import (
-    get_display_name,
     get_model_for_interval,
     get_table_name,
     validate_interval,
@@ -33,9 +36,6 @@ load_dotenv()
 app = Flask(__name__)
 
 # WebSocket初期化
-from flask_socketio import SocketIO
-
-
 socketio = SocketIO(app, cors_allowed_origins="*")
 app.config["SOCKETIO"] = socketio
 
@@ -51,30 +51,35 @@ app.register_blueprint(system_api)
 # WebSocketイベントハンドラ
 @socketio.on("connect")
 def handle_connect():
-    """クライアントがWebSocketに接続した時の処理"""
+    """クライアントがWebSocketに接続した時の処理."""
     print(f"クライアントが接続しました: {request.sid}")
 
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    """クライアントがWebSocketから切断した時の処理"""
+    """クライアントがWebSocketから切断した時の処理."""
     print(f"クライアントが切断しました: {request.sid}")
 
 
 @app.route("/")
 def index():
+    """Render the main index page.
+
+    Returns:
+        Rendered HTML template for the index page.
+    """
     return render_template("index.html")
 
 
 @app.route("/websocket-test")
 def websocket_test():
-    """WebSocket進捗配信のテストページ"""
+    """WebSocket進捗配信のテストページ."""
     return render_template("websocket_test.html")
 
 
 @app.route("/api/test-connection", methods=["GET"])
 def test_connection():
-    """データベース接続テスト用エンドポイント"""
+    """データベース接続テスト用エンドポイント."""
     from sqlalchemy import text
 
     try:
@@ -104,6 +109,11 @@ def test_connection():
 
 @app.route("/api/fetch-data", methods=["POST"])
 def fetch_data():
+    """Fetch stock data for a given symbol and period.
+
+    Returns:
+        JSON response with stock data or error information.
+    """
     try:
         data = request.get_json()
         symbol = data.get("symbol", "7203.T")
@@ -223,7 +233,7 @@ def fetch_data():
 
 @app.route("/api/stocks", methods=["POST"])
 def create_stock():
-    """株価データを作成"""
+    """株価データを作成."""
     try:
         data = request.get_json()
         required_fields = [
@@ -318,7 +328,7 @@ def create_stock():
 
 @app.route("/api/stocks/<int:stock_id>", methods=["GET"])
 def get_stock_by_id(stock_id):
-    """ID で株価データを取得"""
+    """ID で株価データを取得."""
     try:
         with get_db_session() as session:
             stock_data = StockDailyCRUD.get_by_id(session, stock_id)
@@ -360,13 +370,109 @@ def get_stock_by_id(stock_id):
         )
 
 
+def _validate_pagination_params(limit: int, offset: int) -> tuple[bool, dict]:
+    """ページネーションパラメータのバリデーション.
+
+    Args:
+        limit: 取得件数の上限
+        offset: オフセット
+
+    Returns:
+        (バリデーション成功フラグ, エラーレスポンス辞書)
+    """
+    if limit <= 0:
+        return False, {
+            "success": False,
+            "error": "VALIDATION_ERROR",
+            "message": "limit は1以上の値を指定してください",
+        }
+
+    if offset < 0:
+        return False, {
+            "success": False,
+            "error": "VALIDATION_ERROR",
+            "message": "offset は0以上の値を指定してください",
+        }
+
+    return True, {}
+
+
+def _parse_date_param(
+    date_str: str, param_name: str
+) -> tuple[bool, date | None, dict]:
+    """日付パラメータのパース.
+
+    Args:
+        date_str: 日付文字列
+        param_name: パラメータ名（エラーメッセージ用）
+
+    Returns:
+        (パース成功フラグ, パースされた日付, エラーレスポンス辞書)
+    """
+    try:
+        parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        return True, parsed_date, {}
+    except ValueError:
+        return (
+            False,
+            None,
+            {
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": f"{param_name} の形式が正しくありません (YYYY-MM-DD)",
+            },
+        )
+
+
+def _build_stock_query(
+    session,
+    model_class,
+    symbol: str | None,
+    start_date: date | None,
+    end_date: date | None,
+):
+    """株価データクエリの構築.
+
+    Args:
+        session: データベースセッション
+        model_class: モデルクラス
+        symbol: 銘柄コード（オプション）
+        start_date: 開始日（オプション）
+        end_date: 終了日（オプション）
+
+    Returns:
+        構築されたクエリオブジェクト
+    """
+    # 時間軸に応じた日時カラム名を決定
+    time_column = (
+        model_class.datetime
+        if hasattr(model_class, "datetime")
+        else model_class.date
+    )
+
+    # クエリベースの構築
+    query = session.query(model_class)
+
+    # 銘柄フィルタ
+    if symbol:
+        query = query.filter(model_class.symbol == symbol)
+
+    # 日付範囲フィルタ
+    if start_date:
+        query = query.filter(time_column >= start_date)
+    if end_date:
+        query = query.filter(time_column <= end_date)
+
+    return query, time_column
+
+
 @app.route("/api/stocks", methods=["GET"])
 def get_stocks():
-    """株価データを取得（クエリパラメータに応じて）"""
+    """株価データを取得（クエリパラメータに応じて）."""
     try:
         # クエリパラメータの取得
         symbol = request.args.get("symbol")
-        interval = request.args.get("interval", "1d")  # デフォルトは1日足
+        interval = request.args.get("interval", "1d")
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
         start_date = request.args.get("start_date")
@@ -385,92 +491,41 @@ def get_stocks():
                 400,
             )
 
+        # ページネーションパラメータのバリデーション
+        valid, error_response = _validate_pagination_params(limit, offset)
+        if not valid:
+            return jsonify(error_response), 400
+
         # 日付のパース
         parsed_start_date = None
         parsed_end_date = None
+
         if start_date:
-            try:
-                parsed_start_date = datetime.strptime(
-                    start_date, "%Y-%m-%d"
-                ).date()
-            except ValueError:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": "VALIDATION_ERROR",
-                            "message": "start_date の形式が正しくありません (YYYY-MM-DD)",
-                        }
-                    ),
-                    400,
-                )
+            valid, parsed_start_date, error_response = _parse_date_param(
+                start_date, "start_date"
+            )
+            if not valid:
+                return jsonify(error_response), 400
 
         if end_date:
-            try:
-                parsed_end_date = datetime.strptime(
-                    end_date, "%Y-%m-%d"
-                ).date()
-            except ValueError:
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": "VALIDATION_ERROR",
-                            "message": "end_date の形式が正しくありません (YYYY-MM-DD)",
-                        }
-                    ),
-                    400,
-                )
-
-        # バリデーション
-        if limit <= 0:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "VALIDATION_ERROR",
-                        "message": "limit は1以上の値を指定してください",
-                    }
-                ),
-                400,
+            valid, parsed_end_date, error_response = _parse_date_param(
+                end_date, "end_date"
             )
-
-        if offset < 0:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "VALIDATION_ERROR",
-                        "message": "offset は0以上の値を指定してください",
-                    }
-                ),
-                400,
-            )
+            if not valid:
+                return jsonify(error_response), 400
 
         # 時間軸に応じたモデルクラスを取得
         model_class = get_model_for_interval(interval)
 
-        # 時間軸に応じた日時カラム名を決定
-        # 1分〜1時間足は datetime、日足以上は date
-        time_column = (
-            model_class.datetime
-            if hasattr(model_class, "datetime")
-            else model_class.date
-        )
-
         with get_db_session() as session:
-            # クエリベースの構築
-            query = session.query(model_class)
-
-            # 銘柄フィルタ
-            if symbol:
-                query = query.filter(model_class.symbol == symbol)
-
-            # 日付範囲フィルタ
-            if parsed_start_date:
-                query = query.filter(time_column >= parsed_start_date)
-            if parsed_end_date:
-                query = query.filter(time_column <= parsed_end_date)
+            # クエリの構築
+            query, time_column = _build_stock_query(
+                session,
+                model_class,
+                symbol,
+                parsed_start_date,
+                parsed_end_date,
+            )
 
             # 総件数取得
             total_count = query.count()
@@ -529,7 +584,7 @@ def get_stocks():
 
 @app.route("/api/stocks/<int:stock_id>", methods=["PUT"])
 def update_stock(stock_id):
-    """株価データを更新"""
+    """株価データを更新."""
     try:
         data = request.get_json()
 
@@ -610,7 +665,7 @@ def update_stock(stock_id):
 
 @app.route("/api/stocks/<int:stock_id>", methods=["DELETE"])
 def delete_stock(stock_id):
-    """株価データを削除"""
+    """株価データを削除."""
     try:
         with get_db_session() as session:
             if StockDailyCRUD.delete(session, stock_id):
@@ -658,7 +713,7 @@ def delete_stock(stock_id):
 
 @app.route("/api/stocks/test-data", methods=["POST"])
 def create_test_data():
-    """テスト用サンプルデータを作成"""
+    """テスト用サンプルデータを作成."""
     try:
         test_data = [
             {

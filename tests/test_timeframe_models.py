@@ -1,12 +1,11 @@
-"""
-時間軸（足データ）対応 - モデルテスト
+"""時間軸（足データ）対応 - モデルテスト.
 
 このテストファイルは以下をテストします：
 - 8つの時間軸テーブルのモデル作成
 - データ挿入・取得
 - 制約の動作確認
 - インデックスの効果確認
-- パフォーマンステスト
+- パフォーマンステスト。
 """
 
 from datetime import date, datetime, timedelta
@@ -25,7 +24,7 @@ from sqlalchemy.orm import sessionmaker
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.models import (
+from models import (  # noqa: E402
     Base,
     Stocks1d,
     Stocks1h,
@@ -44,7 +43,7 @@ TEST_DATABASE_URL = "sqlite:///test_timeframe.db"
 
 @pytest.fixture(scope="module")
 def engine():
-    """テスト用データベースエンジン"""
+    """テスト用データベースエンジン."""
     engine = create_engine(TEST_DATABASE_URL, echo=False)
     Base.metadata.create_all(engine)
     yield engine
@@ -65,13 +64,14 @@ def engine():
             import warnings
 
             warnings.warn(
-                f"テストデータベースファイル {db_file} を削除できませんでした。手動で削除してください。"
+                f"テストデータベースファイル {db_file} を削除できませんでした。手動で削除してください。",
+                stacklevel=2,
             )
 
 
 @pytest.fixture(scope="function")
 def session(engine):
-    """テスト用セッション"""
+    """テスト用セッション."""
     Session = sessionmaker(bind=engine)
     session = Session()
     yield session
@@ -84,10 +84,10 @@ def session(engine):
 
 
 class TestTimeframeModels:
-    """時間軸モデルのテストクラス"""
+    """時間軸モデルのテストクラス."""
 
     def test_stocks_1m_model(self, session):
-        """1分足モデルのテスト"""
+        """1分足モデルのテスト."""
         # テストデータ作成
         stock_data = Stocks1m(
             symbol="AAPL",
@@ -111,7 +111,7 @@ class TestTimeframeModels:
         assert retrieved.volume == 1000000
 
     def test_stocks_5m_model(self, session):
-        """5分足モデルのテスト"""
+        """5分足モデルのテスト."""
         stock_data = Stocks5m(
             symbol="GOOGL",
             datetime=datetime(2024, 1, 1, 9, 35, 0),
@@ -131,7 +131,7 @@ class TestTimeframeModels:
         assert retrieved.close == Decimal("2805.50")
 
     def test_stocks_15m_model(self, session):
-        """15分足モデルのテスト"""
+        """15分足モデルのテスト."""
         stock_data = Stocks15m(
             symbol="MSFT",
             datetime=datetime(2024, 1, 1, 9, 45, 0),
@@ -151,7 +151,7 @@ class TestTimeframeModels:
         assert retrieved.close == Decimal("381.25")
 
     def test_stocks_30m_model(self, session):
-        """30分足モデルのテスト"""
+        """30分足モデルのテスト."""
         stock_data = Stocks30m(
             symbol="TSLA",
             datetime=datetime(2024, 1, 1, 10, 0, 0),
@@ -171,7 +171,7 @@ class TestTimeframeModels:
         assert retrieved.close == Decimal("252.75")
 
     def test_stocks_1h_model(self, session):
-        """1時間足モデルのテスト"""
+        """1時間足モデルのテスト."""
         stock_data = Stocks1h(
             symbol="NVDA",
             datetime=datetime(2024, 1, 1, 10, 0, 0),
@@ -191,7 +191,7 @@ class TestTimeframeModels:
         assert retrieved.close == Decimal("505.25")
 
     def test_stocks_1d_model(self, session):
-        """日足モデルのテスト"""
+        """日足モデルのテスト."""
         stock_data = Stocks1d(
             symbol="AMZN",
             date=date(2024, 1, 1),
@@ -211,7 +211,7 @@ class TestTimeframeModels:
         assert retrieved.close == Decimal("3225.75")
 
     def test_stocks_1wk_model(self, session):
-        """週足モデルのテスト"""
+        """週足モデルのテスト."""
         stock_data = Stocks1wk(
             symbol="META",
             date=date(2024, 1, 1),
@@ -231,7 +231,7 @@ class TestTimeframeModels:
         assert retrieved.close == Decimal("360.50")
 
     def test_stocks_1mo_model(self, session):
-        """月足モデルのテスト"""
+        """月足モデルのテスト."""
         stock_data = Stocks1mo(
             symbol="NFLX",
             date=date(2024, 1, 1),
@@ -252,10 +252,10 @@ class TestTimeframeModels:
 
 
 class TestConstraints:
-    """制約のテストクラス"""
+    """制約のテストクラス."""
 
     def test_unique_constraint_datetime(self, session):
-        """datetime系テーブルのユニーク制約テスト"""
+        """datetime系テーブルのユニーク制約テスト."""
         # 同じsymbolとdatetimeのデータを2回挿入
         stock1 = Stocks1m(
             symbol="AAPL",
@@ -285,7 +285,7 @@ class TestConstraints:
             session.commit()
 
     def test_unique_constraint_date(self, session):
-        """date系テーブルのユニーク制約テスト"""
+        """date系テーブルのユニーク制約テスト."""
         # 同じsymbolとdateのデータを2回挿入
         stock1 = Stocks1d(
             symbol="AAPL",
@@ -315,7 +315,7 @@ class TestConstraints:
             session.commit()
 
     def test_price_check_constraints(self, session):
-        """価格チェック制約のテスト"""
+        """価格チェック制約のテスト."""
         # 負の価格でテスト
         with pytest.raises(IntegrityError):
             stock = Stocks1d(
@@ -331,7 +331,7 @@ class TestConstraints:
             session.commit()
 
     def test_volume_check_constraint(self, session):
-        """ボリュームチェック制約のテスト"""
+        """ボリュームチェック制約のテスト."""
         # 負のボリュームでテスト
         with pytest.raises(IntegrityError):
             stock = Stocks1d(
@@ -348,10 +348,10 @@ class TestConstraints:
 
 
 class TestToDict:
-    """to_dictメソッドのテストクラス"""
+    """to_dictメソッドのテストクラス."""
 
     def test_stocks_1m_to_dict(self, session):
-        """1分足のto_dictテスト"""
+        """1分足のto_dictテスト."""
         stock_data = Stocks1m(
             symbol="AAPL",
             datetime=datetime(2024, 1, 1, 9, 30, 0),
@@ -378,7 +378,7 @@ class TestToDict:
         assert "updated_at" in result_dict
 
     def test_stocks_1d_to_dict(self, session):
-        """日足のto_dictテスト"""
+        """日足のto_dictテスト."""
         stock_data = Stocks1d(
             symbol="AAPL",
             date=date(2024, 1, 1),
@@ -406,10 +406,10 @@ class TestToDict:
 
 
 class TestPerformance:
-    """パフォーマンステストクラス"""
+    """パフォーマンステストクラス."""
 
     def test_bulk_insert_performance(self, session):
-        """大量データ挿入のパフォーマンステスト"""
+        """大量データ挿入のパフォーマンステスト."""
         import time
 
         # 1000件のテストデータを作成

@@ -1,6 +1,6 @@
-"""株価データ取得サービス
+"""yfinanceを使用して各時間軸の株価データを取得します.
 
-yfinanceを使用して各時間軸の株価データを取得します。
+このモジュールは株価データの取得、検証、変換機能を提供します。
 """
 
 from datetime import date, datetime
@@ -22,27 +22,26 @@ logger = logging.getLogger(__name__)
 
 
 class StockDataFetchError(Exception):
-    """データ取得エラー"""
+    """データ取得エラー."""
 
     pass
 
 
 class StockDataFetcher:
-    """株価データ取得クラス"""
+    """株価データ取得クラス."""
 
     def __init__(self):
-        """初期化"""
+        """初期化."""
         self.logger = logger
 
     def _is_valid_stock_code(self, symbol: str) -> bool:
-        """
-        有効な銘柄コードかチェック
+        """有効な銘柄コードかチェック.
 
         Args:
             symbol: 銘柄コード
 
         Returns:
-            有効な場合True
+            有効な場合True。
         """
         if not symbol or not isinstance(symbol, str):
             return False
@@ -65,14 +64,13 @@ class StockDataFetcher:
         return False
 
     def _format_symbol_for_yahoo(self, symbol: str) -> str:
-        """
-        Yahoo Finance用に銘柄コードをフォーマット
+        """Yahoo Finance用に銘柄コードをフォーマット.
 
         Args:
             symbol: 元の銘柄コード（例: '1301', '7203.T'）
 
         Returns:
-            Yahoo Finance用の銘柄コード（例: '1301.T', '7203.T'）
+            Yahoo Finance用の銘柄コード（例: '1301.T', '7203.T'）。
         """
         # symbolがNoneまたは空文字列の場合はそのまま返す
         if not symbol:
@@ -97,8 +95,7 @@ class StockDataFetcher:
         start: Optional[str] = None,
         end: Optional[str] = None,
     ) -> pd.DataFrame:
-        """
-        株価データを取得
+        """株価データを取得.
 
         Args:
             symbol: 銘柄コード（例: '7203.T'）
@@ -111,7 +108,7 @@ class StockDataFetcher:
             株価データのDataFrame
 
         Raises:
-            StockDataFetchError: データ取得失敗時
+            StockDataFetchError: データ取得失敗時。
         """
         try:
             # symbolの検証
@@ -179,8 +176,7 @@ class StockDataFetcher:
     def fetch_multiple_timeframes(
         self, symbol: str, intervals: list[str], period: Optional[str] = None
     ) -> Dict[str, pd.DataFrame]:
-        """
-        複数時間軸のデータを一度に取得
+        """複数時間軸のデータを一度に取得.
 
         Args:
             symbol: 銘柄コード
@@ -191,7 +187,7 @@ class StockDataFetcher:
             {interval: DataFrame} の辞書
 
         Raises:
-            StockDataFetchError: データ取得失敗時
+            StockDataFetchError: データ取得失敗時。
         """
         results = {}
         errors = []
@@ -216,6 +212,121 @@ class StockDataFetcher:
 
         return results
 
+    def _validate_and_filter_symbols(
+        self, symbols: list[str]
+    ) -> tuple[list[str], list[str]]:
+        """銘柄コードのバリデーションとフィルタリング.
+
+        Args:
+            symbols: 銘柄コードリスト
+
+        Returns:
+            (有効な銘柄リスト, 無効な銘柄リスト)
+        """
+        valid_symbols = []
+        invalid_symbols = []
+
+        for symbol in symbols:
+            if self._is_valid_stock_code(symbol):
+                valid_symbols.append(symbol)
+            else:
+                invalid_symbols.append(symbol)
+
+        if invalid_symbols:
+            self.logger.warning(
+                f"無効な銘柄コードをスキップ: {len(invalid_symbols)}件 - {invalid_symbols[:10]}"
+                + ("..." if len(invalid_symbols) > 10 else "")
+            )
+
+        return valid_symbols, invalid_symbols
+
+    def _download_from_yahoo(
+        self,
+        yahoo_symbols: list[str],
+        interval: str,
+        period: Optional[str],
+        start: Optional[str],
+        end: Optional[str],
+    ) -> pd.DataFrame:
+        """Yahoo Financeからデータをダウンロード.
+
+        Args:
+            yahoo_symbols: Yahoo Finance用銘柄リスト
+            interval: 時間軸
+            period: 期間
+            start: 開始日
+            end: 終了日
+
+        Returns:
+            ダウンロードされたDataFrame
+        """
+        if period:
+            return yf.download(
+                tickers=yahoo_symbols,
+                period=period,
+                interval=interval,
+                group_by="ticker",
+                threads=True,
+                timeout=60,
+                progress=False,
+            )
+        else:
+            return yf.download(
+                tickers=yahoo_symbols,
+                start=start,
+                end=end,
+                interval=interval,
+                group_by="ticker",
+                threads=True,
+                timeout=60,
+                progress=False,
+            )
+
+    def _split_multi_symbol_result(
+        self,
+        df_multi: pd.DataFrame,
+        valid_symbols: list[str],
+        yahoo_symbols: list[str],
+    ) -> tuple[dict[str, pd.DataFrame], int]:
+        """複数銘柄結果を分割.
+
+        Args:
+            df_multi: 複数銘柄のDataFrame
+            valid_symbols: 有効な銘柄リスト
+            yahoo_symbols: Yahoo Finance用銘柄リスト
+
+        Returns:
+            銘柄ごとのDataFrame辞書
+        """
+        result = {}
+        success_count = 0
+
+        for original_symbol, yahoo_symbol in zip(valid_symbols, yahoo_symbols):
+            try:
+                # 複数銘柄の場合はdf_multi[yahoo_symbol]、単一銘柄の場合はdf_multi
+                if len(yahoo_symbols) > 1:
+                    df = (
+                        df_multi[yahoo_symbol]
+                        if yahoo_symbol in df_multi.columns.levels[0]
+                        else pd.DataFrame()
+                    )
+                else:
+                    df = df_multi
+
+                if not df.empty:
+                    result[original_symbol] = df
+                    success_count += 1
+                else:
+                    self.logger.warning(
+                        f"データが取得できませんでした: {original_symbol} (Yahoo: {yahoo_symbol})"
+                    )
+            except Exception as e:
+                self.logger.error(
+                    f"銘柄データ抽出エラー: {original_symbol} (Yahoo: {yahoo_symbol}): {e}"
+                )
+
+        return result, success_count
+
     def fetch_batch_stock_data(
         self,
         symbols: list[str],
@@ -224,8 +335,7 @@ class StockDataFetcher:
         start: Optional[str] = None,
         end: Optional[str] = None,
     ) -> Dict[str, pd.DataFrame]:
-        """
-        複数銘柄の株価データを一括取得（バッチダウンロード）
+        """複数銘柄の株価データを一括取得（バッチダウンロード).
 
         Args:
             symbols: 銘柄コードのリスト（例: ['7203.T', '6758.T', '9984.T']）
@@ -238,27 +348,17 @@ class StockDataFetcher:
             {銘柄コード: DataFrame} の辞書
 
         Raises:
-            StockDataFetchError: データ取得失敗時
+            StockDataFetchError: データ取得失敗時。
         """
         try:
             # 時間軸の検証
             if not validate_interval(interval):
                 raise ValueError(f"サポートされていない時間軸: {interval}")
 
-            # 無効な銘柄コードをフィルタリング
-            valid_symbols = []
-            invalid_symbols = []
-            for symbol in symbols:
-                if self._is_valid_stock_code(symbol):
-                    valid_symbols.append(symbol)
-                else:
-                    invalid_symbols.append(symbol)
-
-            if invalid_symbols:
-                self.logger.warning(
-                    f"無効な銘柄コードをスキップ: {len(invalid_symbols)}件 - {invalid_symbols[:10]}"
-                    + ("..." if len(invalid_symbols) > 10 else "")
-                )
+            # 銘柄コードのバリデーション
+            valid_symbols, invalid_symbols = self._validate_and_filter_symbols(
+                symbols
+            )
 
             if not valid_symbols:
                 self.logger.warning("有効な銘柄コードがありません")
@@ -271,7 +371,7 @@ class StockDataFetcher:
                     f"期間未指定のため推奨期間を使用: {period} (時間軸: {get_display_name(interval)})"
                 )
 
-            # 日本株の場合、Yahoo Finance用に.Tサフィックスを追加
+            # Yahoo Finance用に銘柄コードをフォーマット
             yahoo_symbols = [
                 self._format_symbol_for_yahoo(s) for s in valid_symbols
             ]
@@ -282,58 +382,14 @@ class StockDataFetcher:
                 f"期間: {period or f'{start}~{end}'})"
             )
 
-            # yf.download()でバッチダウンロード
-            if period:
-                df_multi = yf.download(
-                    tickers=yahoo_symbols,
-                    period=period,
-                    interval=interval,
-                    group_by="ticker",
-                    threads=True,
-                    timeout=60,
-                    progress=False,
-                )
-            else:
-                df_multi = yf.download(
-                    tickers=yahoo_symbols,
-                    start=start,
-                    end=end,
-                    interval=interval,
-                    group_by="ticker",
-                    threads=True,
-                    timeout=60,
-                    progress=False,
-                )
+            df_multi = self._download_from_yahoo(
+                yahoo_symbols, interval, period, start, end
+            )
 
             # 結果を銘柄ごとに分割
-            result = {}
-            success_count = 0
-
-            for original_symbol, yahoo_symbol in zip(
-                valid_symbols, yahoo_symbols
-            ):
-                try:
-                    # 複数銘柄の場合はdf_multi[yahoo_symbol]、単一銘柄の場合はdf_multi
-                    if len(yahoo_symbols) > 1:
-                        df = (
-                            df_multi[yahoo_symbol]
-                            if yahoo_symbol in df_multi.columns.levels[0]
-                            else pd.DataFrame()
-                        )
-                    else:
-                        df = df_multi
-
-                    if not df.empty:
-                        result[original_symbol] = df
-                        success_count += 1
-                    else:
-                        self.logger.warning(
-                            f"データが取得できませんでした: {original_symbol} (Yahoo: {yahoo_symbol})"
-                        )
-                except Exception as e:
-                    self.logger.error(
-                        f"銘柄データ抽出エラー: {original_symbol} (Yahoo: {yahoo_symbol}): {e}"
-                    )
+            result, success_count = self._split_multi_symbol_result(
+                df_multi, valid_symbols, yahoo_symbols
+            )
 
             self.logger.info(
                 f"株価データバッチ取得完了: {success_count}/{len(valid_symbols)}銘柄成功 "
@@ -350,22 +406,77 @@ class StockDataFetcher:
             self.logger.error(error_msg)
             raise StockDataFetchError(error_msg) from e
 
+    def _is_valid_price_data(self, open_p, high_p, low_p, close_p) -> bool:
+        """価格データの妥当性をチェック.
+
+        Args:
+            open_p: 始値
+            high_p: 高値
+            low_p: 安値
+            close_p: 終値
+
+        Returns:
+            妥当性（Trueなら有効）
+        """
+        # None or <=0 のチェック
+        if (
+            open_p is None
+            or open_p <= 0
+            or high_p is None
+            or high_p <= 0
+            or low_p is None
+            or low_p <= 0
+            or close_p is None
+            or close_p <= 0
+        ):
+            return False
+
+        # 価格ロジック制約の検証
+        if not (
+            high_p >= low_p
+            and high_p >= open_p
+            and high_p >= close_p
+            and low_p <= open_p
+            and low_p <= close_p
+        ):
+            return False
+
+        return True
+
+    def _extract_price_data(
+        self, row
+    ) -> tuple[float, float, float, float, int]:
+        """行から価格データを抽出.
+
+        Args:
+            row: データ行
+
+        Returns:
+            (始値, 高値, 安値, 終値, 出来高)
+        """
+        open_price = float(row["Open"]) if pd.notna(row["Open"]) else None
+        high_price = float(row["High"]) if pd.notna(row["High"]) else None
+        low_price = float(row["Low"]) if pd.notna(row["Low"]) else None
+        close_price = float(row["Close"]) if pd.notna(row["Close"]) else None
+        volume = int(row["Volume"]) if pd.notna(row["Volume"]) else 0
+
+        return open_price, high_price, low_price, close_price, volume
+
     def convert_to_dict(
         self, df: pd.DataFrame, interval: str
     ) -> list[Dict[str, Any]]:
-        """
-        DataFrameを辞書リストに変換（データベース保存用）
+        """DataFrameを辞書リストに変換（データベース保存用).
 
         Args:
             df: yfinanceから取得したDataFrame
             interval: 時間軸
 
         Returns:
-            データベース保存用の辞書リスト
+            データベース保存用の辞書リスト。
         """
         records = []
         is_intraday = is_intraday_interval(interval)
-        skipped_count = 0  # スキップされたレコード数をカウント
+        skipped_count = 0
 
         for index, row in df.iterrows():
             # NaN値チェック - 主要フィールドがすべてNaNの場合はスキップ
@@ -382,29 +493,18 @@ class StockDataFetcher:
                 continue
 
             try:
-                # 価格データの取得と検証
-                open_price = (
-                    float(row["Open"]) if pd.notna(row["Open"]) else None
-                )
-                high_price = (
-                    float(row["High"]) if pd.notna(row["High"]) else None
-                )
-                low_price = float(row["Low"]) if pd.notna(row["Low"]) else None
-                close_price = (
-                    float(row["Close"]) if pd.notna(row["Close"]) else None
-                )
-                volume = int(row["Volume"]) if pd.notna(row["Volume"]) else 0
+                # 価格データの取得
+                (
+                    open_price,
+                    high_price,
+                    low_price,
+                    close_price,
+                    volume,
+                ) = self._extract_price_data(row)
 
-                # 無効な価格データをスキップ（NaNまたは0以下の値）
-                if (
-                    open_price is None
-                    or open_price <= 0
-                    or high_price is None
-                    or high_price <= 0
-                    or low_price is None
-                    or low_price <= 0
-                    or close_price is None
-                    or close_price <= 0
+                # 無効な価格データをスキップ
+                if not self._is_valid_price_data(
+                    open_price, high_price, low_price, close_price
                 ):
                     skipped_count += 1
                     self.logger.debug(
@@ -413,22 +513,7 @@ class StockDataFetcher:
                     )
                     continue
 
-                # 価格ロジック制約の検証
-                if not (
-                    high_price >= low_price
-                    and high_price >= open_price
-                    and high_price >= close_price
-                    and low_price <= open_price
-                    and low_price <= close_price
-                ):
-                    skipped_count += 1
-                    self.logger.debug(
-                        f"データスキップ: 価格ロジック制約違反 ({index}) - "
-                        f"Open:{open_price}, High:{high_price}, Low:{low_price}, Close:{close_price}"
-                    )
-                    continue
-
-                record = {
+                record: Dict[str, Any] = {
                     "open": open_price,
                     "high": high_price,
                     "low": low_price,
@@ -471,15 +556,14 @@ class StockDataFetcher:
     def get_latest_data_date(
         self, symbol: str, interval: str = "1d"
     ) -> Optional[datetime]:
-        """
-        最新データの日時を取得（データベース更新判定用）
+        """最新データの日時を取得（データベース更新判定用）.
 
         Args:
             symbol: 銘柄コード
             interval: 時間軸
 
         Returns:
-            最新データの日時、データがない場合はNone
+            最新データの日時、データがない場合はNone。
         """
         try:
             df = self.fetch_stock_data(symbol, interval, period="1d")

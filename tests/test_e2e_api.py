@@ -1,6 +1,4 @@
-"""
-API E2Eテスト - ブラウザを使わずにFlaskアプリケーションのAPIをテスト
-"""
+"""API E2Eテスト - ブラウザを使わずにFlaskアプリケーションのAPIをテスト."""
 
 import os
 import sys
@@ -15,11 +13,11 @@ pytestmark = pytest.mark.integration
 
 
 class TestAPIE2E:
-    """API E2Eテストクラス"""
+    """API E2Eテストクラス."""
 
     @pytest.fixture(scope="class")
     def app_server(self):
-        """Flaskアプリケーションサーバーを起動するフィクスチャ"""
+        """Flaskアプリケーションサーバーを起動するフィクスチャ."""
         # アプリケーションのパスを設定
         app_dir = os.path.join(os.path.dirname(__file__), "..", "app")
         sys.path.insert(0, app_dir)
@@ -45,7 +43,7 @@ class TestAPIE2E:
         # サーバーが起動するまで待機
         base_url = "http://127.0.0.1:8002"
         max_attempts = 30
-        for attempt in range(max_attempts):
+        for _ in range(max_attempts):
             try:
                 response = requests.get(base_url, timeout=2)
                 if response.status_code == 200:
@@ -61,7 +59,7 @@ class TestAPIE2E:
         # デーモンスレッドなので自動的に終了
 
     def test_home_page_access(self, app_server):
-        """ホームページへのアクセステスト"""
+        """ホームページへのアクセステスト."""
         response = requests.get(app_server)
         assert response.status_code == 200
         # HTMLページが正常に返されることを確認
@@ -74,7 +72,7 @@ class TestAPIE2E:
         print("✓ ホームページアクセス成功")
 
     def test_database_connection_endpoint(self, app_server):
-        """データベース接続テストエンドポイント"""
+        """データベース接続テストエンドポイント."""
         response = requests.get(f"{app_server}/api/test-connection")
         assert response.status_code == 200
         data = response.json()
@@ -83,7 +81,7 @@ class TestAPIE2E:
         print(f"✓ データベース接続テスト: {data}")
 
     def test_fetch_data_endpoint_valid_symbol(self, app_server):
-        """有効な銘柄コードでのデータ取得テスト"""
+        """有効な銘柄コードでのデータ取得テスト."""
         payload = {"symbol": "AAPL", "period": "1mo"}
         response = requests.post(f"{app_server}/api/fetch-data", json=payload)
 
@@ -104,7 +102,7 @@ class TestAPIE2E:
             )
 
     def test_fetch_data_endpoint_invalid_symbol(self, app_server):
-        """無効な銘柄コードでのエラーハンドリングテスト"""
+        """無効な銘柄コードでのエラーハンドリングテスト."""
         payload = {"symbol": "INVALID_SYMBOL_12345", "period": "1mo"}
         response = requests.post(f"{app_server}/api/fetch-data", json=payload)
 
@@ -115,7 +113,7 @@ class TestAPIE2E:
         )
 
     def test_fetch_data_endpoint_max_period(self, app_server):
-        """maxオプションでのデータ取得テスト（Issue #45対応）"""
+        """maxオプションでのデータ取得テスト（Issue #45対応）."""
         payload = {"symbol": "AAPL", "period": "max"}
         response = requests.post(f"{app_server}/api/fetch-data", json=payload)
 
@@ -151,7 +149,7 @@ class TestAPIE2E:
             )
 
     def test_fetch_data_endpoint_max_period_japanese_stock(self, app_server):
-        """日本株でのmaxオプションテスト（Issue #45対応）"""
+        """日本株でのmaxオプションテスト（Issue #45対応）."""
         payload = {"symbol": "7203.T", "period": "max"}  # トヨタ自動車
         response = requests.post(f"{app_server}/api/fetch-data", json=payload)
 
@@ -179,7 +177,7 @@ class TestAPIE2E:
             )
 
     def test_stocks_api_endpoints(self, app_server):
-        """株式データCRUD APIエンドポイントのテスト"""
+        """株式データCRUD APIエンドポイントのテスト."""
         # GET /api/stocks
         response = requests.get(f"{app_server}/api/stocks")
         assert response.status_code in [200, 404, 500]
@@ -192,7 +190,7 @@ class TestAPIE2E:
         print(f"✓ 株式データ作成: {response.status_code}")
 
     def test_create_test_data_endpoint(self, app_server):
-        """テストデータ作成エンドポイントのテスト"""
+        """テストデータ作成エンドポイントのテスト."""
         response = requests.post(f"{app_server}/api/create-test-data")
         # 404エラーも許可（エンドポイントが存在しない場合）
         assert response.status_code in [200, 201, 404, 500]
@@ -211,7 +209,7 @@ class TestAPIE2E:
             )
 
     def test_api_error_handling(self, app_server):
-        """API エラーハンドリングのテスト"""
+        """API エラーハンドリングのテスト."""
         # 存在しないエンドポイント
         response = requests.get(f"{app_server}/api/nonexistent")
         assert response.status_code == 404
@@ -228,7 +226,7 @@ class TestAPIE2E:
         print(f"✓ 不正なJSONデータでエラー: {response.status_code}")
 
     def test_concurrent_requests(self, app_server):
-        """同時リクエストのテスト"""
+        """同時リクエストのテスト."""
         import concurrent.futures
 
         def make_request():
@@ -248,7 +246,7 @@ class TestAPIE2E:
         print("✓ 同時リクエスト処理成功")
 
     def test_response_headers(self, app_server):
-        """レスポンスヘッダーのテスト"""
+        """レスポンスヘッダーのテスト."""
         response = requests.get(app_server)
 
         # Content-Typeヘッダーの確認
@@ -256,7 +254,7 @@ class TestAPIE2E:
         print("✓ レスポンスヘッダー確認成功")
 
     def test_api_performance(self, app_server):
-        """APIパフォーマンステスト"""
+        """APIパフォーマンステスト."""
         start_time = time.time()
         response = requests.get(app_server)
         end_time = time.time()
@@ -267,7 +265,7 @@ class TestAPIE2E:
         print(f"✓ レスポンス時間: {response_time:.2f}秒")
 
     def test_data_reading_endpoints(self, app_server):
-        """データ読み込み機能のテスト"""
+        """データ読み込み機能のテスト."""
         # 1. 全株価データ取得テスト
         response = requests.get(f"{app_server}/api/stocks")
         assert response.status_code == 200
@@ -321,7 +319,7 @@ class TestAPIE2E:
         print("✓ 無効な日付形式エラーハンドリング成功")
 
     def test_individual_stock_data_reading(self, app_server):
-        """個別株価データ読み込みテスト"""
+        """個別株価データ読み込みテスト."""
         # まず、利用可能な株価データを取得
         response = requests.get(f"{app_server}/api/stocks?limit=1")
         assert response.status_code == 200
@@ -353,7 +351,7 @@ class TestAPIE2E:
         print("✓ 存在しないIDでの404エラーハンドリング成功")
 
     def test_data_deletion_endpoints(self, app_server):
-        """データ削除機能のテスト"""
+        """データ削除機能のテスト."""
         # まず、テストデータを作成
         test_stock_data = {
             "symbol": "TEST.T",
@@ -428,7 +426,7 @@ class TestAPIE2E:
         print("✓ 存在しないIDでの削除時404エラーハンドリング成功")
 
     def test_data_deletion_with_validation(self, app_server):
-        """データ削除の詳細バリデーションテスト"""
+        """データ削除の詳細バリデーションテスト."""
         # 1. 無効なIDフォーマットでの削除テスト
         response = requests.delete(f"{app_server}/api/stocks/invalid_id")
         # Flask は無効なIDフォーマットの場合、404を返す（HTMLレスポンス）

@@ -1,6 +1,6 @@
-"""構造化ログのテスト
+"""構造化ログのテスト.
 
-Phase 2要件: 構造化ログ出力とメトリクス収集のテスト
+Phase 2要件: 構造化ログ出力とメトリクス収集のテスト。
 """
 
 import json
@@ -18,10 +18,10 @@ from utils.structured_logger import (
 
 
 class TestStructuredFormatter:
-    """構造化ログフォーマッターのテスト"""
+    """構造化ログフォーマッターのテスト."""
 
     def test_basic_format(self):
-        """基本的なフォーマットのテスト"""
+        """基本的なフォーマットのテスト."""
         formatter = StructuredFormatter()
         record = logging.LogRecord(
             name="test",
@@ -42,7 +42,7 @@ class TestStructuredFormatter:
         assert data["message"] == "Test message"
 
     def test_batch_fields(self):
-        """バッチフィールドのテスト"""
+        """バッチフィールドのテスト."""
         formatter = StructuredFormatter()
         record = logging.LogRecord(
             name="test",
@@ -74,10 +74,10 @@ class TestStructuredFormatter:
 
 
 class TestBatchLoggerAdapter:
-    """バッチロガーアダプターのテスト"""
+    """バッチロガーアダプターのテスト."""
 
     def test_log_batch_action_success(self, caplog):
-        """成功時のバッチアクションログのテスト"""
+        """成功時のバッチアクションログのテスト."""
         logger = logging.getLogger("test_batch")
         logger.setLevel(logging.INFO)
 
@@ -97,7 +97,7 @@ class TestBatchLoggerAdapter:
         assert "7203.T" in caplog.text
 
     def test_log_batch_action_failed(self, caplog):
-        """失敗時のバッチアクションログのテスト"""
+        """失敗時のバッチアクションログのテスト."""
         logger = logging.getLogger("test_batch_failed")
         logger.setLevel(logging.ERROR)
 
@@ -115,7 +115,7 @@ class TestBatchLoggerAdapter:
         assert "failed" in caplog.text or "Connection timeout" in caplog.text
 
     def test_log_batch_action_retry(self, caplog):
-        """リトライ時のバッチアクションログのテスト"""
+        """リトライ時のバッチアクションログのテスト."""
         logger = logging.getLogger("test_batch_retry")
         logger.setLevel(logging.WARNING)
 
@@ -134,10 +134,10 @@ class TestBatchLoggerAdapter:
 
 
 class TestLoggingSetup:
-    """ログ設定のテスト"""
+    """ログ設定のテスト."""
 
     def test_setup_logging(self, tmp_path):
-        """ログ設定のテスト"""
+        """ログ設定のテスト."""
         log_dir = tmp_path / "logs"
 
         logger = setup_structured_logging(
@@ -157,9 +157,11 @@ class TestLoggingSetup:
         assert log_file.exists()
 
     def test_get_batch_logger(self):
-        """バッチロガー取得のテスト"""
+        """バッチロガー取得のテスト."""
         adapter = get_batch_logger(batch_id="test-123", worker_id=1)
 
         assert isinstance(adapter, BatchLoggerAdapter)
         assert adapter.extra["batch_id"] == "test-123"
-        assert adapter.extra["worker_id"] == 1
+        assert (
+            adapter.extra["worker_id"] == "1"
+        )  # worker_idは文字列に変換される

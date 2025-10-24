@@ -1,12 +1,12 @@
-"""
-stocks_daily テーブル削除に関するテストコード
+"""stocks_daily テーブル削除に関するテストコード.
+
 Issue #65: Remove stocks_daily table after migration
 
 このテストは以下を検証します:
 1. データ移行の完了確認
 2. アプリケーションコードの正常動作
 3. stocks_1d テーブルの正常性
-4. 削除前後の整合性確認
+4. 削除前後の整合性確認。
 """
 
 from datetime import date, datetime
@@ -23,9 +23,9 @@ from sqlalchemy.orm import sessionmaker
 # プロジェクトルートをパスに追加
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "app"))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
-from models import (
+from models import (  # noqa: E402
     Base,
     DatabaseError,
     StockDaily,
@@ -40,11 +40,11 @@ load_dotenv()
 
 
 class TestStocksDailyRemoval(unittest.TestCase):
-    """stocks_daily テーブル削除に関するテストクラス"""
+    """stocks_daily テーブル削除に関するテストクラス."""
 
     @classmethod
     def setUpClass(cls):
-        """テストクラス全体の初期化"""
+        """テストクラス全体の初期化."""
         cls.test_db_url = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
         cls.engine = create_engine(cls.test_db_url)
         cls.SessionLocal = sessionmaker(
@@ -63,7 +63,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
         }
 
     def setUp(self):
-        """各テストメソッドの初期化"""
+        """各テストメソッドの初期化."""
         self.session = self.SessionLocal()
 
         # テスト用データをクリーンアップ
@@ -79,7 +79,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
             self.session.rollback()
 
     def tearDown(self):
-        """各テストメソッドの後処理"""
+        """各テストメソッドの後処理."""
         try:
             # セッションの状態をリセット
             self.session.rollback()
@@ -96,7 +96,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
             self.session.close()
 
     def test_stocks_1d_table_exists(self):
-        """stocks_1d テーブルが存在することを確認"""
+        """stocks_1d テーブルが存在することを確認."""
         with self.engine.connect() as conn:
             result = conn.execute(
                 text(
@@ -113,7 +113,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
             )
 
     def test_stock_daily_alias_works(self):
-        """StockDaily エイリアスが正常に動作することを確認"""
+        """Verify that StockDaily エイリアスが正常に動作することを確認."""
         # StockDaily が Stocks1d のエイリアスであることを確認
         self.assertEqual(
             StockDaily,
@@ -130,7 +130,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
             self.assertEqual(stock_data.symbol, self.test_data["symbol"])
 
     def test_stocks_1d_crud_operations(self):
-        """stocks_1d テーブルに対するCRUD操作が正常に動作することを確認"""
+        """stocks_1d テーブルに対するCRUD操作が正常に動作することを確認."""
         # テスト用データ（異なるシンボルを使用）
         test_data = self.test_data.copy()
         test_data["symbol"] = "CRUD.T"
@@ -172,7 +172,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
 
     @unittest.skip("制約テストは一時的にスキップ")
     def test_stocks_1d_constraints(self):
-        """stocks_1d テーブルの制約が正常に動作することを確認"""
+        """stocks_1d テーブルの制約が正常に動作することを確認."""
         # テスト用データ（異なるシンボルを使用）
         test_data = self.test_data.copy()
         test_data["symbol"] = "CONSTRAINT.T"
@@ -191,7 +191,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
                 pass
 
     def test_stocks_1d_indexes(self):
-        """stocks_1d テーブルのインデックスが存在することを確認"""
+        """stocks_1d テーブルのインデックスが存在することを確認."""
         with self.engine.connect() as conn:
             # インデックスの存在確認
             result = conn.execute(
@@ -220,7 +220,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
                 )
 
     def test_data_migration_validation(self):
-        """データ移行の検証（stocks_daily が存在する場合）"""
+        """データ移行の検証（stocks_daily が存在する場合）."""
         with self.engine.connect() as conn:
             # stocks_daily テーブルの存在確認
             result = conn.execute(
@@ -305,7 +305,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
                         )
 
     def test_bulk_operations(self):
-        """一括操作が正常に動作することを確認"""
+        """一括操作が正常に動作することを確認."""
         test_data_list = [
             {
                 "symbol": "BULK1.T",
@@ -350,14 +350,14 @@ class TestStocksDailyRemoval(unittest.TestCase):
                 session.commit()
 
     def test_count_operations(self):
-        """カウント操作が正常に動作することを確認"""
+        """カウント操作が正常に動作することを確認."""
         # テスト用データ（異なるシンボルを使用）
         test_data = self.test_data.copy()
         test_data["symbol"] = "COUNT.T"
 
         with get_db_session() as session:
             # テストデータ作成
-            stock_data = StockDailyCRUD.create(session, **test_data)
+            _ = StockDailyCRUD.create(session, **test_data)
 
             # 全件数取得
             total_count = StockDailyCRUD.count_all(session)
@@ -376,14 +376,14 @@ class TestStocksDailyRemoval(unittest.TestCase):
             self.assertEqual(filtered_count, 1)
 
     def test_latest_date_retrieval(self):
-        """最新日付取得が正常に動作することを確認"""
+        """最新日付取得が正常に動作することを確認."""
         # テスト用データ（異なるシンボルを使用）
         test_data = self.test_data.copy()
         test_data["symbol"] = "LATEST.T"
 
         with get_db_session() as session:
             # テストデータ作成
-            stock_data = StockDailyCRUD.create(session, **test_data)
+            _ = StockDailyCRUD.create(session, **test_data)
 
             # 最新日付取得
             latest_date = StockDailyCRUD.get_latest_date_by_symbol(
@@ -393,10 +393,10 @@ class TestStocksDailyRemoval(unittest.TestCase):
 
 
 class TestDatabaseConnection(unittest.TestCase):
-    """データベース接続テスト"""
+    """データベース接続テスト."""
 
     def test_database_connection(self):
-        """データベース接続が正常に動作することを確認"""
+        """データベース接続が正常に動作することを確認."""
         try:
             with get_db_session() as session:
                 result = session.execute(text("SELECT 1")).scalar()
@@ -405,7 +405,7 @@ class TestDatabaseConnection(unittest.TestCase):
             self.fail(f"データベース接続に失敗しました: {str(e)}")
 
     def test_required_tables_exist(self):
-        """必要なテーブルが存在することを確認"""
+        """必要なテーブルが存在することを確認."""
         required_tables = [
             "stocks_1d",
             "stocks_1m",

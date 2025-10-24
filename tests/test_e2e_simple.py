@@ -1,6 +1,4 @@
-"""
-簡単なE2Eテスト - アプリケーションの基本機能をテスト
-"""
+"""簡単なE2Eテスト - アプリケーションの基本機能をテスト."""
 
 import os
 import sys
@@ -19,11 +17,11 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 @pytest.mark.e2e
 class TestE2ESimple:
-    """簡単なE2Eテストクラス"""
+    """簡単なE2Eテストクラス."""
 
     @pytest.fixture(scope="class")
     def driver(self):
-        """Selenium WebDriverを設定するフィクスチャ"""
+        """Selenium WebDriverを設定するフィクスチャ."""
         try:
             # Chrome オプションを設定
             chrome_options = Options()
@@ -62,11 +60,11 @@ class TestE2ESimple:
             try:
                 if "driver" in locals():
                     driver.quit()
-            except:
+            except Exception:
                 pass
 
     def test_static_file_access(self, driver):
-        """静的ファイルへのアクセステスト"""
+        """静的ファイルへのアクセステスト."""
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -92,7 +90,7 @@ class TestE2ESimple:
         assert reset_btn is not None
 
     def test_form_elements_interaction(self, driver):
-        """フォーム要素の操作テスト"""
+        """フォーム要素の操作テスト."""
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -118,7 +116,7 @@ class TestE2ESimple:
         assert reset_btn.is_enabled()
 
     def test_responsive_design_elements(self, driver):
-        """レスポンシブデザイン要素のテスト"""
+        """レスポンシブデザイン要素のテスト."""
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -141,7 +139,7 @@ class TestE2ESimple:
         assert container.is_displayed()
 
     def test_accessibility_features(self, driver):
-        """アクセシビリティ機能のテスト"""
+        """アクセシビリティ機能のテスト."""
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -165,7 +163,7 @@ class TestE2ESimple:
         assert reset_btn.get_attribute("type") == "button"
 
     def test_css_and_styling(self, driver):
-        """CSSとスタイリングのテスト"""
+        """CSSとスタイリングのテスト."""
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"

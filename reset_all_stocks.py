@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""
-全ての株式データテーブル（1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo）の全レコードを削除するスクリプト
-"""
+"""全ての株式データテーブル（1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo）の全レコードを削除するスクリプト."""
 import os
 import sys
 
@@ -9,7 +7,7 @@ import sys
 # プロジェクトのルートディレクトリをパスに追加
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "app"))
 
-from models import (
+from models import (  # noqa: E402
     Stocks1d,
     Stocks1h,
     Stocks1m,
@@ -81,7 +79,7 @@ def main():
             session.commit()
 
             # 削除後の確認
-            print(f"\n削除完了:")
+            print("\n削除完了:")
             print(f"  - 削除されたレコード数: {total_deleted:,} 件")
 
             # 各テーブルの削除後レコード数を確認

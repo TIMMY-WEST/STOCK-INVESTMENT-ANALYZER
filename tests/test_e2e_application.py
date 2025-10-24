@@ -1,7 +1,6 @@
-"""
-End-to-End (E2E) テスト
+"""End-to-End (E2E) テスト.
 
-実際のアプリケーション起動とブラウザ操作を含むテスト
+実際のアプリケーション起動とブラウザ操作を含むテスト。
 """
 
 import os
@@ -24,11 +23,11 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 @pytest.mark.e2e
 class TestE2EApplication:
-    """E2Eアプリケーションテストクラス"""
+    """E2Eアプリケーションテストクラス."""
 
     @pytest.fixture(scope="class")
     def app_server(self):
-        """Flaskアプリケーションサーバーを起動するフィクスチャ"""
+        """Flaskアプリケーションサーバーを起動するフィクスチャ."""
         # アプリケーションのパスを設定
         app_dir = os.path.join(os.path.dirname(__file__), "..", "app")
         sys.path.insert(0, app_dir)
@@ -54,7 +53,7 @@ class TestE2EApplication:
         # サーバーが起動するまで待機
         base_url = "http://127.0.0.1:8001"
         max_attempts = 30
-        for attempt in range(max_attempts):
+        for _ in range(max_attempts):
             try:
                 response = requests.get(base_url, timeout=2)
                 if response.status_code == 200:
@@ -71,7 +70,7 @@ class TestE2EApplication:
 
     @pytest.fixture(scope="class")
     def driver(self):
-        """Seleniumドライバーを設定するフィクスチャ"""
+        """Seleniumドライバーを設定するフィクスチャ."""
         try:
             # Chromeオプションを設定
             chrome_options = Options()
@@ -110,11 +109,11 @@ class TestE2EApplication:
             try:
                 if "driver" in locals():
                     driver.quit()
-            except:
+            except Exception:
                 pass
 
     def test_application_startup_and_homepage_load(self, app_server, driver):
-        """アプリケーション起動とホームページ読み込みテスト"""
+        """アプリケーション起動とホームページ読み込みテスト."""
         # ホームページにアクセス
         driver.get(app_server)
 
@@ -132,7 +131,7 @@ class TestE2EApplication:
         assert "株価データ管理システム" in nav_brand.text
 
     def test_stock_data_fetch_form_interaction(self, app_server, driver):
-        """株価データ取得フォームの操作テスト"""
+        """株価データ取得フォームの操作テスト."""
         driver.get(app_server)
 
         # フォーム要素の存在確認
@@ -140,7 +139,7 @@ class TestE2EApplication:
             EC.presence_of_element_located((By.ID, "symbol"))
         )
         period_select = driver.find_element(By.ID, "period")
-        fetch_button = driver.find_element(By.ID, "fetch-btn")
+        _ = driver.find_element(By.ID, "fetch-btn")
 
         # デフォルト値の確認
         assert symbol_input.get_attribute("value") == "7203.T"
@@ -161,7 +160,7 @@ class TestE2EApplication:
         assert select.first_selected_option.get_attribute("value") == "1wk"
 
     def test_stock_data_fetch_submission(self, app_server, driver):
-        """株価データ取得の実行テスト"""
+        """株価データ取得の実行テスト."""
         driver.get(app_server)
 
         # フォーム要素を取得
@@ -199,7 +198,7 @@ class TestE2EApplication:
         )
 
     def test_invalid_stock_symbol_error_handling(self, app_server, driver):
-        """無効な銘柄コードのエラーハンドリングテスト"""
+        """無効な銘柄コードのエラーハンドリングテスト."""
         driver.get(app_server)
 
         # フォーム要素を取得
@@ -234,7 +233,7 @@ class TestE2EApplication:
         )
 
     def test_reset_button_functionality(self, app_server, driver):
-        """リセットボタンの機能テスト"""
+        """リセットボタンの機能テスト."""
         driver.get(app_server)
 
         # フォーム要素を取得
@@ -263,7 +262,7 @@ class TestE2EApplication:
         assert select.first_selected_option.get_attribute("value") == "1mo"
 
     def test_navigation_links(self, app_server, driver):
-        """ナビゲーションリンクのテスト"""
+        """ナビゲーションリンクのテスト."""
         driver.get(app_server)
 
         # ナビゲーションリンクを取得
@@ -277,7 +276,7 @@ class TestE2EApplication:
             assert expected_link in link_texts
 
     def test_accessibility_features(self, app_server, driver):
-        """アクセシビリティ機能のテスト"""
+        """アクセシビリティ機能のテスト."""
         driver.get(app_server)
 
         # スキップリンクの存在確認
@@ -285,20 +284,20 @@ class TestE2EApplication:
         assert "メインコンテンツへスキップ" in skip_link.text
 
         # フォームラベルの関連付け確認
-        symbol_input = driver.find_element(By.ID, "symbol")
+        _ = driver.find_element(By.ID, "symbol")
         symbol_label = driver.find_element(
             By.CSS_SELECTOR, "label[for='symbol']"
         )
         assert symbol_label.text == "銘柄コード"
 
-        period_input = driver.find_element(By.ID, "period")
+        _ = driver.find_element(By.ID, "period")
         period_label = driver.find_element(
             By.CSS_SELECTOR, "label[for='period']"
         )
         assert period_label.text == "取得期間"
 
     def test_responsive_design_elements(self, app_server, driver):
-        """レスポンシブデザイン要素のテスト"""
+        """レスポンシブデザイン要素のテスト."""
         driver.get(app_server)
 
         # デスクトップサイズでの表示確認
@@ -317,7 +316,7 @@ class TestE2EApplication:
         assert container.is_displayed()
 
     def test_database_connection_endpoint(self, app_server, driver):
-        """データベース接続テストエンドポイントの確認"""
+        """データベース接続テストエンドポイントの確認."""
         # APIエンドポイントに直接アクセス
         api_url = urljoin(app_server, "/api/test-connection")
 

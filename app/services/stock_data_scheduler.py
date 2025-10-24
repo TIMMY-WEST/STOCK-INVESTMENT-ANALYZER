@@ -1,8 +1,4 @@
-"""株価データ取得スケジューラー
-
-定期的なデータ取得をスケジュールします。
-APSchedulerを使用した実装例です。
-"""
+"""Schedules periodic data fetching using APScheduler."""
 
 from datetime import datetime
 import logging
@@ -19,28 +15,28 @@ logger = logging.getLogger(__name__)
 
 
 class StockDataScheduler:
-    """株価データ取得スケジューラークラス"""
+    """株価データ取得スケジューラークラス."""
 
     def __init__(self):
-        """初期化"""
+        """初期化."""
         self.scheduler = BackgroundScheduler()
         self.orchestrator = StockDataOrchestrator()
         self.logger = logger
         self._setup_event_listeners()
 
     def _setup_event_listeners(self):
-        """イベントリスナーの設定"""
+        """イベントリスナーの設定."""
         self.scheduler.add_listener(
             self._job_executed_listener, EVENT_JOB_EXECUTED
         )
         self.scheduler.add_listener(self._job_error_listener, EVENT_JOB_ERROR)
 
     def _job_executed_listener(self, event):
-        """ジョブ実行成功時のリスナー"""
+        """ジョブ実行成功時のリスナー."""
         self.logger.info(f"ジョブ実行成功: {event.job_id}")
 
     def _job_error_listener(self, event):
-        """ジョブ実行エラー時のリスナー"""
+        """ジョブ実行エラー時のリスナー."""
         self.logger.error(
             f"ジョブ実行エラー: {event.job_id} - {event.exception}"
         )
@@ -53,15 +49,14 @@ class StockDataScheduler:
         minute: int = 0,
         job_id: Optional[str] = None,
     ):
-        """
-        日次更新ジョブを追加
+        """日次更新ジョブを追加.
 
         Args:
             symbol: 銘柄コード
             intervals: 時間軸のリスト
             hour: 実行時刻（時）
             minute: 実行時刻（分）
-            job_id: ジョブID（Noneの場合は自動生成）
+            job_id: ジョブID（Noneの場合は自動生成）。
         """
         if job_id is None:
             job_id = f"daily_update_{symbol}_{datetime.now().timestamp()}"
@@ -91,8 +86,7 @@ class StockDataScheduler:
         end_hour: int = 15,
         job_id: Optional[str] = None,
     ):
-        """
-        日中更新ジョブを追加（分足・時間足データ用）
+        """日中更新ジョブを追加（分足・時間足データ用）.
 
         Args:
             symbol: 銘柄コード
@@ -100,7 +94,7 @@ class StockDataScheduler:
             interval_minutes: 更新間隔（分）
             start_hour: 開始時刻（時）
             end_hour: 終了時刻（時）
-            job_id: ジョブID（Noneの場合は自動生成）
+            job_id: ジョブID（Noneの場合は自動生成）。
         """
         if job_id is None:
             job_id = f"intraday_update_{symbol}_{datetime.now().timestamp()}"
@@ -130,15 +124,14 @@ class StockDataScheduler:
     def add_custom_job(
         self, func: Callable, trigger, job_id: str, name: str, **kwargs
     ):
-        """
-        カスタムジョブを追加
+        """カスタムジョブを追加.
 
         Args:
             func: 実行する関数
             trigger: APSchedulerトリガー
             job_id: ジョブID
             name: ジョブ名
-            **kwargs: その他のAPSchedulerパラメータ
+            **kwargs: その他のAPSchedulerパラメータ。
         """
         self.scheduler.add_job(
             func=func,
@@ -152,12 +145,11 @@ class StockDataScheduler:
         self.logger.info(f"カスタムジョブ追加: {name} (ID: {job_id})")
 
     def _update_job(self, symbol: str, intervals: Optional[List[str]] = None):
-        """
-        更新ジョブの実行（内部メソッド）
+        """更新ジョブの実行（内部メソッド）.
 
         Args:
             symbol: 銘柄コード
-            intervals: 時間軸のリスト
+            intervals: 時間軸のリスト。
         """
         try:
             self.logger.info(f"更新ジョブ開始: {symbol}")
@@ -175,11 +167,10 @@ class StockDataScheduler:
             self.logger.error(f"更新ジョブエラー: {symbol}: {e}")
 
     def remove_job(self, job_id: str):
-        """
-        ジョブを削除
+        """ジョブを削除.
 
         Args:
-            job_id: ジョブID
+            job_id: ジョブID。
         """
         try:
             self.scheduler.remove_job(job_id)
@@ -188,33 +179,31 @@ class StockDataScheduler:
             self.logger.warning(f"ジョブ削除失敗: {job_id}: {e}")
 
     def start(self):
-        """スケジューラーを開始"""
+        """スケジューラーを開始."""
         if not self.scheduler.running:
             self.scheduler.start()
             self.logger.info("スケジューラー開始")
 
     def shutdown(self, wait: bool = True):
-        """
-        スケジューラーを停止
+        """スケジューラーを停止.
 
         Args:
-            wait: True の場合、実行中のジョブが完了するまで待機
+            wait: True の場合、実行中のジョブが完了するまで待機。
         """
         if self.scheduler.running:
             self.scheduler.shutdown(wait=wait)
             self.logger.info("スケジューラー停止")
 
     def get_jobs(self):
-        """
-        登録されているジョブのリストを取得
+        """登録されているジョブのリストを取得.
 
         Returns:
-            ジョブのリスト
+            ジョブのリスト。
         """
         return self.scheduler.get_jobs()
 
     def print_jobs(self):
-        """登録されているジョブを表示"""
+        """登録されているジョブを表示."""
         jobs = self.get_jobs()
         if not jobs:
             print("登録されているジョブはありません")
@@ -234,11 +223,10 @@ _global_scheduler: Optional[StockDataScheduler] = None
 
 
 def get_scheduler() -> StockDataScheduler:
-    """
-    グローバルスケジューラーインスタンスを取得
+    """グローバルスケジューラーインスタンスを取得.
 
     Returns:
-        StockDataSchedulerインスタンス
+        StockDataSchedulerインスタンス。
     """
     global _global_scheduler
     if _global_scheduler is None:

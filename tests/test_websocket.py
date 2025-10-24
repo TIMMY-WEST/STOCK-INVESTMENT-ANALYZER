@@ -1,6 +1,4 @@
-"""
-WebSocket進捗配信機能のテスト
-"""
+"""WebSocket進捗配信機能のテスト."""
 
 from flask_socketio import SocketIOTestClient
 import pytest
@@ -8,7 +6,7 @@ import pytest
 
 @pytest.fixture
 def app_instance():
-    """Flaskアプリインスタンスを作成"""
+    """Flaskアプリインスタンスを作成."""
     from app import app, socketio
 
     app.config["TESTING"] = True
@@ -17,26 +15,26 @@ def app_instance():
 
 @pytest.fixture
 def client(app_instance):
-    """Flask-SocketIOテストクライアントを作成"""
+    """Flask-SocketIOテストクライアントを作成."""
     app, socketio = app_instance
     return app.test_client()
 
 
 @pytest.fixture
 def socketio_client(app_instance):
-    """SocketIOテストクライアントを作成"""
+    """SocketIOテストクライアントを作成."""
     app, socketio = app_instance
     return socketio.test_client(app)
 
 
 def test_websocket_connection(socketio_client):
-    """WebSocket接続のテスト"""
+    """WebSocket接続のテスト."""
     # 接続確認
     assert socketio_client.is_connected()
 
 
 def test_websocket_disconnect(socketio_client):
-    """WebSocket切断のテスト"""
+    """WebSocket切断のテスト."""
     # 接続確認
     assert socketio_client.is_connected()
 
@@ -48,7 +46,7 @@ def test_websocket_disconnect(socketio_client):
 
 
 def test_bulk_progress_event(socketio_client, client, app_instance):
-    """進捗イベントの送信テスト（簡略化）"""
+    """進捗イベントの送信テスト（簡略化）."""
     app, socketio = app_instance
 
     # WebSocket接続確認
@@ -60,7 +58,7 @@ def test_bulk_progress_event(socketio_client, client, app_instance):
 
 
 def test_bulk_complete_event(socketio_client, app_instance):
-    """完了イベントの送信テスト（簡略化）"""
+    """完了イベントの送信テスト（簡略化）."""
     app, socketio = app_instance
 
     # WebSocket接続確認
@@ -72,14 +70,14 @@ def test_bulk_complete_event(socketio_client, app_instance):
 
 
 def test_websocket_test_page(client):
-    """WebSocketテストページへのアクセステスト"""
+    """WebSocketテストページへのアクセステスト."""
     response = client.get("/websocket-test")
     assert response.status_code == 200
     assert b"WebSocket" in response.data
 
 
 def test_multiple_clients_connection(app_instance):
-    """複数クライアントの接続テスト"""
+    """複数クライアントの接続テスト."""
     app, socketio = app_instance
 
     # 複数のクライアントを作成
@@ -104,7 +102,7 @@ def test_multiple_clients_connection(app_instance):
 
 
 def test_progress_broadcast_to_multiple_clients(app_instance):
-    """複数クライアントへの進捗ブロードキャストテスト（簡略化）"""
+    """複数クライアントへの進捗ブロードキャストテスト（簡略化）."""
     app, socketio = app_instance
 
     # 複数のテストクライアントを作成

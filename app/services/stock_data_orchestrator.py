@@ -1,7 +1,4 @@
-"""株価データ取得・保存オーケストレーター
-
-データ取得から保存、整合性チェックまでを統合的に管理します。
-"""
+"""Orchestrates data fetching, saving, and integrity checks."""
 
 from datetime import datetime
 import logging
@@ -9,27 +6,23 @@ from typing import Any, Dict, List, Optional
 
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_saver import StockDataSaveError, StockDataSaver
-from utils.timeframe_utils import (
-    get_all_intervals,
-    get_display_name,
-    validate_interval,
-)
+from utils.timeframe_utils import get_all_intervals, get_display_name
 
 
 logger = logging.getLogger(__name__)
 
 
 class StockDataOrchestrationError(Exception):
-    """オーケストレーションエラー"""
+    """オーケストレーションエラー."""
 
     pass
 
 
 class StockDataOrchestrator:
-    """株価データ取得・保存オーケストレータークラス"""
+    """株価データ取得・保存オーケストレータークラス."""
 
     def __init__(self):
-        """初期化"""
+        """初期化."""
         self.fetcher = StockDataFetcher()
         self.saver = StockDataSaver()
         self.logger = logger
@@ -41,8 +34,7 @@ class StockDataOrchestrator:
         period: Optional[str] = None,
         force_update: bool = False,
     ) -> Dict[str, Any]:
-        """
-        株価データの取得と保存を実行
+        """株価データの取得と保存を実行.
 
         Args:
             symbol: 銘柄コード
@@ -51,7 +43,7 @@ class StockDataOrchestrator:
             force_update: True の場合、既存データを無視して全て取得
 
         Returns:
-            実行結果の詳細情報
+            実行結果の詳細情報。
         """
         try:
             self.logger.info(
@@ -112,8 +104,7 @@ class StockDataOrchestrator:
         intervals: Optional[List[str]] = None,
         period: Optional[str] = None,
     ) -> Dict[str, Dict[str, Any]]:
-        """
-        複数時間軸のデータを取得・保存
+        """複数時間軸のデータを取得・保存.
 
         Args:
             symbol: 銘柄コード
@@ -121,7 +112,7 @@ class StockDataOrchestrator:
             period: 取得期間
 
         Returns:
-            {interval: 実行結果} の辞書
+            {interval: 実行結果} の辞書。
         """
         if intervals is None:
             intervals = get_all_intervals()
@@ -149,15 +140,14 @@ class StockDataOrchestrator:
     def check_data_integrity(
         self, symbol: str, interval: str
     ) -> Dict[str, Any]:
-        """
-        データ整合性をチェック
+        """データ整合性をチェック.
 
         Args:
             symbol: 銘柄コード
             interval: 時間軸
 
         Returns:
-            整合性チェック結果
+            整合性チェック結果。
         """
         try:
             # データベース内のレコード数
@@ -202,15 +192,14 @@ class StockDataOrchestrator:
     def get_status(
         self, symbol: str, intervals: Optional[List[str]] = None
     ) -> Dict[str, Dict[str, Any]]:
-        """
-        各時間軸のデータ状態を取得
+        """各時間軸のデータ状態を取得.
 
         Args:
             symbol: 銘柄コード
             intervals: 時間軸のリスト（Noneの場合は全時間軸）
 
         Returns:
-            {interval: ステータス情報} の辞書
+            {interval: ステータス情報} の辞書。
         """
         if intervals is None:
             intervals = get_all_intervals()
@@ -244,15 +233,14 @@ class StockDataOrchestrator:
     def update_all_timeframes(
         self, symbol: str, intervals: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """
-        全時間軸のデータを更新（差分更新）
+        """全時間軸のデータを更新（差分更新）.
 
         Args:
             symbol: 銘柄コード
             intervals: 時間軸のリスト（Noneの場合は全時間軸）
 
         Returns:
-            更新結果のサマリー
+            更新結果のサマリー。
         """
         if intervals is None:
             intervals = get_all_intervals()

@@ -1,7 +1,4 @@
-"""時間軸ユーティリティ
-
-yfinanceの時間軸(interval)とデータベースモデルのマッピングを提供します。
-"""
+"""Provides mapping between yfinance intervals and database models."""
 
 from typing import Dict, Literal, Type
 
@@ -71,8 +68,7 @@ TIMEFRAME_RECOMMENDED_PERIOD: Dict[str, str] = {
 
 
 def get_model_for_interval(interval: str) -> Type[StockDataBase]:
-    """
-    yfinance intervalに対応するデータベースモデルを取得
+    """Yfinance intervalに対応するデータベースモデルを取得.
 
     Args:
         interval: yfinance interval ('1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo')
@@ -81,7 +77,7 @@ def get_model_for_interval(interval: str) -> Type[StockDataBase]:
         対応するデータベースモデルクラス
 
     Raises:
-        ValueError: サポートされていないintervalの場合
+        ValueError: サポートされていないintervalの場合。
     """
     if interval not in TIMEFRAME_MODEL_MAP:
         raise ValueError(
@@ -92,72 +88,66 @@ def get_model_for_interval(interval: str) -> Type[StockDataBase]:
 
 
 def get_display_name(interval: str) -> str:
-    """
-    時間軸の表示名を取得
+    """時間軸の表示名を取得.
 
     Args:
         interval: yfinance interval
 
     Returns:
-        時間軸の日本語表示名
+        時間軸の日本語表示名。
     """
     return TIMEFRAME_DISPLAY_NAME.get(interval, interval)
 
 
 def get_recommended_period(interval: str) -> str:
-    """
-    時間軸の推奨取得期間を取得
+    """時間軸の推奨取得期間を取得.
 
     Args:
         interval: yfinance interval
 
     Returns:
-        推奨取得期間（yfinance period）
+        推奨取得期間（yfinance period）。
     """
     return TIMEFRAME_RECOMMENDED_PERIOD.get(interval, "1y")
 
 
 def is_intraday_interval(interval: str) -> bool:
-    """
-    分足・時間足（日内）の時間軸かどうかを判定
+    """分足・時間足（日内）の時間軸かどうかを判定.
 
     Args:
         interval: yfinance interval
 
     Returns:
         True: 分足・時間足（datetime使用）
-        False: 日足・週足・月足（date使用）
+        False: 日足・週足・月足（date使用）。
     """
     return interval in ["1m", "5m", "15m", "30m", "1h"]
 
 
 def get_all_intervals() -> list[str]:
-    """
-    サポートされている全ての時間軸を取得
+    """サポートされている全ての時間軸を取得.
 
     Returns:
-        時間軸のリスト
+        時間軸のリスト。
     """
     return list(TIMEFRAME_MODEL_MAP.keys())
 
 
 def validate_interval(interval: str) -> bool:
-    """
-    時間軸が有効かどうかを検証
+    """時間軸が有効かどうかを検証.
 
     Args:
         interval: 検証する時間軸
 
     Returns:
         True: 有効な時間軸
-        False: 無効な時間軸
+        False: 無効な時間軸。
     """
     return interval in TIMEFRAME_MODEL_MAP
 
 
 def get_table_name(interval: str) -> str:
-    """
-    時間軸に対応するテーブル名を取得
+    """時間軸に対応するテーブル名を取得.
 
     Args:
         interval: yfinance interval
@@ -166,11 +156,12 @@ def get_table_name(interval: str) -> str:
         対応するテーブル名（例: 'stocks_1d', 'stocks_5m'）
 
     Raises:
-        ValueError: サポートされていないintervalの場合
+        ValueError: サポートされていないintervalの場合。
     """
     if interval not in TIMEFRAME_MODEL_MAP:
         raise ValueError(
             f"サポートされていない時間軸: {interval}. "
             f"サポート時間軸: {list(TIMEFRAME_MODEL_MAP.keys())}"
         )
-    return TIMEFRAME_MODEL_MAP[interval].__tablename__
+    # SQLAlchemyのdeclarative_baseで動的に生成される属性
+    return TIMEFRAME_MODEL_MAP[interval].__tablename__  # type: ignore[attr-defined]

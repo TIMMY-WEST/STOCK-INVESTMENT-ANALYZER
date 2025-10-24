@@ -1,9 +1,8 @@
-"""バッチ管理サービス (Phase 2)
+"""Phase 1のインメモリ管理からPhase 2のデータベース永続化への移行.
 
-Phase 1のインメモリ管理からPhase 2のデータベース永続化への移行。
 バッチ実行情報をデータベースに保存し、永続的に管理します。
 
-参照仕様書: docs/api_bulk_fetch.md (Phase 2)
+参照仕様書: docs/api_bulk_fetch.md (Phase 2)。
 """
 
 from datetime import datetime
@@ -19,20 +18,19 @@ logger = logging.getLogger(__name__)
 
 
 class BatchServiceError(Exception):
-    """バッチサービスエラー"""
+    """バッチサービスエラー."""
 
     pass
 
 
 class BatchService:
-    """バッチ実行情報を管理するサービスクラス（Phase 2: データベース永続化対応）"""
+    """バッチ実行情報を管理するサービスクラス（Phase 2: データベース永続化対応）."""
 
     @staticmethod
     def create_batch(
         batch_type: str, total_stocks: int, session: Optional[Session] = None
     ) -> Dict[str, Any]:
-        """
-        新しいバッチ実行レコードを作成
+        """新しいバッチ実行レコードを作成.
 
         Args:
             batch_type: バッチタイプ ('all_stocks', 'partial', etc.)
@@ -43,7 +41,7 @@ class BatchService:
             作成されたバッチ情報の辞書
 
         Raises:
-            BatchServiceError: バッチ作成エラー
+            BatchServiceError: バッチ作成エラー。
         """
         try:
             if session:
@@ -84,8 +82,7 @@ class BatchService:
     def get_batch(
         batch_id: int, session: Optional[Session] = None
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチ実行情報を取得
+        """バッチ実行情報を取得.
 
         Args:
             batch_id: バッチID
@@ -95,7 +92,7 @@ class BatchService:
             バッチ情報の辞書、見つからない場合はNone
 
         Raises:
-            BatchServiceError: バッチ取得エラー
+            BatchServiceError: バッチ取得エラー。
         """
         try:
             if session:
@@ -128,8 +125,7 @@ class BatchService:
         failed_stocks: int,
         session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチの進捗を更新
+        """バッチの進捗を更新.
 
         Args:
             batch_id: バッチID
@@ -142,7 +138,7 @@ class BatchService:
             更新されたバッチ情報の辞書、見つからない場合はNone
 
         Raises:
-            BatchServiceError: 進捗更新エラー
+            BatchServiceError: 進捗更新エラー。
         """
         try:
             if session:
@@ -190,8 +186,7 @@ class BatchService:
         error_message: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチを完了状態にする
+        """バッチを完了状態にする.
 
         Args:
             batch_id: バッチID
@@ -203,7 +198,7 @@ class BatchService:
             更新されたバッチ情報の辞書、見つからない場合はNone
 
         Raises:
-            BatchServiceError: バッチ完了エラー
+            BatchServiceError: バッチ完了エラー。
         """
         try:
             if session:
@@ -253,8 +248,7 @@ class BatchService:
         status: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> List[Dict[str, Any]]:
-        """
-        バッチ実行情報一覧を取得
+        """バッチ実行情報一覧を取得.
 
         Args:
             limit: 取得件数上限
@@ -266,7 +260,7 @@ class BatchService:
             バッチ情報の辞書のリスト
 
         Raises:
-            BatchServiceError: バッチ一覧取得エラー
+            BatchServiceError: バッチ一覧取得エラー。
         """
         try:
             if session:
@@ -300,8 +294,7 @@ class BatchService:
         status: str = "pending",
         session: Optional[Session] = None,
     ) -> Dict[str, Any]:
-        """
-        バッチ実行詳細レコードを作成
+        """バッチ実行詳細レコードを作成.
 
         Args:
             batch_execution_id: バッチ実行ID
@@ -313,7 +306,7 @@ class BatchService:
             作成されたバッチ詳細情報の辞書
 
         Raises:
-            BatchServiceError: バッチ詳細作成エラー
+            BatchServiceError: バッチ詳細作成エラー。
         """
         try:
             if session:
@@ -354,8 +347,7 @@ class BatchService:
         error_message: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        バッチ実行詳細を更新
+        """バッチ実行詳細を更新.
 
         Args:
             detail_id: バッチ詳細ID
@@ -368,7 +360,7 @@ class BatchService:
             更新されたバッチ詳細情報の辞書、見つからない場合はNone
 
         Raises:
-            BatchServiceError: バッチ詳細更新エラー
+            BatchServiceError: バッチ詳細更新エラー。
         """
         try:
             if session:
@@ -417,8 +409,7 @@ class BatchService:
     def get_batch_details(
         batch_execution_id: int, session: Optional[Session] = None
     ) -> List[Dict[str, Any]]:
-        """
-        バッチ実行詳細一覧を取得
+        """バッチ実行詳細一覧を取得.
 
         Args:
             batch_execution_id: バッチ実行ID
@@ -428,7 +419,7 @@ class BatchService:
             バッチ詳細情報の辞書のリスト
 
         Raises:
-            BatchServiceError: バッチ詳細一覧取得エラー
+            BatchServiceError: バッチ詳細一覧取得エラー。
         """
         try:
             if session:

@@ -1,3 +1,9 @@
+"""Bulk data API endpoints.
+
+This module provides API endpoints for bulk data fetching operations,
+including job management and progress tracking.
+"""
+
 from functools import wraps
 import logging
 import os
@@ -23,12 +29,12 @@ ENABLE_PHASE2 = os.getenv("ENABLE_PHASE2", "true").lower() == "true"
 
 
 def get_bulk_service() -> BulkDataService:
-    """BulkDataServiceのインスタンスを取得（テストでモック可能）"""
+    """BulkDataServiceのインスタンスを取得（テストでモック可能）."""
     return BulkDataService()
 
 
 def _client_key() -> str:
-    """レート制限対象キー（APIキーがあればそれを使用、なければIP）"""
+    """レート制限対象キー（APIキーがあればそれを使用、なければIP）."""
     api_key = request.headers.get("X-API-KEY")
     if api_key:
         return f"key:{api_key}"
@@ -36,10 +42,7 @@ def _client_key() -> str:
 
 
 def require_api_key(func: Callable):
-    """単純なAPIキー認証（ヘッダ: X-API-KEY）
-
-    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）
-    """
+    """API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -72,7 +75,7 @@ _RATE_WINDOWS: Dict[str, Dict[str, Any]] = {}
 
 
 def rate_limit(max_per_minute: Optional[int] = None):
-    """簡易レート制限（分単位の固定ウィンドウ）"""
+    """簡易レート制限（分単位の固定ウィンドウ）."""
     limit_env = os.getenv("RATE_LIMIT_PER_MINUTE", "60")
     default_limit = int(limit_env) if limit_env.isdigit() else 60
     limit = max_per_minute or default_limit
@@ -110,18 +113,102 @@ def rate_limit(max_per_minute: Optional[int] = None):
     return decorator
 
 
+def _update_phase1_progress(job_id: str, progress: Dict[str, Any]) -> None:
+    """Phase 1の進捗情報を更新.
+
+    Args:
+        job_id: ジョブID
+        progress: 進捗情報
+    """
+    job = JOBS.get(job_id)
+    if job:
+        job["progress"] = progress
+        job["updated_at"] = time.time()
+        logger.debug(
+            f"[progress_callback] Phase 1進捗更新完了: job_id={job_id}"
+        )
+    else:
+        logger.warning(
+            f"[progress_callback] Phase 1ジョブが見つかりません: job_id={job_id}"
+        )
+
+
+def _update_phase2_progress(
+    batch_db_id: int, progress: Dict[str, Any]
+) -> None:
+    """Phase 2の進捗情報を更新.
+
+    Args:
+        batch_db_id: バッチDB ID
+        progress: 進捗情報
+    """
+    try:
+        logger.debug(
+            f"[progress_callback] Phase 2進捗更新開始: batch_db_id={batch_db_id}"
+        )
+        BatchService.update_batch_progress(
+            batch_id=batch_db_id,
+            processed_stocks=progress.get("processed", 0),
+            successful_stocks=progress.get("successful", 0),
+            failed_stocks=progress.get("failed", 0),
+        )
+        logger.debug(
+            f"[progress_callback] Phase 2進捗更新完了: batch_db_id={batch_db_id}"
+        )
+    except BatchServiceError as e:
+        logger.error(f"[progress_callback] Phase 2バッチ進捗更新エラー: {e}")
+
+
+def _send_websocket_progress(
+    job_id: str, batch_db_id: Optional[int], progress: Dict[str, Any]
+) -> None:
+    """WebSocket経由で進捗情報を送信.
+
+    Args:
+        job_id: ジョブID
+        batch_db_id: バッチDB ID
+        progress: 進捗情報
+    """
+    try:
+        from flask import current_app
+
+        try:
+            socketio = current_app.config.get("SOCKETIO")
+            if socketio:
+                logger.debug(
+                    f"[progress_callback] WebSocket進捗通知送信: job_id={job_id}"
+                )
+                socketio.emit(
+                    "bulk_progress",
+                    {
+                        "job_id": job_id,
+                        "batch_db_id": batch_db_id,
+                        "progress": progress,
+                    },
+                )
+            else:
+                logger.debug(
+                    "[progress_callback] WebSocket未設定のため進捗通知スキップ"
+                )
+        except RuntimeError:
+            logger.debug(
+                "[progress_callback] アプリケーションコンテキスト外のためWebSocket通知スキップ"
+            )
+    except Exception as e:
+        logger.error(f"[progress_callback] WebSocket進捗通知エラー: {e}")
+
+
 def _make_progress_callback(
     job_id: str, batch_db_id: Optional[int] = None
 ) -> Callable[[Dict[str, Any]], None]:
-    """
-    進捗更新コールバックを生成
+    """進捗更新コールバックを生成.
 
     Args:
         job_id: Phase 1のジョブID
         batch_db_id: Phase 2のバッチDB ID
 
     Returns:
-        進捗更新コールバック関数
+        進捗更新コールバック関数。
     """
 
     def cb(progress: Dict[str, Any]):
@@ -130,70 +217,124 @@ def _make_progress_callback(
         )
 
         # Phase 1: インメモリ管理の更新
-        job = JOBS.get(job_id)
-        if job:
-            job["progress"] = progress
-            job["updated_at"] = time.time()
-            logger.debug(
-                f"[progress_callback] Phase 1進捗更新完了: job_id={job_id}"
-            )
-        else:
-            logger.warning(
-                f"[progress_callback] Phase 1ジョブが見つかりません: job_id={job_id}"
-            )
+        _update_phase1_progress(job_id, progress)
 
         # Phase 2: データベースの更新
         if ENABLE_PHASE2 and batch_db_id:
-            try:
-                logger.debug(
-                    f"[progress_callback] Phase 2進捗更新開始: batch_db_id={batch_db_id}"
-                )
-                BatchService.update_batch_progress(
-                    batch_id=batch_db_id,
-                    processed_stocks=progress.get("processed", 0),
-                    successful_stocks=progress.get("successful", 0),
-                    failed_stocks=progress.get("failed", 0),
-                )
-                logger.debug(
-                    f"[progress_callback] Phase 2進捗更新完了: batch_db_id={batch_db_id}"
-                )
-            except BatchServiceError as e:
-                logger.error(
-                    f"[progress_callback] Phase 2バッチ進捗更新エラー: {e}"
-                )
+            _update_phase2_progress(batch_db_id, progress)
 
-        # WebSocket通知（利用可能な場合のみ）
-        try:
-            from flask import current_app
-
-            # アプリケーションコンテキストが利用可能かチェック
-            try:
-                socketio = current_app.config.get("SOCKETIO")
-                if socketio:
-                    logger.debug(
-                        f"[progress_callback] WebSocket進捗通知送信: job_id={job_id}"
-                    )
-                    socketio.emit(
-                        "bulk_progress",
-                        {
-                            "job_id": job_id,
-                            "batch_db_id": batch_db_id,
-                            "progress": progress,
-                        },
-                    )
-                else:
-                    logger.debug(
-                        f"[progress_callback] WebSocket未設定のため進捗通知スキップ"
-                    )
-            except RuntimeError:
-                # アプリケーションコンテキスト外で実行されている場合はスキップ
-                logger.debug(
-                    f"[progress_callback] アプリケーションコンテキスト外のためWebSocket通知スキップ"
-                )
-        except Exception as e:
-            logger.error(f"[progress_callback] WebSocket進捗通知エラー: {e}")
+        # WebSocket通知
+        _send_websocket_progress(job_id, batch_db_id, progress)
 
     return cb
+
+
+def _update_job_completion(
+    job_id: str, batch_db_id: Optional[int], summary: dict
+) -> None:
+    """ジョブ完了時の更新処理.
+
+    Args:
+        job_id: ジョブID
+        batch_db_id: バッチDB ID（Phase 2用）
+        summary: 実行サマリー
+    """
+    # Phase 1: インメモリ管理の更新
+    job = JOBS.get(job_id)
+    if job is not None:
+        job["status"] = "completed"
+        job["summary"] = summary
+        job["updated_at"] = time.time()
+        logger.info(f"[_run_job] Phase 1ジョブ完了更新: job_id={job_id}")
+
+    # Phase 2: データベースの更新
+    if ENABLE_PHASE2 and batch_db_id:
+        try:
+            logger.info(
+                f"[_run_job] Phase 2バッチ完了更新開始: batch_db_id={batch_db_id}"
+            )
+            BatchService.complete_batch(
+                batch_id=batch_db_id, status="completed"
+            )
+            logger.info(
+                f"[_run_job] Phase 2バッチ完了更新成功: batch_db_id={batch_db_id}"
+            )
+        except BatchServiceError as e:
+            logger.error(f"[_run_job] Phase 2バッチ完了更新エラー: {e}")
+
+
+def _update_job_failure(
+    job_id: str, batch_db_id: Optional[int], error: Exception
+) -> None:
+    """ジョブ失敗時の更新処理.
+
+    Args:
+        job_id: ジョブID
+        batch_db_id: バッチDB ID（Phase 2用）
+        error: エラー情報
+    """
+    # Phase 1: インメモリ管理の更新
+    job = JOBS.get(job_id)
+    if job is not None:
+        job["status"] = "failed"
+        job["error"] = str(error)
+        job["updated_at"] = time.time()
+        logger.info(f"[_run_job] Phase 1ジョブ失敗更新: job_id={job_id}")
+
+    # Phase 2: データベースの更新
+    if ENABLE_PHASE2 and batch_db_id:
+        try:
+            logger.info(
+                f"[_run_job] Phase 2バッチ失敗更新開始: batch_db_id={batch_db_id}"
+            )
+            BatchService.complete_batch(
+                batch_id=batch_db_id,
+                status="failed",
+                error_message=str(error),
+            )
+            logger.info(
+                f"[_run_job] Phase 2バッチ失敗更新成功: batch_db_id={batch_db_id}"
+            )
+        except BatchServiceError as db_err:
+            logger.error(f"[_run_job] Phase 2バッチ失敗更新エラー: {db_err}")
+
+
+def _send_websocket_completion(
+    job_id: str, batch_db_id: Optional[int], summary: dict
+) -> None:
+    """WebSocket経由で完了通知を送信.
+
+    Args:
+        job_id: ジョブID
+        batch_db_id: バッチDB ID
+        summary: 実行サマリー
+    """
+    try:
+        socketio = current_app.config.get("SOCKETIO")
+        if not socketio:
+            logger.info("[_run_job] WebSocket未設定のため完了通知スキップ")
+            return
+
+        logger.info(f"[_run_job] WebSocket完了通知送信: job_id={job_id}")
+
+        # フロントエンド用にサマリーフォーマットを変換
+        frontend_summary = {
+            "total_symbols": summary.get("total"),
+            "successful": summary.get("successful"),
+            "failed": summary.get("failed"),
+            "duration_seconds": summary.get("elapsed_time"),
+        }
+
+        socketio.emit(
+            "bulk_complete",
+            {
+                "job_id": job_id,
+                "batch_db_id": batch_db_id,
+                "summary": frontend_summary,
+            },
+        )
+    except Exception as e:
+        logger.error(f"[_run_job] WebSocket完了通知エラー: {e}")
 
 
 def _run_job(
@@ -204,8 +345,7 @@ def _run_job(
     period: Optional[str],
     batch_db_id: Optional[int] = None,
 ):
-    """
-    バッチ処理を実行
+    """バッチ処理を実行.
 
     Args:
         app: Flaskアプリケーションインスタンス
@@ -213,7 +353,7 @@ def _run_job(
         symbols: 銘柄コードのリスト
         interval: 時間軸
         period: 取得期間
-        batch_db_id: Phase 2のバッチDB ID（データベース永続化用）
+        batch_db_id: Phase 2のバッチDB ID（データベース永続化用）。
     """
     with app.app_context():
         logger.info(
@@ -223,7 +363,7 @@ def _run_job(
         service = get_bulk_service()
         try:
             logger.info(
-                f"[_run_job] BulkDataService.fetch_multiple_stocks 呼び出し開始"
+                "[_run_job] BulkDataService.fetch_multiple_stocks 呼び出し開始"
             )
             summary = service.fetch_multiple_stocks(
                 symbols=symbols,
@@ -236,61 +376,11 @@ def _run_job(
                 f"[_run_job] データ取得完了: job_id={job_id}, summary={summary}"
             )
 
-            # Phase 1: インメモリ管理の更新
-            job = JOBS.get(job_id)
-            if job is not None:
-                job["status"] = "completed"
-                job["summary"] = summary
-                job["updated_at"] = time.time()
-                logger.info(
-                    f"[_run_job] Phase 1ジョブ完了更新: job_id={job_id}"
-                )
+            # ジョブ完了の更新処理
+            _update_job_completion(job_id, batch_db_id, summary)
 
-            # Phase 2: データベースの更新
-            if ENABLE_PHASE2 and batch_db_id:
-                try:
-                    logger.info(
-                        f"[_run_job] Phase 2バッチ完了更新開始: batch_db_id={batch_db_id}"
-                    )
-                    BatchService.complete_batch(
-                        batch_id=batch_db_id, status="completed"
-                    )
-                    logger.info(
-                        f"[_run_job] Phase 2バッチ完了更新成功: batch_db_id={batch_db_id}"
-                    )
-                except BatchServiceError as e:
-                    logger.error(
-                        f"[_run_job] Phase 2バッチ完了更新エラー: {e}"
-                    )
-
-            # 完了通知（WebSocketが有効な場合）
-            try:
-                socketio = current_app.config.get("SOCKETIO")
-                if socketio:
-                    logger.info(
-                        f"[_run_job] WebSocket完了通知送信: job_id={job_id}"
-                    )
-                    # フロントエンド用にサマリーフォーマットを変換
-                    frontend_summary = {
-                        "total_symbols": summary.get("total"),
-                        "successful": summary.get("successful"),
-                        "failed": summary.get("failed"),
-                        "duration_seconds": summary.get("elapsed_time"),
-                    }
-                    socketio.emit(
-                        "bulk_complete",
-                        {
-                            "job_id": job_id,
-                            "batch_db_id": batch_db_id,
-                            "summary": frontend_summary,
-                        },
-                    )
-                else:
-                    logger.info(
-                        f"[_run_job] WebSocket未設定のため完了通知スキップ"
-                    )
-            except Exception as e:
-                logger.error(f"[_run_job] WebSocket完了通知エラー: {e}")
+            # WebSocket完了通知
+            _send_websocket_completion(job_id, batch_db_id, summary)
 
         except Exception as e:
             logger.error(
@@ -298,34 +388,8 @@ def _run_job(
                 exc_info=True,
             )
 
-            # Phase 1: インメモリ管理の更新
-            job = JOBS.get(job_id)
-            if job is not None:
-                job["status"] = "failed"
-                job["error"] = str(e)
-                job["updated_at"] = time.time()
-                logger.info(
-                    f"[_run_job] Phase 1ジョブ失敗更新: job_id={job_id}"
-                )
-
-            # Phase 2: データベースの更新
-            if ENABLE_PHASE2 and batch_db_id:
-                try:
-                    logger.info(
-                        f"[_run_job] Phase 2バッチ失敗更新開始: batch_db_id={batch_db_id}"
-                    )
-                    BatchService.complete_batch(
-                        batch_id=batch_db_id,
-                        status="failed",
-                        error_message=str(e),
-                    )
-                    logger.info(
-                        f"[_run_job] Phase 2バッチ失敗更新成功: batch_db_id={batch_db_id}"
-                    )
-                except BatchServiceError as db_err:
-                    logger.error(
-                        f"[_run_job] Phase 2バッチ失敗更新エラー: {db_err}"
-                    )
+            # ジョブ失敗の更新処理
+            _update_job_failure(job_id, batch_db_id, e)
 
         logger.info(f"[_run_job] ジョブ実行終了: job_id={job_id}")
 
@@ -334,8 +398,7 @@ def _run_job(
 @require_api_key
 @rate_limit()
 def start_bulk_fetch():
-    """
-    一括取得のジョブを開始
+    """一括取得のジョブを開始.
 
     Phase 1とPhase 2の両方に対応:
     - Phase 1: インメモリ管理 (job_id)
@@ -467,8 +530,7 @@ def start_bulk_fetch():
 @require_api_key
 @rate_limit()
 def get_job_status(job_id: str):
-    """
-    ジョブステータスを取得
+    """ジョブステータスを取得.
 
     Phase 1とPhase 2の両方に対応:
     - job_idが "job-" で始まる場合: Phase 1のインメモリ管理から取得
@@ -566,6 +628,14 @@ def get_job_status(job_id: str):
 @require_api_key
 @rate_limit()
 def stop_job(job_id: str):
+    """Stop a running job by job ID.
+
+    Args:
+        job_id: The ID of the job to stop.
+
+    Returns:
+        JSON response with success status.
+    """
     job = JOBS.get(job_id)
     if not job:
         return (
@@ -606,15 +676,14 @@ JPX_SEQUENTIAL_INTERVALS = [
 @require_api_key
 @rate_limit()
 def get_jpx_symbols():
-    """
-    JPX銘柄マスタから銘柄コード一覧を取得
+    """JPX銘柄マスタから銘柄コード一覧を取得.
 
     Query Parameters:
         - limit: 取得件数上限（デフォルト: 5000、最大: 5000）
         - market_category: 市場区分でフィルタ（オプション）
 
     Returns:
-        銘柄コード一覧
+        銘柄コード一覧。
     """
     try:
         logger.info("[jpx-sequential] JPX銘柄一覧取得リクエスト受信")
@@ -655,10 +724,7 @@ def get_jpx_symbols():
         )
 
         # JPX銘柄サービスを使用して銘柄一覧を取得
-        from services.jpx_stock_service import (
-            JPXStockService,
-            JPXStockServiceError,
-        )
+        from services.jpx_stock_service import JPXStockService
 
         service = JPXStockService()
         result = service.get_stock_list(
@@ -701,17 +767,130 @@ def get_jpx_symbols():
         )
 
 
+def _process_single_interval(
+    service, symbols: List[str], interval_config: dict
+) -> dict:
+    """単一時間軸のバッチ処理を実行.
+
+    Args:
+        service: BulkDataServiceインスタンス
+        symbols: 銘柄コードのリスト
+        interval_config: 時間軸設定
+
+    Returns:
+        処理結果の辞書
+    """
+    interval = interval_config["interval"]
+    period = interval_config["period"]
+    name = interval_config["name"]
+
+    try:
+        start_time = time.time()
+        summary = service.fetch_multiple_stocks(
+            symbols=symbols,
+            interval=interval,
+            period=period,
+            progress_callback=None,
+        )
+        duration = time.time() - start_time
+
+        result = {
+            "interval": interval,
+            "period": period,
+            "name": name,
+            "success": True,
+            "summary": {
+                "total_symbols": len(symbols),
+                "successful": summary.get("successful", 0),
+                "failed": summary.get("failed", 0),
+                "total_downloaded": summary.get("total_downloaded", 0),
+                "total_saved": summary.get("total_saved", 0),
+                "duration_seconds": round(duration, 2),
+            },
+        }
+
+        logger.info(
+            f"[jpx-sequential] 時間軸処理完了: {name} - 成功: {result['summary']['successful']}"
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"[jpx-sequential] 時間軸処理エラー: {name} - {e}")
+        return {
+            "interval": interval,
+            "period": period,
+            "name": name,
+            "success": False,
+            "error": str(e),
+        }
+
+
+def _send_jpx_interval_notification(
+    job_id: str,
+    batch_db_id: Optional[int],
+    interval_index: int,
+    interval_result: dict,
+) -> None:
+    """JPX時間軸完了のWebSocket通知を送信.
+
+    Args:
+        job_id: ジョブID
+        batch_db_id: バッチDB ID
+        interval_index: 時間軸インデックス
+        interval_result: 時間軸処理結果
+    """
+    try:
+        socketio = current_app.config.get("SOCKETIO")
+        if socketio:
+            socketio.emit(
+                "jpx_interval_complete",
+                {
+                    "job_id": job_id,
+                    "batch_db_id": batch_db_id,
+                    "interval_index": interval_index,
+                    "total_intervals": len(JPX_SEQUENTIAL_INTERVALS),
+                    "interval_result": interval_result,
+                },
+            )
+    except Exception as e:
+        logger.error(f"[jpx-sequential] WebSocket通知エラー: {e}")
+
+
+def _send_jpx_complete_notification(
+    job_id: str, batch_db_id: Optional[int], summary: dict
+) -> None:
+    """JPX全体完了のWebSocket通知を送信.
+
+    Args:
+        job_id: ジョブID
+        batch_db_id: バッチDB ID
+        summary: 実行サマリー
+    """
+    try:
+        socketio = current_app.config.get("SOCKETIO")
+        if socketio:
+            socketio.emit(
+                "jpx_complete",
+                {
+                    "job_id": job_id,
+                    "batch_db_id": batch_db_id,
+                    "summary": summary,
+                },
+            )
+    except Exception as e:
+        logger.error(f"[jpx-sequential] WebSocket完了通知エラー: {e}")
+
+
 def _run_jpx_sequential_job(
     app, job_id: str, symbols: List[str], batch_db_id: Optional[int] = None
 ):
-    """
-    JPX全銘柄順次取得ジョブを実行
+    """JPX全銘柄順次取得ジョブを実行.
 
     Args:
         app: Flaskアプリケーションインスタンス
         job_id: ジョブID
         symbols: 銘柄コードのリスト
-        batch_db_id: バッチDB ID（オプション）
+        batch_db_id: バッチDB ID（オプション）。
     """
     with app.app_context():
         logger.info(
@@ -732,10 +911,7 @@ def _run_jpx_sequential_job(
 
             # 8種類の時間軸を順次実行
             for idx, interval_config in enumerate(JPX_SEQUENTIAL_INTERVALS):
-                interval = interval_config["interval"]
-                period = interval_config["period"]
                 name = interval_config["name"]
-
                 logger.info(
                     f"[jpx-sequential] 時間軸処理開始: {idx + 1}/8 - {name}"
                 )
@@ -745,76 +921,23 @@ def _run_jpx_sequential_job(
                 job["current_interval_index"] = idx + 1
                 job["updated_at"] = time.time()
 
-                try:
-                    # バッチ取得を実行
-                    start_time = time.time()
-                    summary = service.fetch_multiple_stocks(
-                        symbols=symbols,
-                        interval=interval,
-                        period=period,
-                        progress_callback=None,  # 各時間軸内の進捗は不要
-                    )
-                    duration = time.time() - start_time
+                # 単一時間軸の処理を実行
+                interval_result = _process_single_interval(
+                    service, symbols, interval_config
+                )
 
-                    # 結果を記録
-                    interval_result = {
-                        "interval": interval,
-                        "period": period,
-                        "name": name,
-                        "success": True,
-                        "summary": {
-                            "total_symbols": len(symbols),
-                            "successful": summary.get("successful", 0),
-                            "failed": summary.get("failed", 0),
-                            "total_downloaded": summary.get(
-                                "total_downloaded", 0
-                            ),
-                            "total_saved": summary.get("total_saved", 0),
-                            "duration_seconds": round(duration, 2),
-                        },
-                    }
-
-                    logger.info(
-                        f"[jpx-sequential] 時間軸処理完了: {name} - 成功: {interval_result['summary']['successful']}"
-                    )
-
-                except Exception as e:
-                    logger.error(
-                        f"[jpx-sequential] 時間軸処理エラー: {name} - {e}"
-                    )
-                    interval_result = {
-                        "interval": interval,
-                        "period": period,
-                        "name": name,
-                        "success": False,
-                        "error": str(e),
-                    }
-
+                # 結果を記録
                 interval_results.append(interval_result)
                 job["interval_results"] = interval_results
                 job["completed_intervals"] = len(interval_results)
                 job["updated_at"] = time.time()
 
                 # WebSocket通知（各時間軸完了時）
-                try:
-                    socketio = current_app.config.get("SOCKETIO")
-                    if socketio:
-                        socketio.emit(
-                            "jpx_interval_complete",
-                            {
-                                "job_id": job_id,
-                                "batch_db_id": batch_db_id,
-                                "interval_index": idx + 1,
-                                "total_intervals": len(
-                                    JPX_SEQUENTIAL_INTERVALS
-                                ),
-                                "interval_result": interval_result,
-                            },
-                        )
-                except Exception as e:
-                    logger.error(f"[jpx-sequential] WebSocket通知エラー: {e}")
+                _send_jpx_interval_notification(
+                    job_id, batch_db_id, idx + 1, interval_result
+                )
 
-            # 全時間軸完了
+            # 全時間軸完了サマリーを作成
             successful_intervals = sum(
                 1 for r in interval_results if r.get("success")
             )
@@ -828,6 +951,7 @@ def _run_jpx_sequential_job(
                 "interval_results": interval_results,
             }
 
+            # ジョブ完了を記録
             job["status"] = "completed"
             job["summary"] = summary
             job["updated_at"] = time.time()
@@ -837,19 +961,7 @@ def _run_jpx_sequential_job(
             )
 
             # WebSocket通知（全体完了時）
-            try:
-                socketio = current_app.config.get("SOCKETIO")
-                if socketio:
-                    socketio.emit(
-                        "jpx_complete",
-                        {
-                            "job_id": job_id,
-                            "batch_db_id": batch_db_id,
-                            "summary": summary,
-                        },
-                    )
-            except Exception as e:
-                logger.error(f"[jpx-sequential] WebSocket完了通知エラー: {e}")
+            _send_jpx_complete_notification(job_id, batch_db_id, summary)
 
         except Exception as e:
             logger.error(
@@ -865,8 +977,7 @@ def _run_jpx_sequential_job(
 @require_api_key
 @rate_limit()
 def start_jpx_sequential():
-    """
-    JPX全銘柄順次取得を開始
+    """JPX全銘柄順次取得を開始.
 
     Request Body:
         {
@@ -874,7 +985,7 @@ def start_jpx_sequential():
         }
 
     Returns:
-        ジョブ情報
+        ジョブ情報。
     """
     try:
         logger.info("[jpx-sequential] 順次取得リクエスト受信")

@@ -1,6 +1,6 @@
-"""進捗トラッカーとメトリクス収集のテスト
+"""進捗トラッカーとメトリクス収集のテスト.
 
-Phase 2要件: メトリクス収集機能のテスト
+Phase 2要件: メトリクス収集機能のテスト。
 """
 
 import time
@@ -11,10 +11,10 @@ from services.bulk_data_service import ProgressTracker
 
 
 class TestProgressTracker:
-    """進捗トラッカーのテスト"""
+    """進捗トラッカーのテスト."""
 
     def test_initialization(self):
-        """初期化のテスト"""
+        """初期化のテスト."""
         tracker = ProgressTracker(total=100)
 
         assert tracker.total == 100
@@ -25,7 +25,7 @@ class TestProgressTracker:
         assert len(tracker.error_details) == 0
 
     def test_update_success(self):
-        """成功時の更新テスト"""
+        """成功時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
         tracker.update(
@@ -46,7 +46,7 @@ class TestProgressTracker:
         assert sum(tracker.records_saved_list) == 50
 
     def test_update_failed(self):
-        """失敗時の更新テスト"""
+        """失敗時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
         tracker.update(
@@ -62,7 +62,7 @@ class TestProgressTracker:
         assert "Connection timeout" in tracker.error_details[0]["error"]
 
     def test_get_progress(self):
-        """進捗情報取得のテスト"""
+        """進捗情報取得のテスト."""
         tracker = ProgressTracker(total=10)
 
         # 複数の銘柄を処理
@@ -100,7 +100,7 @@ class TestProgressTracker:
         assert progress["performance"]["total_records_saved"] == 225
 
     def test_metrics_calculation(self):
-        """メトリクス計算のテスト"""
+        """メトリクス計算のテスト."""
         tracker = ProgressTracker(total=20)
 
         # 成功: 15件、失敗: 5件
@@ -140,7 +140,7 @@ class TestProgressTracker:
         assert progress["performance"]["total_records_saved"] == 720  # 15 * 48
 
     def test_get_summary(self):
-        """サマリー取得のテスト"""
+        """サマリー取得のテスト."""
         tracker = ProgressTracker(total=5)
 
         for i in range(5):
@@ -163,7 +163,7 @@ class TestProgressTracker:
         assert "performance" in summary
 
     def test_empty_metrics(self):
-        """空のメトリクスのテスト"""
+        """空のメトリクスのテスト."""
         tracker = ProgressTracker(total=10)
 
         progress = tracker.get_progress()
@@ -176,7 +176,7 @@ class TestProgressTracker:
         assert progress["performance"]["total_records_saved"] == 0
 
     def test_eta_calculation(self):
-        """ETA計算のテスト"""
+        """ETA計算のテスト."""
         tracker = ProgressTracker(total=10)
 
         # 5件処理

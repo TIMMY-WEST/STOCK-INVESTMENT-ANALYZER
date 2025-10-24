@@ -1,6 +1,6 @@
-"""
-バッチ実行関連モデルのテストコード
-Issue #80: バッチ実行情報テーブルの実装
+"""バッチ実行関連モデルのテストコード.
+
+Issue #80: バッチ実行情報テーブルの実装。
 """
 
 from datetime import datetime, timezone
@@ -17,15 +17,15 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "app"))
 
-from models import Base, BatchExecution, BatchExecutionDetail
+from models import Base, BatchExecution, BatchExecutionDetail  # noqa: E402
 
 
 class TestBatchExecutionModel:
-    """BatchExecutionモデルのテストクラス"""
+    """BatchExecutionモデルのテストクラス."""
 
     @pytest.fixture
     def sample_batch_execution(self):
-        """テスト用のBatchExecutionインスタンスを作成"""
+        """テスト用のBatchExecutionインスタンスを作成."""
         return BatchExecution(
             batch_type="all_stocks",
             status="running",
@@ -36,7 +36,7 @@ class TestBatchExecutionModel:
         )
 
     def test_batch_execution_creation(self, sample_batch_execution):
-        """BatchExecutionインスタンスの作成テスト"""
+        """BatchExecutionインスタンスの作成テスト."""
         assert sample_batch_execution.batch_type == "all_stocks"
         assert sample_batch_execution.status == "running"
         assert sample_batch_execution.total_stocks == 100
@@ -45,12 +45,12 @@ class TestBatchExecutionModel:
         assert sample_batch_execution.failed_stocks == 5
 
     def test_batch_execution_repr(self, sample_batch_execution):
-        """BatchExecutionの__repr__メソッドテスト"""
+        """BatchExecutionの__repr__メソッドテスト."""
         expected = "<BatchExecution(id=None, batch_type='all_stocks', status='running')>"
         assert repr(sample_batch_execution) == expected
 
     def test_batch_execution_to_dict(self, sample_batch_execution):
-        """BatchExecutionのto_dictメソッドテスト"""
+        """BatchExecutionのto_dictメソッドテスト."""
         result = sample_batch_execution.to_dict()
 
         assert result["batch_type"] == "all_stocks"
@@ -68,7 +68,7 @@ class TestBatchExecutionModel:
         assert result["created_at"] is None
 
     def test_progress_percentage_calculation(self):
-        """進捗率計算のテスト"""
+        """進捗率計算のテスト."""
         # 正常ケース
         batch = BatchExecution(
             batch_type="test",
@@ -97,7 +97,7 @@ class TestBatchExecutionModel:
         assert batch_complete.progress_percentage == 100.0
 
     def test_duration_seconds_calculation(self):
-        """実行時間計算のテスト"""
+        """実行時間計算のテスト."""
         now = datetime.now(timezone.utc)
 
         # start_timeがNoneの場合
@@ -118,11 +118,11 @@ class TestBatchExecutionModel:
 
 
 class TestBatchExecutionDetailModel:
-    """BatchExecutionDetailモデルのテストクラス"""
+    """BatchExecutionDetailモデルのテストクラス."""
 
     @pytest.fixture
     def sample_batch_execution_detail(self):
-        """テスト用のBatchExecutionDetailインスタンスを作成"""
+        """テスト用のBatchExecutionDetailインスタンスを作成."""
         return BatchExecutionDetail(
             batch_execution_id=1,
             stock_code="7203",
@@ -133,21 +133,21 @@ class TestBatchExecutionDetailModel:
     def test_batch_execution_detail_creation(
         self, sample_batch_execution_detail
     ):
-        """BatchExecutionDetailインスタンスの作成テスト"""
+        """BatchExecutionDetailインスタンスの作成テスト."""
         assert sample_batch_execution_detail.batch_execution_id == 1
         assert sample_batch_execution_detail.stock_code == "7203"
         assert sample_batch_execution_detail.status == "completed"
         assert sample_batch_execution_detail.records_inserted == 100
 
     def test_batch_execution_detail_repr(self, sample_batch_execution_detail):
-        """BatchExecutionDetailの__repr__メソッドテスト"""
+        """BatchExecutionDetailの__repr__メソッドテスト."""
         expected = "<BatchExecutionDetail(id=None, batch_execution_id=1, stock_code='7203', status='completed')>"
         assert repr(sample_batch_execution_detail) == expected
 
     def test_batch_execution_detail_to_dict(
         self, sample_batch_execution_detail
     ):
-        """BatchExecutionDetailのto_dictメソッドテスト"""
+        """BatchExecutionDetailのto_dictメソッドテスト."""
         result = sample_batch_execution_detail.to_dict()
 
         assert result["batch_execution_id"] == 1
@@ -161,7 +161,7 @@ class TestBatchExecutionDetailModel:
         assert result["created_at"] is None
 
     def test_duration_seconds_calculation(self):
-        """処理時間計算のテスト"""
+        """処理時間計算のテスト."""
         now = datetime.now(timezone.utc)
 
         # start_timeがNoneの場合
@@ -182,10 +182,10 @@ class TestBatchExecutionDetailModel:
 
 
 class TestBatchExecutionModelValidation:
-    """BatchExecutionモデルのバリデーションテスト"""
+    """BatchExecutionモデルのバリデーションテスト."""
 
     def test_required_fields(self):
-        """必須フィールドのテスト"""
+        """必須フィールドのテスト."""
         # SQLAlchemyモデルでは、インスタンス作成時にTypeErrorは発生しない
         # 代わりに、必須フィールドが設定されていることを確認
         batch = BatchExecution()
@@ -202,7 +202,7 @@ class TestBatchExecutionModelValidation:
         assert batch.total_stocks == 10
 
     def test_default_values(self):
-        """デフォルト値のテスト"""
+        """デフォルト値のテスト."""
         batch = BatchExecution(
             batch_type="test", status="running", total_stocks=100
         )
@@ -217,10 +217,10 @@ class TestBatchExecutionModelValidation:
 
 
 class TestBatchExecutionDetailModelValidation:
-    """BatchExecutionDetailモデルのバリデーションテスト"""
+    """BatchExecutionDetailモデルのバリデーションテスト."""
 
     def test_required_fields(self):
-        """必須フィールドのテスト"""
+        """必須フィールドのテスト."""
         # SQLAlchemyモデルでは、インスタンス作成時にTypeErrorは発生しない
         # 代わりに、必須フィールドが設定されていることを確認
         detail = BatchExecutionDetail()
@@ -237,7 +237,7 @@ class TestBatchExecutionDetailModelValidation:
         assert detail.status == "pending"
 
     def test_default_values(self):
-        """デフォルト値のテスト"""
+        """デフォルト値のテスト."""
         detail = BatchExecutionDetail(
             batch_execution_id=1, stock_code="7203", status="pending"
         )
@@ -251,11 +251,11 @@ class TestBatchExecutionDetailModelValidation:
 
 
 class TestBatchExecutionModelIntegration:
-    """BatchExecutionモデルの統合テスト（実際のDBを使用）"""
+    """BatchExecutionモデルの統合テスト（実際のDBを使用）."""
 
     @pytest.fixture
     def db_session(self):
-        """テスト用のデータベースセッション"""
+        """テスト用のデータベースセッション."""
         # インメモリSQLiteを使用
         engine = create_engine("sqlite:///:memory:", echo=False)
         Base.metadata.create_all(engine)
@@ -268,7 +268,7 @@ class TestBatchExecutionModelIntegration:
         session.close()
 
     def test_batch_execution_crud_operations(self, db_session):
-        """BatchExecutionのCRUD操作テスト"""
+        """BatchExecutionのCRUD操作テスト."""
         # Create
         batch = BatchExecution(
             batch_type="all_stocks", status="running", total_stocks=100
@@ -309,7 +309,7 @@ class TestBatchExecutionModelIntegration:
         assert deleted_batch is None
 
     def test_batch_execution_detail_crud_operations(self, db_session):
-        """BatchExecutionDetailのCRUD操作テスト"""
+        """BatchExecutionDetailのCRUD操作テスト."""
         # 親レコード作成
         batch = BatchExecution(
             batch_type="test", status="running", total_stocks=1
@@ -362,7 +362,7 @@ class TestBatchExecutionModelIntegration:
         assert deleted_detail is None
 
     def test_foreign_key_relationship(self, db_session):
-        """外部キー関係のテスト（SQLiteでは制約チェックが無効なので、論理的なテストのみ）"""
+        """外部キー関係のテスト（SQLiteでは制約チェックが無効なので、論理的なテストのみ）."""
         # 親レコード作成
         batch = BatchExecution(
             batch_type="test", status="running", total_stocks=2

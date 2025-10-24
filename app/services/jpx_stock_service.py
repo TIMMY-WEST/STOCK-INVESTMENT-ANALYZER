@@ -1,5 +1,4 @@
-"""
-JPX銘柄一覧取得・更新サービス
+"""JPX銘柄一覧取得・更新サービス.
 
 JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、
 データベースの銘柄マスタを更新する機能を提供します。
@@ -12,7 +11,6 @@ from typing import Any, Dict, List, Optional, Set
 
 import pandas as pd
 import requests
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from models import StockMaster, StockMasterUpdate, get_db_session
@@ -22,25 +20,25 @@ logger = logging.getLogger(__name__)
 
 
 class JPXStockServiceError(Exception):
-    """JPX銘柄サービス関連エラーの基底クラス"""
+    """JPX銘柄サービス関連エラーの基底クラス."""
 
     pass
 
 
 class JPXDownloadError(JPXStockServiceError):
-    """JPXからのダウンロードエラー"""
+    """JPXからのダウンロードエラー."""
 
     pass
 
 
 class JPXParseError(JPXStockServiceError):
-    """JPXデータのパースエラー"""
+    """JPXデータのパースエラー."""
 
     pass
 
 
 class JPXStockService:
-    """JPX銘柄一覧取得・更新サービス"""
+    """JPX銘柄一覧取得・更新サービス."""
 
     # JPX銘柄一覧のURL
     JPX_STOCK_LIST_URL = "https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls"
@@ -49,6 +47,10 @@ class JPXStockService:
     REQUEST_TIMEOUT = 30
 
     def __init__(self):
+        """Initialize JPXStockService with configured HTTP session.
+
+        Sets up a requests session with appropriate headers.
+        """
         self.session = requests.Session()
         # User-Agentを設定してブロックを回避
         self.session.headers.update(
@@ -58,15 +60,14 @@ class JPXStockService:
         )
 
     def fetch_jpx_stock_list(self) -> pd.DataFrame:
-        """
-        JPXから銘柄一覧を取得してDataFrameとして返す
+        """JPXから銘柄一覧を取得してDataFrameとして返す.
 
         Returns:
             pd.DataFrame: 正規化された銘柄一覧データ
 
         Raises:
             JPXDownloadError: ダウンロードに失敗した場合
-            JPXParseError: データのパースに失敗した場合
+            JPXParseError: データのパースに失敗した場合。
         """
         try:
             logger.info(
@@ -106,9 +107,23 @@ class JPXStockService:
             logger.error(error_msg)
             raise JPXParseError(error_msg) from e
 
-    def _normalize_jpx_data(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
+    def _get_safe_value(self, row, key: str) -> Optional[str]:
+        """行から安全に値を取得（空文字列やNaNの場合はNoneを返す）.
+
+        Args:
+            row: データ行
+            key: キー
+
+        Returns:
+            値またはNone
         """
-        JPXのExcelデータを正規化する
+        value = row[key]
+        if pd.notna(value) and value != "":
+            return value
+        return None
+
+    def _normalize_jpx_data(self, df: pd.DataFrame) -> List[Dict[str, Any]]:
+        """JPXのExcelデータを正規化する.
 
         Args:
             df: 生のJPXデータ
@@ -117,11 +132,10 @@ class JPXStockService:
             List[Dict[str, Any]]: 正規化されたデータ（辞書のリスト）
 
         Raises:
-            JPXParseError: データの正規化に失敗した場合
+            JPXParseError: データの正規化に失敗した場合。
         """
         try:
             # JPXのExcelフォーマットに応じて列名をマッピング
-            # 実際のJPXファイルの列名に合わせて調整が必要
             expected_columns = [
                 "コード",
                 "銘柄名",
@@ -139,17 +153,17 @@ class JPXStockService:
             logger.debug(f"利用可能な列: {available_columns}")
 
             # 必要な列を抽出（存在する列のみ）
-            column_mapping = {}
-            for expected_col in expected_columns:
-                if expected_col in available_columns:
-                    column_mapping[expected_col] = expected_col
+            column_mapping = {
+                col: col
+                for col in expected_columns
+                if col in available_columns
+            }
 
             # 最低限必要な列（コード、銘柄名）が存在するかチェック
             if (
                 "コード" not in column_mapping
                 and "stock_code" not in available_columns
             ):
-                # フォールバック: 最初の列をコードとして使用
                 if len(available_columns) >= 1:
                     column_mapping[available_columns[0]] = "コード"
 
@@ -157,7 +171,6 @@ class JPXStockService:
                 "銘柄名" not in column_mapping
                 and "stock_name" not in available_columns
             ):
-                # フォールバック: 2番目の列を銘柄名として使用
                 if len(available_columns) >= 2:
                     column_mapping[available_columns[1]] = "銘柄名"
 
@@ -212,47 +225,24 @@ class JPXStockService:
                     {
                         "stock_code": row["stock_code"],
                         "stock_name": row["stock_name"],
-                        "market_category": (
-                            row["market_category"]
-                            if pd.notna(row["market_category"])
-                            and row["market_category"] != ""
-                            else None
+                        "market_category": self._get_safe_value(
+                            row, "market_category"
                         ),
-                        "sector_code_33": (
-                            row["sector_code_33"]
-                            if pd.notna(row["sector_code_33"])
-                            and row["sector_code_33"] != ""
-                            else None
+                        "sector_code_33": self._get_safe_value(
+                            row, "sector_code_33"
                         ),
-                        "sector_name_33": (
-                            row["sector_name_33"]
-                            if pd.notna(row["sector_name_33"])
-                            and row["sector_name_33"] != ""
-                            else None
+                        "sector_name_33": self._get_safe_value(
+                            row, "sector_name_33"
                         ),
-                        "sector_code_17": (
-                            row["sector_code_17"]
-                            if pd.notna(row["sector_code_17"])
-                            and row["sector_code_17"] != ""
-                            else None
+                        "sector_code_17": self._get_safe_value(
+                            row, "sector_code_17"
                         ),
-                        "sector_name_17": (
-                            row["sector_name_17"]
-                            if pd.notna(row["sector_name_17"])
-                            and row["sector_name_17"] != ""
-                            else None
+                        "sector_name_17": self._get_safe_value(
+                            row, "sector_name_17"
                         ),
-                        "scale_code": (
-                            row["scale_code"]
-                            if pd.notna(row["scale_code"])
-                            and row["scale_code"] != ""
-                            else None
-                        ),
-                        "scale_category": (
-                            row["scale_category"]
-                            if pd.notna(row["scale_category"])
-                            and row["scale_category"] != ""
-                            else None
+                        "scale_code": self._get_safe_value(row, "scale_code"),
+                        "scale_category": self._get_safe_value(
+                            row, "scale_category"
                         ),
                         "data_date": row["data_date"],
                     }
@@ -268,8 +258,7 @@ class JPXStockService:
     def update_stock_master(
         self, update_type: str = "manual"
     ) -> Dict[str, Any]:
-        """
-        銘柄マスタを更新する
+        """銘柄マスタを更新する.
 
         Args:
             update_type: 更新タイプ ('manual' または 'scheduled')
@@ -278,9 +267,9 @@ class JPXStockService:
             Dict[str, Any]: 更新結果のサマリー
 
         Raises:
-            JPXStockServiceError: 更新処理に失敗した場合
+            JPXStockServiceError: 更新処理に失敗した場合。
         """
-        update_record = {
+        update_record: Dict[str, Any] = {
             "update_type": update_type,
             "total_stocks": 0,
             "added_stocks": 0,
@@ -358,7 +347,7 @@ class JPXStockService:
     def _create_update_record(
         self, session: Session, update_record: Dict[str, Any]
     ) -> int:
-        """更新履歴レコードを作成"""
+        """更新履歴レコードを作成."""
         update = StockMasterUpdate(
             update_type=update_record["update_type"],
             total_stocks=update_record["total_stocks"],
@@ -369,7 +358,7 @@ class JPXStockService:
         return update.id
 
     def _get_existing_stock_codes(self, session: Session) -> Set[str]:
-        """既存の有効な銘柄コード一覧を取得"""
+        """既存の有効な銘柄コード一覧を取得."""
         result = (
             session.query(StockMaster.stock_code)
             .filter(StockMaster.is_active == 1)
@@ -378,7 +367,7 @@ class JPXStockService:
         return {code[0] for code in result}
 
     def _insert_stock(self, session: Session, row: pd.Series) -> None:
-        """新規銘柄を挿入"""
+        """新規銘柄を挿入."""
         stock = StockMaster(
             stock_code=str(row["stock_code"]).strip(),
             stock_name=str(row["stock_name"]).strip(),
@@ -396,7 +385,7 @@ class JPXStockService:
         session.add(stock)
 
     def _update_stock(self, session: Session, row: pd.Series) -> None:
-        """既存銘柄を更新"""
+        """既存銘柄を更新."""
         stock = (
             session.query(StockMaster)
             .filter(StockMaster.stock_code == str(row["stock_code"]).strip())
@@ -430,7 +419,7 @@ class JPXStockService:
     def _deactivate_stocks(
         self, session: Session, stock_codes: Set[str]
     ) -> None:
-        """指定された銘柄を無効化"""
+        """指定された銘柄を無効化."""
         session.query(StockMaster).filter(
             StockMaster.stock_code.in_(stock_codes)
         ).update({"is_active": 0}, synchronize_session=False)
@@ -438,7 +427,7 @@ class JPXStockService:
     def _complete_update_record(
         self, session: Session, update_id: int, update_record: Dict[str, Any]
     ) -> None:
-        """更新履歴レコードを完了"""
+        """更新履歴レコードを完了."""
         update = (
             session.query(StockMasterUpdate)
             .filter(StockMasterUpdate.id == update_id)
@@ -460,8 +449,7 @@ class JPXStockService:
         limit: Optional[int] = 100,
         offset: Optional[int] = 0,
     ) -> Dict[str, Any]:
-        """
-        銘柄マスタ一覧を取得
+        """銘柄マスタ一覧を取得.
 
         Args:
             is_active: 有効フラグでフィルタ (None=全て, True=有効のみ, False=無効のみ)
@@ -470,7 +458,7 @@ class JPXStockService:
             offset: オフセット
 
         Returns:
-            Dict[str, Any]: 銘柄一覧と総件数
+            Dict[str, Any]: 銘柄一覧と総件数。
         """
         try:
             with get_db_session() as session:

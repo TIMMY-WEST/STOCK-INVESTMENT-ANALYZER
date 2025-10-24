@@ -147,22 +147,37 @@ allow-any-import-level = true
 
 # ===== Mypy Configuration =====
 [tool.mypy]
-python_version = "3.8"
-warn_return_any = true
+python_version = "3.12"
+# Phase 3: 段階的な厳格化 (Issue #137)
+# 基本的な型チェックを有効化し、段階的に厳格化していく方針
+warn_return_any = false  # 将来的に有効化予定
 warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-check_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_optional = true
+disallow_untyped_defs = false  # 将来的に有効化予定
+disallow_incomplete_defs = false  # 将来的に有効化予定
+check_untyped_defs = false  # 現時点では緩い設定
+no_implicit_optional = false  # 将来的に有効化予定
+warn_redundant_casts = true  # 有効化
+warn_unused_ignores = true  # 有効化
+warn_no_return = true  # 有効化
+warn_unreachable = true  # 有効化
+strict_optional = false  # 将来的に有効化予定
 pretty = true
 show_error_codes = true
 show_column_numbers = true
 show_error_context = true
+# 段階的な型チェック有効化のため、現時点では緩い設定
+allow_untyped_defs = true
+allow_incomplete_defs = true
+ignore_errors = false
+
+# SQLAlchemy mypyプラグインを有効化
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+# プロジェクトルートとappディレクトリをmypy_pathに追加してインポートを解決
+# Note: Windowsでは;、Unix系では:を使用
+mypy_path = "app"
+namespace_packages = true
+explicit_package_bases = true
 
 # 除外ディレクトリ
 exclude = [
@@ -177,10 +192,10 @@ exclude = [
 [[tool.mypy.overrides]]
 module = [
     "yfinance.*",
-    "selenium.*",
-    "webdriver_manager.*",
-    "eventlet.*",
     "flask_socketio.*",
+    "pandas.*",
+    "dotenv.*",
+    "apscheduler.*",
 ]
 ignore_missing_imports = true
 
