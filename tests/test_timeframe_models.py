@@ -64,7 +64,8 @@ def engine():
             import warnings
 
             warnings.warn(
-                f"テストデータベースファイル {db_file} を削除できませんでした。手動で削除してください。"
+                f"テストデータベースファイル {db_file} を削除できませんでした。手動で削除してください。",
+                stacklevel=2,
             )
 
 

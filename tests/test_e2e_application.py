@@ -53,7 +53,7 @@ class TestE2EApplication:
         # サーバーが起動するまで待機
         base_url = "http://127.0.0.1:8001"
         max_attempts = 30
-        for attempt in range(max_attempts):
+        for _ in range(max_attempts):
             try:
                 response = requests.get(base_url, timeout=2)
                 if response.status_code == 200:

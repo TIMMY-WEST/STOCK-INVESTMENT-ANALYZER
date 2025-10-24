@@ -16,6 +16,7 @@ import sys
 from dotenv import load_dotenv
 import pytest
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 
@@ -171,7 +172,7 @@ class TestStockMasterCRUD:
         )
         session.add(stock2)
 
-        with pytest.raises(Exception):  # IntegrityError が発生
+        with pytest.raises(IntegrityError):
             session.commit()
 
         session.rollback()
