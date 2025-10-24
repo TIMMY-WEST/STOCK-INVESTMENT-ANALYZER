@@ -249,17 +249,17 @@ if "%SKIP_DB_SETUP%"=="true" (
             call "!DB_SETUP_SCRIPT!"
             if errorlevel 1 (
                 echo %YELLOW%[WARNING]%NC% Database setup failed
-                echo You can run it manually later: scripts\setup_db.bat
+                echo You can run it manually later: scripts\setup\setup_db.bat
             ) else (
                 echo %GREEN%[SUCCESS]%NC% Database setup completed
             )
         ) else (
             echo %YELLOW%[WARNING]%NC% Database setup script not found
-            echo You can run it manually later: scripts\setup_db.bat
+            echo You can run it manually later: scripts\setup\setup_db.bat
         )
     ) else (
         echo %BLUE%[INFO]%NC% Database setup skipped
-        echo Run it later: scripts\setup_db.bat
+        echo Run it later: scripts\setup\setup_db.bat
     )
 )
 

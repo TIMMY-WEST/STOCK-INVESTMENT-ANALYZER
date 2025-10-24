@@ -31,8 +31,8 @@ setup:
 	@echo "$(BLUE)========================================$(NC)"
 	@echo "$(BLUE)開発環境セットアップを開始します$(NC)"
 	@echo "$(BLUE)========================================$(NC)"
-	@chmod +x scripts/dev_setup.sh
-	@./scripts/dev_setup.sh
+	@chmod +x scripts/setup/dev_setup.sh
+	@./scripts/setup/dev_setup.sh
 
 ## install: Python依存関係のみインストール
 install: venv
@@ -61,8 +61,8 @@ venv:
 ## db-setup: データベースのセットアップ
 db-setup:
 	@echo "$(BLUE)[INFO]$(NC) データベースをセットアップ中..."
-	@chmod +x scripts/setup_db.sh
-	@./scripts/setup_db.sh
+	@chmod +x scripts/setup/setup_db.sh
+	@./scripts/setup/setup_db.sh
 
 ## db-reset: データベースのリセット（注意: 全データ削除）
 db-reset:
@@ -70,8 +70,8 @@ db-reset:
 	@read -p "続行しますか? [y/N]: " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		echo "$(BLUE)[INFO]$(NC) データベースをリセット中..."; \
-		chmod +x scripts/setup_db.sh; \
-		./scripts/setup_db.sh; \
+		chmod +x scripts/setup/setup_db.sh; \
+		./scripts/setup/setup_db.sh; \
 		echo "$(GREEN)[SUCCESS]$(NC) データベースがリセットされました"; \
 	else \
 		echo "$(YELLOW)[INFO]$(NC) キャンセルされました"; \

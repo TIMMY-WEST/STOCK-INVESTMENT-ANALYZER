@@ -85,15 +85,15 @@ make setup
 または
 
 ```bash
-chmod +x scripts/dev_setup.sh
-./scripts/dev_setup.sh
+chmod +x scripts/setup/dev_setup.sh
+./scripts/setup/dev_setup.sh
 ```
 
 **Windows:**
 ```cmd
 git clone https://github.com/TIMMY-WEST/STOCK-INVESTMENT-ANALYZER.git
 cd STOCK-INVESTMENT-ANALYZER
-scripts\dev_setup.bat
+scripts\setup\dev_setup.bat
 ```
 
 セットアップスクリプトは以下を自動的に実行します：
@@ -144,13 +144,13 @@ scripts\dev_setup.bat
 
    **Windows:**
    ```cmd
-   scripts\setup_db.bat
+   scripts\setup\setup_db.bat
    ```
 
    **Linux/macOS:**
    ```bash
-   chmod +x scripts/setup_db.sh
-   ./scripts/setup_db.sh
+   chmod +x scripts/setup/setup_db.sh
+   ./scripts/setup/setup_db.sh
    ```
 
 6. **アプリケーション起動**

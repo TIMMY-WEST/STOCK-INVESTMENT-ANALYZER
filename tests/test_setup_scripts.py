@@ -26,21 +26,26 @@ class TestSetupScripts:
         """scriptsディレクトリを返す."""
         return project_root / "scripts"
 
+    @pytest.fixture
+    def scripts_setup_dir(self, scripts_dir):
+        """scripts/setupディレクトリを返す."""
+        return scripts_dir / "setup"
+
     def test_makefile_exists(self, project_root):
         """Makefileが存在することを確認."""
         makefile = project_root / "Makefile"
         assert makefile.exists(), "Makefile が見つかりません"
         assert makefile.is_file(), "Makefile がファイルではありません"
 
-    def test_dev_setup_sh_exists(self, scripts_dir):
+    def test_dev_setup_sh_exists(self, scripts_setup_dir):
         """dev_setup.sh が存在することを確認."""
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_setup_dir / "dev_setup.sh"
         assert dev_setup_sh.exists(), "dev_setup.sh が見つかりません"
         assert dev_setup_sh.is_file(), "dev_setup.sh がファイルではありません"
 
-    def test_dev_setup_bat_exists(self, scripts_dir):
+    def test_dev_setup_bat_exists(self, scripts_setup_dir):
         """dev_setup.bat が存在することを確認."""
-        dev_setup_bat = scripts_dir / "dev_setup.bat"
+        dev_setup_bat = scripts_setup_dir / "dev_setup.bat"
         assert dev_setup_bat.exists(), "dev_setup.bat が見つかりません"
         assert (
             dev_setup_bat.is_file()
@@ -61,9 +66,9 @@ class TestSetupScripts:
 
         assert "help:" in content, "Makefile に help ターゲットがありません"
 
-    def test_dev_setup_sh_has_shebang(self, scripts_dir):
+    def test_dev_setup_sh_has_shebang(self, scripts_setup_dir):
         """dev_setup.sh にシェバンが含まれていることを確認."""
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_setup_dir / "dev_setup.sh"
         with open(dev_setup_sh, "r", encoding="utf-8") as f:
             first_line = f.readline()
 
@@ -71,9 +76,9 @@ class TestSetupScripts:
             "#!/bin/bash"
         ), "dev_setup.sh にシェバンがありません"
 
-    def test_dev_setup_sh_contains_error_handling(self, scripts_dir):
+    def test_dev_setup_sh_contains_error_handling(self, scripts_setup_dir):
         """dev_setup.sh にエラーハンドリングが含まれていることを確認."""
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_setup_dir / "dev_setup.sh"
         content = dev_setup_sh.read_text(encoding="utf-8")
 
         assert (
@@ -83,9 +88,9 @@ class TestSetupScripts:
             "error_exit" in content or "log_error" in content
         ), "dev_setup.sh にエラー処理関数がありません"
 
-    def test_dev_setup_bat_contains_error_handling(self, scripts_dir):
+    def test_dev_setup_bat_contains_error_handling(self, scripts_setup_dir):
         """dev_setup.bat にエラーハンドリングが含まれていることを確認."""
-        dev_setup_bat = scripts_dir / "dev_setup.bat"
+        dev_setup_bat = scripts_setup_dir / "dev_setup.bat"
         content = dev_setup_bat.read_text(encoding="utf-8")
 
         assert (
@@ -95,9 +100,9 @@ class TestSetupScripts:
             "setlocal" in content.lower()
         ), "dev_setup.bat にsetlocalがありません"
 
-    def test_dev_setup_sh_contains_python_check(self, scripts_dir):
+    def test_dev_setup_sh_contains_python_check(self, scripts_setup_dir):
         """dev_setup.sh にPythonバージョンチェックが含まれていることを確認."""
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_setup_dir / "dev_setup.sh"
         content = dev_setup_sh.read_text(encoding="utf-8")
 
         assert (
@@ -107,9 +112,9 @@ class TestSetupScripts:
             "version" in content.lower()
         ), "dev_setup.sh にバージョンチェックがありません"
 
-    def test_dev_setup_bat_contains_python_check(self, scripts_dir):
+    def test_dev_setup_bat_contains_python_check(self, scripts_setup_dir):
         """dev_setup.bat にPythonバージョンチェックが含まれていることを確認."""
-        dev_setup_bat = scripts_dir / "dev_setup.bat"
+        dev_setup_bat = scripts_setup_dir / "dev_setup.bat"
         content = dev_setup_bat.read_text(encoding="utf-8")
 
         assert (
@@ -119,9 +124,9 @@ class TestSetupScripts:
             "version" in content.lower()
         ), "dev_setup.bat にバージョンチェックがありません"
 
-    def test_dev_setup_sh_contains_venv_creation(self, scripts_dir):
+    def test_dev_setup_sh_contains_venv_creation(self, scripts_setup_dir):
         """dev_setup.sh に仮想環境作成処理が含まれていることを確認."""
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_setup_dir / "dev_setup.sh"
         content = dev_setup_sh.read_text(encoding="utf-8")
 
         assert "venv" in content, "dev_setup.sh に仮想環境処理がありません"
@@ -129,9 +134,9 @@ class TestSetupScripts:
             "-m venv" in content
         ), "dev_setup.sh に仮想環境作成コマンドがありません"
 
-    def test_dev_setup_bat_contains_venv_creation(self, scripts_dir):
+    def test_dev_setup_bat_contains_venv_creation(self, scripts_setup_dir):
         """dev_setup.bat に仮想環境作成処理が含まれていることを確認."""
-        dev_setup_bat = scripts_dir / "dev_setup.bat"
+        dev_setup_bat = scripts_setup_dir / "dev_setup.bat"
         content = dev_setup_bat.read_text(encoding="utf-8")
 
         assert "venv" in content, "dev_setup.bat に仮想環境処理がありません"
@@ -139,9 +144,11 @@ class TestSetupScripts:
             "-m venv" in content
         ), "dev_setup.bat に仮想環境作成コマンドがありません"
 
-    def test_dev_setup_sh_contains_requirements_install(self, scripts_dir):
+    def test_dev_setup_sh_contains_requirements_install(
+        self, scripts_setup_dir
+    ):
         """dev_setup.sh に依存関係インストール処理が含まれていることを確認."""
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_setup_dir / "dev_setup.sh"
         content = dev_setup_sh.read_text(encoding="utf-8")
 
         assert (
@@ -151,9 +158,11 @@ class TestSetupScripts:
             "pip install" in content
         ), "dev_setup.sh に pip install がありません"
 
-    def test_dev_setup_bat_contains_requirements_install(self, scripts_dir):
+    def test_dev_setup_bat_contains_requirements_install(
+        self, scripts_setup_dir
+    ):
         """dev_setup.bat に依存関係インストール処理が含まれていることを確認."""
-        dev_setup_bat = scripts_dir / "dev_setup.bat"
+        dev_setup_bat = scripts_setup_dir / "dev_setup.bat"
         content = dev_setup_bat.read_text(encoding="utf-8")
 
         assert (
@@ -163,16 +172,16 @@ class TestSetupScripts:
             "pip install" in content
         ), "dev_setup.bat に pip install がありません"
 
-    def test_dev_setup_sh_contains_env_file_setup(self, scripts_dir):
+    def test_dev_setup_sh_contains_env_file_setup(self, scripts_setup_dir):
         """dev_setup.sh に.envファイル設定処理が含まれていることを確認."""
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_setup_dir / "dev_setup.sh"
         content = dev_setup_sh.read_text(encoding="utf-8")
 
         assert ".env" in content, "dev_setup.sh に.env処理がありません"
 
-    def test_dev_setup_bat_contains_env_file_setup(self, scripts_dir):
+    def test_dev_setup_bat_contains_env_file_setup(self, scripts_setup_dir):
         """dev_setup.bat に.envファイル設定処理が含まれていることを確認."""
-        dev_setup_bat = scripts_dir / "dev_setup.bat"
+        dev_setup_bat = scripts_setup_dir / "dev_setup.bat"
         content = dev_setup_bat.read_text(encoding="utf-8")
 
         assert ".env" in content, "dev_setup.bat に.env処理がありません"
@@ -224,17 +233,34 @@ class TestSetupScripts:
         assert scripts_dir.exists(), "scripts ディレクトリが見つかりません"
         assert scripts_dir.is_dir(), "scripts がディレクトリではありません"
 
-        # 必要なスクリプトファイルの確認
-        required_files = [
+        # 必要なサブディレクトリの確認
+        required_subdirs = [
+            "setup",
+            "database",
+            "analysis",
+        ]
+
+        for subdir_name in required_subdirs:
+            subdir_path = scripts_dir / subdir_name
+            assert (
+                subdir_path.exists()
+            ), f"{subdir_name} ディレクトリが見つかりません"
+            assert (
+                subdir_path.is_dir()
+            ), f"{subdir_name} がディレクトリではありません"
+
+        # setup ディレクトリ内のファイル確認
+        setup_dir = scripts_dir / "setup"
+        required_setup_files = [
             "dev_setup.sh",
             "dev_setup.bat",
             "setup_db.sh",
             "setup_db.bat",
         ]
 
-        for file_name in required_files:
-            file_path = scripts_dir / file_name
-            assert file_path.exists(), f"{file_name} が見つかりません"
+        for file_name in required_setup_files:
+            file_path = setup_dir / file_name
+            assert file_path.exists(), f"setup/{file_name} が見つかりません"
 
 
 class TestSetupScriptIntegration:
@@ -268,11 +294,11 @@ class TestSetupScriptIntegration:
 
     def test_scripts_have_correct_encoding(self, project_root):
         """スクリプトファイルが正しいエンコーディングであることを確認."""
-        scripts_dir = project_root / "scripts"
+        scripts_setup_dir = project_root / "scripts" / "setup"
 
         # UTF-8で読み込めることを確認
         for script_file in ["dev_setup.sh", "dev_setup.bat"]:
-            script_path = scripts_dir / script_file
+            script_path = scripts_setup_dir / script_file
             try:
                 content = script_path.read_text(encoding="utf-8")
                 assert len(content) > 0, f"{script_file} が空です"

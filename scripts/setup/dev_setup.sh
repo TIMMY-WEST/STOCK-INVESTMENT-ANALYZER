@@ -242,15 +242,15 @@ else
                 log_success "Database setup completed"
             else
                 log_warning "Database setup failed"
-                log_info "You can run it manually later: ./scripts/setup_db.sh"
+                log_info "You can run it manually later: ./scripts/setup/setup_db.sh"
             fi
         else
             log_warning "Database setup script not found"
-            log_info "You can run it manually later: ./scripts/setup_db.sh"
+            log_info "You can run it manually later: ./scripts/setup/setup_db.sh"
         fi
     else
         log_info "Database setup skipped"
-        log_info "Run it later: ./scripts/setup_db.sh or make db-setup"
+        log_info "Run it later: ./scripts/setup/setup_db.sh or make db-setup"
     fi
 fi
 
