@@ -1,33 +1,34 @@
-"""
-システム監視API
+"""システム監視API.
 
-データベース接続テスト、Yahoo Finance API接続テスト、統合ヘルスチェック機能を提供
+データベース接続テスト、Yahoo Finance API接続テスト、統合ヘルスチェック機能を提供。
 """
+
+from datetime import datetime
+import logging
+import time
 
 from flask import Blueprint, jsonify, request
-from datetime import datetime
-import time
-import logging
+
 
 # Blueprintの作成
-system_api = Blueprint('system_api', __name__, url_prefix='/api/system')
+system_api = Blueprint("system_api", __name__, url_prefix="/api/system")
 
 logger = logging.getLogger(__name__)
 
 
-@system_api.route('/db-connection-test', methods=['POST'])
+@system_api.route("/db-connection-test", methods=["POST"])
 def test_database_connection():
-    """
-    データベース接続テスト
+    """データベース接続テスト.
 
     Returns:
-        JSONレスポンス: データベース接続の状態と詳細情報
+        JSONレスポンス: データベース接続の状態と詳細情報。
     """
     start_time = time.time()
 
     try:
-        from models import get_db_session, Stocks1d
         from sqlalchemy import text
+
+        from models import get_db_session
 
         # データベースセッションを取得（コンテキストマネージャーとして使用）
         with get_db_session() as session:
@@ -35,71 +36,84 @@ def test_database_connection():
             session.execute(text("SELECT 1"))
 
             # データベース情報を取得
-            db_result = session.execute(text("SELECT current_database()")).scalar()
+            db_result = session.execute(
+                text("SELECT current_database()")
+            ).scalar()
 
             # アクティブ接続数を取得
             connection_count_result = session.execute(
-                text("SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()")
+                text(
+                    "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()"
+                )
             ).scalar()
 
             # テーブル存在確認
             table_exists_result = session.execute(
-                text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'stocks_1d')")
+                text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'stocks_1d')"
+                )
             ).scalar()
 
             response_time = (time.time() - start_time) * 1000  # ミリ秒
 
-            return jsonify({
-                "success": True,
-                "message": "データベース接続正常",
-                "responseTime": round(response_time, 2),
-                "details": {
-                    "host": "localhost",  # 実際の設定から取得可能
-                    "database": db_result,
-                    "tableExists": table_exists_result,
-                    "connectionCount": connection_count_result
-                },
-                "timestamp": datetime.utcnow().isoformat() + 'Z'
-            }), 200
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": "データベース接続正常",
+                        "responseTime": round(response_time, 2),
+                        "details": {
+                            "host": "localhost",  # 実際の設定から取得可能
+                            "database": db_result,
+                            "tableExists": table_exists_result,
+                            "connectionCount": connection_count_result,
+                        },
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                ),
+                200,
+            )
 
     except Exception as e:
         logger.error(f"データベース接続テストエラー: {e}", exc_info=True)
         response_time = (time.time() - start_time) * 1000
 
-        return jsonify({
-            "success": False,
-            "message": f"データベース接続エラー: {str(e)}",
-            "responseTime": round(response_time, 2),
-            "details": {},
-            "timestamp": datetime.utcnow().isoformat() + 'Z'
-        }), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": f"データベース接続エラー: {str(e)}",
+                    "responseTime": round(response_time, 2),
+                    "details": {},
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                }
+            ),
+            500,
+        )
 
 
-@system_api.route('/api-connection-test', methods=['POST'])
+@system_api.route("/api-connection-test", methods=["POST"])
 def test_api_connection():
-    """
-    Yahoo Finance API接続テスト
+    """Yahoo Finance API接続テスト.
 
     Request Body:
         symbol (str): テスト用の銘柄コード（デフォルト: 7203.T）
 
     Returns:
-        JSONレスポンス: API接続の状態と詳細情報
+        JSONレスポンス: API接続の状態と詳細情報。
     """
     start_time = time.time()
 
     try:
         data = request.get_json(silent=True) or {}
-        symbol = data.get('symbol', '7203.T')
+        symbol = data.get("symbol", "7203.T")
 
         from services.stock_data_fetcher import StockDataFetcher
 
         # Yahoo Finance APIから少量のデータを取得してテスト
         fetcher = StockDataFetcher()
         stock_data = fetcher.fetch_stock_data(
-            symbol=symbol,
-            period='5d',
-            interval='1d'
+            symbol=symbol, period="5d", interval="1d"
         )
 
         response_time = (time.time() - start_time) * 1000  # ミリ秒
@@ -111,58 +125,71 @@ def test_api_connection():
             # データポイント数を取得
             data_points = len(stock_data)
 
-            return jsonify({
-                "success": True,
-                "message": "Yahoo Finance API接続正常",
-                "responseTime": round(response_time, 2),
-                "details": {
-                    "symbol": symbol,
-                    "dataAvailable": True,
-                    "dataPoints": data_points
-                },
-                "timestamp": datetime.utcnow().isoformat() + 'Z'
-            }), 200
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": "Yahoo Finance API接続正常",
+                        "responseTime": round(response_time, 2),
+                        "details": {
+                            "symbol": symbol,
+                            "dataAvailable": True,
+                            "dataPoints": data_points,
+                        },
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                ),
+                200,
+            )
         else:
-            return jsonify({
-                "success": False,
-                "message": f"銘柄データを取得できませんでした: {symbol}",
-                "responseTime": round(response_time, 2),
-                "details": {
-                    "symbol": symbol
-                },
-                "timestamp": datetime.utcnow().isoformat() + 'Z'
-            }), 404
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": f"銘柄データを取得できませんでした: {symbol}",
+                        "responseTime": round(response_time, 2),
+                        "details": {"symbol": symbol},
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                ),
+                404,
+            )
 
     except Exception as e:
         logger.error(f"API接続テストエラー: {e}", exc_info=True)
         response_time = (time.time() - start_time) * 1000
 
-        return jsonify({
-            "success": False,
-            "message": f"Yahoo Finance API接続エラー: {str(e)}",
-            "responseTime": round(response_time, 2),
-            "details": {},
-            "timestamp": datetime.utcnow().isoformat() + 'Z'
-        }), 500
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": f"Yahoo Finance API接続エラー: {str(e)}",
+                    "responseTime": round(response_time, 2),
+                    "details": {},
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                }
+            ),
+            500,
+        )
 
 
-@system_api.route('/health-check', methods=['GET'])
+@system_api.route("/health-check", methods=["GET"])
 def health_check():
-    """
-    統合ヘルスチェック
+    """統合ヘルスチェック.
 
     データベースとYahoo Finance APIの両方の状態をチェック
 
     Returns:
-        JSONレスポンス: システム全体の健全性状態
+        JSONレスポンス: システム全体の健全性状態。
     """
     try:
         # データベース接続テスト
         db_status = "healthy"
         db_message = "接続正常"
         try:
-            from models import get_db_session
             from sqlalchemy import text
+
+            from models import get_db_session
 
             with get_db_session() as session:
                 session.execute(text("SELECT 1"))
@@ -179,9 +206,7 @@ def health_check():
 
             fetcher = StockDataFetcher()
             stock_data = fetcher.fetch_stock_data(
-                symbol='7203.T',
-                period='1d',
-                interval='1d'
+                symbol="7203.T", period="1d", interval="1d"
             )
 
             # stock_dataの有無を適切にチェック
@@ -202,36 +227,46 @@ def health_check():
         else:
             overall_status = "healthy"
 
-        return jsonify({
-            "status": overall_status,
-            "timestamp": datetime.utcnow().isoformat() + 'Z',
-            "services": {
-                "database": {
-                    "status": db_status,
-                    "message": db_message
-                },
-                "yahoo_finance_api": {
-                    "status": api_status,
-                    "message": api_message
+        return (
+            jsonify(
+                {
+                    "status": overall_status,
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "services": {
+                        "database": {
+                            "status": db_status,
+                            "message": db_message,
+                        },
+                        "yahoo_finance_api": {
+                            "status": api_status,
+                            "message": api_message,
+                        },
+                    },
                 }
-            }
-        }), 200
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"ヘルスチェックエラー: {e}", exc_info=True)
 
-        return jsonify({
-            "status": "error",
-            "timestamp": datetime.utcnow().isoformat() + 'Z',
-            "services": {
-                "database": {
-                    "status": "unknown",
-                    "message": "ステータス不明"
-                },
-                "yahoo_finance_api": {
-                    "status": "unknown",
-                    "message": "ステータス不明"
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "services": {
+                        "database": {
+                            "status": "unknown",
+                            "message": "ステータス不明",
+                        },
+                        "yahoo_finance_api": {
+                            "status": "unknown",
+                            "message": "ステータス不明",
+                        },
+                    },
+                    "error": str(e),
                 }
-            },
-            "error": str(e)
-        }), 500
+            ),
+            500,
+        )

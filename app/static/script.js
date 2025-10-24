@@ -27,7 +27,7 @@ function initApp() {
 
     // ページネーション機能設定
     initPagination();
-    
+
     // 初期状態のページネーション表示を設定
     updatePagination();
 
@@ -791,10 +791,10 @@ function updatePagination() {
  */
 function initTimeframeSelector() {
     console.log('時間軸選択UI機能を初期化中...');
-    
+
     const timeframeSelector = document.getElementById('period');
     const timeframeIndicator = document.getElementById('timeframe-indicator');
-    
+
     if (!timeframeSelector || !timeframeIndicator) {
         console.warn('時間軸選択要素が見つかりません');
         return;
@@ -802,14 +802,14 @@ function initTimeframeSelector() {
 
     // 初期状態の設定
     updateTimeframeIndicator(timeframeSelector.value);
-    
+
     // イベントリスナーの設定
     timeframeSelector.addEventListener('change', handleTimeframeChange);
     timeframeSelector.addEventListener('blur', validateTimeframeSelection);
-    
+
     // フォーカス時のアクセシビリティ向上
     timeframeSelector.addEventListener('focus', handleTimeframeFocus);
-    
+
     console.log('時間軸選択UI機能の初期化が完了しました');
 }
 
@@ -819,17 +819,17 @@ function initTimeframeSelector() {
  */
 function handleTimeframeChange(event) {
     const selectedValue = event.target.value;
-    
+
     // バリデーション実行
     const isValid = validateTimeframeSelection(event);
-    
+
     if (isValid) {
         // インジケーター更新
         updateTimeframeIndicator(selectedValue);
-        
+
         // フォームの状態を有効に設定
         setTimeframeSelectorState(event.target, 'valid');
-        
+
         // アクセシビリティ: 選択内容をアナウンス
         announceTimeframeSelection(selectedValue);
     }
@@ -844,17 +844,17 @@ function validateTimeframeSelection(event) {
     const timeframeSelector = event.target;
     const selectedValue = timeframeSelector.value;
     const errorElement = document.getElementById('period-error');
-    
+
     // エラーメッセージをクリア
     clearTimeframeError();
-    
+
     // 必須チェック
     if (!selectedValue || selectedValue.trim() === '') {
         showTimeframeError('期間を選択してください');
         setTimeframeSelectorState(timeframeSelector, 'invalid');
         return false;
     }
-    
+
     // 有効な期間値のチェック
     const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
     if (!validPeriods.includes(selectedValue)) {
@@ -862,7 +862,7 @@ function validateTimeframeSelection(event) {
         setTimeframeSelectorState(timeframeSelector, 'invalid');
         return false;
     }
-    
+
     // バリデーション成功
     setTimeframeSelectorState(timeframeSelector, 'valid');
     return true;
@@ -875,20 +875,20 @@ function validateTimeframeSelection(event) {
 function updateTimeframeIndicator(selectedValue) {
     const indicator = document.getElementById('timeframe-indicator');
     const indicatorText = indicator.querySelector('.indicator-text');
-    
+
     if (!indicator || !indicatorText) {
         return;
     }
-    
+
     // 既存のクラスをクリア
     indicator.className = 'timeframe-indicator';
-    
+
     // 期間に応じたメッセージとスタイルを設定
     const timeframeConfig = getTimeframeConfig(selectedValue);
-    
+
     indicatorText.textContent = timeframeConfig.message;
     indicator.classList.add(timeframeConfig.className);
-    
+
     // アニメーション効果
     indicator.style.transform = 'scale(0.95)';
     setTimeout(() => {
@@ -940,7 +940,7 @@ function getTimeframeConfig(value) {
             className: 'max-term'
         }
     };
-    
+
     return configs[value] || {
         message: '期間を選択してください',
         className: 'medium-term'
@@ -955,7 +955,7 @@ function getTimeframeConfig(value) {
 function setTimeframeSelectorState(element, state) {
     // 既存の状態クラスをクリア
     element.classList.remove('is-valid', 'is-invalid');
-    
+
     // 新しい状態クラスを追加
     if (state === 'valid') {
         element.classList.add('is-valid');
@@ -973,7 +973,7 @@ function showTimeframeError(message) {
     if (errorElement) {
         errorElement.textContent = message;
         errorElement.classList.add('show');
-        
+
         // アクセシビリティ: エラーをアナウンス
         errorElement.setAttribute('aria-live', 'assertive');
     }
@@ -1007,7 +1007,7 @@ function handleTimeframeFocus(event) {
  */
 function announceTimeframeSelection(selectedValue) {
     const config = getTimeframeConfig(selectedValue);
-    
+
     // スクリーンリーダー用の一時的な要素を作成
     const announcement = document.createElement('div');
     announcement.setAttribute('aria-live', 'polite');
@@ -1017,11 +1017,11 @@ function announceTimeframeSelection(selectedValue) {
     announcement.style.width = '1px';
     announcement.style.height = '1px';
     announcement.style.overflow = 'hidden';
-    
+
     announcement.textContent = `期間が選択されました: ${config.message}`;
-    
+
     document.body.appendChild(announcement);
-    
+
     // 短時間後に要素を削除
     setTimeout(() => {
         if (announcement.parentNode) {
@@ -1040,10 +1040,10 @@ function announceTimeframeSelection(selectedValue) {
  */
 function initIntervalSelector() {
     console.log('足選択UI機能を初期化中...');
-    
+
     const intervalSelector = document.getElementById('interval');
     const intervalIndicator = document.getElementById('interval-indicator');
-    
+
     if (!intervalSelector || !intervalIndicator) {
         console.warn('足選択要素が見つかりません');
         return;
@@ -1051,14 +1051,14 @@ function initIntervalSelector() {
 
     // 初期状態の設定
     updateIntervalIndicator(intervalSelector.value);
-    
+
     // イベントリスナーの設定
     intervalSelector.addEventListener('change', handleIntervalChange);
     intervalSelector.addEventListener('blur', validateIntervalSelection);
-    
+
     // フォーカス時のアクセシビリティ向上
     intervalSelector.addEventListener('focus', handleIntervalFocus);
-    
+
     console.log('足選択UI機能の初期化が完了しました');
 }
 
@@ -1177,17 +1177,17 @@ function updatePeriodOptions(interval) {
 function validateIntervalSelection(event) {
     const intervalSelector = event.target;
     const selectedValue = intervalSelector.value;
-    
+
     // エラーメッセージをクリア
     clearIntervalError();
-    
+
     // 必須チェック
     if (!selectedValue || selectedValue.trim() === '') {
         showIntervalError('足を選択してください');
         setIntervalSelectorState(intervalSelector, 'invalid');
         return false;
     }
-    
+
     // 有効な足値のチェック
     const validIntervals = [
         '1m', '5m', '15m', '30m',
@@ -1199,7 +1199,7 @@ function validateIntervalSelection(event) {
         setIntervalSelectorState(intervalSelector, 'invalid');
         return false;
     }
-    
+
     // バリデーション成功
     setIntervalSelectorState(intervalSelector, 'valid');
     return true;
@@ -1212,20 +1212,20 @@ function validateIntervalSelection(event) {
 function updateIntervalIndicator(selectedValue) {
     const indicator = document.getElementById('interval-indicator');
     const indicatorText = indicator.querySelector('.indicator-text');
-    
+
     if (!indicator || !indicatorText) {
         return;
     }
-    
+
     // 既存のクラスをクリア
     indicator.className = 'interval-indicator';
-    
+
     // 足に応じたメッセージとスタイルを設定
     const intervalConfig = getIntervalConfig(selectedValue);
-    
+
     indicatorText.textContent = intervalConfig.message;
     indicator.classList.add(intervalConfig.className);
-    
+
     // アニメーション効果
     indicator.style.transform = 'scale(0.95)';
     setTimeout(() => {
@@ -1293,7 +1293,7 @@ function getIntervalConfig(value) {
 function setIntervalSelectorState(element, state) {
     // 既存の状態クラスをクリア
     element.classList.remove('is-valid', 'is-invalid');
-    
+
     // 新しい状態クラスを追加
     if (state === 'valid') {
         element.classList.add('is-valid');
@@ -1311,7 +1311,7 @@ function showIntervalError(message) {
     if (errorElement) {
         errorElement.textContent = message;
         errorElement.classList.add('show');
-        
+
         // アクセシビリティ: エラーをアナウンス
         errorElement.setAttribute('aria-live', 'assertive');
     }
@@ -1345,7 +1345,7 @@ function handleIntervalFocus(event) {
  */
 function announceIntervalSelection(selectedValue) {
     const config = getIntervalConfig(selectedValue);
-    
+
     // スクリーンリーダー用の一時的な要素を作成
     const announcement = document.createElement('div');
     announcement.setAttribute('aria-live', 'polite');
@@ -1355,11 +1355,11 @@ function announceIntervalSelection(selectedValue) {
     announcement.style.width = '1px';
     announcement.style.height = '1px';
     announcement.style.overflow = 'hidden';
-    
+
     announcement.textContent = `足が選択されました: ${config.message}`;
-    
+
     document.body.appendChild(announcement);
-    
+
     // 短時間後に要素を削除
     setTimeout(() => {
         if (announcement.parentNode) {

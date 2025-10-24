@@ -19,36 +19,36 @@ SET timezone = 'Asia/Tokyo';
 \echo '==================='
 
 -- stocks_daily テーブルの存在確認
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN EXISTS (
-            SELECT 1 FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables
             WHERE table_schema = 'public' AND table_name = 'stocks_daily'
-        ) 
-        THEN 'EXISTS' 
-        ELSE 'NOT EXISTS' 
+        )
+        THEN 'EXISTS'
+        ELSE 'NOT EXISTS'
     END as "stocks_daily_status";
 
 -- stocks_1d テーブルの存在確認
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN EXISTS (
-            SELECT 1 FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables
             WHERE table_schema = 'public' AND table_name = 'stocks_1d'
-        ) 
-        THEN 'EXISTS' 
-        ELSE 'NOT EXISTS' 
+        )
+        THEN 'EXISTS'
+        ELSE 'NOT EXISTS'
     END as "stocks_1d_status";
 
 -- stocks_daily_backup_migration テーブルの存在確認
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN EXISTS (
-            SELECT 1 FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables
             WHERE table_schema = 'public' AND table_name = 'stocks_daily_backup_migration'
-        ) 
-        THEN 'EXISTS' 
-        ELSE 'NOT EXISTS' 
+        )
+        THEN 'EXISTS'
+        ELSE 'NOT EXISTS'
     END as "backup_table_status";
 
 \echo ''
@@ -78,7 +78,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_daily_backup_migration') THEN
         SELECT COUNT(*) INTO backup_count FROM stocks_daily_backup_migration;
         RAISE NOTICE 'stocks_daily_backup_migration テーブル件数: %', backup_count;
-        
+
         -- データ件数の比較
         IF stocks_1d_count = backup_count THEN
             RAISE NOTICE '✓ データ件数が一致しています (移行成功)';
@@ -105,13 +105,13 @@ DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_1d') AND
        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_daily_backup_migration') THEN
-        
+
         RAISE NOTICE 'サンプルデータ比較を実行します...';
-        
+
         -- 最新データの比較
         PERFORM 1;
         -- 注意: 実際の比較クエリは複雑になるため、ここでは存在確認のみ
-        
+
     ELSE
         RAISE NOTICE 'データ整合性確認をスキップします（必要なテーブルが存在しません）';
     END IF;
@@ -134,16 +134,16 @@ BEGIN
 END $$;
 
 -- 銘柄数の確認
-SELECT COUNT(DISTINCT symbol) as "銘柄数" 
-FROM stocks_1d 
+SELECT COUNT(DISTINCT symbol) as "銘柄数"
+FROM stocks_1d
 WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_1d');
 
 -- 日付範囲の確認
-SELECT 
+SELECT
     MIN(date) as "最古の日付",
     MAX(date) as "最新の日付",
     COUNT(*) as "総レコード数"
-FROM stocks_1d 
+FROM stocks_1d
 WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks_1d');
 
 \echo ''
@@ -156,10 +156,10 @@ WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'stocks
 \echo '=================='
 
 -- stocks_1d テーブルのインデックス一覧
-SELECT 
+SELECT
     indexname as "インデックス名",
     indexdef as "定義"
-FROM pg_indexes 
+FROM pg_indexes
 WHERE tablename = 'stocks_1d'
 ORDER BY indexname;
 
@@ -173,7 +173,7 @@ ORDER BY indexname;
 \echo '==========='
 
 -- stocks_1d テーブルの制約一覧
-SELECT 
+SELECT
     conname as "制約名",
     contype as "制約タイプ",
     CASE contype
@@ -183,7 +183,7 @@ SELECT
         WHEN 'f' THEN 'FOREIGN KEY'
         ELSE contype::text
     END as "制約タイプ説明"
-FROM pg_constraint 
+FROM pg_constraint
 WHERE conrelid = (
     SELECT oid FROM pg_class WHERE relname = 'stocks_1d'
 )
@@ -207,20 +207,20 @@ DECLARE
 BEGIN
     -- テーブル存在確認
     SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.tables
         WHERE table_name = 'stocks_daily'
     ) INTO stocks_daily_exists;
-    
+
     SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.tables
         WHERE table_name = 'stocks_1d'
     ) INTO stocks_1d_exists;
-    
+
     SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.tables
         WHERE table_name = 'stocks_daily_backup_migration'
     ) INTO backup_exists;
-    
+
     -- 移行完了判定
     IF NOT stocks_daily_exists AND stocks_1d_exists AND backup_exists THEN
         migration_complete := TRUE;

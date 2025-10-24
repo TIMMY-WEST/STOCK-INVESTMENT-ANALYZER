@@ -12,7 +12,7 @@ related_docs:
 
 ## 概要
 
-株価データ取得システムの開発環境セットアップ手順書です。  
+株価データ取得システムの開発環境セットアップ手順書です。
 プロジェクトの設計理念（**動作優先・シンプル設計・後から拡張**）に基づき、最小限の構成で素早く動作する環境を構築します。
 
 ## 目次
@@ -335,18 +335,18 @@ def fetch_data():
         data = request.get_json()
         symbol = data.get('symbol', '7203.T')
         period = data.get('period', '1mo')
-        
+
         # Yahoo Financeからデータ取得
         ticker = yf.Ticker(symbol)
         hist = ticker.history(period=period)
-        
+
         if hist.empty:
             return jsonify({
                 "success": False,
                 "error": "INVALID_SYMBOL",
                 "message": "指定された銘柄コードのデータが取得できません"
             }), 400
-        
+
         return jsonify({
             "success": True,
             "message": "データを正常に取得しました",
@@ -440,11 +440,11 @@ class Stock1d(Base):
 <body>
     <div class="container">
         <h1>株価データ取得システム</h1>
-        
+
         <div>
             <label>銘柄コード:</label>
             <input type="text" id="symbol" value="7203.T" placeholder="例: 7203.T">
-            
+
             <label>期間:</label>
             <select id="period">
                 <option value="1mo">1ヶ月</option>
@@ -452,10 +452,10 @@ class Stock1d(Base):
                 <option value="6mo">6ヶ月</option>
                 <option value="1y">1年</option>
             </select>
-            
+
             <button onclick="fetchData()">データ取得</button>
         </div>
-        
+
         <div id="result"></div>
     </div>
 
@@ -464,9 +464,9 @@ class Stock1d(Base):
             const symbol = document.getElementById('symbol').value;
             const period = document.getElementById('period').value;
             const resultDiv = document.getElementById('result');
-            
+
             resultDiv.innerHTML = '<p>データ取得中...</p>';
-            
+
             try {
                 const response = await fetch('/api/fetch-data', {
                     method: 'POST',
@@ -475,9 +475,9 @@ class Stock1d(Base):
                     },
                     body: JSON.stringify({ symbol, period })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `

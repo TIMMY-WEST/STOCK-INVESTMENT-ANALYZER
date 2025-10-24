@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>時間軸選択UI機能 - ユニットテスト</title>
-    
+
     <!-- テスト対象のCSS -->
     <link rel="stylesheet" href="../app/static/style.css">
-    
+
     <!-- QUnit テストフレームワーク -->
     <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.19.4.css">
     <script src="https://code.jquery.com/qunit/qunit-2.19.4.js"></script>
-    
+
     <style>
         /* テスト用の追加スタイル */
         .test-container {
@@ -20,11 +20,11 @@
             border: 1px solid #ddd;
             border-radius: 8px;
         }
-        
+
         .test-section {
             margin-bottom: 30px;
         }
-        
+
         .test-title {
             font-size: 18px;
             font-weight: bold;
@@ -40,7 +40,7 @@
         <div class="test-container">
             <div class="test-section">
                 <div class="test-title">時間軸選択UI機能テスト</div>
-                
+
                 <!-- 期間選択フォーム -->
                 <div class="timeframe-selector-container">
                     <label for="period" class="form-label">
@@ -64,12 +64,12 @@
                             <option value="max">最大期間</option>
                         </optgroup>
                     </select>
-                    
+
                     <!-- 時間軸インジケーター -->
                     <div id="timeframe-indicator" class="timeframe-indicator medium-term">
                         <span class="indicator-text">1ヶ月のデータを取得します（中期分析向け）</span>
                     </div>
-                    
+
                     <!-- エラー表示 -->
                     <div id="period-error" class="field-error" aria-live="polite"></div>
                 </div>
@@ -82,7 +82,7 @@
         // 必要な関数のモック
         function showAlert() {}
         function hideAlert() {}
-        
+
         // グローバル変数の初期化
         let currentStockData = [];
         let currentSortColumn = null;
@@ -90,21 +90,21 @@
         let currentPage = 0;
         let currentLimit = 25;
         let totalRecords = 0;
-        
+
         // 必要な関数のスタブ
         function validateForm(formData) {
             return {};
         }
-        
+
         function showFieldError(fieldName, message) {
             console.log(`Field error: ${fieldName} - ${message}`);
         }
-        
+
         function clearFieldErrors() {
             console.log('Clearing field errors');
         }
     </script>
-    
+
     <!-- テスト対象のスクリプト（時間軸選択機能のみ） -->
     <script>
         // Issue #67: 時間軸選択UI実装 - Enhanced Timeframe Selector Functions
@@ -114,10 +114,10 @@
          */
         function initTimeframeSelector() {
             console.log('時間軸選択UI機能を初期化中...');
-            
+
             const timeframeSelector = document.getElementById('period');
             const timeframeIndicator = document.getElementById('timeframe-indicator');
-            
+
             if (!timeframeSelector || !timeframeIndicator) {
                 console.warn('時間軸選択要素が見つかりません');
                 return;
@@ -125,14 +125,14 @@
 
             // 初期状態の設定
             updateTimeframeIndicator(timeframeSelector.value);
-            
+
             // イベントリスナーの設定
             timeframeSelector.addEventListener('change', handleTimeframeChange);
             timeframeSelector.addEventListener('blur', validateTimeframeSelection);
-            
+
             // フォーカス時のアクセシビリティ向上
             timeframeSelector.addEventListener('focus', handleTimeframeFocus);
-            
+
             console.log('時間軸選択UI機能の初期化が完了しました');
         }
 
@@ -142,17 +142,17 @@
          */
         function handleTimeframeChange(event) {
             const selectedValue = event.target.value;
-            
+
             // バリデーション実行
             const isValid = validateTimeframeSelection(event);
-            
+
             if (isValid) {
                 // インジケーター更新
                 updateTimeframeIndicator(selectedValue);
-                
+
                 // フォームの状態を有効に設定
                 setTimeframeSelectorState(event.target, 'valid');
-                
+
                 // アクセシビリティ: 選択内容をアナウンス
                 announceTimeframeSelection(selectedValue);
             }
@@ -166,17 +166,17 @@
         function validateTimeframeSelection(event) {
             const timeframeSelector = event.target;
             const selectedValue = timeframeSelector.value;
-            
+
             // エラーメッセージをクリア
             clearTimeframeError();
-            
+
             // 必須チェック
             if (!selectedValue || selectedValue.trim() === '') {
                 showTimeframeError('期間を選択してください');
                 setTimeframeSelectorState(timeframeSelector, 'invalid');
                 return false;
             }
-            
+
             // 有効な期間値のチェック
             const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
             if (!validPeriods.includes(selectedValue)) {
@@ -184,7 +184,7 @@
                 setTimeframeSelectorState(timeframeSelector, 'invalid');
                 return false;
             }
-            
+
             // バリデーション成功
             setTimeframeSelectorState(timeframeSelector, 'valid');
             return true;
@@ -197,20 +197,20 @@
         function updateTimeframeIndicator(selectedValue) {
             const indicator = document.getElementById('timeframe-indicator');
             const indicatorText = indicator.querySelector('.indicator-text');
-            
+
             if (!indicator || !indicatorText) {
                 return;
             }
-            
+
             // 既存のクラスをクリア
             indicator.className = 'timeframe-indicator';
-            
+
             // 期間に応じたメッセージとスタイルを設定
             const timeframeConfig = getTimeframeConfig(selectedValue);
-            
+
             indicatorText.textContent = timeframeConfig.message;
             indicator.classList.add(timeframeConfig.className);
-            
+
             // アニメーション効果
             indicator.style.transform = 'scale(0.95)';
             setTimeout(() => {
@@ -262,7 +262,7 @@
                     className: 'max-term'
                 }
             };
-            
+
             return configs[value] || {
                 message: '期間を選択してください',
                 className: 'medium-term'
@@ -277,7 +277,7 @@
         function setTimeframeSelectorState(element, state) {
             // 既存の状態クラスをクリア
             element.classList.remove('is-valid', 'is-invalid');
-            
+
             // 新しい状態クラスを追加
             if (state === 'valid') {
                 element.classList.add('is-valid');
@@ -295,7 +295,7 @@
             if (errorElement) {
                 errorElement.textContent = message;
                 errorElement.classList.add('show');
-                
+
                 // アクセシビリティ: エラーをアナウンス
                 errorElement.setAttribute('aria-live', 'assertive');
             }
@@ -329,7 +329,7 @@
          */
         function announceTimeframeSelection(selectedValue) {
             const config = getTimeframeConfig(selectedValue);
-            
+
             // スクリーンリーダー用の一時的な要素を作成
             const announcement = document.createElement('div');
             announcement.setAttribute('aria-live', 'polite');
@@ -339,11 +339,11 @@
             announcement.style.width = '1px';
             announcement.style.height = '1px';
             announcement.style.overflow = 'hidden';
-            
+
             announcement.textContent = `期間が選択されました: ${config.message}`;
-            
+
             document.body.appendChild(announcement);
-            
+
             // 短時間後に要素を削除
             setTimeout(() => {
                 if (announcement.parentNode) {
@@ -356,115 +356,115 @@
     <!-- QUnit テストコード -->
     <script>
         QUnit.module('時間軸選択UI機能テスト', function() {
-            
+
             QUnit.test('getTimeframeConfig関数のテスト', function(assert) {
                 // 短期間のテスト
                 let config = getTimeframeConfig('5d');
                 assert.equal(config.message, '5日間のデータを取得します（短期分析向け）', '5日間の設定が正しい');
                 assert.equal(config.className, 'short-term', '5日間のクラス名が正しい');
-                
+
                 // 中期間のテスト
                 config = getTimeframeConfig('1mo');
                 assert.equal(config.message, '1ヶ月のデータを取得します（中期分析向け）', '1ヶ月の設定が正しい');
                 assert.equal(config.className, 'medium-term', '1ヶ月のクラス名が正しい');
-                
+
                 // 長期間のテスト
                 config = getTimeframeConfig('1y');
                 assert.equal(config.message, '1年間のデータを取得します（長期分析向け）', '1年の設定が正しい');
                 assert.equal(config.className, 'long-term', '1年のクラス名が正しい');
-                
+
                 // 最大期間のテスト
                 config = getTimeframeConfig('max');
                 assert.equal(config.message, '利用可能な全期間のデータを取得します（包括的分析向け）', '最大期間の設定が正しい');
                 assert.equal(config.className, 'max-term', '最大期間のクラス名が正しい');
-                
+
                 // 無効な値のテスト
                 config = getTimeframeConfig('invalid');
                 assert.equal(config.message, '期間を選択してください', '無効な値のデフォルトメッセージが正しい');
                 assert.equal(config.className, 'medium-term', '無効な値のデフォルトクラス名が正しい');
             });
-            
+
             QUnit.test('updateTimeframeIndicator関数のテスト', function(assert) {
                 const indicator = document.getElementById('timeframe-indicator');
                 const indicatorText = indicator.querySelector('.indicator-text');
-                
+
                 // 1ヶ月を選択
                 updateTimeframeIndicator('1mo');
                 assert.equal(indicatorText.textContent, '1ヶ月のデータを取得します（中期分析向け）', 'インジケーターテキストが更新される');
                 assert.ok(indicator.classList.contains('medium-term'), '適切なクラスが追加される');
-                
+
                 // 5年を選択
                 updateTimeframeIndicator('5y');
                 assert.equal(indicatorText.textContent, '5年間のデータを取得します（長期分析向け）', 'インジケーターテキストが更新される');
                 assert.ok(indicator.classList.contains('long-term'), '適切なクラスが追加される');
                 assert.notOk(indicator.classList.contains('medium-term'), '前のクラスが削除される');
             });
-            
+
             QUnit.test('setTimeframeSelectorState関数のテスト', function(assert) {
                 const selector = document.getElementById('period');
-                
+
                 // 有効状態のテスト
                 setTimeframeSelectorState(selector, 'valid');
                 assert.ok(selector.classList.contains('is-valid'), '有効状態のクラスが追加される');
                 assert.notOk(selector.classList.contains('is-invalid'), '無効状態のクラスが削除される');
-                
+
                 // 無効状態のテスト
                 setTimeframeSelectorState(selector, 'invalid');
                 assert.ok(selector.classList.contains('is-invalid'), '無効状態のクラスが追加される');
                 assert.notOk(selector.classList.contains('is-valid'), '有効状態のクラスが削除される');
-                
+
                 // ニュートラル状態のテスト
                 setTimeframeSelectorState(selector, 'neutral');
                 assert.notOk(selector.classList.contains('is-valid'), '有効状態のクラスが削除される');
                 assert.notOk(selector.classList.contains('is-invalid'), '無効状態のクラスが削除される');
             });
-            
+
             QUnit.test('エラー表示・クリア機能のテスト', function(assert) {
                 const errorElement = document.getElementById('period-error');
-                
+
                 // エラー表示のテスト
                 showTimeframeError('テストエラーメッセージ');
                 assert.equal(errorElement.textContent, 'テストエラーメッセージ', 'エラーメッセージが表示される');
                 assert.ok(errorElement.classList.contains('show'), 'showクラスが追加される');
                 assert.equal(errorElement.getAttribute('aria-live'), 'assertive', 'aria-live属性が設定される');
-                
+
                 // エラークリアのテスト
                 clearTimeframeError();
                 assert.equal(errorElement.textContent, '', 'エラーメッセージがクリアされる');
                 assert.notOk(errorElement.classList.contains('show'), 'showクラスが削除される');
                 assert.equal(errorElement.getAttribute('aria-live'), 'polite', 'aria-live属性が更新される');
             });
-            
+
             QUnit.test('バリデーション機能のテスト', function(assert) {
                 const selector = document.getElementById('period');
-                
+
                 // 空の値のテスト
                 const emptyEvent = { target: { value: '', classList: selector.classList } };
                 const emptyResult = validateTimeframeSelection(emptyEvent);
                 assert.notOk(emptyResult, '空の値は無効');
-                
+
                 // 無効な値のテスト
                 const invalidEvent = { target: { value: 'invalid', classList: selector.classList } };
                 const invalidResult = validateTimeframeSelection(invalidEvent);
                 assert.notOk(invalidResult, '無効な値は無効');
-                
+
                 // 有効な値のテスト
                 const validEvent = { target: { value: '1mo', classList: selector.classList } };
                 const validResult = validateTimeframeSelection(validEvent);
                 assert.ok(validResult, '有効な値は有効');
             });
-            
+
             QUnit.test('アクセシビリティ機能のテスト', function(assert) {
                 const done = assert.async();
-                
+
                 // アナウンス機能のテスト
                 announceTimeframeSelection('1mo');
-                
+
                 // 一時的な要素が作成されることを確認
                 setTimeout(() => {
                     const announcements = document.querySelectorAll('[aria-live="polite"][aria-atomic="true"]');
                     assert.ok(announcements.length > 0, 'アナウンス用の要素が作成される');
-                    
+
                     // 要素が自動的に削除されることを確認
                     setTimeout(() => {
                         const remainingAnnouncements = document.querySelectorAll('[aria-live="polite"][aria-atomic="true"]');
@@ -473,23 +473,23 @@
                     }, 1100);
                 }, 100);
             });
-            
+
             QUnit.test('初期化機能のテスト', function(assert) {
                 // 初期化前の状態確認
                 const selector = document.getElementById('period');
                 const indicator = document.getElementById('timeframe-indicator');
-                
+
                 assert.ok(selector, '期間選択要素が存在する');
                 assert.ok(indicator, 'インジケーター要素が存在する');
-                
+
                 // 初期化実行
                 initTimeframeSelector();
-                
+
                 // 初期化後の状態確認（イベントリスナーの確認は困難なため、要素の存在確認に留める）
                 assert.ok(true, '初期化が正常に完了する');
             });
         });
-        
+
         // テスト実行時の初期化
         QUnit.start();
     </script>

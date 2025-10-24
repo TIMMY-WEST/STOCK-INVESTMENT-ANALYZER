@@ -12,7 +12,7 @@ related_docs:
 
 ## 概要
 
-株価データ取得システムのデータベース設計仕様書です。  
+株価データ取得システムのデータベース設計仕様書です。
 プロジェクトの設計理念（**動作優先・シンプル設計・後から拡張**）に基づき、最小限の構成から開始し、必要に応じて拡張していく方針です。
 
 ## 目次
@@ -388,8 +388,8 @@ CONSTRAINT ck_batch_executions_status CHECK (
     status IN ('pending', 'running', 'completed', 'failed')
 ),
 CONSTRAINT ck_batch_executions_symbols CHECK (
-    total_symbols >= 0 AND 
-    processed_symbols >= 0 AND 
+    total_symbols >= 0 AND
+    processed_symbols >= 0 AND
     failed_symbols >= 0 AND
     processed_symbols <= total_symbols AND
     failed_symbols <= total_symbols
@@ -401,10 +401,10 @@ CONSTRAINT ck_batch_executions_symbols CHECK (
 -- 主キー制約
 CONSTRAINT pk_batch_execution_details PRIMARY KEY (id),
 -- 外部キー制約
-CONSTRAINT fk_batch_execution_details_batch_id 
+CONSTRAINT fk_batch_execution_details_batch_id
     FOREIGN KEY (batch_execution_id) REFERENCES batch_executions(id) ON DELETE CASCADE,
 -- ユニーク制約
-CONSTRAINT uk_batch_execution_details_batch_symbol 
+CONSTRAINT uk_batch_execution_details_batch_symbol
     UNIQUE (batch_execution_id, symbol),
 -- チェック制約
 CONSTRAINT ck_batch_execution_details_status CHECK (
@@ -1265,7 +1265,7 @@ CREATE TABLE stocks_minute (
     volume BIGINT NOT NULL,
     interval_type VARCHAR(5) NOT NULL,  -- '1m', '5m', '15m', '30m'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- 制約
     CONSTRAINT uk_stocks_minute_symbol_datetime_interval UNIQUE (symbol, datetime, interval_type),
     CONSTRAINT ck_stocks_minute_prices CHECK (open >= 0 AND high >= 0 AND low >= 0 AND close >= 0),
@@ -1288,7 +1288,7 @@ CREATE TABLE stocks_weekly (
     close DECIMAL(10,2) NOT NULL,
     volume BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
+
     CONSTRAINT uk_stocks_weekly_symbol_date UNIQUE (symbol, date)
 );
 
@@ -1302,7 +1302,7 @@ CREATE TABLE stocks_monthly (
     close DECIMAL(10,2) NOT NULL,
     volume BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
+
     CONSTRAINT uk_stocks_monthly_symbol_date UNIQUE (symbol, date)
 );
 ```

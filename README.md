@@ -80,12 +80,12 @@ Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存
    ```
 
 2. **データベースセットアップ**
-   
+
    **Windows:**
    ```cmd
    scripts\setup_db.bat
    ```
-   
+
    **Linux/macOS:**
    ```bash
    chmod +x scripts/setup_db.sh
@@ -168,6 +168,12 @@ STOCK-INVESTMENT-ANALYZER/
 2. **開発実装**: 機能開発とテスト作成
 3. **テスト実行**: 全テストの通過確認
 4. **Pull Request**: レビュー依頼とマージ
+
+詳細な開発ガイドライン:
+- [Git運用ワークフロー](docs/development/git_workflow.md) - 共同開発向けの詳細なGit運用ルール
+- [GitHub運用ルール](docs/development/github_workflow.md) - 個人+AI開発向けの簡易版
+- [ブランチ保護ルール](docs/development/branch_protection_rules.md) - mainブランチの保護設定とCI/CD要件
+- [テスト戦略](docs/development/testing_strategy.md) - テスト方針とベストプラクティス
 
 ## サンプルデータ
 

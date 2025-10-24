@@ -11,7 +11,7 @@ related_docs:
 
 ## 概要
 
-株価データ取得システムのフロントエンド設計仕様書です。  
+株価データ取得システムのフロントエンド設計仕様書です。
 プロジェクトの設計理念（**動作優先・シンプル設計・後から拡張**）に基づき、最小限の機能から開始し、必要に応じて拡張していく方針です。
 
 ## 目次
@@ -158,11 +158,11 @@ related_docs:
   <form id="fetch-form">
     <div class="form-group">
       <label for="symbol">銘柄コード:</label>
-      <input type="text" id="symbol" name="symbol" 
+      <input type="text" id="symbol" name="symbol"
              placeholder="7203.T" value="7203.T">
       <small>例: 7203.T（トヨタ自動車）</small>
     </div>
-    
+
     <div class="form-group">
       <label for="period">取得期間:</label>
       <select id="period" name="period">
@@ -171,7 +171,7 @@ related_docs:
         <option value="1y">1年</option>
       </select>
     </div>
-    
+
     <button type="submit" id="fetch-button" class="btn-primary">
       データ取得
     </button>
@@ -188,7 +188,7 @@ related_docs:
     <span class="symbol-info">銘柄: <strong id="current-symbol">-</strong></span>
     <span class="data-count">データ件数: <strong id="data-count">0</strong>件</span>
   </div>
-  
+
   <div class="table-container">
     <table id="stock-table" class="stock-data-table">
       <thead>
@@ -330,17 +330,17 @@ const AppState = {
   updateSymbol: function(symbol) {
     document.getElementById('current-symbol').textContent = symbol;
   },
-  
+
   updateDataCount: function(count) {
     document.getElementById('data-count').textContent = count;
   },
-  
+
   showLoading: function() {
     document.getElementById('fetch-button').disabled = true;
     document.getElementById('status-section').style.display = 'block';
     document.getElementById('status-text').textContent = 'データ取得中...';
   },
-  
+
   hideLoading: function() {
     document.getElementById('fetch-button').disabled = false;
     document.getElementById('status-section').style.display = 'none';
@@ -366,18 +366,18 @@ const AppState = {
   <header class="header">
     <h1>株価データ取得システム</h1>
   </header>
-  
+
   <main class="main-container">
     <!-- データ取得セクション -->
     {% include 'components/fetch_form.html' %}
-    
+
     <!-- ステータスセクション -->
     {% include 'components/status_display.html' %}
-    
+
     <!-- データ表示セクション -->
     {% include 'components/data_table.html' %}
   </main>
-  
+
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
@@ -400,7 +400,7 @@ const AppState = {
   --success-color: #10b981;      /* 成功グリーン */
   --error-color: #ef4444;        /* エラーレッド */
   --warning-color: #f59e0b;      /* 警告オレンジ */
-  
+
   /* 基本色 */
   --text-primary: #1f2937;       /* メインテキスト */
   --text-secondary: #6b7280;     /* サブテキスト */
@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function initApp() {
   // フォーム初期化
   initFetchForm();
-  
+
   // 既存データ読み込み
   loadExistingData();
 }
@@ -453,7 +453,7 @@ function initApp() {
 ### 7.1 株価データテーブル
 
 | カラム | 表示名 | 幅 | データ型 | フォーマット |
-|--------|--------|----|---------|-----------| 
+|--------|--------|----|---------|-----------|
 | date | 日付 | 120px | Date | YYYY-MM-DD |
 | open | 始値 | 80px | Number | #,##0.00 |
 | high | 高値 | 80px | Number | #,##0.00 |
@@ -503,17 +503,17 @@ MVP段階では実装せず、将来的に以下を検討：
 <form class="fetch-form" id="fetch-form">
   <div class="form-group">
     <label class="form-label" for="symbol">銘柄コード</label>
-    <input 
-      type="text" 
-      id="symbol" 
-      name="symbol" 
+    <input
+      type="text"
+      id="symbol"
+      name="symbol"
       class="form-input"
       placeholder="7203.T"
       pattern="[0-9]{4}\.T"
       required>
     <span class="form-help">例: 7203.T（トヨタ自動車）</span>
   </div>
-  
+
   <div class="form-group">
     <label class="form-label" for="period">取得期間</label>
     <select id="period" name="period" class="form-select">
@@ -522,7 +522,7 @@ MVP段階では実装せず、将来的に以下を検討：
       <option value="1y">1年</option>
     </select>
   </div>
-  
+
   <button type="submit" class="btn btn--primary">
     <span class="btn-text">データ取得</span>
     <span class="btn-loading" style="display: none;">取得中...</span>
@@ -535,7 +535,7 @@ MVP段階では実装せず、将来的に以下を検討：
 ```javascript
 function validateForm(formData) {
   const errors = {};
-  
+
   // 銘柄コード検証
   const symbol = formData.get('symbol');
   if (!symbol) {
@@ -543,7 +543,7 @@ function validateForm(formData) {
   } else if (!symbol.match(/^[0-9]{4}\.T$/)) {
     errors.symbol = '正しい銘柄コード形式で入力してください（例: 7203.T）';
   }
-  
+
   return errors;
 }
 ```
@@ -554,12 +554,12 @@ function validateForm(formData) {
 function showFieldError(fieldName, message) {
   const field = document.getElementById(fieldName);
   const errorElement = field.parentNode.querySelector('.field-error');
-  
+
   if (errorElement) {
     errorElement.textContent = message;
     errorElement.style.display = 'block';
   }
-  
+
   field.classList.add('form-input--error');
 }
 
@@ -567,7 +567,7 @@ function clearFieldErrors() {
   document.querySelectorAll('.field-error').forEach(el => {
     el.style.display = 'none';
   });
-  
+
   document.querySelectorAll('.form-input--error').forEach(el => {
     el.classList.remove('form-input--error');
   });
@@ -608,7 +608,7 @@ function clearFieldErrors() {
     <header class="app-header">
       <h1 class="app-title">株価データ取得システム</h1>
     </header>
-    
+
     <main class="app-main">
       <!-- データ取得フォーム -->
       <section class="section-card">
@@ -617,16 +617,16 @@ function clearFieldErrors() {
           <div class="form-row">
             <div class="form-group">
               <label for="symbol" class="form-label">銘柄コード</label>
-              <input 
-                type="text" 
-                id="symbol" 
-                name="symbol" 
+              <input
+                type="text"
+                id="symbol"
+                name="symbol"
                 class="form-input"
                 placeholder="7203.T"
                 value="{{ default_symbol or '7203.T' }}">
               <div class="field-error" style="display: none;"></div>
             </div>
-            
+
             <div class="form-group">
               <label for="period" class="form-label">取得期間</label>
               <select id="period" name="period" class="form-select">
@@ -635,7 +635,7 @@ function clearFieldErrors() {
                 <option value="1y">1年</option>
               </select>
             </div>
-            
+
             <div class="form-group">
               <button type="submit" class="btn btn--primary" id="fetch-button">
                 データ取得
@@ -644,7 +644,7 @@ function clearFieldErrors() {
           </div>
         </form>
       </section>
-      
+
       <!-- ステータス表示 -->
       <section class="section-card status-section" id="status-section" style="display: none;">
         <div class="status-content">
@@ -652,7 +652,7 @@ function clearFieldErrors() {
           <span id="status-text">準備中...</span>
         </div>
       </section>
-      
+
       <!-- データ表示 -->
       <section class="section-card">
         <div class="section-header">
@@ -662,7 +662,7 @@ function clearFieldErrors() {
             <span class="data-info">データ件数: <strong id="data-count">{{ data_count or 0 }}</strong>件</span>
           </div>
         </div>
-        
+
         <div class="table-container">
           <table class="data-table" id="stock-table">
             <thead>
@@ -700,7 +700,7 @@ function clearFieldErrors() {
       </section>
     </main>
   </div>
-  
+
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
@@ -917,21 +917,21 @@ body {
   .app-main {
     padding: 1rem 0.5rem;
   }
-  
+
   .section-card {
     padding: 1rem;
   }
-  
+
   .fetch-form .form-row {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .data-summary {
     margin-top: 0.5rem;
     flex-direction: column;
@@ -952,13 +952,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initApp() {
   console.log('アプリケーションを初期化中...');
-  
+
   // フォームイベントリスナー設定
   const fetchForm = document.getElementById('fetch-form');
   if (fetchForm) {
     fetchForm.addEventListener('submit', handleFetchSubmit);
   }
-  
+
   // 初期データ読み込み
   loadExistingData();
 }
@@ -966,25 +966,25 @@ function initApp() {
 // データ取得フォーム送信ハンドラ
 async function handleFetchSubmit(event) {
   event.preventDefault();
-  
+
   const formData = new FormData(event.target);
   const symbol = formData.get('symbol');
   const period = formData.get('period');
-  
+
   // バリデーション
   const errors = validateForm(formData);
   if (Object.keys(errors).length > 0) {
     showValidationErrors(errors);
     return;
   }
-  
+
   // バリデーションエラーをクリア
   clearFieldErrors();
-  
+
   try {
     // ローディング状態開始
     showLoading();
-    
+
     // APIリクエスト
     const response = await fetch('/api/fetch-data', {
       method: 'POST',
@@ -993,9 +993,9 @@ async function handleFetchSubmit(event) {
       },
       body: JSON.stringify({ symbol, period })
     });
-    
+
     const result = await response.json();
-    
+
     if (result.success) {
       showSuccess('データを取得しました');
       // データテーブル更新
@@ -1003,7 +1003,7 @@ async function handleFetchSubmit(event) {
     } else {
       showError(result.message || 'データ取得に失敗しました');
     }
-    
+
   } catch (error) {
     console.error('データ取得エラー:', error);
     showError('ネットワークエラーが発生しました');
@@ -1015,14 +1015,14 @@ async function handleFetchSubmit(event) {
 // フォームバリデーション
 function validateForm(formData) {
   const errors = {};
-  
+
   const symbol = formData.get('symbol');
   if (!symbol) {
     errors.symbol = '銘柄コードは必須です';
   } else if (!symbol.match(/^[0-9]{4}\.T$/)) {
     errors.symbol = '正しい銘柄コード形式で入力してください（例: 7203.T）';
   }
-  
+
   return errors;
 }
 
@@ -1036,12 +1036,12 @@ function showValidationErrors(errors) {
 function showFieldError(fieldName, message) {
   const field = document.getElementById(fieldName);
   const errorElement = field.parentNode.querySelector('.field-error');
-  
+
   if (errorElement) {
     errorElement.textContent = message;
     errorElement.style.display = 'block';
   }
-  
+
   field.classList.add('form-input--error');
 }
 
@@ -1049,7 +1049,7 @@ function clearFieldErrors() {
   document.querySelectorAll('.field-error').forEach(el => {
     el.style.display = 'none';
   });
-  
+
   document.querySelectorAll('.form-input--error').forEach(el => {
     el.classList.remove('form-input--error');
   });
@@ -1060,10 +1060,10 @@ function showLoading() {
   const fetchButton = document.getElementById('fetch-button');
   const statusSection = document.getElementById('status-section');
   const statusText = document.getElementById('status-text');
-  
+
   fetchButton.disabled = true;
   fetchButton.textContent = 'データ取得中...';
-  
+
   statusSection.style.display = 'block';
   statusText.textContent = 'Yahoo Financeからデータを取得中...';
 }
@@ -1071,10 +1071,10 @@ function showLoading() {
 function hideLoading() {
   const fetchButton = document.getElementById('fetch-button');
   const statusSection = document.getElementById('status-section');
-  
+
   fetchButton.disabled = false;
   fetchButton.textContent = 'データ取得';
-  
+
   setTimeout(() => {
     statusSection.style.display = 'none';
   }, 2000);
@@ -1084,7 +1084,7 @@ function hideLoading() {
 function showSuccess(message) {
   const statusSection = document.getElementById('status-section');
   const statusText = document.getElementById('status-text');
-  
+
   statusSection.style.display = 'block';
   statusSection.style.backgroundColor = '#dcfce7';
   statusSection.style.borderLeftColor = '#10b981';
@@ -1094,7 +1094,7 @@ function showSuccess(message) {
 function showError(message) {
   const statusSection = document.getElementById('status-section');
   const statusText = document.getElementById('status-text');
-  
+
   statusSection.style.display = 'block';
   statusSection.style.backgroundColor = '#fee2e2';
   statusSection.style.borderLeftColor = '#ef4444';
@@ -1107,7 +1107,7 @@ async function loadStockData(symbol = null) {
     const url = symbol ? `/api/stocks?symbol=${symbol}&limit=30` : '/api/stocks?limit=30';
     const response = await fetch(url);
     const result = await response.json();
-    
+
     if (result.success) {
       updateDataTable(result.data, symbol);
       updateDataSummary(symbol, result.data.length);
@@ -1120,7 +1120,7 @@ async function loadStockData(symbol = null) {
 // データテーブル更新
 function updateDataTable(stockData, symbol) {
   const tableBody = document.getElementById('stock-table-body');
-  
+
   if (stockData.length === 0) {
     tableBody.innerHTML = `
       <tr>
@@ -1131,7 +1131,7 @@ function updateDataTable(stockData, symbol) {
     `;
     return;
   }
-  
+
   const rows = stockData.map(row => `
     <tr>
       <td>${formatDate(row.date)}</td>
@@ -1142,7 +1142,7 @@ function updateDataTable(stockData, symbol) {
       <td class="text-right">${formatVolume(row.volume)}</td>
     </tr>
   `).join('');
-  
+
   tableBody.innerHTML = rows;
 }
 
@@ -1150,11 +1150,11 @@ function updateDataTable(stockData, symbol) {
 function updateDataSummary(symbol, count) {
   const currentSymbolEl = document.getElementById('current-symbol');
   const dataCountEl = document.getElementById('data-count');
-  
+
   if (currentSymbolEl && symbol) {
     currentSymbolEl.textContent = symbol;
   }
-  
+
   if (dataCountEl) {
     dataCountEl.textContent = count;
   }
@@ -1243,7 +1243,7 @@ function formatDate(dateString) {
 ### 🎯 **個人+AI開発での実装戦略**
 
 1. **MVP段階**: HTML + CSS + バニラJSで基本機能
-2. **改善段階**: UI/UX改善、エラーハンドリング強化  
+2. **改善段階**: UI/UX改善、エラーハンドリング強化
 3. **拡張段階**: 必要になった機能から順次追加
 
 ### ✅ **成功の指標**

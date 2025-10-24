@@ -1,60 +1,61 @@
-"""
-JPX銘柄マスタ管理API
+"""JPX銘柄マスタ管理API.
 
-JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント
+JPX銘柄一覧の取得・更新機能を提供するAPIエンドポイント。
 """
 
-from flask import Blueprint, request, jsonify
 from functools import wraps
 import logging
 import os
-from typing import Dict, Any
+
+from flask import Blueprint, jsonify, request
 
 from services.jpx_stock_service import JPXStockService, JPXStockServiceError
-from models import get_db_session
+
 
 logger = logging.getLogger(__name__)
 
 # Blueprintを作成
-stock_master_api = Blueprint('stock_master_api', __name__)
+stock_master_api = Blueprint("stock_master_api", __name__)
+
 
 # APIキー認証
 def require_api_key(f):
-    """APIキー認証デコレータ
+    """API key authentication decorator.
 
-    API_KEY環境変数が設定されていない場合は認証をスキップ（開発環境向け）
+    Skips authentication if API_KEY environment variable is not set (for development).
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        expected_api_key = os.getenv('API_KEY')
+        expected_api_key = os.getenv("API_KEY")
 
         # API_KEYが設定されていない場合は認証不要
         if not expected_api_key:
             return f(*args, **kwargs)
 
         # API_KEYが設定されている場合は認証必須
-        api_key = request.headers.get('X-API-Key')
+        api_key = request.headers.get("X-API-Key")
         if not api_key or api_key != expected_api_key:
             logger.warning(f"無効なAPIキー: {api_key}")
-            return jsonify({'error': '認証が必要です'}), 401
+            return jsonify({"error": "認証が必要です"}), 401
 
         return f(*args, **kwargs)
+
     return decorated_function
 
 
-@stock_master_api.route('/api/stock-master/update', methods=['POST'])
+@stock_master_api.route("/api/stock-master/update", methods=["POST"])
 @require_api_key
 def update_stock_master():
-    """
-    JPX銘柄マスタ更新API
-    
+    """JPX銘柄マスタ更新API.
+
     JPXから最新の銘柄一覧を取得してデータベースを更新します。
-    
+
     Request Body (JSON):
         {
             "update_type": "manual" | "scheduled"  // 更新タイプ（オプション、デフォルト: "manual"）
         }
-    
+
     Response:
         成功時 (200):
         {
@@ -69,82 +70,188 @@ def update_stock_master():
                 "status": "success"
             }
         }
-        
+
         エラー時 (400/500):
         {
             "status": "error",
             "message": "エラーメッセージ",
             "error_code": "JPX_DOWNLOAD_ERROR" | "JPX_PARSE_ERROR" | "DATABASE_ERROR"
-        }
+        }.
     """
     try:
         # リクエストボディを取得
         data = request.get_json() or {}
-        update_type = data.get('update_type', 'manual')
-        
+        update_type = data.get("update_type", "manual")
+
         # 更新タイプの検証
-        if update_type not in ['manual', 'scheduled']:
-            return jsonify({
-                'status': 'error',
-                'message': 'update_typeは "manual" または "scheduled" である必要があります',
-                'error_code': 'INVALID_PARAMETER'
-            }), 400
-        
+        if update_type not in ["manual", "scheduled"]:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": 'update_typeは "manual" または "scheduled" である必要があります',
+                        "error_code": "INVALID_PARAMETER",
+                    }
+                ),
+                400,
+            )
+
         logger.info(f"銘柄マスタ更新開始: update_type={update_type}")
-        
+
         # JPX銘柄サービスを使用して更新
         service = JPXStockService()
         result = service.update_stock_master(update_type=update_type)
-        
+
         logger.info(f"銘柄マスタ更新完了: {result}")
-        
-        return jsonify({
-            'status': 'success',
-            'message': '銘柄マスタの更新が完了しました',
-            'data': result
-        }), 200
-        
+
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "銘柄マスタの更新が完了しました",
+                    "data": result,
+                }
+            ),
+            200,
+        )
+
     except JPXStockServiceError as e:
         logger.error(f"JPX銘柄サービスエラー: {str(e)}")
-        
+
         # エラータイプに応じてエラーコードを設定
-        error_code = 'JPX_SERVICE_ERROR'
-        if 'ダウンロード' in str(e):
-            error_code = 'JPX_DOWNLOAD_ERROR'
-        elif 'パース' in str(e) or '正規化' in str(e):
-            error_code = 'JPX_PARSE_ERROR'
-        elif 'データベース' in str(e):
-            error_code = 'DATABASE_ERROR'
-        
-        return jsonify({
-            'status': 'error',
-            'message': str(e),
-            'error_code': error_code
-        }), 500
-        
+        error_code = "JPX_SERVICE_ERROR"
+        if "ダウンロード" in str(e):
+            error_code = "JPX_DOWNLOAD_ERROR"
+        elif "パース" in str(e) or "正規化" in str(e):
+            error_code = "JPX_PARSE_ERROR"
+        elif "データベース" in str(e):
+            error_code = "DATABASE_ERROR"
+
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": str(e),
+                    "error_code": error_code,
+                }
+            ),
+            500,
+        )
+
     except Exception as e:
         logger.error(f"予期しないエラー: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': '内部サーバーエラーが発生しました',
-            'error_code': 'INTERNAL_ERROR'
-        }), 500
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "内部サーバーエラーが発生しました",
+                    "error_code": "INTERNAL_ERROR",
+                }
+            ),
+            500,
+        )
 
 
-@stock_master_api.route('/api/stock-master/list', methods=['GET'])
+def _validate_pagination_params_stock_master(
+    limit_str: str, offset_str: str
+) -> tuple[bool, int, int, dict]:
+    """ページネーションパラメータのバリデーション.
+
+    Args:
+        limit_str: limit文字列
+        offset_str: offset文字列
+
+    Returns:
+        (バリデーション成功フラグ, limit値, offset値, エラーレスポンス辞書)
+    """
+    # 数値への変換
+    try:
+        limit = int(limit_str)
+        offset = int(offset_str)
+    except ValueError:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "limitとoffsetは数値である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    # 範囲チェック
+    if limit < 1 or limit > 1000:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "limitは1から1000の間である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    if offset < 0:
+        return (
+            False,
+            0,
+            0,
+            {
+                "status": "error",
+                "message": "offsetは0以上である必要があります",
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+    return True, limit, offset, {}
+
+
+def _parse_is_active_param(
+    is_active_param: str,
+) -> tuple[bool, bool | None, dict]:
+    """is_activeパラメータのパース.
+
+    Args:
+        is_active_param: is_active文字列
+
+    Returns:
+        (パース成功フラグ, is_active値, エラーレスポンス辞書)
+    """
+    is_active_param = is_active_param.lower()
+
+    if is_active_param == "all":
+        return True, None, {}
+    elif is_active_param == "true":
+        return True, True, {}
+    elif is_active_param == "false":
+        return True, False, {}
+    else:
+        return (
+            False,
+            None,
+            {
+                "status": "error",
+                "message": 'is_activeは "true", "false", "all" のいずれかである必要があります',
+                "error_code": "INVALID_PARAMETER",
+            },
+        )
+
+
+@stock_master_api.route("/api/stock-master/list", methods=["GET"])
 @require_api_key
 def get_stock_master_list():
-    """
-    JPX銘柄マスタ一覧取得API
-    
+    """JPX銘柄マスタ一覧取得API.
+
     データベースに保存されている銘柄マスタ一覧を取得します。
-    
+
     Query Parameters:
         - is_active: 有効フラグ (true/false/all, デフォルト: true)
         - market_category: 市場区分でフィルタ (部分一致)
         - limit: 取得件数上限 (1-1000, デフォルト: 100)
         - offset: オフセット (0以上, デフォルト: 0)
-    
+
     Response:
         成功時 (200):
         {
@@ -172,104 +279,100 @@ def get_stock_master_list():
                 ]
             }
         }
-        
+
         エラー時 (400/500):
         {
             "status": "error",
             "message": "エラーメッセージ",
             "error_code": "INVALID_PARAMETER" | "DATABASE_ERROR"
-        }
+        }.
     """
     try:
         # クエリパラメータを取得
-        is_active_param = request.args.get('is_active', 'true').lower()
-        market_category = request.args.get('market_category')
-        limit = request.args.get('limit', '100')
-        offset = request.args.get('offset', '0')
-        
-        # パラメータの検証
-        try:
-            limit = int(limit)
-            offset = int(offset)
-        except ValueError:
-            return jsonify({
-                'status': 'error',
-                'message': 'limitとoffsetは数値である必要があります',
-                'error_code': 'INVALID_PARAMETER'
-            }), 400
-        
-        if limit < 1 or limit > 1000:
-            return jsonify({
-                'status': 'error',
-                'message': 'limitは1から1000の間である必要があります',
-                'error_code': 'INVALID_PARAMETER'
-            }), 400
-        
-        if offset < 0:
-            return jsonify({
-                'status': 'error',
-                'message': 'offsetは0以上である必要があります',
-                'error_code': 'INVALID_PARAMETER'
-            }), 400
-        
-        # is_activeパラメータの処理
-        if is_active_param == 'all':
-            is_active = None
-        elif is_active_param == 'true':
-            is_active = True
-        elif is_active_param == 'false':
-            is_active = False
-        else:
-            return jsonify({
-                'status': 'error',
-                'message': 'is_activeは "true", "false", "all" のいずれかである必要があります',
-                'error_code': 'INVALID_PARAMETER'
-            }), 400
-        
-        logger.info(f"銘柄一覧取得: is_active={is_active}, market_category={market_category}, limit={limit}, offset={offset}")
-        
+        is_active_param = request.args.get("is_active", "true")
+        market_category = request.args.get("market_category")
+        limit_str = request.args.get("limit", "100")
+        offset_str = request.args.get("offset", "0")
+
+        # ページネーションパラメータのバリデーション
+        (
+            valid,
+            limit,
+            offset,
+            error_response,
+        ) = _validate_pagination_params_stock_master(limit_str, offset_str)
+        if not valid:
+            return jsonify(error_response), 400
+
+        # is_activeパラメータのパース
+        valid, is_active, error_response = _parse_is_active_param(
+            is_active_param
+        )
+        if not valid:
+            return jsonify(error_response), 400
+
+        logger.info(
+            f"銘柄一覧取得: is_active={is_active}, market_category={market_category}, limit={limit}, offset={offset}"
+        )
+
         # JPX銘柄サービスを使用して一覧を取得
         service = JPXStockService()
         result = service.get_stock_list(
             is_active=is_active,
             market_category=market_category,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
-        
-        logger.info(f"銘柄一覧取得完了: total={result['total']}, count={len(result['stocks'])}")
-        
-        return jsonify({
-            'status': 'success',
-            'message': '銘柄一覧を取得しました',
-            'data': result
-        }), 200
-        
+
+        logger.info(
+            f"銘柄一覧取得完了: total={result['total']}, count={len(result['stocks'])}"
+        )
+
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "銘柄一覧を取得しました",
+                    "data": result,
+                }
+            ),
+            200,
+        )
+
     except JPXStockServiceError as e:
         logger.error(f"JPX銘柄サービスエラー: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': str(e),
-            'error_code': 'DATABASE_ERROR'
-        }), 500
-        
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": str(e),
+                    "error_code": "DATABASE_ERROR",
+                }
+            ),
+            500,
+        )
+
     except Exception as e:
         logger.error(f"予期しないエラー: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': '内部サーバーエラーが発生しました',
-            'error_code': 'INTERNAL_ERROR'
-        }), 500
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "内部サーバーエラーが発生しました",
+                    "error_code": "INTERNAL_ERROR",
+                }
+            ),
+            500,
+        )
 
 
-@stock_master_api.route('/api/stock-master/status', methods=['GET'])
+@stock_master_api.route("/api/stock-master/status", methods=["GET"])
 @require_api_key
 def get_stock_master_status():
-    """
-    JPX銘柄マスタ状態取得API
-    
+    """JPX銘柄マスタ状態取得API.
+
     銘柄マスタの現在の状態と最新の更新履歴を取得します。
-    
+
     Response:
         成功時 (200):
         {
@@ -291,43 +394,61 @@ def get_stock_master_status():
                     "completed_at": "2024-12-01T10:05:00Z"
                 }
             }
-        }
+        }.
     """
     try:
         from models import StockMaster, StockMasterUpdate, get_db_session
-        
+
         with get_db_session() as session:
             # 銘柄統計を取得
             total_stocks = session.query(StockMaster).count()
-            active_stocks = session.query(StockMaster).filter(StockMaster.is_active == 1).count()
+            active_stocks = (
+                session.query(StockMaster)
+                .filter(StockMaster.is_active == 1)
+                .count()
+            )
             inactive_stocks = total_stocks - active_stocks
-            
+
             # 最新の更新履歴を取得
-            last_update = session.query(StockMasterUpdate).order_by(
-                StockMasterUpdate.started_at.desc()
-            ).first()
-            
+            last_update = (
+                session.query(StockMasterUpdate)
+                .order_by(StockMasterUpdate.started_at.desc())
+                .first()
+            )
+
             last_update_data = None
             if last_update:
                 last_update_data = last_update.to_dict()
-        
-        logger.info(f"銘柄マスタ状態取得完了: total={total_stocks}, active={active_stocks}")
-        
-        return jsonify({
-            'status': 'success',
-            'message': '銘柄マスタ状態を取得しました',
-            'data': {
-                'total_stocks': total_stocks,
-                'active_stocks': active_stocks,
-                'inactive_stocks': inactive_stocks,
-                'last_update': last_update_data
-            }
-        }), 200
-        
+
+        logger.info(
+            f"銘柄マスタ状態取得完了: total={total_stocks}, active={active_stocks}"
+        )
+
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "銘柄マスタ状態を取得しました",
+                    "data": {
+                        "total_stocks": total_stocks,
+                        "active_stocks": active_stocks,
+                        "inactive_stocks": inactive_stocks,
+                        "last_update": last_update_data,
+                    },
+                }
+            ),
+            200,
+        )
+
     except Exception as e:
         logger.error(f"銘柄マスタ状態取得エラー: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': '内部サーバーエラーが発生しました',
-            'error_code': 'INTERNAL_ERROR'
-        }), 500
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "内部サーバーエラーが発生しました",
+                    "error_code": "INTERNAL_ERROR",
+                }
+            ),
+            500,
+        )

@@ -12,7 +12,7 @@ related_docs:
 
 ## 概要
 
-株価データ取得システムのAPIエンドポイント仕様書です。  
+株価データ取得システムのAPIエンドポイント仕様書です。
 プロジェクトの設計理念（**動作優先・シンプル設計・後から拡張**）に基づき、最小限の機能から開始し、必要に応じて拡張していく方針です。
 
 ## 目次
@@ -555,15 +555,15 @@ def fetch_data():
     data = request.get_json()
     symbol = data.get('symbol')
     period = data.get('period', '1mo')
-    
+
     try:
         # Yahoo Financeからデータ取得
         ticker = yf.Ticker(symbol)
         hist = ticker.history(period=period)
-        
+
         # データベースに保存（実装必要）
         # save_to_database(symbol, hist)
-        
+
         return jsonify({
             "success": True,
             "message": "データを正常に取得しました",
@@ -587,7 +587,7 @@ def fetch_data():
 def get_stocks():
     # データベースからデータ取得（実装必要）
     # stocks = get_stocks_from_database()
-    
+
     return jsonify({
         "success": True,
         "data": [],  # 実装後にデータを返す
