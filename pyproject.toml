@@ -192,35 +192,12 @@ exclude = [
 [[tool.mypy.overrides]]
 module = [
     "yfinance.*",
-    "selenium.*",
-    "webdriver_manager.*",
-    "eventlet.*",
     "flask_socketio.*",
     "pandas.*",
-    "openpyxl.*",
-    "xlrd.*",
     "dotenv.*",
-    "APScheduler.*",
     "apscheduler.*",
-    "waitress.*",
 ]
 ignore_missing_imports = true
-
-# 内部モジュールの循環インポート問題を一時的に無視
-# Phase 1: 型エラー分析のため一時的にコメントアウト
-# [[tool.mypy.overrides]]
-# module = [
-#     "app.*",
-#     "models",
-#     "models.*",
-#     "services",
-#     "services.*",
-#     "utils",
-#     "utils.*",
-#     "api",
-#     "api.*",
-# ]
-# ignore_errors = true
 
 # ===== Pytest Configuration =====
 [tool.pytest.ini_options]
