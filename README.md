@@ -71,7 +71,41 @@ Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存
 - Python 3.8以上
 - Git
 
-### インストール手順
+### ワンコマンドセットアップ（推奨）
+
+新規開発者は以下のコマンドで15分以内に開発環境を構築できます：
+
+**Linux/macOS:**
+```bash
+git clone https://github.com/TIMMY-WEST/STOCK-INVESTMENT-ANALYZER.git
+cd STOCK-INVESTMENT-ANALYZER
+make setup
+```
+
+または
+
+```bash
+chmod +x scripts/setup/dev_setup.sh
+./scripts/setup/dev_setup.sh
+```
+
+**Windows:**
+```cmd
+git clone https://github.com/TIMMY-WEST/STOCK-INVESTMENT-ANALYZER.git
+cd STOCK-INVESTMENT-ANALYZER
+scripts\setup\dev_setup.bat
+```
+
+セットアップスクリプトは以下を自動的に実行します：
+- ✅ Python仮想環境の作成
+- ✅ 依存関係のインストール
+- ✅ データベースの初期化
+- ✅ サンプルデータの投入
+- ✅ 環境変数ファイル（.env）の設定
+
+### 手動セットアップ手順
+
+自動セットアップが使用できない場合の手動手順：
 
 1. **リポジトリのクローン**
    ```bash
@@ -79,32 +113,47 @@ Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存
    cd STOCK-INVESTMENT-ANALYZER
    ```
 
-2. **データベースセットアップ**
+2. **Python仮想環境の作成**
+   ```bash
+   python -m venv venv
+
+   # 有効化（Linux/macOS）
+   source venv/bin/activate
+
+   # 有効化（Windows）
+   venv\Scripts\activate
+   ```
+
+3. **依存関係のインストール**
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
+   ```
+
+4. **環境変数の設定**
+   ```bash
+   # Linux/macOS
+   cp .env.example .env
+
+   # Windows
+   copy .env.example .env
+   ```
+
+5. **データベースセットアップ**
 
    **Windows:**
    ```cmd
-   scripts\setup_db.bat
+   scripts\setup\setup_db.bat
    ```
 
    **Linux/macOS:**
    ```bash
-   chmod +x scripts/setup_db.sh
-   ./scripts/setup_db.sh
+   chmod +x scripts/setup/setup_db.sh
+   ./scripts/setup/setup_db.sh
    ```
 
-3. **環境設定**
-
-   セットアップスクリプトが自動的に `.env` ファイルを生成します。必要に応じて設定を調整してください：
-
-   ```env
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_NAME=stock_data_system
-   DB_USER=stock_user
-   DB_PASSWORD=stock_password
-   ```
-
-4. **アプリケーション起動**
+6. **アプリケーション起動**
 
    ```bash
    cd app
@@ -112,6 +161,22 @@ Yahoo Financeから日本企業の株価データを取得しPostgreSQLに保存
    ```
 
    サーバーが起動したら、ブラウザで `http://localhost:8000` にアクセスしてください。
+
+### 便利なMakeコマンド（Linux/macOS）
+
+```bash
+make help       # 使用可能なコマンド一覧
+make setup      # 開発環境の完全セットアップ
+make run        # アプリケーション起動
+make test       # テスト実行
+make test-cov   # カバレッジ付きテスト実行
+make format     # コードフォーマット
+make lint       # コードチェック
+make db-setup   # データベースセットアップ
+make db-reset   # データベースリセット
+make clean      # キャッシュクリア
+make clean-all  # 全ての生成ファイル削除
+```
 
 ## データベース管理
 

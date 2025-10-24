@@ -96,7 +96,7 @@ fi
 
 # データベース作成スクリプト実行
 log_info "データベース作成スクリプト実行中..."
-psql -U "$POSTGRES_USER" -h localhost -f "$SCRIPT_DIR/create_database.sql"
+psql -U "$POSTGRES_USER" -h localhost -f "$SCRIPT_DIR/../database/schema/create_database.sql"
 log_success "データベース作成完了"
 
 # テーブル作成
@@ -105,13 +105,13 @@ log_info "パスワードの入力を求められたら '$DB_PASSWORD' を入力
 
 # PGPASSWORD環境変数でパスワードを設定（非対話的実行）
 export PGPASSWORD="$DB_PASSWORD"
-psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f "$SCRIPT_DIR/create_tables.sql"
+psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f "$SCRIPT_DIR/../database/schema/create_tables.sql"
 log_success "テーブル作成完了"
 
 # サンプルデータ投入
 log_info "[5/6] 初期データ投入中..."
-if [ -f "$SCRIPT_DIR/insert_sample_data.sql" ]; then
-    if psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f "$SCRIPT_DIR/insert_sample_data.sql"; then
+if [ -f "$SCRIPT_DIR/../database/seed/insert_sample_data.sql" ]; then
+    if psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f "$SCRIPT_DIR/../database/seed/insert_sample_data.sql"; then
         log_success "サンプルデータ投入完了"
     else
         log_warning "サンプルデータ投入に一部失敗しました"

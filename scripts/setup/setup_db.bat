@@ -201,7 +201,7 @@ set PGPASSWORD=%DB_PASSWORD%
 REM Set client encoding to UTF8 to handle SQL files properly
 set PGCLIENTENCODING=UTF8
 
-psql -U %DB_USER% -d %DB_NAME% -h localhost -f "%~dp0create_tables.sql"
+psql -U %DB_USER% -d %DB_NAME% -h localhost -f "%~dp0..\database\schema\create_tables.sql"
 if errorlevel 1 (
     echo ERROR: Failed to create tables
     pause
@@ -212,14 +212,14 @@ echo Tables created successfully
 REM Insert sample data
 echo.
 echo [5/6] Inserting initial data...
-if exist "%~dp0insert_sample_data.sql" (
+if exist "%~dp0..\database\seed\insert_sample_data.sql" (
     REM Set stock_user password in environment variable
     set PGPASSWORD=%DB_PASSWORD%
 
     REM Ensure client encoding is UTF8
     set PGCLIENTENCODING=UTF8
 
-    psql -U %DB_USER% -d %DB_NAME% -h localhost -f "%~dp0insert_sample_data.sql"
+    psql -U %DB_USER% -d %DB_NAME% -h localhost -f "%~dp0..\database\seed\insert_sample_data.sql"
     if errorlevel 1 (
         echo WARNING: Some sample data insertion failed
     ) else (
