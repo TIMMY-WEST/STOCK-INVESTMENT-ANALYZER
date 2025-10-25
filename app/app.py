@@ -770,9 +770,14 @@ def create_test_data():
 
 
 if __name__ == "__main__":
+    port = int(os.getenv("FLASK_PORT", 8000))
+    host = os.getenv("FLASK_HOST", "127.0.0.1")
+    # 明示的にアクセス用アドレスを表示
+    print(f"http://{host}:{port}/")
+
     socketio.run(
         app,
         debug=os.getenv("FLASK_DEBUG", "False").lower() == "true",
-        port=int(os.getenv("FLASK_PORT", 8000)),
-        host="0.0.0.0",
+        port=port,
+        host=host,
     )
