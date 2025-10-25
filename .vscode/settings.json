@@ -112,13 +112,13 @@
 
   // ===== JSON設定 =====
   "[json]": {
-    "editor.defaultFormatter": "ms-vscode.vscode-json",
+    "editor.defaultFormatter": "vscode.json-language-features",
     "editor.formatOnSave": true
   },
 
   // ===== YAML設定 =====
   "[yaml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": null,
     "editor.formatOnSave": true,
     "editor.insertSpaces": true,
     "editor.tabSize": 2
@@ -126,15 +126,15 @@
 
   // ===== HTML/CSS/JS設定 =====
   "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "vscode.html-language-features",
     "editor.formatOnSave": true
   },
   "[css]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "vscode.css-language-features",
     "editor.formatOnSave": true
   },
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "vscode.typescript-language-features",
     "editor.formatOnSave": true
   },
 
