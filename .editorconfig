@@ -1,0 +1,86 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# トップレベルのEditorConfigファイル
+root = true
+
+# 全ファイル共通設定
+[*]
+# 文字コード
+charset = utf-8
+# 改行コード（Unix形式）
+end_of_line = lf
+# ファイル末尾に改行を挿入
+insert_final_newline = true
+# 行末の空白文字を削除
+trim_trailing_whitespace = true
+
+# Python ファイル
+[*.py]
+# インデント設定（スペース4つ）
+indent_style = space
+indent_size = 4
+# 最大行長（PEP 8準拠）
+max_line_length = 79
+
+# YAML ファイル
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# JSON ファイル
+[*.json]
+indent_style = space
+indent_size = 2
+
+# JavaScript/TypeScript ファイル
+[*.{js,ts,jsx,tsx}]
+indent_style = space
+indent_size = 2
+
+# HTML ファイル
+[*.html]
+indent_style = space
+indent_size = 2
+
+# CSS ファイル
+[*.css]
+indent_style = space
+indent_size = 2
+
+# Markdown ファイル
+[*.md]
+indent_style = space
+indent_size = 2
+# Markdownでは行末スペースが意味を持つ場合があるため除外
+trim_trailing_whitespace = false
+
+# Makefile
+[Makefile]
+indent_style = tab
+
+# バッチファイル（Windows）
+[*.{bat,cmd}]
+end_of_line = crlf
+
+# シェルスクリプト（Unix）
+[*.sh]
+end_of_line = lf
+
+# 設定ファイル
+[*.{ini,cfg,conf,toml}]
+indent_style = space
+indent_size = 4
+
+# SQL ファイル
+[*.sql]
+indent_style = space
+indent_size = 2
+
+# Docker ファイル
+[Dockerfile*]
+indent_style = space
+indent_size = 4
+
+# Git設定ファイル
+[.gitconfig]
+indent_style = tab
