@@ -202,12 +202,19 @@ ignore_missing_imports = true
 # ===== Pytest Configuration =====
 [tool.pytest.ini_options]
 # テストディレクトリとファイルパターン
+# tests/配下の全テストを実行対象とする
+# - tests/unit/: ユニットテスト（外部依存なし）
+# - tests/integration/: 統合テスト（DB/API連携）
+# - tests/e2e/: E2Eテスト（ブラウザ操作）
+# - tests/直下: 既存テスト（リファクタリングの安全網として温存）
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 # マーカー定義
+# テストレベルごとに実行を制御可能
+# 例: pytest -m unit でユニットテストのみ実行
 markers = [
     "unit: Unit tests - 単体テスト（外部依存なし）",
     "integration: Integration tests - 結合テスト（DB/API連携）",
