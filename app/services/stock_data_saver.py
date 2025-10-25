@@ -4,7 +4,7 @@ from datetime import date, datetime
 import logging
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from models import get_db_session
@@ -79,7 +79,7 @@ class StockDataSaver:
         model_class: type,
         data_list: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """セッションを使用してデータを保存（内部メソッド）.
+        """セッションを使用してデータを保存(内部メソッド).
 
         Args:
             session: SQLAlchemyセッション
@@ -90,6 +90,9 @@ class StockDataSaver:
 
         Returns:
             保存結果の統計情報。
+
+        Raises:
+            StockDataSaveError: データ保存失敗時。
         """
         saved_count = 0
         skipped_count = 0
@@ -102,8 +105,28 @@ class StockDataSaver:
             f"件数: {len(data_list)})"
         )
 
+        # 既存データを取得して重複をチェック
+        try:
+            date_column_name = (
+                "date" if not is_intraday_interval(interval) else "datetime"
+            )
+            date_column = getattr(model_class, date_column_name)
+
+            existing_records = (
+                session.query(date_column)
+                .filter(model_class.symbol == symbol)  # type: ignore[attr-defined]
+                .all()
+            )
+            existing_dates = {record[0] for record in existing_records}
+        except Exception as e:
+            self.logger.warning(f"既存データ取得エラー: {symbol}: {e}")
+            existing_dates = set()
+
+        # バルクインサート用のデータリストを準備
+        records_to_insert = []
+
         for data in data_list:
-            # 現在のデータの日付を取得（保存成否に関わらず追跡）
+            # 現在のデータの日付を取得(保存成否に関わらず追跡)
             current_date = data.get("date") or data.get("datetime")
             if current_date:
                 if date_start is None or current_date < date_start:  # type: ignore[unreachable]
@@ -112,42 +135,46 @@ class StockDataSaver:
                     date_end = current_date
 
             try:
+                # 重複チェック
+                if current_date in existing_dates:
+                    skipped_count += 1
+                    self.logger.debug(
+                        f"重複データをスキップ: {symbol} ({current_date}) "
+                        f"(時間軸: {get_display_name(interval)})"
+                    )
+                    continue
+
                 # データに銘柄コードを追加
                 data_with_symbol = {**data, "symbol": symbol}
-
-                # レコードを作成
-                record = model_class(**data_with_symbol)
-                session.add(record)
-                session.flush()
-
+                records_to_insert.append(data_with_symbol)
                 saved_count += 1
 
-            except IntegrityError:
-                # ユニーク制約違反（重複データ）
-                session.rollback()
-                skipped_count += 1
-                self.logger.info(
-                    f"重複データをスキップ: {symbol} ({current_date}) "
-                    f"(時間軸: {get_display_name(interval)})"
-                )
-
-            except SQLAlchemyError as e:
-                session.rollback()
+            except Exception as e:
                 error_count += 1
                 self.logger.error(
-                    f"データ保存エラー: {symbol} " f"({current_date}): {e}"
+                    f"レコード準備エラー: {symbol} " f"({current_date}): {e}"
                 )
 
-        # コミット
+        # バルクインサートを実行
         try:
-            session.commit()
+            if records_to_insert:
+                session.bulk_insert_mappings(
+                    model_class, records_to_insert  # type: ignore[arg-type]
+                )
+                self.logger.debug(
+                    f"バルクインサート実行: {len(records_to_insert)}件"
+                )
         except SQLAlchemyError as e:
-            session.rollback()
+            self.logger.error(
+                f"バルクインサートエラー: {symbol} "
+                f"(時間軸: {get_display_name(interval)}): {e}"
+            )
             raise StockDataSaveError(
-                f"データ保存のコミットに失敗: {symbol} "
+                f"データ保存に失敗: {symbol} "
                 f"(時間軸: {get_display_name(interval)}): {e}"
             )
 
+        # コミットは呼び出し側で行う(トランザクション管理を分離)
         result = {
             "symbol": symbol,
             "interval": interval,
@@ -213,7 +240,7 @@ class StockDataSaver:
     def save_batch_stock_data(
         self, symbols_data: Dict[str, List[Dict[str, Any]]], interval: str
     ) -> Dict[str, Any]:
-        """複数銘柄のデータをバッチ保存（重複データ事前除外方式）.
+        """複数銘柄のデータをバッチ保存(重複データ事前除外方式).
 
         Args:
             symbols_data: {銘柄コード: データリスト} の辞書
@@ -242,51 +269,62 @@ class StockDataSaver:
             f"(時間軸: {get_display_name(interval)})"
         )
 
-        with get_db_session() as session:
-            # 全銘柄の重複チェックを一括実行
-            filtered_symbols_data = self._filter_duplicate_data(
-                session, model_class, symbols_data, interval
-            )
-
-            # 重複除外後のデータを一括保存
-            records_to_save = []
-            for symbol, data_list in filtered_symbols_data.items():
-                saved_count = 0
-                skipped_count = len(symbols_data.get(symbol, [])) - len(
-                    data_list
+        try:
+            with get_db_session() as session:
+                # 全銘柄の重複チェックを一括実行
+                filtered_symbols_data = self._filter_duplicate_data(
+                    session, model_class, symbols_data, interval
                 )
-                error_count = 0
 
-                for data in data_list:
+                # バルクインサート用のレコードリストを準備
+                all_records_to_insert = []
+
+                for symbol, data_list in filtered_symbols_data.items():
+                    saved_count = 0
+                    skipped_count = len(symbols_data.get(symbol, [])) - len(
+                        data_list
+                    )
+                    error_count = 0
+
+                    for data in data_list:
+                        try:
+                            # データに銘柄コードを追加
+                            data_with_symbol = {**data, "symbol": symbol}
+                            all_records_to_insert.append(data_with_symbol)
+                            saved_count += 1
+
+                        except Exception as e:
+                            error_count += 1
+                            self.logger.error(
+                                f"レコード作成エラー: {symbol}: {e}"
+                            )
+
+                    results_by_symbol[symbol] = {
+                        "saved": saved_count,
+                        "skipped": skipped_count,
+                        "errors": error_count,
+                        "total": len(symbols_data.get(symbol, [])),
+                    }
+
+                    total_saved += saved_count
+                    total_skipped += skipped_count
+                    total_errors += error_count
+
+                # バルクインサートを一括実行
+                if all_records_to_insert:
                     try:
-                        # データに銘柄コードを追加
-                        data_with_symbol = {**data, "symbol": symbol}
-
-                        # レコードを作成
-                        record = model_class(**data_with_symbol)
-                        records_to_save.append(record)
-                        saved_count += 1
-
-                    except Exception as e:
-                        error_count += 1
-                        self.logger.error(f"レコード作成エラー: {symbol}: {e}")
-
-                results_by_symbol[symbol] = {
-                    "saved": saved_count,
-                    "skipped": skipped_count,
-                    "errors": error_count,
-                    "total": len(symbols_data.get(symbol, [])),
-                }
-
-                total_saved += saved_count
-                total_skipped += skipped_count
-                total_errors += error_count
-
-            # 一括保存とコミット
-            try:
-                if records_to_save:
-                    session.add_all(records_to_save)
-                    session.commit()
+                        session.bulk_insert_mappings(
+                            model_class, all_records_to_insert  # type: ignore[arg-type]
+                        )
+                        self.logger.debug(
+                            f"バルクインサート実行: "
+                            f"{len(all_records_to_insert)}件"
+                        )
+                    except SQLAlchemyError as e:
+                        raise StockDataSaveError(
+                            f"バッチデータ保存のコミットに失敗: "
+                            f"(時間軸: {get_display_name(interval)}): {e}"
+                        )
 
                 total_records = sum(
                     len(data_list) for data_list in symbols_data.values()
@@ -297,12 +335,16 @@ class StockDataSaver:
                     f"対象データ数: {total_records}, 保存: {total_saved}, "
                     f"重複スキップ: {total_skipped}, エラー: {total_errors}"
                 )
-            except SQLAlchemyError as e:
-                session.rollback()
-                raise StockDataSaveError(
-                    f"バッチデータ保存のコミットに失敗: "
-                    f"(時間軸: {get_display_name(interval)}): {e}"
-                )
+
+        except StockDataSaveError:
+            # StockDataSaveErrorはそのまま再送出
+            raise
+        except Exception as e:
+            # その他の予期しないエラー
+            raise StockDataSaveError(
+                f"バッチデータ保存中に予期しないエラー: "
+                f"(時間軸: {get_display_name(interval)}): {e}"
+            )
 
         return {
             "interval": interval,
