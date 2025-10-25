@@ -2,10 +2,10 @@
 
 from datetime import date, datetime
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Mapper, Session, class_mapper
+from sqlalchemy.orm import Session
 
 from models import get_db_session
 from utils.timeframe_utils import (
@@ -76,7 +76,7 @@ class StockDataSaver:
         session: Session,
         symbol: str,
         interval: str,
-        model_class: type,
+        model_class: Type[Any],
         data_list: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """セッションを使用してデータを保存(内部メソッド).
@@ -272,14 +272,6 @@ class StockDataSaver:
                 total_skipped = totals["total_skipped"]
                 total_errors = totals["total_errors"]
 
-                # バルクインサートを実行
-                self._bulk_insert(
-                    session,
-                    model_class,
-                    all_records_to_insert,
-                    "batch",
-                    interval,
-                )
                 # バルクインサートを実行
                 self._bulk_insert(
                     session,
@@ -545,7 +537,7 @@ class StockDataSaver:
     def _bulk_insert(
         self,
         session: Session,
-        model_class: type,
+        model_class: Type[Any],
         records: List[Dict[str, Any]],
         symbol: str,
         interval: str,
@@ -553,9 +545,9 @@ class StockDataSaver:
         """レコードをバルクインサートする."""
         if not records:
             return
-        mapper: Mapper[Any] = class_mapper(model_class)
+        mapper_or_class: Any = getattr(model_class, "__mapper__", model_class)
         try:
-            session.bulk_insert_mappings(mapper, records)
+            session.bulk_insert_mappings(mapper_or_class, records)
             self.logger.debug(f"バルクインサート実行: {len(records)}件")
         except SQLAlchemyError as e:
             self.logger.error(
