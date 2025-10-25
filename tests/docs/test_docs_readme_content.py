@@ -15,7 +15,7 @@ class TestDocsReadmeContent:
     @pytest.fixture
     def project_root(self):
         """プロジェクトルートディレクトリのパスを取得."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     @pytest.fixture
     def docs_dir(self, project_root):
@@ -129,13 +129,12 @@ class TestDocsReadmeContent:
                 pattern, docs_readme_content
             ), f"Development steps pattern '{pattern}' should be present"
 
-    def test_docs_readme_internal_links(self, docs_readme_content):
+    def test_docs_readme_internal_links(self, docs_readme_content, docs_dir):
         """docs/README.md内の内部リンクが正しい形式であることを確認."""
         # 相対パスのリンクを抽出（.mdファイルへのリンク）
         md_links = re.findall(r"\[.*?\]\(([^)]+\.md)\)", docs_readme_content)
 
         # 各リンクに対応するファイルが存在することを確認
-        docs_dir = Path(__file__).parent.parent / "docs"
         for link in md_links:
             # リンクがアンカー付きの場合、ファイル部分のみを取得
             file_path = link.split("#")[0] if "#" in link else link

@@ -38,7 +38,9 @@ class FlaskTestServer:
 
             # Flaskアプリケーションを起動
             app_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), "app", "app.py"
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "app",
+                "app.py",
             )
             env = os.environ.copy()
             env["FLASK_ENV"] = "testing"

@@ -19,7 +19,7 @@ class TestSetupScripts:
     @pytest.fixture
     def project_root(self):
         """プロジェクトルートディレクトリを返す."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     @pytest.fixture
     def scripts_dir(self, project_root):
@@ -269,7 +269,7 @@ class TestSetupScriptIntegration:
     @pytest.fixture
     def project_root(self):
         """プロジェクトルートディレクトリを返す."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     @pytest.mark.slow
     @pytest.mark.skipif(
