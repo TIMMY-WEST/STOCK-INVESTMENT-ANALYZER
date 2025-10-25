@@ -1,463 +1,662 @@
 ---
 category: development
-ai_context: medium
-last_updated: 2025-10-18
+ai_context: high
+last_updated: 2025-10-25
 related_docs:
+  - testing_guide.md
+  - coding_standards.md
   - ../architecture/project_architecture.md
-  - ../api/api_specification.md
 ---
 
-# 株価データ取得システム - テスト戦略 v1.1.0
+# テスト戦略
 
-## 📋 概要
+## 📋 目次
 
-本ドキュメントは、株価データ取得システム v1.1.0 における統合テスト・品質保証のための包括的なテスト戦略を定義します。
-マイルストーン5「統合テスト・品質保証」で実施する全テスト項目と手順を詳細に規定します。
-
-## 🎯 テスト目標
-
-### 主要目標
-1. **新機能の統合テスト**: v1.1.0で追加された全機能の動作確認
-2. **品質保証**: パフォーマンス、セキュリティ、信頼性の確保
-3. **既存機能の回帰テスト**: v1.0.0機能の互換性確認
-4. **ユーザーエクスペリエンス検証**: UI/UXの向上確認
-
-### 成功基準
-- 全テストケースの合格率95%以上
-- パフォーマンステストの要件達成
-- セキュリティ脆弱性0件
-- ユーザビリティテスト満足度90%以上
+1. [テストの目的と重要性](#テストの目的と重要性)
+2. [テストレベルの定義](#テストレベルの定義)
+3. [テストカバレッジ目標](#テストカバレッジ目標)
+4. [テスト命名規則](#テスト命名規則)
+5. [テストパターン](#テストパターン)
+6. [テストデータ管理](#テストデータ管理)
+7. [モック使用ガイドライン](#モック使用ガイドライン)
+8. [テスト実行ルール](#テスト実行ルール)
+9. [まとめ](#まとめ)
 
 ---
 
-## 🧪 テスト分類とスコープ
+## 1. テストの目的と重要性
 
-### 1. 機能テスト (Functional Testing)
+### 1.1 なぜテストが必要か
 
-#### 1.1 新機能統合テスト
-**対象**: v1.1.0で追加された主要機能
+テストは、ソフトウェア開発における品質保証の基盤であり、以下の目的で実施します:
 
-##### A. データ取得機能の強化テスト
-- **全時間軸データ取得テスト**
-  - 1分足、5分足、15分足、30分足、1時間足、1日足、1週間足、1ヶ月足
-  - 各時間軸での正常なデータ取得・保存・表示
-  - 時間軸切り替え時のUI動作確認
+1. **品質保証**: コードが期待通りに動作することを保証する
+2. **回帰防止**: 既存機能の破壊を早期に検出し、安全なリファクタリングを可能にする
+3. **仕様のドキュメント化**: テストコードが実装の振る舞いを示すドキュメントとして機能する
+4. **設計の改善**: テストしやすいコードは、結合度が低く保守性の高いコードである
+5. **開発速度の向上**: 自動テストにより手動確認の時間を削減し、開発サイクルを加速する
 
-- **期間選択拡張テスト**
-  - 「max」オプションでの全期間データ取得
-  - 既存期間（1ヶ月〜5年）との整合性確認
-  - 期間選択UIの正常動作
+### 1.2 テストが保護するもの
 
-##### B. 全銘柄一括取得機能テスト
-- **JPX銘柄情報取得テスト**
-  - JPX銘柄一覧Excel（data_j.xls）ダウンロード
-  - 銘柄コード正確な抽出
-  - 銘柄マスタテーブル更新
+- **機能の正確性**: ビジネスロジックが正しく実装されていることの保証
+- **既存機能の互換性**: リファクタリングや新機能追加時の既存機能の保護
+- **パフォーマンス**: システムのレスポンス時間とリソース使用量の適切性
+- **セキュリティ**: 脆弱性の早期発見と対策
+- **データ整合性**: データベース操作やデータフローの正確性
 
-- **バッチ処理テスト**
-  - 全銘柄データ一括取得
-  - プログレス表示の正確性
-  - エラー銘柄スキップ・ログ機能
-  - 処理再開機能
+### 1.3 テストの重要性
 
-##### C. UI/UX改善テスト
-- **ページネーション修正テスト**
-  - NaN表示の解消確認
-  - 「前へ」「次へ」ボタン正常動作
-  - ページネーション状態管理
-
-- **システム状態表示テスト**
-  - 接続テスト実行機能
-  - データベース接続状態表示
-  - Yahoo Finance API接続状態表示
-
-#### 1.2 既存機能回帰テスト
-**対象**: v1.0.0の既存機能
-
-- **基本データ取得機能**
-  - 単一銘柄データ取得
-  - 日次データ表示
-  - 基本的なUI操作
-
-- **データベース操作**
-  - データ保存・読み込み
-  - 基本クエリ動作
-  - データ整合性確認
-
-### 2. パフォーマンステスト (Performance Testing)
-
-#### 2.1 負荷テスト
-**目標**: 大量データ処理能力の確認
-
-- **大量データ表示テスト**
-  - 10万件以上のデータ表示
-  - レスポンス時間: 3秒以内
-  - メモリ使用量: 1GB以内
-
-- **同時接続テスト**
-  - 最大10ユーザー同時接続
-  - データ取得処理の並列実行
-  - システム安定性確認
-
-#### 2.2 ストレステスト
-**目標**: システム限界の把握
-
-- **連続処理テスト**
-  - 24時間連続データ取得
-  - メモリリーク検出
-  - システムリソース監視
-
-- **最大データ量テスト**
-  - 全銘柄×全時間軸データ処理
-  - ストレージ使用量確認
-  - パフォーマンス劣化点の特定
-
-### 3. セキュリティテスト (Security Testing)
-
-#### 3.1 データ保護テスト
-- **データベースセキュリティ**
-  - SQLインジェクション対策確認
-  - 認証・認可機能テスト
-  - データ暗号化確認
-
-#### 3.2 API セキュリティテスト
-- **外部API接続セキュリティ**
-  - Yahoo Finance API接続暗号化
-  - JPX API接続セキュリティ
-  - APIキー管理適切性
-
-### 4. ユーザビリティテスト (Usability Testing)
-
-#### 4.1 操作性テスト
-- **直感的操作確認**
-  - 新規ユーザーの初回利用
-  - 機能発見しやすさ
-  - エラーメッセージの分かりやすさ
-
-#### 4.2 レスポンシブデザインテスト
-- **多様なデバイス対応**
-  - デスクトップ（1920x1080、1366x768）
-  - タブレット（768x1024）
-  - モバイル（375x667）
+特にリファクタリング時において、テストは**安全網**として機能します。包括的なテストスイートがあれば、コードの内部構造を大胆に変更しても、既存機能が破壊されていないことを確認できます。
 
 ---
 
-## 🔬 テスト実行計画
+## 2. テストレベルの定義
 
-### Phase 1: 単体機能テスト（1日目）
-**実施内容**:
-- 新機能の個別動作確認
-- 基本的なデータ取得・表示テスト
-- 単純なUIテスト
+### 2.1 ユニットテスト (Unit Test)
 
-**成果物**:
-- 単体機能テスト結果レポート
-- 発見された問題の初期リスト
+#### 目的
+個々の関数、メソッド、クラスの動作を検証する
 
-### Phase 2: 統合テスト（2日目）
-**実施内容**:
-- 機能間の連携動作確認
-- エンドツーエンドフローテスト
-- データフロー整合性確認
+#### スコープ
+- **対象**: 単一の関数またはメソッド
+- **外部依存**: モックやスタブで代替し、外部システムには依存しない
+- **速度**: 非常に高速（ミリ秒単位）
+- **実行頻度**: コミット前、CI/CDパイプラインで常時実行
 
-**成果物**:
-- 統合テスト結果レポート
-- システム全体の動作確認書
+#### 範囲と責任
+- 関数やメソッドの入出力の検証
+- エッジケース、境界値、異常系のテスト
+- データベース、ファイルシステム、外部APIは使用しない
+- ビジネスロジックの正確性を保証
 
-### Phase 3: パフォーマンス・品質テスト（3日目）
-**実施内容**:
-- 負荷テスト・ストレステスト実行
-- セキュリティテスト実施
-- ユーザビリティテスト実施
+#### 例
+```python
+import pytest
+from decimal import Decimal
+from datetime import date
+from models import StockDaily
 
-**成果物**:
-- パフォーマンステスト結果レポート
-- セキュリティテスト結果レポート
-- ユーザビリティテスト結果レポート
+pytestmark = pytest.mark.unit
 
----
 
-## 📝 テストケース仕様
+def test_stock_daily_repr_with_valid_data():
+    """StockDailyモデルの文字列表現を検証する単体テスト"""
+    # Arrange (準備)
+    stock = StockDaily()
+    stock.symbol = "7203.T"
+    stock.date = date(2024, 9, 13)
+    stock.close = Decimal("2500.00")
 
-### TC001: 全時間軸データ取得テスト
+    # Act (実行)
+    result = str(stock)
 
-#### テスト目的
-全ての時間軸（1分足〜1ヶ月足）でデータが正常に取得・表示されることを確認
-
-#### 前提条件
-- システムが正常に起動している
-- データベースが初期化されている
-- Yahoo Finance APIが利用可能
-
-#### テスト手順
-1. 銘柄コード「7203」（トヨタ自動車）を入力
-2. 期間「1年」を選択
-3. 時間軸「1分足」を選択してデータ取得実行
-4. データが正常に取得・表示されることを確認
-5. 手順3-4を全ての時間軸で繰り返し実行
-
-#### 期待結果
-- 全時間軸でデータが正常に取得される
-- 各時間軸のデータ形式が正しい
-- UI上に適切にデータが表示される
-- エラーが発生しない
-
-#### 合格基準
-- 8つの時間軸すべてでテストが成功
-- データ取得時間が各時間軸で30秒以内
-- 表示データの精度が期待値と一致
-
-### TC002: 全銘柄一括取得フローテスト
-
-#### テスト目的
-JPXから全銘柄情報を取得し、一括でデータ取得できることを確認
-
-#### 前提条件
-- インターネット接続が利用可能
-- JPX APIが利用可能
-- 十分なストレージ容量がある
-
-#### テスト手順
-1. 「全銘柄取得」ボタンをクリック
-2. JPX銘柄一覧ダウンロードの実行確認
-3. 銘柄マスタテーブル更新の確認
-4. 全銘柄データ取得の開始確認
-5. プログレス表示の動作確認
-6. 取得完了とサマリー表示の確認
-
-#### 期待結果
-- JPX銘柄一覧が正常にダウンロードされる
-- 全銘柄のデータ取得が完了する
-- プログレス表示が正確に動作する
-- エラー銘柄が適切にスキップされる
-- 完了サマリーが表示される
-
-#### 合格基準
-- 95%以上の銘柄でデータ取得が成功
-- 全体処理時間が6時間以内
-- エラー銘柄が適切にログ出力される
-
-### TC003: 最大期間（max）データ取得テスト
-
-#### テスト目的
-「max」オプションで全期間のデータが正常に取得できることを確認
-
-#### テスト手順
-1. 銘柄コード「6758」（ソニーグループ）を入力
-2. 期間「max」を選択
-3. 時間軸「1日足」を選択してデータ取得実行
-4. 取得されたデータの期間範囲を確認
-5. データ量と処理時間を記録
-
-#### 期待結果
-- 利用可能な全期間のデータが取得される
-- データの最古日付が期待値と一致する
-- データに欠損や異常値がない
-
-#### 合格基準
-- 20年以上のデータが取得される
-- データ取得時間が5分以内
-- データ整合性チェックが全て合格
-
-### TC004: ページネーション動作テスト
-
-#### テスト目的
-修正されたページネーション機能が正常に動作することを確認
-
-#### テスト手順
-1. 大量データ（1000件以上）を表示
-2. ページネーション表示の確認
-3. 「次へ」ボタンをクリック
-4. 「前へ」ボタンをクリック
-5. 任意のページ番号をクリック
-6. 表示件数の変更テスト
-
-#### 期待結果
-- 「表示中: X-Y / 全 Z 件」が正確に表示される
-- 「前へ」「次へ」ボタンが正常に動作する
-- ページ移動が適切に行われる
-- NaN表示が発生しない
-
-#### 合格基準
-- 全てのページネーション操作が正常動作
-- 表示内容が期待値と一致
-- パフォーマンスが適切（1秒以内）
-
-### TC005: システム状態表示テスト
-
-#### テスト目的
-新しく追加されたシステム状態表示機能が正常に動作することを確認
-
-#### テスト手順
-1. 「接続テスト実行」ボタンをクリック
-2. データベース接続状態の確認
-3. Yahoo Finance API接続状態の確認
-4. 各種ステータス表示の確認
-5. エラー状態の意図的な発生とエラー表示の確認
-
-#### 期待結果
-- 各接続状態が正確に表示される
-- 接続テストが適切に実行される
-- エラー時に分かりやすいメッセージが表示される
-
-#### 合格基準
-- 全ての接続テストが正常実行される
-- ステータス表示が実際の状態と一致
-- エラーハンドリングが適切に動作
+    # Assert (検証)
+    expected = "<Stocks1d(symbol='7203.T', date='2024-09-13', close=2500.00)>"
+    assert result == expected
+```
 
 ---
 
-## 🛠 テスト環境・ツール
+### 2.2 統合テスト (Integration Test)
 
-### 開発環境
-- **OS**: Windows 11 / Ubuntu 20.04 LTS
-- **ブラウザ**: Chrome 120+, Firefox 115+, Edge 120+
-- **データベース**: PostgreSQL 15.4
-- **Python**: 3.11+
-- **Node.js**: 18.0+
+#### 目的
+複数のコンポーネント間の連携動作を検証する
 
-### テストツール
-- **自動テスト**: Pytest, Jest
-- **パフォーマンステスト**: Apache JMeter
-- **セキュリティテスト**: OWASP ZAP
-- **ブラウザテスト**: Selenium WebDriver
-- **監視ツール**: システムリソースモニター
+#### スコープ
+- **対象**: 複数のクラス、モジュール間の連携
+- **外部依存**: 実際のデータベース、テスト用外部API、ファイルシステムを使用
+- **速度**: 中速（秒単位）
+- **実行頻度**: PR作成前、CI/CDパイプラインで実行
 
-### テストデータ
-- **銘柄コード**: 実在銘柄10社の選定データセット
-- **期間**: 2020年1月〜現在の実データ
-- **テスト用DB**: 本番環境と同等の構成
+#### 範囲と責任
+- コンポーネント間のデータフローの検証
+- データベースとの連携動作の確認
+- 外部APIとの統合動作の確認
+- トランザクション処理の正確性
 
----
+#### 例
+```python
+import pytest
+from app import app
+from models import Base, StockDaily
+from services.stock_data_service import StockDataService
 
-## 📊 テスト結果評価基準
+pytestmark = pytest.mark.integration
 
-### 合格基準
 
-#### 機能テスト
-- **必須機能**: 合格率100%
-- **重要機能**: 合格率95%以上
-- **付加機能**: 合格率90%以上
+def test_stock_data_fetch_and_save_integration(app, db_session):
+    """株価データ取得とDB保存の結合テスト"""
+    # Arrange (準備)
+    service = StockDataService()
+    symbol = "7203.T"
+    period = "5d"
+    interval = "1d"
 
-#### パフォーマンステスト
-- **応答時間**: 目標値以内
-- **メモリ使用量**: 制限値以内
-- **同時接続**: 要件満足
+    # Act (実行)
+    result = service.fetch_and_save_stock_data(
+        symbol=symbol,
+        period=period,
+        interval=interval
+    )
 
-#### セキュリティテスト
-- **脆弱性**: 0件
-- **セキュリティ要件**: 100%満足
+    # Assert (検証)
+    assert result["success"] is True
 
-#### ユーザビリティテスト
-- **満足度**: 90%以上
-- **タスク完了率**: 95%以上
-- **エラー率**: 5%以下
-
-### 不合格時の対応
-
-#### レベル1（軽微）
-- ドキュメント修正で対応
-- 次回リリースで修正
-
-#### レベル2（中程度）
-- 機能修正が必要
-- 再テスト実施
-
-#### レベル3（重大）
-- 機能停止・修正必須
-- 全面的な再テスト実施
+    # データベースに保存されていることを確認
+    saved_data = db_session.query(StockDaily).filter_by(
+        symbol=symbol
+    ).all()
+    assert len(saved_data) > 0
+```
 
 ---
 
-## 📋 テスト実行チェックリスト
+### 2.3 E2Eテスト (End-to-End Test)
 
-### 事前準備
-- [ ] テスト環境の構築完了
-- [ ] テストデータの準備完了
-- [ ] テストツールの動作確認完了
-- [ ] テスト実行者のスキル確認完了
+#### 目的
+ユーザー視点での全体の動作を検証する
 
-### Phase 1: 単体機能テスト
-- [ ] TC001: 全時間軸データ取得テスト
-- [ ] TC002: 全銘柄一括取得フローテスト
-- [ ] TC003: 最大期間（max）データ取得テスト
-- [ ] TC004: ページネーション動作テスト
-- [ ] TC005: システム状態表示テスト
-- [ ] 既存機能回帰テスト全項目
+#### スコープ
+- **対象**: ブラウザ操作を含むフルスタックフロー
+- **外部依存**: 実際のUIとバックエンドシステム全体
+- **速度**: 低速（分単位）
+- **実行頻度**: リリース前、重要な機能変更後
 
-### Phase 2: 統合テスト
-- [ ] エンドツーエンドフローテスト
-- [ ] データフロー整合性確認
-- [ ] 機能間連携動作確認
-- [ ] エラーハンドリング統合テスト
+#### 範囲と責任
+- 実際のユーザーシナリオの再現
+- UIからデータベースまでの全体フローの確認
+- ブラウザの動作確認（レスポンシブデザイン等）
+- 統合されたシステム全体の動作保証
 
-### Phase 3: パフォーマンス・品質テスト
-- [ ] 負荷テスト（10万件データ）
-- [ ] ストレステスト（連続処理）
-- [ ] セキュリティテスト全項目
-- [ ] ユーザビリティテスト全項目
-- [ ] レスポンシブデザインテスト
+#### 例
+```python
+import pytest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 
-### 最終確認
-- [ ] 全テスト結果の集計完了
-- [ ] 合格基準の達成確認
-- [ ] 不具合対応の完了確認
-- [ ] テストレポートの作成完了
-- [ ] ステークホルダーへの報告完了
+pytestmark = pytest.mark.e2e
 
----
 
-## 📄 成果物・ドキュメント
+def test_stock_data_display_flow_e2e(selenium_driver):
+    """株価データ表示フローのE2Eテスト"""
+    # Arrange (準備)
+    driver = selenium_driver
+    driver.get("http://localhost:5000")
 
-### 必須成果物
-1. **テスト実行結果レポート**
-   - 各テストケースの結果詳細
-   - 合格/不合格の判定根拠
-   - 発見された問題と対応状況
+    # Act (実行)
+    # 銘柄コード入力
+    symbol_input = driver.find_element(By.ID, "symbol-input")
+    symbol_input.send_keys("7203.T")
 
-2. **パフォーマンステストレポート**
-   - 負荷テスト結果
-   - ストレステスト結果
-   - パフォーマンス改善提案
+    # データ取得ボタンクリック
+    fetch_button = driver.find_element(By.ID, "fetch-button")
+    fetch_button.click()
 
-3. **セキュリティテストレポート**
-   - 脆弱性スキャン結果
-   - セキュリティ要件適合性確認
-   - セキュリティ改善提案
+    # データ表示を待機
+    wait = WebDriverWait(driver, 10)
+    table = wait.until(
+        lambda d: d.find_element(By.ID, "stock-data-table")
+    )
 
-4. **品質保証証明書**
-   - v1.1.0リリース可否判定
-   - 品質基準達成証明
-   - 推奨事項・制限事項
-
-### 参考資料
-- [database_design.md](../database_design.md) - データベース設計
-- [api_specification.md](../api_specification.md) - API仕様
-- [frontend_design.md](../frontend_design.md) - フロントエンド設計
-- [performance_optimization_guide.md](../performance_optimization_guide.md) - パフォーマンス最適化ガイド
+    # Assert (検証)
+    assert table.is_displayed()
+    rows = table.find_elements(By.TAG_NAME, "tr")
+    assert len(rows) > 1  # ヘッダー行 + データ行
+```
 
 ---
 
-## ✅ テスト完了確認
+## 3. テストカバレッジ目標
 
-このテスト戦略に基づく統合テスト・品質保証の完了により、株価データ取得システム v1.1.0は以下を達成します：
+### 3.1 カバレッジ目標の設定
 
-### 品質保証達成項目
-- ✅ 新機能の正常動作確認
-- ✅ 既存機能の互換性確保
-- ✅ パフォーマンス要件の満足
-- ✅ セキュリティ基準の遵守
-- ✅ ユーザビリティの大幅向上
+テストカバレッジは、コードがテストされている割合を示す指標です。本プロジェクトでは以下の目標を設定します:
 
-### リリース準備完了条件
-- 全テストケースの合格
-- パフォーマンス基準の達成
-- セキュリティ要件の満足
-- ドキュメント整備の完了
-- ステークホルダー承認の取得
+| レベル | 最低カバレッジ | 推奨カバレッジ |
+|--------|---------------|---------------|
+| **プロジェクト全体** | **70%** | 80% |
+| **重要モジュール** | 80% | 90% |
+| **ビジネスロジック** | 90% | 95% |
+| **ユーティリティ** | 70% | 80% |
+
+### 3.2 重要モジュールの定義
+
+以下のモジュールは、システムの中核を担うため、高いカバレッジを維持します:
+
+- **`services/`**: ビジネスロジックを含むサービス層
+- **`models.py`**: データモデル定義
+- **`utils/`**: 共通ユーティリティ関数
+- **`app/routes/`**: APIエンドポイント
+
+### 3.3 測定方法
+
+#### カバレッジレポート生成
+```bash
+# カバレッジレポート生成（HTML形式）
+pytest --cov=app --cov=models --cov=services --cov=utils --cov-report=html
+
+# HTML形式のレポート確認
+# htmlcov/index.html をブラウザで開く
+```
+
+#### ターミナルでカバレッジ確認
+```bash
+# ターミナルでカバレッジ確認（未テスト行表示）
+pytest --cov=app --cov-report=term-missing
+```
+
+#### 最低カバレッジ設定
+```bash
+# カバレッジ70%未満の場合、テスト失敗とする
+pytest --cov --cov-fail-under=70
+```
+
+### 3.4 報告方法
+
+- **PR作成時**: カバレッジレポートをPR説明に含める
+- **CI/CD**: パイプラインでカバレッジを自動測定し、70%未満の場合はビルド失敗
+- **定期レビュー**: 月次で全体カバレッジを確認し、改善計画を立てる
 
 ---
 
-**最終更新**: 2025年9月現在
-**文書バージョン**: v1.1.0
-**次回見直し**: v1.2.0開発開始時
+## 4. テスト命名規則
+
+### 4.1 テストファイル命名規則
+
+- **形式**: `test_*.py` または `*_test.py`
+- **推奨**: `test_<モジュール名>.py`
+- **例**:
+  - `test_stock_data_service.py`
+  - `test_models.py`
+  - `test_bulk_data_service.py`
+
+### 4.2 テストクラス命名規則（クラスベーステストの場合）
+
+- **形式**: `Test<クラス名>`
+- **例**:
+  - `TestStockDataService`
+  - `TestStockDaily`
+
+### 4.3 テスト関数命名規則
+
+- **形式**: `test_<機能>_<条件>_<期待結果>`
+- **例**:
+  - `test_fetch_stock_data_with_valid_symbol_returns_success()`
+  - `test_save_stock_data_with_duplicate_record_raises_error()`
+  - `test_calculate_moving_average_with_empty_data_returns_none()`
+
+### 4.4 命名の良い例と悪い例
+
+```python
+# ❌ 悪い例: 何をテストしているか不明瞭
+def test_1():
+    pass
+
+def test_stock():
+    pass
+
+# ✅ 良い例: テスト内容が明確
+def test_stock_daily_model_creates_instance_with_valid_data():
+    pass
+
+def test_fetch_stock_data_with_invalid_symbol_returns_error():
+    pass
+
+def test_calculate_sma_with_period_greater_than_data_length_returns_none():
+    pass
+```
+
+### 4.5 ファイル配置ルール
+
+- **テストディレクトリ**: `tests/`
+- **構造**: 実装コードのディレクトリ構造に対応
+  ```
+  app/
+  ├── services/
+  │   └── stock_data_service.py
+  tests/
+  ├── test_stock_data_service.py
+  ```
+
+---
+
+## 5. テストパターン
+
+### 5.1 AAAパターンの適用ルール
+
+**AAAパターン**は、テストコードを明確に構造化するための標準的なパターンです。
+
+#### パターンの構成
+
+1. **Arrange (準備)**: テストに必要なデータ、オブジェクト、状態を準備
+2. **Act (実行)**: テスト対象の処理を実行
+3. **Assert (検証)**: 期待される結果を検証
+
+#### 実装例
+
+```python
+import pytest
+from services.stock_data_service import StockDataService
+
+pytestmark = pytest.mark.unit
+
+
+def test_fetch_stock_data_with_valid_symbol_returns_success():
+    """正常な銘柄コードでデータ取得が成功することを検証"""
+    # Arrange (準備)
+    service = StockDataService()
+    symbol = "7203.T"
+    period = "5d"
+    interval = "1d"
+
+    # Act (実行)
+    result = service.fetch_stock_data(
+        symbol=symbol,
+        period=period,
+        interval=interval
+    )
+
+    # Assert (検証)
+    assert result["success"] is True
+    assert "data" in result
+    assert len(result["data"]) > 0
+```
+
+#### AAAパターンのメリット
+
+- **可読性向上**: テストの意図が明確になる
+- **保守性向上**: 各セクションの役割が明確で、変更が容易
+- **一貫性**: プロジェクト全体で統一されたテスト構造
+
+---
+
+## 6. テストデータ管理
+
+### 6.1 フィクスチャの活用
+
+#### 基本的なフィクスチャ定義（`conftest.py`）
+
+```python
+import pytest
+from app import app as flask_app
+from models import Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+
+@pytest.fixture(scope="session")
+def app():
+    """Flaskアプリケーションフィクスチャ"""
+    flask_app.config["TESTING"] = True
+    flask_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    return flask_app
+
+
+@pytest.fixture(scope="function")
+def db_session(app):
+    """データベースセッションフィクスチャ（各テスト後にクリーンアップ）"""
+    engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    yield session
+
+    session.close()
+    Base.metadata.drop_all(engine)
+
+
+@pytest.fixture
+def client(app):
+    """Flaskテストクライアント"""
+    return app.test_client()
+```
+
+#### フィクスチャのスコープ
+
+- **`function`**: 各テスト関数ごとに実行（デフォルト）
+- **`class`**: テストクラスごとに実行
+- **`module`**: モジュールごとに実行
+- **`session`**: テストセッション全体で1回実行
+
+### 6.2 ファクトリーパターンの使用
+
+複雑なテストデータを生成する場合、ファクトリーパターンを使用します。
+
+```python
+from decimal import Decimal
+from datetime import date
+from models import StockDaily
+
+
+def create_stock_daily(
+    symbol="7203.T",
+    date_value=date(2024, 1, 1),
+    open_price=Decimal("2500.00"),
+    high_price=Decimal("2550.00"),
+    low_price=Decimal("2480.00"),
+    close_price=Decimal("2520.00"),
+    volume=1000000
+):
+    """StockDailyインスタンスを生成するファクトリー関数"""
+    return StockDaily(
+        symbol=symbol,
+        date=date_value,
+        open=open_price,
+        high=high_price,
+        low=low_price,
+        close=close_price,
+        volume=volume
+    )
+
+
+# 使用例
+def test_stock_daily_factory():
+    stock = create_stock_daily(symbol="6758.T", close_price=Decimal("3000.00"))
+    assert stock.symbol == "6758.T"
+    assert stock.close == Decimal("3000.00")
+```
+
+---
+
+## 7. モック使用ガイドライン
+
+### 7.1 いつモックを使うべきか
+
+以下の場合にモックを使用します:
+
+1. **外部APIへの依存**: Yahoo Finance API、JPX APIなど
+2. **データベースアクセス**: ユニットテストでのDB操作
+3. **ファイルシステム操作**: ファイル読み書き
+4. **時間依存の処理**: 現在時刻、タイムアウト処理
+5. **ネットワーク通信**: HTTP通信、WebSocket
+
+### 7.2 モックの実装方法
+
+#### pytest-mockを使用したモック
+
+```python
+from unittest.mock import Mock
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
+def test_fetch_stock_data_with_api_error_handles_gracefully(mocker):
+    """外部API呼び出しをモック化してエラーハンドリングを検証"""
+    # Arrange (準備)
+    mock_yfinance = mocker.patch('yfinance.Ticker')
+    mock_ticker = Mock()
+    mock_ticker.history.side_effect = Exception("API Error")
+    mock_yfinance.return_value = mock_ticker
+
+    service = StockDataService()
+
+    # Act (実行)
+    result = service.fetch_stock_data(symbol="7203.T", period="1d")
+
+    # Assert (検証)
+    assert result["success"] is False
+    assert "error" in result
+```
+
+#### デコレーター形式のモック
+
+```python
+from unittest.mock import Mock, patch
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
+@patch('services.stock_data_service.yfinance.Ticker')
+def test_fetch_stock_data_with_mocked_response(mock_ticker_class):
+    """デコレーター形式でモック化"""
+    # Arrange (準備)
+    mock_ticker = Mock()
+    mock_data = Mock()
+    mock_data.empty = False
+    mock_ticker.history.return_value = mock_data
+    mock_ticker_class.return_value = mock_ticker
+
+    service = StockDataService()
+
+    # Act (実行)
+    result = service.fetch_stock_data(symbol="7203.T", period="1d")
+
+    # Assert (検証)
+    assert result["success"] is True
+```
+
+### 7.3 モック使用のベストプラクティス
+
+- **最小限のモック化**: 必要最小限の範囲のみモック化
+- **明確な振る舞い定義**: モックの返り値や例外を明確に定義
+- **過度なモック化を避ける**: 統合テストでは実際の依存関係を使用
+- **モックの検証**: モックが正しく呼び出されたかを検証（`assert_called_with`等）
+
+---
+
+## 8. テスト実行ルール
+
+### 8.1 ローカルでのテスト実行義務
+
+**すべての開発者は、コミット前に以下のテストを実行すること**:
+
+```bash
+# 全テスト実行
+pytest
+
+# 特定のマーカーのみ実行（E2Eテストを除く）
+pytest -m "not e2e"
+
+# カバレッジ付き実行
+pytest --cov
+```
+
+### 8.2 PR作成前の全テスト通過必須
+
+Pull Request作成前に、以下を確認すること:
+
+- [ ] 全ユニットテストが通過している
+- [ ] 全統合テストが通過している
+- [ ] カバレッジ目標（70%以上）を達成している
+- [ ] 新規追加した機能にテストが含まれている
+
+```bash
+# PR作成前の確認コマンド
+pytest --cov --cov-fail-under=70
+```
+
+### 8.3 CI/CDでのテスト自動実行
+
+#### CI/CDパイプラインでの自動テスト
+
+- **トリガー**: Pull Request作成時、mainブランチへのマージ時
+- **実行内容**:
+  1. ユニットテスト実行
+  2. 統合テスト実行
+  3. カバレッジ測定（最低70%）
+  4. E2Eテスト実行（リリース前のみ）
+- **失敗時の対応**: ビルド失敗としてマージをブロック
+
+#### テスト実行の並列化
+
+```bash
+# CPU数に応じた並列実行
+pytest -n auto
+
+# 指定数のワーカーで並列実行
+pytest -n 4
+```
+
+### 8.4 テストマーカー別実行
+
+```bash
+# 単体テストのみ実行
+pytest -m unit
+
+# 結合テストのみ実行
+pytest -m integration
+
+# E2Eテスト以外を実行
+pytest -m "not e2e"
+
+# 単体テストと結合テストを実行
+pytest -m "unit or integration"
+
+# 遅いテストを除外
+pytest -m "not slow"
+```
+
+### 8.5 テスト失敗時の対応
+
+1. **失敗したテストの確認**: エラーメッセージとスタックトレースを確認
+2. **再現性の確認**: ローカル環境で再現できるか確認
+3. **修正または無効化**: テストまたは実装コードを修正、または一時的に無効化
+4. **再テスト**: 修正後、全テストを再実行
+
+```bash
+# 失敗したテストのみ再実行
+pytest --lf
+
+# 最初の失敗で停止
+pytest -x
+```
+
+---
+
+## 9. まとめ
+
+本ドキュメントで定義したテスト戦略は、リファクタリングの安全網として機能し、プロジェクト全体の品質を保証します。
+
+### 9.1 重要ポイント
+
+- **テストレベルの理解**: ユニット、統合、E2Eテストの役割を理解し、適切に使い分ける
+- **カバレッジ目標の達成**: プロジェクト全体で70%以上のカバレッジを維持する
+- **命名規則の遵守**: テスト内容が明確になる命名規則を徹底する
+- **AAAパターンの適用**: テストコードの可読性と保守性を向上させる
+- **フィクスチャとファクトリーの活用**: テストデータの管理を効率化する
+- **モックの適切な使用**: 外部依存を分離し、テストの独立性を保つ
+- **テスト実行の徹底**: コミット前、PR作成前、CI/CDでの自動実行
+
+### 9.2 継続的改善
+
+テスト戦略は固定されたものではなく、プロジェクトの進化に応じて継続的に改善します:
+
+- **定期的なレビュー**: 月次でテスト戦略を見直し、改善点を特定
+- **新しいベストプラクティスの導入**: 業界標準や新しいツールを積極的に採用
+- **フィードバックの反映**: チームからのフィードバックを戦略に反映
+
+### 9.3 関連ドキュメント
+
+- [testing_guide.md](testing_guide.md) - テスト作成ガイドライン
+- [coding_standards.md](coding_standards.md) - コーディング規約
+- [GitHub Workflow](github_workflow.md) - GitHub運用ルール
+
+---
+
+**最終更新**: 2025-10-25
+**文書バージョン**: v2.0.0
+**次回見直し**: リファクタリング完了時
