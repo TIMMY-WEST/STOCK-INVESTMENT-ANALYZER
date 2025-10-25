@@ -4,6 +4,8 @@ from datetime import datetime
 import logging
 from typing import Any, Dict, List, Optional
 
+from services.stock_batch_processor import StockBatchProcessor
+from services.stock_data_converter import StockDataConverter
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_saver import StockDataSaveError, StockDataSaver
 from utils.timeframe_utils import get_all_intervals, get_display_name
@@ -25,6 +27,8 @@ class StockDataOrchestrator:
         """初期化."""
         self.fetcher = StockDataFetcher()
         self.saver = StockDataSaver()
+        self.converter = StockDataConverter()
+        self.batch_processor = StockBatchProcessor()
         self.logger = logger
 
     def fetch_and_save(
@@ -57,7 +61,7 @@ class StockDataOrchestrator:
             )
 
             # データ変換
-            data_list = self.fetcher.convert_to_dict(df, interval)
+            data_list = self.converter.convert_to_dict(df, interval)
 
             # データ保存
             save_result = self.saver.save_stock_data(
@@ -124,10 +128,61 @@ class StockDataOrchestrator:
             f"(時間軸: {len(intervals)}種類)"
         )
 
-        for interval in intervals:
-            results[interval] = self.fetch_and_save(
-                symbol=symbol, interval=interval, period=period
+        try:
+            # BatchProcessorを使用して複数時間軸のデータを取得
+            batch_results = self.batch_processor.fetch_multiple_timeframes(
+                symbol=symbol, intervals=intervals, period=period
             )
+
+            # 各時間軸のデータを保存
+            for interval, df in batch_results.items():
+                try:
+                    # データ変換
+                    data_list = self.converter.convert_to_dict(df, interval)
+
+                    # データ保存
+                    save_result = self.saver.save_stock_data(
+                        symbol=symbol, interval=interval, data_list=data_list
+                    )
+
+                    # 整合性チェック
+                    integrity_check = self.check_data_integrity(
+                        symbol=symbol, interval=interval
+                    )
+
+                    results[interval] = {
+                        "success": True,
+                        "symbol": symbol,
+                        "interval": interval,
+                        "fetch_count": len(data_list),
+                        "save_result": save_result,
+                        "integrity_check": integrity_check,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+
+                except (StockDataSaveError, Exception) as e:
+                    error_msg = f"データ保存エラー: {symbol} ({interval}): {e}"
+                    self.logger.error(error_msg)
+                    results[interval] = {
+                        "success": False,
+                        "symbol": symbol,
+                        "interval": interval,
+                        "error": str(e),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+
+        except Exception as e:
+            # バッチ取得全体でエラーが発生した場合
+            error_msg = f"複数時間軸データ取得エラー: {symbol}: {e}"
+            self.logger.error(error_msg)
+            for interval in intervals:
+                results[interval] = {
+                    "success": False,
+                    "symbol": symbol,
+                    "interval": interval,
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                }
 
         success_count = sum(1 for r in results.values() if r.get("success"))
         self.logger.info(

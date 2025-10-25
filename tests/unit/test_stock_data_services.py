@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pandas as pd
 import pytest
 
+from services.stock_data_converter import StockDataConverter
 from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
 from services.stock_data_orchestrator import StockDataOrchestrator
 from services.stock_data_saver import StockDataSaveError, StockDataSaver
@@ -102,7 +103,10 @@ class TestStockDataFetcher:
 
     def test_convert_to_dict_daily(self, fetcher, mock_yfinance_data):
         """DataFrameから辞書への変換（日足）."""
-        records = fetcher.convert_to_dict(mock_yfinance_data, "1d")
+        from services.stock_data_converter import StockDataConverter
+
+        converter = StockDataConverter()
+        records = converter.convert_to_dict(mock_yfinance_data, "1d")
 
         assert len(records) == 3
         assert "date" in records[0]
@@ -112,6 +116,9 @@ class TestStockDataFetcher:
 
     def test_convert_to_dict_intraday(self, fetcher):
         """DataFrameから辞書への変換（分足）."""
+        from services.stock_data_converter import StockDataConverter
+
+        converter = StockDataConverter()
         data = {
             "Open": [100.0],
             "High": [105.0],
@@ -122,7 +129,7 @@ class TestStockDataFetcher:
         index = pd.date_range("2024-01-01 09:00", periods=1, freq="1min")
         df = pd.DataFrame(data, index=index)
 
-        records = fetcher.convert_to_dict(df, "1m")
+        records = converter.convert_to_dict(df, "1m")
 
         assert len(records) == 1
         assert "datetime" in records[0]
@@ -188,7 +195,7 @@ class TestStockDataOrchestrator:
         return StockDataOrchestrator()
 
     @patch.object(StockDataFetcher, "fetch_stock_data")
-    @patch.object(StockDataFetcher, "convert_to_dict")
+    @patch.object(StockDataConverter, "convert_to_dict")
     @patch.object(StockDataSaver, "save_stock_data")
     @patch.object(StockDataOrchestrator, "check_data_integrity")
     def test_fetch_and_save_success(
