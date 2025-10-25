@@ -1,5 +1,13 @@
-// 株価データ取得システム - JavaScript API連携機能
-// Issue #19: JavaScript実装とAPI連携機能
+/**
+ * 株価データ取得システム - JavaScript API連携機能
+ * ES6 Module版
+ */
+
+// 共通ユーティリティとサービスをインポート
+import { AppState, Utils, ApiService, UIComponents, FormValidator, INTERVAL_PERIOD_RULES } from './app.js';
+
+// アプリケーション状態管理インスタンス
+const appState = new AppState();
 
 // アプリケーション初期化
 document.addEventListener('DOMContentLoaded', function() {
@@ -109,44 +117,10 @@ async function handleFetchSubmit(event) {
     }
 }
 
-// フォームバリデーション
+// フォームバリデーション（FormValidatorクラスを使用）
 function validateForm(formData) {
-    const errors = {};
-
-    const symbol = formData.get('symbol');
-    if (!symbol) {
-        errors.symbol = '銘柄コードは必須です';
-    } else if (!symbol.match(/^[0-9]{4}\.T$/)) {
-        errors.symbol = '正しい銘柄コード形式で入力してください（例: 7203.T）';
-    }
-
-    // 時間軸選択のバリデーション
-    const period = formData.get('period');
-    if (!period || period.trim() === '') {
-        errors.period = '期間を選択してください';
-    } else {
-        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
-        if (!validPeriods.includes(period)) {
-            errors.period = '無効な期間が選択されています';
-        }
-    }
-
-    // 足選択のバリデーション
-    const interval = formData.get('interval');
-    if (!interval || interval.trim() === '') {
-        errors.interval = '足を選択してください';
-    } else {
-        const validIntervals = [
-            '1m', '5m', '15m', '30m',
-            '1h',
-            '1d', '1wk', '1mo'
-        ];
-        if (!validIntervals.includes(interval)) {
-            errors.interval = '無効な足が選択されています';
-        }
-    }
-
-    return errors;
+    const validator = new FormValidator();
+    return validator.validateStockForm(formData);
 }
 
 // バリデーションエラー表示
@@ -221,160 +195,31 @@ function clearFieldErrors() {
     }
 }
 
-// ローディング状態管理
+// ローディング状態管理（Utilsクラスを使用）
 function showLoading() {
-    const fetchButton = document.getElementById('fetch-btn');
-    const buttonText = fetchButton.querySelector('.btn-text');
-    const spinner = document.getElementById('loading-spinner');
-    const resultContainer = document.getElementById('result-container');
-
-    if (fetchButton) {
-        fetchButton.disabled = true;
-    }
-
-    if (buttonText) {
-        buttonText.textContent = 'データ取得中...';
-    }
-
-    if (spinner) {
-        spinner.style.display = 'inline-block';
-    }
-
-    // ローディングメッセージを表示
-    if (resultContainer) {
-        resultContainer.innerHTML = `
-            <div class="alert alert-info">
-                <div class="alert-content">
-                    <span class="status-icon">📊</span>
-                    <div>
-                        <strong>データ取得中...</strong>
-                        <div style="margin-top: 8px;">Yahoo Finance APIからデータを取得し、データベースに保存しています。しばらくお待ちください...</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        // スクリーンリーダー向けに状態を通知
-        resultContainer.setAttribute('aria-busy', 'true');
-    }
+    Utils.showLoading();
 }
 
 function hideLoading() {
-    console.log('[hideLoading] 開始');
-    const fetchButton = document.getElementById('fetch-btn');
-    console.log('[hideLoading] fetchButton:', fetchButton);
-
-    if (!fetchButton) {
-        console.error('[hideLoading] エラー: fetchButton が見つかりません');
-        return;
-    }
-
-    const buttonText = fetchButton.querySelector('.btn-text');
-    const spinner = document.getElementById('loading-spinner');
-    const resultContainer = document.getElementById('result-container');
-    console.log('[hideLoading] 要素取得完了:', { buttonText, spinner, resultContainer });
-
-    if (fetchButton) {
-        fetchButton.disabled = false;
-        console.log('[hideLoading] ボタン有効化');
-    }
-
-    if (buttonText) {
-        buttonText.textContent = 'データ取得';
-        console.log('[hideLoading] ボタンテキスト変更');
-    }
-
-    if (spinner) {
-        spinner.style.display = 'none';
-        console.log('[hideLoading] スピナー非表示');
-    }
-
-    // ローディングメッセージをクリア
-    if (resultContainer) {
-        resultContainer.removeAttribute('aria-busy');
-        console.log('[hideLoading] aria-busy 削除');
-        // ローディングメッセージ（alert-info）のみをクリア
-        const loadingAlert = resultContainer.querySelector('.alert-info');
-        console.log('[hideLoading] loadingAlert:', loadingAlert);
-        if (loadingAlert) {
-            resultContainer.innerHTML = '';
-            console.log('[hideLoading] ローディングメッセージクリア');
-        }
-    }
-    console.log('[hideLoading] 完了');
+    Utils.hideLoading();
 }
 
-// ステータス表示関数
+// ステータス表示関数（UIComponentsクラスを使用）
 function showSuccess(message, data) {
     console.log('[showSuccess] 開始:', message, data);
-    const resultContainer = document.getElementById('result-container');
-    console.log('[showSuccess] resultContainer:', resultContainer);
-    if (!resultContainer) {
-        console.error('[showSuccess] エラー: resultContainer が見つかりません');
-        return;
+
+    // データが渡された場合は詳細表示、そうでなければシンプル表示
+    if (data && typeof data === 'object') {
+        UIComponents.showDetailedSuccessMessage(message, data);
+    } else {
+        UIComponents.showSuccessMessage(message);
     }
 
-    // スキップされたレコード数を計算
-    const skippedRecords = data.skipped_records || 0;
-    const downloadedCount = data.records_count || 0;
-    const savedCount = data.saved_records || 0;
-    console.log('[showSuccess] データ:', { skippedRecords, downloadedCount, savedCount });
-
-    console.log('[showSuccess] HTML 更新開始');
-    resultContainer.innerHTML = `
-        <div class="alert alert-success">
-            <div class="alert-title">✅ ${escapeHtml(message)}</div>
-            <div class="success-details">
-                <div><strong>銘柄:</strong> ${escapeHtml(data.symbol)}</div>
-                <div><strong>時間軸（足）:</strong> ${escapeHtml(data.interval || '1d')}</div>
-                <div class="data-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">📥 ダウンロード件数:</span>
-                        <span class="stat-value">${formatNumber(downloadedCount)} 件</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">💾 DB格納件数:</span>
-                        <span class="stat-value">${formatNumber(savedCount)} 件</span>
-                    </div>
-                    ${skippedRecords > 0 ? `
-                    <div class="stat-item">
-                        <span class="stat-label">⏭️ スキップ（重複）:</span>
-                        <span class="stat-value">${formatNumber(skippedRecords)} 件</span>
-                    </div>
-                    ` : ''}
-                </div>
-                <div><strong>取得期間:</strong> ${data.date_range.start} ～ ${data.date_range.end}</div>
-            </div>
-        </div>
-    `;
-    console.log('[showSuccess] HTML 更新完了');
-
-    // 10秒後に自動非表示（情報量が増えたため延長）
-    setTimeout(() => {
-        if (resultContainer.innerHTML.includes('alert-success')) {
-            resultContainer.innerHTML = '';
-            console.log('[showSuccess] 自動非表示実行');
-        }
-    }, 10000);
     console.log('[showSuccess] 完了');
 }
 
 function showError(message) {
-    const resultContainer = document.getElementById('result-container');
-    if (!resultContainer) return;
-
-    resultContainer.innerHTML = `
-        <div class="alert alert-error">
-            <div class="alert-title">❌ エラー</div>
-            <div>${escapeHtml(message)}</div>
-        </div>
-    `;
-
-    // 5秒後に自動非表示
-    setTimeout(() => {
-        if (resultContainer.innerHTML.includes('alert-error')) {
-            resultContainer.innerHTML = '';
-        }
-    }, 5000);
+    UIComponents.showErrorMessage(message);
 }
 
 // 株価データ読み込み (GET /api/stocks への非同期リクエスト)
@@ -387,9 +232,9 @@ async function loadStockData(page = null) {
 
         // ページが指定されている場合は使用、そうでなければ現在のページを使用
         if (page !== null) {
-            currentPage = page;
+            appState.currentPage = page;
         }
-        currentLimit = limit;
+        appState.currentLimit = limit;
 
         if (tableBody) {
             showLoadingInTable(tableBody);
@@ -397,8 +242,8 @@ async function loadStockData(page = null) {
 
         // URLパラメータ構築
         const params = new URLSearchParams({
-            limit: currentLimit,
-            offset: currentPage * currentLimit,
+            limit: appState.currentLimit,
+            offset: appState.currentPage * appState.currentLimit,
             interval: intervalFilter
         });
 
@@ -410,10 +255,10 @@ async function loadStockData(page = null) {
         const result = await response.json();
 
         if (result.success) {
-            totalRecords = result.pagination.total;
+            appState.totalRecords = result.pagination.total;
             updateDataTable(result.data);
             updatePagination();
-            updateDataSummary(symbolFilter, result.data.length, totalRecords);
+            updateDataSummary(symbolFilter, result.data.length, appState.totalRecords);
         } else {
             // エラーの場合もページネーションを更新（totalRecordsは0のまま）
             updatePagination();
@@ -465,7 +310,7 @@ function updateDataTable(stockData) {
     if (!tableBody) return;
 
     // 現在のストックデータを保存（ソート機能で使用）
-    currentStockData = [...stockData];
+    appState.currentStockData = [...stockData];
 
     if (stockData.length === 0) {
         tableBody.innerHTML = `
@@ -553,13 +398,11 @@ async function deleteStock(stockId) {
     }
 }
 
-// ユーティリティ関数
+// ユーティリティ関数（Utilsクラスを使用）
 
 // HTMLエスケープ
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return Utils.escapeHtml(text);
 }
 
 // 数値フォーマット
@@ -627,15 +470,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // グローバル関数として削除機能を公開
 window.deleteStock = deleteStock;
 
-// テーブルソート機能
-let currentStockData = [];
-let currentSortColumn = null;
-let currentSortDirection = 'asc';
-
-// ページネーション機能
-let currentPage = 0;
-let currentLimit = 25;
-let totalRecords = 0;
+// モジュール内状態管理はインポートしたappStateインスタンスを使用
 
 // テーブルソート機能初期化
 function initTableSorting() {
@@ -654,18 +489,18 @@ function initTableSorting() {
 
 // テーブルソート実行
 function sortTable(column) {
-    if (currentStockData.length === 0) return;
+    if (appState.currentStockData.length === 0) return;
 
     // ソート方向を決定
-    if (currentSortColumn === column) {
-        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    if (appState.currentSortColumn === column) {
+        appState.currentSortDirection = appState.currentSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-        currentSortDirection = 'asc';
-        currentSortColumn = column;
+        appState.currentSortDirection = 'asc';
+        appState.currentSortColumn = column;
     }
 
     // データをソート
-    const sortedData = [...currentStockData].sort((a, b) => {
+    const sortedData = [...appState.currentStockData].sort((a, b) => {
         let aValue = a[column];
         let bValue = b[column];
 
@@ -686,17 +521,17 @@ function sortTable(column) {
         }
 
         if (aValue < bValue) {
-            return currentSortDirection === 'asc' ? -1 : 1;
+            return appState.currentSortDirection === 'asc' ? -1 : 1;
         }
         if (aValue > bValue) {
-            return currentSortDirection === 'asc' ? 1 : -1;
+            return appState.currentSortDirection === 'asc' ? 1 : -1;
         }
         return 0;
     });
 
     // ソートされたデータでテーブルを更新
     updateDataTable(sortedData);
-    updateSortIcons(column, currentSortDirection);
+    updateSortIcons(column, appState.currentSortDirection);
 }
 
 // ソートアイコンを更新
@@ -724,17 +559,17 @@ function initPagination() {
 
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
-            if (currentPage > 0) {
-                loadStockData(currentPage - 1);
+            if (appState.currentPage > 0) {
+                loadStockData(appState.currentPage - 1);
             }
         });
     }
 
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
-            const totalPages = Math.ceil(totalRecords / currentLimit);
-            if (currentPage < totalPages - 1) {
-                loadStockData(currentPage + 1);
+            const totalPages = Math.ceil(appState.totalRecords / appState.currentLimit);
+            if (appState.currentPage < totalPages - 1) {
+                loadStockData(appState.currentPage + 1);
             }
         });
     }
@@ -750,9 +585,9 @@ function updatePagination() {
     if (!paginationContainer || !paginationText || !prevBtn || !nextBtn) return;
 
     // 変数の安全性チェック
-    const safeTotalRecords = isNaN(totalRecords) || totalRecords < 0 ? 0 : totalRecords;
-    const safeCurrentPage = isNaN(currentPage) || currentPage < 0 ? 0 : currentPage;
-    const safeCurrentLimit = isNaN(currentLimit) || currentLimit <= 0 ? 25 : currentLimit;
+    const safeTotalRecords = isNaN(appState.totalRecords) || appState.totalRecords < 0 ? 0 : appState.totalRecords;
+    const safeCurrentPage = isNaN(appState.currentPage) || appState.currentPage < 0 ? 0 : appState.currentPage;
+    const safeCurrentLimit = isNaN(appState.currentLimit) || appState.currentLimit <= 0 ? 25 : appState.currentLimit;
 
     // データが存在しない場合の処理
     if (safeTotalRecords === 0) {
@@ -773,11 +608,11 @@ function updatePagination() {
     paginationText.textContent = `表示中: ${startRecord}-${endRecord} / 全 ${safeTotalRecords} 件`;
 
     // ボタンの有効/無効を設定
-    prevBtn.disabled = currentPage === 0;
-    nextBtn.disabled = currentPage >= totalPages - 1;
+    prevBtn.disabled = appState.currentPage === 0;
+    nextBtn.disabled = appState.currentPage >= totalPages - 1;
 
     // ページネーションコンテナの表示/非表示
-    if (totalRecords > currentLimit) {
+    if (appState.totalRecords > appState.currentLimit) {
         paginationContainer.style.display = 'flex';
     } else {
         paginationContainer.style.display = 'none';

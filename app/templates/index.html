@@ -713,8 +713,8 @@
         </div>
     </footer>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
-    <script src="{{ url_for('static', filename='jpx_sequential.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='app.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='script.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='jpx_sequential.js') }}"></script>
 </body>
 </html>

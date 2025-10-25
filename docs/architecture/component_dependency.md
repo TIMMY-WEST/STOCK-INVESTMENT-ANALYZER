@@ -200,6 +200,16 @@ graph TD
     style Base fill:#ffe1e1
 ```
 
+### 2.4 サービスモジュール別構造（ディレクトリ再編成）
+
+- `stock_data` モジュール: Fetcher / Saver / Converter / Validator / Orchestrator / Scheduler
+- `bulk` モジュール: BulkDataService / ProgressTracker
+- `jpx` モジュール: JPXStockService
+- `batch` モジュール: BatchService
+- `common` モジュール: ErrorHandler（共通例外処理）
+
+> 依存の原則は従来どおり（上位→下位、疎結合）。モジュール内の低レベルサービス（Fetcher/Saver 等）は高レベルサービス（Orchestrator/Bulk 等）からのみ参照します。
+
 ## 3. 各サービスの依存関係
 
 ### 3.1 StockDataOrchestrator（統括サービス）

@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "app"))
 
-from models import Base, BatchExecution, BatchExecutionDetail  # noqa: E402
+from app.models import Base, BatchExecution, BatchExecutionDetail  # noqa: E402
 
 
 class TestBatchExecutionModel:

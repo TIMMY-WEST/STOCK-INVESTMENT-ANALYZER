@@ -100,6 +100,12 @@ flowchart TB
     style Saver fill:#ffe1f5
 ```
 
+### 2.2 サービスモジュール化による影響
+
+- データフロー自体（取得→変換→保存）は不変。
+- 呼び出し元サービスの所在が `app/services/<feature>/` に整理されます。
+- Orchestrator/Bulk は従来どおり、Fetcher/Saver を組み合わせて動作します。
+
 ## 3. 主要データフロー
 
 ### 3.1 単一銘柄データ取得フロー

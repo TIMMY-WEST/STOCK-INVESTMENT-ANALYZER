@@ -12,6 +12,18 @@ import logging
 import time
 from typing import Any, Dict, List, Optional
 
+from app.exceptions import (
+    APIException,
+    BaseStockAnalyzerException,
+    BatchProcessingException,
+    BusinessLogicException,
+    DatabaseException,
+    ErrorCode,
+    StockDataException,
+    SystemException,
+    ValidationException,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +56,8 @@ class ErrorRecord:
     retry_count: int = 0
     action_taken: str = ""
     context: Dict[str, Any] = field(default_factory=dict)
+    error_code: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
 
 
 class ErrorHandler:
@@ -89,6 +103,11 @@ class ErrorHandler:
         error_class = error.__class__.__name__
         error_message = str(error).lower()
 
+        # 新しい例外クラス体系による分類
+        if isinstance(error, BaseStockAnalyzerException):
+            return self._classify_custom_exception(error)
+
+        # 従来の例外クラスによる分類（後方互換性）
         # 一時的エラー（ネットワーク関連）
         # Timeout, ConnectionError, TimeoutError, StockDataFetchError など
         if error_class in [
@@ -133,6 +152,101 @@ class ErrorHandler:
         # デフォルトは永続的エラー
         return ErrorType.PERMANENT
 
+    def _classify_custom_exception(
+        self, error: BaseStockAnalyzerException
+    ) -> ErrorType:
+        """カスタム例外クラスを分類.
+
+        Args:
+            error: カスタム例外
+
+        Returns:
+            ErrorType: エラー種別。
+        """
+        # システムエラー
+        if isinstance(error, SystemException):
+            return ErrorType.SYSTEM
+
+        # データベースエラー
+        if isinstance(error, DatabaseException):
+            return self._classify_database_exception(error)
+
+        # API/ネットワークエラー
+        if isinstance(error, APIException):
+            return self._classify_api_exception(error)
+
+        # 株価データエラー
+        if isinstance(error, StockDataException):
+            return self._classify_stock_data_exception(error)
+
+        # バッチ処理エラー
+        if isinstance(error, BatchProcessingException):
+            return self._classify_batch_exception(error)
+
+        # バリデーションエラーは永続的
+        if isinstance(error, ValidationException):
+            return ErrorType.PERMANENT
+
+        # ビジネスロジックエラーは永続的
+        if isinstance(error, BusinessLogicException):
+            return ErrorType.PERMANENT
+
+        # デフォルトは永続的
+        return ErrorType.PERMANENT
+
+    def _classify_database_exception(
+        self, error: DatabaseException
+    ) -> ErrorType:
+        """データベース例外を分類."""
+        # 接続エラーやタイムアウトは一時的
+        if error.error_code in [
+            ErrorCode.DATABASE_CONNECTION,
+            ErrorCode.DATABASE_TIMEOUT,
+        ]:
+            return ErrorType.TEMPORARY
+        # 整合性制約違反などは永続的
+        return ErrorType.PERMANENT
+
+    def _classify_api_exception(self, error: APIException) -> ErrorType:
+        """API例外を分類."""
+        # タイムアウトやレート制限は一時的
+        if error.error_code in [
+            ErrorCode.API_TIMEOUT,
+            ErrorCode.API_RATE_LIMIT,
+        ]:
+            return ErrorType.TEMPORARY
+        # 認証エラーは永続的
+        if error.error_code == ErrorCode.API_AUTHENTICATION:
+            return ErrorType.PERMANENT
+        # その他のAPI接続エラーは一時的
+        return ErrorType.TEMPORARY
+
+    def _classify_stock_data_exception(
+        self, error: StockDataException
+    ) -> ErrorType:
+        """株価データ例外を分類."""
+        # 取得エラーは一時的
+        if error.error_code == ErrorCode.STOCK_DATA_FETCH:
+            return ErrorType.TEMPORARY
+        # バリデーションエラーは永続的
+        if error.error_code == ErrorCode.STOCK_DATA_VALIDATION:
+            return ErrorType.PERMANENT
+        # その他は一時的
+        return ErrorType.TEMPORARY
+
+    def _classify_batch_exception(
+        self, error: BatchProcessingException
+    ) -> ErrorType:
+        """バッチ処理例外を分類."""
+        # タイムアウトやリソース不足は一時的
+        if error.error_code in [
+            ErrorCode.BATCH_TIMEOUT,
+            ErrorCode.BATCH_RESOURCE,
+        ]:
+            return ErrorType.TEMPORARY
+        # その他は永続的
+        return ErrorType.PERMANENT
+
     def handle_error(
         self,
         error: Exception,
@@ -156,6 +270,12 @@ class ErrorHandler:
         self.error_stats[error_type.value] += 1
 
         # エラー記録を作成
+        error_code = None
+        details = None
+        if isinstance(error, BaseStockAnalyzerException):
+            error_code = error.error_code.value
+            details = error.details
+
         error_record = ErrorRecord(
             timestamp=datetime.now().isoformat(),
             error_type=error_type.value,
@@ -164,6 +284,8 @@ class ErrorHandler:
             exception_class=error.__class__.__name__,
             retry_count=context.get("retry_count", 0),
             context=context,
+            error_code=error_code,
+            details=details,
         )
 
         # エラー種別に応じた処理判定

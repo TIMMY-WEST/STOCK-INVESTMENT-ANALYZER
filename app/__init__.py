@@ -3,7 +3,7 @@
 This package contains the main Flask application and its components.
 """
 
-from .app import app, socketio  # type: ignore[import-not-found]
+from .app import app, socketio
 
 
 __all__ = ["app", "socketio"]

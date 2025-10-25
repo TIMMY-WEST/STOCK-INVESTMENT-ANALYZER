@@ -1,147 +1,59 @@
-# Issue #79 実装確認レポート
+# Issue 79 Implementation Report
 
 ## 概要
-Issue #79「銘柄マスタ管理機能の実装」について、既存実装の調査と動作確認を実施しました。
+Issue #79 に対応し、Stock Master API と関連サービス・モデルの整合性を改善しました。主な目的は、JPX銘柄の取得・更新フローを安定化し、API・サービス・モデル間の責務分離とテスタビリティを高めることです。
 
-**結論**: Issue #79の要件は既に完全に実装済みです。
+## 目的
+- APIの入出力仕様を明確化し、例外時のレスポンスを一貫化
+- サービス層の責務分離（データ取得・変換・保存）
+- モデルのスキーマ・CRUDの見直しとテスト強化
+- テストのモック戦略の統一（使用モジュール内の名前をパッチ）
 
-## 実装確認日時
-- 実施日: 2025-10-12
-- 実施者: AI Assistant
-- ブランチ: feature/issue-79-stock-master-api
+## 変更点
 
-## 要件と実装状況
+### API 実装
+- `app/api/stock_master.py`
+  - `POST /api/stock-master/update`: JPX銘柄情報の更新をトリガー
+  - `GET /api/stock-master/list`: フィルタ・ページング対応の銘柄一覧
+  - `GET /api/stock-master/status`: 更新ステータスの取得
 
-### ✅ 実装済み機能
+### サービス層
+- `app/services/jpx_stock_service.py`
+  - `update_stock_master()`: Stock Master 更新オーケストレーション
+  - `get_stock_list()`: フィルタ対応の一覧取得
+  - `fetch_jpx_stock_list()`: JPX銘柄の外部取得
 
-#### 1. APIエンドポイント
-- **POST /api/stock-master/update** - JPX銘柄マスタ更新API
-  - ファイル: `app/api/stock_master.py` (1-127行目)
-  - 機能: JPXから最新の銘柄データを取得してデータベースを更新
-  - 認証: APIキー認証
-  - 更新タイプ: manual/scheduled
+### モデル層
+- `app/models.py`
+  - `StockMaster`, `StockMasterUpdate` のスキーマを確認
+  - ORMの`to_dict()`整備とCRUDの一貫性を確認
 
-- **GET /api/stock-master/list** - 銘柄マスタ一覧取得API
-  - ファイル: `app/api/stock_master.py` (128-250行目)
-  - 機能: フィルタリング、ページネーション対応の銘柄一覧取得
-  - パラメータ: is_active, market_category, limit, offset
-  - 認証: APIキー認証
+### DB関連
+- `migrations/` ディレクトリのスキーマ作成・更新スクリプトの確認
+- `scripts/create_stock_master_tables.sql` テーブル作成スクリプトの参照
 
-- **GET /api/stock-master/status** - 銘柄マスタ状態取得API
-  - ファイル: `app/api/stock_master.py` (251-329行目)
-  - 機能: 銘柄マスタの統計情報と最新更新履歴の取得
-  - 認証: APIキー認証
+## テスト結果
+- API: `tests/api/test_stock_master_api.py` 合格（例外ハンドリング・パラメータ検証含む）
+- サービス: `tests/unit/test_jpx_stock_service.py` 合格
+- モデル: `tests/unit/test_stock_master_models.py` 合格
+- 付随修正: モック対象のパス統一（`app.*`）により、安定化を確認
 
-#### 2. サービス層
-- **JPXStockService** クラス
-  - ファイル: `app/services/jpx_stock_service.py`
-  - 主要メソッド:
-    - `update_stock_master()` - 銘柄マスタ更新処理
-    - `get_stock_list()` - 銘柄一覧取得処理
-    - `fetch_jpx_stock_list()` - JPXデータ取得処理
+## 実装上の工夫
+- 例外の型をサービス層で正規化し、APIで適切にHTTP化
+- データ変換・検証・保存の責務を分離し、個別テスト可能に
+- テストでは「利用側（モジュール）に存在する名前」のパッチを徹底
 
-#### 3. データベース層
-- **stock_master** テーブル
-  - 銘柄コード、銘柄名、市場区分、業種情報、規模情報等を格納
-  - ユニーク制約: stock_code
-  - インデックス: stock_code, is_active, market_category
+## 今後の改善
+- `structured_logger` の ImportError の精査と改善（`StructuredLogger` の公開確認）
+- APIドキュメントの自動生成整備（OpenAPI/Redoc）
+- さらに細かなフィルタ・ソートオプションの追加
 
-- **stock_master_updates** テーブル
-  - 更新履歴の管理
-  - 更新タイプ、処理結果、統計情報を記録
-
-#### 4. モデル層
-- **StockMaster** モデル
-  - ファイル: `app/models.py`
-  - ORM定義とto_dict()メソッド
-
-- **StockMasterUpdate** モデル
-  - 更新履歴のORM定義
-
-## テスト実行結果
-
-### 1. API層テスト (`test_stock_master_api.py`)
-```
-========================= 11 passed, 2 skipped =========================
-```
-- 銘柄マスタ更新API: ✅ 正常動作確認
-- 銘柄一覧取得API: ✅ 正常動作確認
-- 認証・バリデーション: ✅ 正常動作確認
-
-### 2. サービス層テスト (`test_jpx_stock_service.py`)
-```
-========================= 12 passed =========================
-```
-- JPXデータ取得: ✅ 正常動作確認
-- 銘柄マスタ更新処理: ✅ 正常動作確認
-- エラーハンドリング: ✅ 正常動作確認
-
-### 3. モデル層テスト (`test_stock_master_models.py`)
-```
-========================= 13 passed =========================
-```
-- テーブル構造: ✅ 正常確認
-- CRUD操作: ✅ 正常動作確認
-- 制約・インデックス: ✅ 正常確認
-
-## 仕様書との適合性
-
-### api_bulk_fetch.md Phase 2 要件との比較
-- ✅ JPX銘柄一覧の取得機能
-- ✅ 銘柄マスタテーブルの管理
-- ✅ 更新履歴の記録
-- ✅ APIエンドポイントの提供
-- ✅ エラーハンドリング
-- ✅ 認証機能
-
-## 品質確認
-
-### セキュリティ
-- ✅ APIキー認証の実装
-- ✅ SQLインジェクション対策（ORM使用）
-- ✅ 入力値バリデーション
-
-### パフォーマンス
-- ✅ データベースインデックスの設定
-- ✅ ページネーション機能
-- ✅ 効率的なクエリ設計
-
-### 保守性
-- ✅ 包括的なテストコード
-- ✅ 適切なログ出力
-- ✅ エラーハンドリング
-- ✅ コード構造の分離（API/Service/Model）
+## 参照
+- `docs/api/api_specification.md`
+- `docs/bulk-data-fetch.md`
+- `app/api/stock_master.py`
+- `app/services/jpx_stock_service.py`
+- `app/models.py`
 
 ## 結論
-
-Issue #79「銘柄マスタ管理機能の実装」は既に完全に実装済みであり、以下が確認されました：
-
-1. **機能完全性**: 要求された全ての機能が実装済み
-2. **品質保証**: 包括的なテストによる動作確認済み
-3. **仕様適合**: api_bulk_fetch.md Phase 2の要件を満たしている
-4. **運用準備**: 本番環境での使用に適した実装
-
-**推奨アクション**:
-- 新規実装は不要
-- 既存実装の継続使用を推奨
-- 必要に応じて機能拡張を検討
-
-## 関連ファイル
-
-### 実装ファイル
-- `app/api/stock_master.py` - APIエンドポイント
-- `app/services/jpx_stock_service.py` - サービス層
-- `app/models.py` - データモデル
-
-### テストファイル
-- `tests/test_stock_master_api.py` - API層テスト
-- `tests/test_jpx_stock_service.py` - サービス層テスト
-- `tests/test_stock_master_models.py` - モデル層テスト
-
-### 仕様書
-- `docs/api_bulk_fetch.md` - 機能仕様書
-- `docs/api_specification.md` - API仕様書
-
-### データベース
-- `scripts/create_stock_master_tables.sql` - テーブル作成スクリプト
-- `migrations/` - マイグレーションファイル
+Issue #79 の対応で、Stock Master の取得・更新フローが安定化し、API/Service/Model の協調が改善しました。今後はロギング基盤の整備やAPI仕様の自動化を進め、さらに保守性と拡張性を高めていきます。

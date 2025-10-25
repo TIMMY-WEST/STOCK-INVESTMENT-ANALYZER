@@ -9,9 +9,9 @@
 ## 🔧 マイルストン 1: データ取得機能の強化 関連Issue
 
 ### Issue: 取得期間選択の拡張（maxオプション追加）
-**Labels**: `feature`, `enhancement`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`  
+**Labels**: `feature`, `enhancement`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -44,9 +44,9 @@
 ---
 
 ### Issue: 時間軸（足データ）対応 - データベース設計
-**Labels**: `feature`, `database`, `infrastructure`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`  
+**Labels**: `feature`, `database`, `infrastructure`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -78,9 +78,9 @@
 ---
 
 ### Issue: データベース初期化スクリプト修正
-**Labels**: `feature`, `infrastructure`, `database`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`  
+**Labels**: `feature`, `infrastructure`, `database`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -114,9 +114,9 @@
 ---
 
 ### Issue: 時間軸選択UI実装
-**Labels**: `feature`, `frontend`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`  
+**Labels**: `feature`, `frontend`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -148,9 +148,9 @@
 ---
 
 ### Issue: 各時間軸でのデータ取得・保存機能実装
-**Labels**: `feature`, `backend`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`  
+**Labels**: `feature`, `backend`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🔧 マイルストン 1: データ取得機能の強化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -185,9 +185,9 @@ yfinanceから各時間軸のデータを取得し、対応するテーブルに
 ## 📊 マイルストン 2: 全銘柄一括取得機能 関連Issue
 
 ### Issue: JPX銘柄情報取得機能実装
-**Labels**: `feature`, `integration`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`  
+**Labels**: `feature`, `integration`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -219,9 +219,9 @@ JPXの銘柄一覧Excel（data_j.xls）を自動ダウンロードし、銘柄�
 ---
 
 ### Issue: 全銘柄一括取得機能実装
-**Labels**: `feature`, `batch-processing`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`  
+**Labels**: `feature`, `batch-processing`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -254,9 +254,9 @@ JPXの銘柄一覧Excel（data_j.xls）を自動ダウンロードし、銘柄�
 ---
 
 ### Issue: 全銘柄取得フロントエンド機能追加
-**Labels**: `feature`, `frontend`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`  
+**Labels**: `feature`, `frontend`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `📊 マイルストン 2: 全銘柄一括取得機能`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -598,9 +598,9 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 ## 🐛 マイルストン 3: UI/UX改善・バグ修正 関連Issue
 
 ### Issue: ページネーション機能修正
-**Labels**: `bug`, `frontend`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🐛 マイルストン 3: UI/UX改善・バグ修正`  
+**Labels**: `bug`, `frontend`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🐛 マイルストン 3: UI/UX改善・バグ修正`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -632,9 +632,9 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 ---
 
 ### Issue: システム状態表示機能実装
-**Labels**: `feature`, `monitoring`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🐛 マイルストン 3: UI/UX改善・バグ修正`  
+**Labels**: `feature`, `monitoring`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🐛 マイルストン 3: UI/UX改善・バグ修正`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -666,9 +666,9 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 ---
 
 ### Issue: データ表示機能改善
-**Labels**: `enhancement`, `frontend`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🐛 マイルストン 3: UI/UX改善・バグ修正`  
+**Labels**: `enhancement`, `frontend`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🐛 マイルストン 3: UI/UX改善・バグ修正`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -702,9 +702,9 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 ## 🚀 マイルストン 4: パフォーマンス最適化 関連Issue
 
 ### Issue: データベースパフォーマンス最適化
-**Labels**: `performance`, `database`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🚀 マイルストン 4: パフォーマンス最適化`  
+**Labels**: `performance`, `database`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🚀 マイルストン 4: パフォーマンス最適化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -736,9 +736,9 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 ---
 
 ### Issue: フロントエンドパフォーマンス改善
-**Labels**: `performance`, `frontend`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🚀 マイルストン 4: パフォーマンス最適化`  
+**Labels**: `performance`, `frontend`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🚀 マイルストン 4: パフォーマンス最適化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -770,9 +770,9 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 ---
 
 ### Issue: バックエンドパフォーマンス改善
-**Labels**: `performance`, `backend`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🚀 マイルストン 4: パフォーマンス最適化`  
+**Labels**: `performance`, `backend`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🚀 マイルストン 4: パフォーマンス最適化`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -806,9 +806,9 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 ## 🧪 マイルストン 5: 統合テスト・品質保証 関連Issue
 
 ### Issue: 新機能の統合テスト
-**Labels**: `testing`, `integration`, `priority:high`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`  
+**Labels**: `testing`, `integration`, `priority:high`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -840,9 +840,9 @@ v1.1.0で追加された全機能の統合テスト実装
 ---
 
 ### Issue: UI/UXテスト
-**Labels**: `testing`, `frontend`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`  
+**Labels**: `testing`, `frontend`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -875,9 +875,9 @@ v1.1.0で追加された全機能の統合テスト実装
 ---
 
 ### Issue: パフォーマンステスト
-**Labels**: `testing`, `performance`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`  
+**Labels**: `testing`, `performance`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`
 **Assignees**: 自分をアサイン
 
 #### 実装内容
@@ -910,9 +910,9 @@ v1.1.0で追加された全機能の統合テスト実装
 ---
 
 ### Issue: エラーハンドリングテスト
-**Labels**: `testing`, `error-handling`, `priority:medium`  
-**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`  
-**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`  
+**Labels**: `testing`, `error-handling`, `priority:medium`
+**Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
+**Milestone**: `🧪 マイルストン 5: 統合テスト・品質保証`
 **Assignees**: 自分をアサイン
 
 #### 実装内容

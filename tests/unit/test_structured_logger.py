@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from utils.structured_logger import (
+from app.utils.structured_logger import (
     BatchLoggerAdapter,
     StructuredFormatter,
     get_batch_logger,
