@@ -283,10 +283,10 @@ class TestRelatedFiles:
 
             # 貢献ガイドの基本的な要素が含まれていることを確認
             contributing_patterns = [
-                r"# コントリビューションガイド",
-                r"## 貢献の種類",
+                r"# プロジェクトへの貢献ガイド",
+                r"## 貢献方法",
                 r"## 開発環境のセットアップ",
-                r"## 開発ワークフロー",
+                r"## 開発フロー",
             ]
 
             for pattern in contributing_patterns:
