@@ -1,11 +1,23 @@
 {
   "recommendations": [
     "ms-python.python",
+    "ms-python.vscode-pylance",
     "ms-python.black-formatter",
     "ms-python.isort",
     "ms-python.flake8",
     "ms-python.pylint",
     "ms-python.mypy-type-checker",
-    "ms-python.vscode-pylance"
+    "eamodio.gitlens",
+    "editorconfig.editorconfig",
+    "ms-vscode.vscode-json",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "ms-ossdata.vscode-postgresql",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-todo-highlight",
+    "streetsidesoftware.code-spell-checker",
+    "ms-vscode.hexeditor"
   ]
 }
