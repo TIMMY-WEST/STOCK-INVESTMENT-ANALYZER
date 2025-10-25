@@ -148,12 +148,94 @@ def test_long_running():
 
 共通フィクスチャは `conftest.py` で定義されています。
 
+#### Flask関連フィクスチャ
+
 ```python
 def test_with_client(client):
     """Flaskテストクライアントを使用する例"""
     response = client.get('/api/endpoint')
     assert response.status_code == 200
 ```
+
+#### データベース関連フィクスチャ
+
+```python
+def test_with_mock_db(mock_db_session):
+    """モックDBセッションを使用する例（単体テスト向け）"""
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    result = some_database_function(mock_db_session)
+    assert result is None
+    mock_db_session.commit.assert_called_once()
+
+def test_with_db_context(test_db_session):
+    """DBコンテキストマネージャーを使用する例（統合テスト向け）"""
+    with test_db_session as session:
+        # セッションを使用した処理
+        session.add(some_model)
+        session.commit()
+```
+
+#### テストデータフィクスチャ
+
+```python
+def test_stock_data(sample_stock_data):
+    """サンプル株価データを使用する例"""
+    assert sample_stock_data["symbol"] == "7203.T"
+    assert sample_stock_data["close"] == 1020.0
+    # 必要に応じて値を変更
+    sample_stock_data["close"] = 2000.0
+
+def test_stock_list(sample_stock_list):
+    """複数銘柄データを使用する例"""
+    assert len(sample_stock_list) == 3
+    for stock in sample_stock_list:
+        process_stock(stock)
+
+def test_dataframe(sample_dataframe):
+    """DataFrameを使用する例"""
+    assert not sample_dataframe.empty
+    assert "Close" in sample_dataframe.columns
+    assert sample_dataframe["Close"].iloc[0] == 1020.0
+```
+
+#### モックヘルパーフィクスチャ
+
+```python
+def test_yfinance_ticker(mock_yfinance_ticker):
+    """Yahoo Finance Tickerモックを使用する例"""
+    import yfinance as yf
+
+    # yf.Ticker()は自動的にモックされる
+    ticker = yf.Ticker("7203.T")
+    data = ticker.history(period="1d")
+
+    assert not data.empty
+    assert "Close" in data.columns
+    mock_yfinance_ticker.assert_called_once_with("7203.T")
+
+def test_yfinance_download(mock_yfinance_download):
+    """Yahoo Finance downloadモックを使用する例"""
+    import yfinance as yf
+
+    data = yf.download(["7203.T", "6758.T"], period="1d")
+
+    assert not data.empty
+    mock_yfinance_download.assert_called_once()
+```
+
+#### 利用可能なフィクスチャ一覧
+
+| フィクスチャ名 | 用途 | スコープ |
+|---|---|---|
+| `app` | Flaskアプリケーション | function |
+| `client` | Flaskテストクライアント | function |
+| `mock_db_session` | モックDBセッション（単体テスト向け） | function |
+| `test_db_session` | DBコンテキストマネージャー（統合テスト向け） | function |
+| `sample_stock_data` | サンプル株価データ（辞書） | function |
+| `sample_stock_list` | 複数銘柄データリスト | function |
+| `sample_dataframe` | サンプル株価DataFrame | function |
+| `mock_yfinance_ticker` | Yahoo Finance Tickerモック | function |
+| `mock_yfinance_download` | Yahoo Finance downloadモック | function |
 
 ## カバレッジ目標
 
