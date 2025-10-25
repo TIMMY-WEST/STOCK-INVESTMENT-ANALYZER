@@ -10,7 +10,7 @@ from typing import Optional
 import pandas as pd
 import yfinance as yf
 
-from services.stock_data_validator import StockDataValidator
+from services.stock_data.validator import StockDataValidator
 
 
 logger = logging.getLogger(__name__)

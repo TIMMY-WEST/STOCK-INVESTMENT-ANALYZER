@@ -17,6 +17,7 @@
 3. [RESTful原則との整合性チェック](#restful原則との整合性チェック)
 4. [非推奨・削除予定エンドポイント](#非推奨削除予定エンドポイント)
 5. [推奨される改善事項](#推奨される改善事項)
+6. [サービスモジュール対応表](#サービスモジュール対応表)
 
 ---
 
@@ -702,6 +703,30 @@ GET /api/system/connections/api/test
 **実装時期**: v1.2.0
 
 ---
+
+## サービスモジュール対応表
+
+### 株価データ管理API
+- `POST /api/fetch-data` → `app/services/stock_data/orchestrator.py`（内部で `fetcher.py` / `saver.py` を使用）
+- `GET /api/stocks` → モデル経由のデータ参照（時間軸判定に `stock_data/timeframe_utils` を利用）
+- `POST /api/stocks` / `PUT /api/stocks/<id>` / `DELETE /api/stocks/<id>` → `app/services/stock_data/saver.py`（UPSERT/削除）
+
+### 一括データ取得API（bulk_api）
+- `POST /api/bulk/start` → `app/services/bulk/bulk_service.py`
+- `GET /api/bulk/status/<job_id>` → `app/services/bulk/bulk_service.py`
+- `POST /api/bulk/stop/<job_id>` → `app/services/bulk/bulk_service.py`
+- `GET /api/bulk/jpx-sequential/get-symbols` → `app/services/jpx/jpx_stock_service.py`
+- `POST /api/bulk/jpx-sequential/start` → `app/services/bulk/bulk_service.py`（銘柄取得は `jpx/jpx_stock_service.py` 連携）
+
+### JPX銘柄マスタ（stock_master_api）
+- `POST /api/stock-master/update` → `app/services/jpx/jpx_stock_service.py`
+- `GET /api/stock-master/list` → モデル参照（マスタ管理は `jpx/jpx_stock_service.py`）
+- `GET /api/stock-master/status` → `app/services/jpx/jpx_stock_service.py`
+
+### システム監視（system_api）
+- `POST /api/system/db-connection-test` → DB接続確認（共通例外処理は `common/error_handler.py`）
+- `POST /api/system/api-connection-test` → Yahoo Finance接続確認（同上）
+- `GET /api/system/health-check` → アプリ全体の統合チェック（同上）
 
 ## まとめ
 

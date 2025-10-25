@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, Mock, mock_open, patch
 import pandas as pd
 import pytest
 
-from services.bulk_data_service import (
+from services.bulk.bulk_service import (
     BulkDataService,
     BulkDataServiceError,
     ProgressTracker,
 )
-from services.stock_data_fetcher import StockDataFetchError
-from services.stock_data_saver import StockDataSaveError
+from services.stock_data.fetcher import StockDataFetchError
+from services.stock_data.saver import StockDataSaveError
 
 
 class TestProgressTracker:
@@ -111,13 +111,13 @@ class TestBulkDataService:
     @pytest.fixture
     def mock_fetcher(self):
         """モックFetcher."""
-        with patch("services.bulk_data_service.StockDataFetcher") as mock:
+        with patch("services.bulk.bulk_service.StockDataFetcher") as mock:
             yield mock
 
     @pytest.fixture
     def mock_saver(self):
         """モックSaver."""
-        with patch("services.bulk_data_service.StockDataSaver") as mock:
+        with patch("services.bulk.bulk_service.StockDataSaver") as mock:
             yield mock
 
     def test_init(self, service):

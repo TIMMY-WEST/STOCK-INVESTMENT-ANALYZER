@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import requests
 
-from services.jpx_stock_service import (
+from services.jpx.jpx_stock_service import (
     JPXDownloadError,
     JPXParseError,
     JPXStockService,
@@ -32,8 +32,8 @@ class TestJPXStockService:
         assert self.service.REQUEST_TIMEOUT == 30
         assert "User-Agent" in self.service.session.headers
 
-    @patch("services.jpx_stock_service.requests.Session.get")
-    @patch("services.jpx_stock_service.pd.read_excel")
+    @patch("services.jpx.jpx_stock_service.requests.Session.get")
+    @patch("services.jpx.jpx_stock_service.pd.read_excel")
     def test_fetch_jpx_stock_list_success(self, mock_read_excel, mock_get):
         """JPX銘柄一覧取得の成功テスト."""
         # モックレスポンスを設定
@@ -74,7 +74,7 @@ class TestJPXStockService:
         mock_get.assert_called_once()
         mock_read_excel.assert_called_once()
 
-    @patch("services.jpx_stock_service.requests.Session.get")
+    @patch("services.jpx.jpx_stock_service.requests.Session.get")
     def test_fetch_jpx_stock_list_download_error(self, mock_get):
         """JPX銘柄一覧取得のダウンロードエラーテスト."""
         # リクエストエラーを発生させる
@@ -87,8 +87,8 @@ class TestJPXStockService:
 
         assert "JPXからのダウンロードに失敗しました" in str(exc_info.value)
 
-    @patch("services.jpx_stock_service.requests.Session.get")
-    @patch("services.jpx_stock_service.pd.read_excel")
+    @patch("services.jpx.jpx_stock_service.requests.Session.get")
+    @patch("services.jpx.jpx_stock_service.pd.read_excel")
     def test_fetch_jpx_stock_list_parse_error(self, mock_read_excel, mock_get):
         """JPX銘柄一覧取得のパースエラーテスト."""
         # モックレスポンスを設定
@@ -172,7 +172,7 @@ class TestJPXStockService:
         assert result[0]["stock_code"] == "1301"
         assert result[0]["stock_name"] == "極洋"
 
-    @patch("services.jpx_stock_service.get_db_session")
+    @patch("services.jpx.jpx_stock_service.get_db_session")
     @patch.object(JPXStockService, "fetch_jpx_stock_list")
     def test_update_stock_master_success(
         self, mock_fetch, mock_get_db_session
@@ -237,7 +237,7 @@ class TestJPXStockService:
 
         assert "銘柄マスタの更新に失敗しました" in str(exc_info.value)
 
-    @patch("services.jpx_stock_service.get_db_session")
+    @patch("services.jpx.jpx_stock_service.get_db_session")
     def test_get_stock_list_success(self, mock_get_db_session):
         """銘柄一覧取得の成功テスト."""
         # モックセッションを設定
@@ -279,7 +279,7 @@ class TestJPXStockService:
         assert result["stocks"][0]["stock_code"] == "1301"
         assert result["stocks"][1]["stock_code"] == "1332"
 
-    @patch("services.jpx_stock_service.get_db_session")
+    @patch("services.jpx.jpx_stock_service.get_db_session")
     def test_get_stock_list_with_filters(self, mock_get_db_session):
         """フィルタ付き銘柄一覧取得のテスト."""
         # モックセッションを設定
@@ -306,7 +306,7 @@ class TestJPXStockService:
         # フィルタが適用されたことを確認
         mock_session.query.return_value.filter.assert_called()
 
-    @patch("services.jpx_stock_service.get_db_session")
+    @patch("services.jpx.jpx_stock_service.get_db_session")
     def test_get_stock_list_database_error(self, mock_get_db_session):
         """銘柄一覧取得のデータベースエラーテスト."""
         # データベースエラーを発生させる

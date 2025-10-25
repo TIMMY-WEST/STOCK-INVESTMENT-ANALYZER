@@ -2,10 +2,10 @@
 
 from datetime import date, datetime
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Mapper, Session, class_mapper
 
 from models import get_db_session
 from utils.timeframe_utils import (
@@ -94,105 +94,47 @@ class StockDataSaver:
         Raises:
             StockDataSaveError: データ保存失敗時。
         """
-        saved_count = 0
-        skipped_count = 0
-        error_count = 0
-        date_start = None
-        date_end = None
-
         self.logger.info(
             f"データ保存開始: {symbol} (時間軸: {get_display_name(interval)}, "
             f"件数: {len(data_list)})"
         )
 
-        # 既存データを取得して重複をチェック
-        try:
-            date_column_name = (
-                "date" if not is_intraday_interval(interval) else "datetime"
-            )
-            date_column = getattr(model_class, date_column_name)
+        existing_dates = self._get_existing_dates(
+            session, model_class, symbol, interval
+        )
+        records_to_insert, stats = self._prepare_records(
+            data_list, symbol, interval, existing_dates
+        )
 
-            existing_records = (
-                session.query(date_column)
-                .filter(model_class.symbol == symbol)  # type: ignore[attr-defined]
-                .all()
-            )
-            existing_dates = {record[0] for record in existing_records}
-        except Exception as e:
-            self.logger.warning(f"既存データ取得エラー: {symbol}: {e}")
-            existing_dates = set()
-
-        # バルクインサート用のデータリストを準備
-        records_to_insert = []
-
-        for data in data_list:
-            # 現在のデータの日付を取得(保存成否に関わらず追跡)
-            current_date = data.get("date") or data.get("datetime")
-            if current_date:
-                if date_start is None or current_date < date_start:  # type: ignore[unreachable]
-                    date_start = current_date
-                if date_end is None or current_date > date_end:  # type: ignore[unreachable]
-                    date_end = current_date
-
-            try:
-                # 重複チェック
-                if current_date in existing_dates:
-                    skipped_count += 1
-                    self.logger.debug(
-                        f"重複データをスキップ: {symbol} ({current_date}) "
-                        f"(時間軸: {get_display_name(interval)})"
-                    )
-                    continue
-
-                # データに銘柄コードを追加
-                data_with_symbol = {**data, "symbol": symbol}
-                records_to_insert.append(data_with_symbol)
-                saved_count += 1
-
-            except Exception as e:
-                error_count += 1
-                self.logger.error(
-                    f"レコード準備エラー: {symbol} " f"({current_date}): {e}"
-                )
-
-        # バルクインサートを実行
-        try:
-            if records_to_insert:
-                session.bulk_insert_mappings(
-                    model_class, records_to_insert  # type: ignore[arg-type]
-                )
-                self.logger.debug(
-                    f"バルクインサート実行: {len(records_to_insert)}件"
-                )
-        except SQLAlchemyError as e:
-            self.logger.error(
-                f"バルクインサートエラー: {symbol} "
-                f"(時間軸: {get_display_name(interval)}): {e}"
-            )
-            raise StockDataSaveError(
-                f"データ保存に失敗: {symbol} "
-                f"(時間軸: {get_display_name(interval)}): {e}"
-            )
+        self._bulk_insert(
+            session, model_class, records_to_insert, symbol, interval
+        )
 
         # コミットは呼び出し側で行う(トランザクション管理を分離)
         result = {
             "symbol": symbol,
             "interval": interval,
-            "total": len(data_list),
-            "saved": saved_count,
-            "skipped": skipped_count,
-            "errors": error_count,
+            "total": stats["total"],
+            "saved": stats["saved"],
+            "skipped": stats["skipped"],
+            "errors": stats["errors"],
             "date_range": {
                 "start": (
-                    date_start.strftime("%Y-%m-%d") if date_start else None
+                    stats["date_start"].strftime("%Y-%m-%d")
+                    if stats["date_start"]
+                    else None
                 ),
-                "end": date_end.strftime("%Y-%m-%d") if date_end else None,
+                "end": (
+                    stats["date_end"].strftime("%Y-%m-%d")
+                    if stats["date_end"]
+                    else None
+                ),
             },
         }
 
         self.logger.info(
             f"データ保存完了: {symbol} (時間軸: {get_display_name(interval)}) - "
-            f"保存: {saved_count}, スキップ: {skipped_count}, エラー: {error_count}"
+            f"保存: {stats['saved']}, スキップ: {stats['skipped']}, エラー: {stats['errors']}"
         )
 
         return result
@@ -262,12 +204,56 @@ class StockDataSaver:
         total_saved = 0
         total_skipped = 0
         total_errors = 0
-        results_by_symbol = {}
+        results_by_symbol: Dict[str, Dict[str, Any]] = {}
 
         self.logger.info(
             f"バッチデータ保存開始: {len(symbols_data)}銘柄 "
             f"(時間軸: {get_display_name(interval)})"
         )
+
+        def _build_batch_inserts_and_stats(
+            filtered_symbols_data: Dict[str, List[Dict[str, Any]]],
+            original_symbols_data: Dict[str, List[Dict[str, Any]]],
+        ) -> Tuple[
+            List[Dict[str, Any]], Dict[str, Dict[str, Any]], Dict[str, int]
+        ]:
+            """バッチ用の挿入レコードと統計を構築する."""
+            all_records: List[Dict[str, Any]] = []
+            results_by_symbol: Dict[str, Dict[str, Any]] = {}
+            total_saved = 0
+            total_skipped = 0
+            total_errors = 0
+            for symbol, data_list in filtered_symbols_data.items():
+                saved_count = 0
+                skipped_count = len(
+                    original_symbols_data.get(symbol, [])
+                ) - len(data_list)
+                error_count = 0
+                for data in data_list:
+                    try:
+                        all_records.append({**data, "symbol": symbol})
+                        saved_count += 1
+                    except Exception as e:
+                        error_count += 1
+                        self.logger.error(f"レコード作成エラー: {symbol}: {e}")
+                results_by_symbol[symbol] = {
+                    "saved": saved_count,
+                    "skipped": skipped_count,
+                    "errors": error_count,
+                    "total": len(original_symbols_data.get(symbol, [])),
+                }
+                total_saved += saved_count
+                total_skipped += skipped_count
+                total_errors += error_count
+            totals: Dict[str, int] = {
+                "total_records": sum(
+                    len(lst) for lst in original_symbols_data.values()
+                ),
+                "total_saved": total_saved,
+                "total_skipped": total_skipped,
+                "total_errors": total_errors,
+            }
+            return all_records, results_by_symbol, totals
 
         try:
             with get_db_session() as session:
@@ -276,55 +262,32 @@ class StockDataSaver:
                     session, model_class, symbols_data, interval
                 )
 
-                # バルクインサート用のレコードリストを準備
-                all_records_to_insert = []
-
-                for symbol, data_list in filtered_symbols_data.items():
-                    saved_count = 0
-                    skipped_count = len(symbols_data.get(symbol, [])) - len(
-                        data_list
+                # バルクインサート用のレコードリストと統計を構築
+                all_records_to_insert, results_by_symbol, totals = (
+                    _build_batch_inserts_and_stats(
+                        filtered_symbols_data, symbols_data
                     )
-                    error_count = 0
+                )
+                total_saved = totals["total_saved"]
+                total_skipped = totals["total_skipped"]
+                total_errors = totals["total_errors"]
 
-                    for data in data_list:
-                        try:
-                            # データに銘柄コードを追加
-                            data_with_symbol = {**data, "symbol": symbol}
-                            all_records_to_insert.append(data_with_symbol)
-                            saved_count += 1
-
-                        except Exception as e:
-                            error_count += 1
-                            self.logger.error(
-                                f"レコード作成エラー: {symbol}: {e}"
-                            )
-
-                    results_by_symbol[symbol] = {
-                        "saved": saved_count,
-                        "skipped": skipped_count,
-                        "errors": error_count,
-                        "total": len(symbols_data.get(symbol, [])),
-                    }
-
-                    total_saved += saved_count
-                    total_skipped += skipped_count
-                    total_errors += error_count
-
-                # バルクインサートを一括実行
-                if all_records_to_insert:
-                    try:
-                        session.bulk_insert_mappings(
-                            model_class, all_records_to_insert  # type: ignore[arg-type]
-                        )
-                        self.logger.debug(
-                            f"バルクインサート実行: "
-                            f"{len(all_records_to_insert)}件"
-                        )
-                    except SQLAlchemyError as e:
-                        raise StockDataSaveError(
-                            f"バッチデータ保存のコミットに失敗: "
-                            f"(時間軸: {get_display_name(interval)}): {e}"
-                        )
+                # バルクインサートを実行
+                self._bulk_insert(
+                    session,
+                    model_class,
+                    all_records_to_insert,
+                    "batch",
+                    interval,
+                )
+                # バルクインサートを実行
+                self._bulk_insert(
+                    session,
+                    model_class,
+                    all_records_to_insert,
+                    "batch",
+                    interval,
+                )
 
                 total_records = sum(
                     len(data_list) for data_list in symbols_data.values()
@@ -505,3 +468,101 @@ class StockDataSaver:
         else:
             with get_db_session() as session:
                 return _count(session)
+
+    def _get_existing_dates(
+        self,
+        session: Session,
+        model_class: type,
+        symbol: str,
+        interval: str,
+    ) -> set:
+        """既存データの日付/日時を安全に取得する."""
+        try:
+            date_column_name = (
+                "date" if not is_intraday_interval(interval) else "datetime"
+            )
+            date_column = getattr(model_class, date_column_name)
+            existing_records = (
+                session.query(date_column)
+                .filter(model_class.symbol == symbol)  # type: ignore[attr-defined]
+                .all()
+            )
+            return {record[0] for record in existing_records}
+        except Exception as e:
+            self.logger.warning(f"既存データ取得エラー: {symbol}: {e}")
+            return set()
+
+    def _prepare_records(
+        self,
+        data_list: List[Dict[str, Any]],
+        symbol: str,
+        interval: str,
+        existing_dates: set,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """保存対象レコードを構築し、統計値も更新する."""
+        saved_count = 0
+        skipped_count = 0
+        error_count = 0
+        date_start: Optional[Any] = None
+        date_end: Optional[Any] = None
+        records: List[Dict[str, Any]] = []
+        for data in data_list:
+            current_date = data.get("date") or data.get("datetime")
+            if current_date is not None:
+                if date_start is None:
+                    date_start = current_date
+                elif current_date < date_start:
+                    date_start = current_date
+                if date_end is None:
+                    date_end = current_date
+                elif current_date > date_end:
+                    date_end = current_date
+            try:
+                if current_date in existing_dates:
+                    skipped_count += 1
+                    self.logger.debug(
+                        f"重複データをスキップ: {symbol} ({current_date}) "
+                        f"(時間軸: {get_display_name(interval)})"
+                    )
+                    continue
+                records.append({**data, "symbol": symbol})
+                saved_count += 1
+            except Exception as e:
+                error_count += 1
+                self.logger.error(
+                    f"レコード準備エラー: {symbol} ({current_date}): {e}"
+                )
+        stats = {
+            "saved": saved_count,
+            "skipped": skipped_count,
+            "errors": error_count,
+            "date_start": date_start,
+            "date_end": date_end,
+            "total": len(data_list),
+        }
+        return records, stats
+
+    def _bulk_insert(
+        self,
+        session: Session,
+        model_class: type,
+        records: List[Dict[str, Any]],
+        symbol: str,
+        interval: str,
+    ) -> None:
+        """レコードをバルクインサートする."""
+        if not records:
+            return
+        mapper: Mapper[Any] = class_mapper(model_class)
+        try:
+            session.bulk_insert_mappings(mapper, records)
+            self.logger.debug(f"バルクインサート実行: {len(records)}件")
+        except SQLAlchemyError as e:
+            self.logger.error(
+                f"バルクインサートエラー: {symbol} "
+                f"(時間軸: {get_display_name(interval)}): {e}"
+            )
+            raise StockDataSaveError(
+                f"データ保存に失敗: {symbol} "
+                f"(時間軸: {get_display_name(interval)}): {e}"
+            )

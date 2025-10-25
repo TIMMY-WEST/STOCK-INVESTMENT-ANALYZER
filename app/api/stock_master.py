@@ -9,7 +9,10 @@ import os
 
 from flask import Blueprint, jsonify, request
 
-from services.jpx_stock_service import JPXStockService, JPXStockServiceError
+from services.jpx.jpx_stock_service import (
+    JPXStockService,
+    JPXStockServiceError,
+)
 
 
 logger = logging.getLogger(__name__)

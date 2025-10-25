@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from services.error_handler import (
+from services.common.error_handler import (
     ErrorAction,
     ErrorHandler,
     ErrorRecord,

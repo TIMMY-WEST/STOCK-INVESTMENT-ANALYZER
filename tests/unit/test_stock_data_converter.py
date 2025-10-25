@@ -5,7 +5,7 @@ from datetime import date, datetime
 import pandas as pd
 import pytest
 
-from services.stock_data_converter import (
+from services.stock_data.converter import (
     StockDataConversionError,
     StockDataConverter,
 )

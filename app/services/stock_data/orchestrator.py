@@ -4,10 +4,10 @@ from datetime import datetime
 import logging
 from typing import Any, Dict, List, Optional
 
-from services.stock_batch_processor import StockBatchProcessor
-from services.stock_data_converter import StockDataConverter
-from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
-from services.stock_data_saver import StockDataSaveError, StockDataSaver
+from services.bulk.stock_batch_processor import StockBatchProcessor
+from services.stock_data.converter import StockDataConverter
+from services.stock_data.fetcher import StockDataFetcher, StockDataFetchError
+from services.stock_data.saver import StockDataSaveError, StockDataSaver
 from utils.timeframe_utils import get_all_intervals, get_display_name
 
 

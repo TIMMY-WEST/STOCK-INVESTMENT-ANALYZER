@@ -3,7 +3,10 @@
 import pandas as pd
 import pytest
 
-from services.stock_data_validator import StockDataValidator
+from services.stock_data.validator import (
+    StockDataValidationError,
+    StockDataValidator,
+)
 
 
 class TestStockDataValidator:
@@ -98,7 +101,7 @@ class TestStockDataValidator:
 
     def test_validate_dataframe_structure_invalid(self, validator):
         """無効なDataFrame構造のテスト."""
-        from services.stock_data_validator import StockDataValidationError
+        from services.stock_data.validator import StockDataValidationError
 
         # 空のDataFrame
         with pytest.raises(

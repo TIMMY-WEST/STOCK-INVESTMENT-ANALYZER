@@ -6,10 +6,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pandas as pd
 import pytest
 
-from services.stock_data_converter import StockDataConverter
-from services.stock_data_fetcher import StockDataFetcher, StockDataFetchError
-from services.stock_data_orchestrator import StockDataOrchestrator
-from services.stock_data_saver import StockDataSaveError, StockDataSaver
+from services.stock_data.converter import StockDataConverter
+from services.stock_data.fetcher import StockDataFetcher, StockDataFetchError
+from services.stock_data.orchestrator import StockDataOrchestrator
+from services.stock_data.saver import StockDataSaveError, StockDataSaver
 from utils.timeframe_utils import (
     get_all_intervals,
     get_model_for_interval,
@@ -74,7 +74,7 @@ class TestStockDataFetcher:
         index = pd.date_range("2024-01-01", periods=3, freq="D")
         return pd.DataFrame(data, index=index)
 
-    @patch("services.stock_data_fetcher.yf.Ticker")
+    @patch("services.stock_data.fetcher.yf.Ticker")
     def test_fetch_stock_data_success(
         self, mock_ticker, fetcher, mock_yfinance_data
     ):
@@ -87,7 +87,7 @@ class TestStockDataFetcher:
         assert not df.empty
         mock_ticker.return_value.history.assert_called_once()
 
-    @patch("services.stock_data_fetcher.yf.Ticker")
+    @patch("services.stock_data.fetcher.yf.Ticker")
     def test_fetch_stock_data_empty(self, mock_ticker, fetcher):
         """空データの場合エラー."""
         mock_ticker.return_value.history.return_value = pd.DataFrame()
@@ -95,7 +95,7 @@ class TestStockDataFetcher:
         with pytest.raises(StockDataFetchError):
             fetcher.fetch_stock_data("INVALID", "1d", period="1d")
 
-    @patch("services.stock_data_fetcher.yf.Ticker")
+    @patch("services.stock_data.fetcher.yf.Ticker")
     def test_fetch_stock_data_invalid_interval(self, mock_ticker, fetcher):
         """無効な時間軸でエラー."""
         with pytest.raises(StockDataFetchError):
@@ -103,7 +103,7 @@ class TestStockDataFetcher:
 
     def test_convert_to_dict_daily(self, fetcher, mock_yfinance_data):
         """DataFrameから辞書への変換（日足）."""
-        from services.stock_data_converter import StockDataConverter
+        from services.stock_data.converter import StockDataConverter
 
         converter = StockDataConverter()
         records = converter.convert_to_dict(mock_yfinance_data, "1d")
@@ -116,7 +116,7 @@ class TestStockDataFetcher:
 
     def test_convert_to_dict_intraday(self, fetcher):
         """DataFrameから辞書への変換（分足）."""
-        from services.stock_data_converter import StockDataConverter
+        from services.stock_data.converter import StockDataConverter
 
         converter = StockDataConverter()
         data = {
@@ -171,7 +171,7 @@ class TestStockDataSaver:
         with pytest.raises(ValueError):
             saver.save_stock_data("7203.T", "invalid", sample_data_list)
 
-    @patch("services.stock_data_saver.get_db_session")
+    @patch("services.stock_data.saver.get_db_session")
     def test_save_stock_data_success(
         self, mock_session, saver, sample_data_list
     ):

@@ -9,8 +9,9 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import yfinance as yf
 
-from services.stock_data_converter import StockDataConverter
-from services.stock_data_validator import StockDataValidator
+from services.stock_data.converter import StockDataConverter
+from services.stock_data.fetcher import StockDataFetcher
+from services.stock_data.validator import StockDataValidator
 
 
 logger = logging.getLogger(__name__)
@@ -68,8 +69,6 @@ class StockBatchProcessor:
         for interval in intervals:
             try:
                 # 個別の時間軸でデータ取得（外部のfetch_stock_dataを使用）
-                from services.stock_data_fetcher import StockDataFetcher
-
                 fetcher = StockDataFetcher()
                 df = fetcher.fetch_stock_data(
                     symbol=formatted_symbol, interval=interval, period=period

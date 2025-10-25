@@ -51,7 +51,7 @@ class TestErrorHandling:
         """ネットワークエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでConnectionErrorをシミュレート
         with patch(
-            "services.stock_data_fetcher.StockDataFetcher.fetch_stock_data"
+            "services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
         ) as mock_fetch:
             mock_fetch.side_effect = ConnectionError(
                 "Network connection failed"
@@ -76,7 +76,7 @@ class TestErrorHandling:
         """タイムアウトエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでTimeoutErrorをシミュレート
         with patch(
-            "services.stock_data_fetcher.StockDataFetcher.fetch_stock_data"
+            "services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
         ) as mock_fetch:
             mock_fetch.side_effect = TimeoutError("Request timeout")
 
@@ -111,12 +111,12 @@ class TestErrorHandling:
         )
 
         with patch(
-            "services.stock_data_fetcher.StockDataFetcher.fetch_stock_data"
+            "services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
         ) as mock_fetch:
             mock_fetch.return_value = mock_df
 
             with patch(
-                "services.stock_data_saver.StockDataSaver.save_stock_data"
+                "services.stock_data.saver.StockDataSaver.save_stock_data"
             ) as mock_save:
                 mock_save.side_effect = DatabaseError(
                     "Database connection failed"

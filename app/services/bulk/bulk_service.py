@@ -9,11 +9,11 @@ import logging
 import time
 from typing import Any, Callable, Dict, List, Optional
 
-from services.error_handler import ErrorAction, ErrorHandler
-from services.stock_batch_processor import StockBatchProcessor
-from services.stock_data_converter import StockDataConverter
-from services.stock_data_fetcher import StockDataFetcher
-from services.stock_data_saver import StockDataSaver
+from services.bulk.stock_batch_processor import StockBatchProcessor
+from services.common.error_handler import ErrorAction, ErrorHandler
+from services.stock_data.converter import StockDataConverter
+from services.stock_data.fetcher import StockDataFetcher
+from services.stock_data.saver import StockDataSaver
 from utils.structured_logger import get_batch_logger, setup_structured_logging
 
 

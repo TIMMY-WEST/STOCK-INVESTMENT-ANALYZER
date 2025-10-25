@@ -130,6 +130,15 @@ graph LR
     style D fill:#ffebe1
 ```
 
+### 2.3 サービス層のモジュール化（ディレクトリ再編成）
+
+- `app/services/stock_data/`（取得・保存・変換・検証・統括・スケジューラ）
+- `app/services/bulk/`（一括取得と進捗管理）
+- `app/services/jpx/`（JPX銘柄マスタ管理）
+- `app/services/batch/`（バッチ実行管理）
+- `app/services/common/`（共通エラー処理 など）
+
+> 目的：サービス群の機能単位分割により、クラス増加時のスケール、責務の明確化、依存の整理を実現します。
 ## 3. 主要コンポーネント
 
 ### 3.1 Flaskアプリケーション (app.py)

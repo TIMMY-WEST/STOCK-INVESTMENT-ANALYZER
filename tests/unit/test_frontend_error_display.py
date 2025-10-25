@@ -101,7 +101,7 @@ class TestFrontendErrorDisplay:
         tested_error_codes = set()
 
         # INVALID_SYMBOL - Issue #68の実装により、StockDataFetcherを通じてエラーが返される
-        with patch("services.stock_data_fetcher.yf.Ticker") as mock_ticker:
+        with patch("services.stock_data.fetcher.yf.Ticker") as mock_ticker:
             mock_ticker.return_value.history.return_value.empty = True
             response = client.post(
                 "/api/fetch-data",
@@ -121,7 +121,7 @@ class TestFrontendErrorDisplay:
 
         # EXTERNAL_API_ERROR - 例外発生時
         with patch(
-            "services.stock_data_orchestrator.StockDataFetcher"
+            "services.stock_data.orchestrator.StockDataFetcher"
         ) as mock_fetcher_class:
             mock_fetcher_class.return_value.fetch_stock_data.side_effect = (
                 Exception("API Error")

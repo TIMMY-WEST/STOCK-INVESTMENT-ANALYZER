@@ -14,7 +14,7 @@ sys.path.insert(
 
 import logging  # noqa: E402
 
-from app.services.stock_data_orchestrator import (  # noqa: E402
+from app.services.stock_data.orchestrator import (  # noqa: E402
     StockDataOrchestrator,
 )
 from app.utils.timeframe_utils import (  # noqa: E402

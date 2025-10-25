@@ -1,7 +1,7 @@
 ---
 category: architecture
 ai_context: high
-last_updated: 2025-10-18
+last_updated: 2025-10-25
 related_docs:
   - ../api/api_specification.md
   - ../architecture/database_design.md
@@ -60,41 +60,64 @@ Yahoo Finance（yfinance）から日本企業の株価データを取得し、Po
 
 ## 2. プロジェクトディレクトリ構成
 
-### 2.1 計画中のディレクトリ構成（実装予定）
+### 2.1 バックエンドディレクトリ構成（リファクタリング後）
 
 ```
 stock-investment-analyzer/
-├── .mypy_cache/          # MyPyキャッシュファイル（自動生成）
-├── docs/                 # プロジェクトドキュメント
-│   ├── api_specification.md    # API仕様書
-│   ├── database_design.md      # データベース設計書
-│   ├── frontend_design.md      # フロントエンド設計書
-│   ├── github_workflow.md      # GitHub運用ワークフロー
-│   ├── project_architecture.md # プロジェクトアーキテクチャ（このファイル）
-│   ├── README.md              # ドキュメント用README
-│   ├── setup_guide.md         # セットアップガイド
-│   └── tasks/                 # タスク管理ディレクトリ
-│       ├── issues.md          # 課題・問題管理
-│       └── milestones.md      # マイルストーン管理
-├── app/                  # メインアプリケーションディレクトリ
-│   ├── app.py           # Flaskメインアプリケーション
-│   ├── models.py        # データベースモデル
-│   ├── templates/       # HTMLテンプレート
-│   │   └── index.html   # メインページ
-│   └── static/          # 静的ファイル
-│       ├── style.css    # CSSスタイル
-│       └── script.js    # JavaScript（必要に応じて）
-├── tests/               # テストスクリプト
-│   ├── test_app.py      # アプリケーションのテスト
-│   ├── test_models.py   # データベースモデルのテスト
-│   └── conftest.py      # pytestの設定・フィクスチャ
-├── requirements.txt     # Python依存関係
-├── .env.example        # 環境変数テンプレート
-├── .gitignore          # Git除外設定
-├── README.md           # プロジェクトREADME
-├── prompt.md           # AI開発用プロンプト
-└── tmp.md             # 一時的なメモ
+├── app/
+│   ├── app.py
+│   ├── api/
+│   │   ├── bulk_data.py
+│   │   ├── stock_master.py
+│   │   └── system_monitoring.py
+│   ├── models.py
+│   ├── services/
+│   │   ├── stock_data/
+│   │   │   ├── fetcher.py
+│   │   │   ├── saver.py
+│   │   │   ├── converter.py
+│   │   │   ├── validator.py
+│   │   │   ├── orchestrator.py
+│   │   │   └── scheduler.py
+│   │   ├── bulk/
+│   │   │   └── bulk_service.py
+│   │   ├── jpx/
+│   │   │   └── jpx_stock_service.py
+│   │   ├── batch/
+│   │   │   └── batch_service.py
+│   │   └── common/
+│   │       └── error_handler.py
+│   ├── utils/
+│   │   ├── database_utils.py
+│   │   ├── structured_logger.py
+│   │   └── timeframe_utils.py
+│   ├── templates/
+│   │   ├── index.html
+│   │   └── websocket_test.html
+│   └── static/
+│       ├── style.css
+│       ├── app.js
+│       └── jpx_sequential.js
+├── docs/
+│   ├── architecture/...
+│   └── api/...
+├── tests/...
+└── scripts/...
 ```
+
+#### 2.1.1 サービスディレクトリ再編成（旧→新）
+- `app/services/stock_data_fetcher.py` → `app/services/stock_data/fetcher.py`
+- `app/services/stock_data_saver.py` → `app/services/stock_data/saver.py`
+- `app/services/stock_data_converter.py` → `app/services/stock_data/converter.py`
+- `app/services/stock_data_validator.py` → `app/services/stock_data/validator.py`
+- `app/services/stock_data_orchestrator.py` → `app/services/stock_data/orchestrator.py`
+- `app/services/stock_data_scheduler.py` → `app/services/stock_data/scheduler.py`
+- `app/services/bulk_data_service.py` → `app/services/bulk/bulk_service.py`
+- `app/services/jpx_stock_service.py` → `app/services/jpx/jpx_stock_service.py`
+- `app/services/batch_service.py` → `app/services/batch/batch_service.py`
+- `app/services/error_handler.py` → `app/services/common/error_handler.py`
+
+> フロントエンド（`templates/`, `static/`）の構成は変更不要です。バックエンドのみ機能単位のモジュール化を行います。
 
 ### 2.2 各ディレクトリ・ファイルの役割
 

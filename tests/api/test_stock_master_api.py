@@ -7,7 +7,7 @@ from api.stock_master import stock_master_api
 from flask import Flask
 import pytest
 
-from services.jpx_stock_service import JPXStockServiceError
+from services.jpx.jpx_stock_service import JPXStockServiceError
 
 
 class TestStockMasterAPI:

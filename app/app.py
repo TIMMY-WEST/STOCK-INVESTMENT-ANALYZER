@@ -22,7 +22,7 @@ from models import (
     engine,
     get_db_session,
 )
-from services.stock_data_orchestrator import StockDataOrchestrator
+from services.stock_data.orchestrator import StockDataOrchestrator
 from utils.timeframe_utils import (
     get_model_for_interval,
     get_table_name,

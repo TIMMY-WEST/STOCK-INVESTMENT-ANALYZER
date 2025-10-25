@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from services.stock_data_saver import StockDataSaveError, StockDataSaver
+from services.stock_data.saver import StockDataSaveError, StockDataSaver
 
 
 class TestStockDataSaver:
@@ -16,9 +16,9 @@ class TestStockDataSaver:
         """各テストメソッドの前に実行される初期化処理."""
         self.saver = StockDataSaver()
 
-    @patch("services.stock_data_saver.get_db_session")
-    @patch("services.stock_data_saver.get_model_for_interval")
-    @patch("services.stock_data_saver.validate_interval")
+    @patch("services.stock_data.saver.get_db_session")
+    @patch("services.stock_data.saver.get_model_for_interval")
+    @patch("services.stock_data.saver.validate_interval")
     def test_save_stock_data_success(
         self, mock_validate, mock_get_model, mock_get_db_session
     ):
@@ -50,9 +50,9 @@ class TestStockDataSaver:
         assert result["skipped"] >= 0
         assert result["errors"] >= 0
 
-    @patch("services.stock_data_saver.get_db_session")
-    @patch("services.stock_data_saver.get_model_for_interval")
-    @patch("services.stock_data_saver.validate_interval")
+    @patch("services.stock_data.saver.get_db_session")
+    @patch("services.stock_data.saver.get_model_for_interval")
+    @patch("services.stock_data.saver.validate_interval")
     def test_save_stock_data_with_session(
         self, mock_validate, mock_get_model, mock_get_db_session
     ):
@@ -89,7 +89,7 @@ class TestStockDataSaver:
         with pytest.raises(ValueError):
             self.saver.save_stock_data(symbol, interval, data_list)
 
-    @patch("services.stock_data_saver.is_intraday_interval")
+    @patch("services.stock_data.saver.is_intraday_interval")
     def test_save_with_session_bulk_insert(self, mock_is_intraday):
         """バルクインサートの実行テスト."""
         # モックの設定
@@ -122,7 +122,7 @@ class TestStockDataSaver:
         assert result["saved"] == 2
         assert result["skipped"] == 0
 
-    @patch("services.stock_data_saver.is_intraday_interval")
+    @patch("services.stock_data.saver.is_intraday_interval")
     def test_save_with_session_duplicate_skip(self, mock_is_intraday):
         """重複データのスキップテスト."""
         # モックの設定
@@ -155,7 +155,7 @@ class TestStockDataSaver:
         assert result["skipped"] == 1
         assert result["saved"] == 1
 
-    @patch("services.stock_data_saver.is_intraday_interval")
+    @patch("services.stock_data.saver.is_intraday_interval")
     def test_save_with_session_error_handling(self, mock_is_intraday):
         """エラー発生時のハンドリングテスト."""
         # モックの設定
@@ -182,9 +182,9 @@ class TestStockDataSaver:
         )
         assert result is not None
 
-    @patch("services.stock_data_saver.get_db_session")
-    @patch("services.stock_data_saver.get_model_for_interval")
-    @patch("services.stock_data_saver.validate_interval")
+    @patch("services.stock_data.saver.get_db_session")
+    @patch("services.stock_data.saver.get_model_for_interval")
+    @patch("services.stock_data.saver.validate_interval")
     def test_save_batch_stock_data_success(
         self, mock_validate, mock_get_model, mock_get_db_session
     ):
@@ -219,9 +219,9 @@ class TestStockDataSaver:
             assert result["total_saved"] == 2
             mock_session.bulk_insert_mappings.assert_called_once()
 
-    @patch("services.stock_data_saver.get_db_session")
-    @patch("services.stock_data_saver.get_model_for_interval")
-    @patch("services.stock_data_saver.validate_interval")
+    @patch("services.stock_data.saver.get_db_session")
+    @patch("services.stock_data.saver.get_model_for_interval")
+    @patch("services.stock_data.saver.validate_interval")
     def test_save_batch_stock_data_error(
         self, mock_validate, mock_get_model, mock_get_db_session
     ):
@@ -251,7 +251,7 @@ class TestStockDataSaver:
             with pytest.raises(StockDataSaveError):
                 self.saver.save_batch_stock_data(symbols_data, interval="1d")
 
-    @patch("services.stock_data_saver.is_intraday_interval")
+    @patch("services.stock_data.saver.is_intraday_interval")
     def test_filter_duplicate_data(self, mock_is_intraday):
         """重複データフィルタリングのテスト."""
         # モックの設定
@@ -284,10 +284,10 @@ class TestStockDataSaver:
         assert len(filtered["7203.T"]) == 1
         assert filtered["7203.T"][0]["date"] == date(2025, 1, 2)
 
-    @patch("services.stock_data_saver.get_db_session")
-    @patch("services.stock_data_saver.get_model_for_interval")
-    @patch("services.stock_data_saver.validate_interval")
-    @patch("services.stock_data_saver.is_intraday_interval")
+    @patch("services.stock_data.saver.get_db_session")
+    @patch("services.stock_data.saver.get_model_for_interval")
+    @patch("services.stock_data.saver.validate_interval")
+    @patch("services.stock_data.saver.is_intraday_interval")
     def test_get_latest_date(
         self,
         mock_is_intraday,
@@ -319,9 +319,9 @@ class TestStockDataSaver:
         # 検証
         assert result == latest_date
 
-    @patch("services.stock_data_saver.get_db_session")
-    @patch("services.stock_data_saver.get_model_for_interval")
-    @patch("services.stock_data_saver.validate_interval")
+    @patch("services.stock_data.saver.get_db_session")
+    @patch("services.stock_data.saver.get_model_for_interval")
+    @patch("services.stock_data.saver.validate_interval")
     def test_count_records(
         self, mock_validate, mock_get_model, mock_get_db_session
     ):
@@ -347,9 +347,9 @@ class TestStockDataSaver:
         # 検証
         assert result == record_count
 
-    @patch("services.stock_data_saver.get_db_session")
-    @patch("services.stock_data_saver.get_model_for_interval")
-    @patch("services.stock_data_saver.validate_interval")
+    @patch("services.stock_data.saver.get_db_session")
+    @patch("services.stock_data.saver.get_model_for_interval")
+    @patch("services.stock_data.saver.validate_interval")
     def test_save_multiple_timeframes(
         self, mock_validate, mock_get_model, mock_get_db_session
     ):
