@@ -31,6 +31,94 @@ class StockDataOrchestrator:
         self.batch_processor = StockBatchProcessor()
         self.logger = logger
 
+    def _build_success_result(
+        self,
+        symbol: str,
+        interval: str,
+        data_list: List[Dict],
+        save_result: Dict[str, Any],
+        integrity_check: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """成功時の結果オブジェクトを構築.
+
+        Args:
+            symbol: 銘柄コード
+            interval: 時間軸
+            data_list: 取得したデータリスト
+            save_result: 保存結果
+            integrity_check: 整合性チェック結果
+
+        Returns:
+            成功結果の辞書。
+        """
+        return {
+            "success": True,
+            "symbol": symbol,
+            "interval": interval,
+            "fetch_count": len(data_list),
+            "save_result": save_result,
+            "integrity_check": integrity_check,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    def _build_error_result(
+        self, symbol: str, interval: str, error: Exception
+    ) -> Dict[str, Any]:
+        """エラー時の結果オブジェクトを構築.
+
+        Args:
+            symbol: 銘柄コード
+            interval: 時間軸
+            error: 発生したエラー
+
+        Returns:
+            エラー結果の辞書。
+        """
+        return {
+            "success": False,
+            "symbol": symbol,
+            "interval": interval,
+            "error": str(error),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    def _process_single_timeframe(
+        self, symbol: str, interval: str, df: Any
+    ) -> Dict[str, Any]:
+        """単一時間軸のデータを処理（変換・保存・チェック）.
+
+        Args:
+            symbol: 銘柄コード
+            interval: 時間軸
+            df: 取得したDataFrame
+
+        Returns:
+            処理結果。
+
+        Raises:
+            StockDataSaveError: 保存時のエラー
+        """
+        # データ変換
+        data_list = self.converter.convert_to_dict(df, interval)
+
+        # データ保存
+        save_result = self.saver.save_stock_data(
+            symbol=symbol, interval=interval, data_list=data_list
+        )
+
+        # 整合性チェック
+        integrity_check = self.check_data_integrity(
+            symbol=symbol, interval=interval
+        )
+
+        return self._build_success_result(
+            symbol=symbol,
+            interval=interval,
+            data_list=data_list,
+            save_result=save_result,
+            integrity_check=integrity_check,
+        )
+
     def fetch_and_save(
         self,
         symbol: str,
@@ -51,8 +139,9 @@ class StockDataOrchestrator:
         """
         try:
             self.logger.info(
-                f"データ取得・保存開始: {symbol} "
-                f"(時間軸: {get_display_name(interval)})"
+                "データ取得・保存開始: %s (時間軸: %s)",
+                symbol,
+                get_display_name(interval),
             )
 
             # データ取得
@@ -60,47 +149,25 @@ class StockDataOrchestrator:
                 symbol=symbol, interval=interval, period=period
             )
 
-            # データ変換
-            data_list = self.converter.convert_to_dict(df, interval)
-
-            # データ保存
-            save_result = self.saver.save_stock_data(
-                symbol=symbol, interval=interval, data_list=data_list
-            )
-
-            # 整合性チェック
-            integrity_check = self.check_data_integrity(
-                symbol=symbol, interval=interval
-            )
-
-            result = {
-                "success": True,
-                "symbol": symbol,
-                "interval": interval,
-                "fetch_count": len(data_list),
-                "save_result": save_result,
-                "integrity_check": integrity_check,
-                "timestamp": datetime.now().isoformat(),
-            }
+            # データ処理（変換・保存・チェック）
+            result = self._process_single_timeframe(symbol, interval, df)
 
             self.logger.info(
-                f"データ取得・保存完了: {symbol} "
-                f"(時間軸: {get_display_name(interval)}) - "
-                f"取得: {len(data_list)}件, 保存: {save_result['saved']}件"
+                "データ取得・保存完了: %s (時間軸: %s) - "
+                "取得: %d件, 保存: %d件",
+                symbol,
+                get_display_name(interval),
+                result["fetch_count"],
+                result["save_result"]["saved"],
             )
 
             return result
 
         except (StockDataFetchError, StockDataSaveError) as e:
-            error_msg = f"データ取得・保存エラー: {symbol} ({interval}): {e}"
-            self.logger.error(error_msg)
-            return {
-                "success": False,
-                "symbol": symbol,
-                "interval": interval,
-                "error": str(e),
-                "timestamp": datetime.now().isoformat(),
-            }
+            self.logger.error(
+                "データ取得・保存エラー: %s (%s): %s", symbol, interval, e
+            )
+            return self._build_error_result(symbol, interval, e)
 
     def fetch_and_save_multiple_timeframes(
         self,
@@ -121,75 +188,80 @@ class StockDataOrchestrator:
         if intervals is None:
             intervals = get_all_intervals()
 
-        results = {}
-
         self.logger.info(
-            f"複数時間軸データ取得・保存開始: {symbol} "
-            f"(時間軸: {len(intervals)}種類)"
+            "複数時間軸データ取得・保存開始: %s (時間軸: %d種類)",
+            symbol,
+            len(intervals),
         )
 
+        # バッチ取得を試行し、結果を処理
+        results = self._fetch_and_process_batch(symbol, intervals, period)
+
+        # サマリーログ出力
+        success_count = sum(1 for r in results.values() if r.get("success"))
+        self.logger.info(
+            "複数時間軸データ取得・保存完了: %s - 成功: %d/%d",
+            symbol,
+            success_count,
+            len(intervals),
+        )
+
+        return results
+
+    def _fetch_and_process_batch(
+        self, symbol: str, intervals: List[str], period: Optional[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """バッチ取得と各時間軸の処理を実行.
+
+        Args:
+            symbol: 銘柄コード
+            intervals: 時間軸のリスト
+            period: 取得期間
+
+        Returns:
+            {interval: 実行結果} の辞書。
+        """
         try:
             # BatchProcessorを使用して複数時間軸のデータを取得
             batch_results = self.batch_processor.fetch_multiple_timeframes(
                 symbol=symbol, intervals=intervals, period=period
             )
-
-            # 各時間軸のデータを保存
-            for interval, df in batch_results.items():
-                try:
-                    # データ変換
-                    data_list = self.converter.convert_to_dict(df, interval)
-
-                    # データ保存
-                    save_result = self.saver.save_stock_data(
-                        symbol=symbol, interval=interval, data_list=data_list
-                    )
-
-                    # 整合性チェック
-                    integrity_check = self.check_data_integrity(
-                        symbol=symbol, interval=interval
-                    )
-
-                    results[interval] = {
-                        "success": True,
-                        "symbol": symbol,
-                        "interval": interval,
-                        "fetch_count": len(data_list),
-                        "save_result": save_result,
-                        "integrity_check": integrity_check,
-                        "timestamp": datetime.now().isoformat(),
-                    }
-
-                except (StockDataSaveError, Exception) as e:
-                    error_msg = f"データ保存エラー: {symbol} ({interval}): {e}"
-                    self.logger.error(error_msg)
-                    results[interval] = {
-                        "success": False,
-                        "symbol": symbol,
-                        "interval": interval,
-                        "error": str(e),
-                        "timestamp": datetime.now().isoformat(),
-                    }
+            # 各時間軸のデータを処理
+            return self._process_batch_results(symbol, batch_results)
 
         except Exception as e:
             # バッチ取得全体でエラーが発生した場合
-            error_msg = f"複数時間軸データ取得エラー: {symbol}: {e}"
-            self.logger.error(error_msg)
-            for interval in intervals:
-                results[interval] = {
-                    "success": False,
-                    "symbol": symbol,
-                    "interval": interval,
-                    "error": str(e),
-                    "timestamp": datetime.now().isoformat(),
-                }
+            self.logger.error("複数時間軸データ取得エラー: %s: %s", symbol, e)
+            return {
+                interval: self._build_error_result(symbol, interval, e)
+                for interval in intervals
+            }
 
-        success_count = sum(1 for r in results.values() if r.get("success"))
-        self.logger.info(
-            f"複数時間軸データ取得・保存完了: {symbol} - "
-            f"成功: {success_count}/{len(intervals)}"
-        )
+    def _process_batch_results(
+        self, symbol: str, batch_results: Dict[str, Any]
+    ) -> Dict[str, Dict[str, Any]]:
+        """バッチ取得結果の各時間軸データを処理.
 
+        Args:
+            symbol: 銘柄コード
+            batch_results: {interval: DataFrame} の辞書
+
+        Returns:
+            {interval: 実行結果} の辞書。
+        """
+        results = {}
+        for interval, df in batch_results.items():
+            try:
+                results[interval] = self._process_single_timeframe(
+                    symbol, interval, df
+                )
+            except (StockDataSaveError, Exception) as e:
+                self.logger.error(
+                    "データ保存エラー: %s (%s): %s", symbol, interval, e
+                )
+                results[interval] = self._build_error_result(
+                    symbol, interval, e
+                )
         return results
 
     def check_data_integrity(
@@ -227,20 +299,23 @@ class StockDataOrchestrator:
 
             if is_valid:
                 self.logger.debug(
-                    f"整合性チェック OK: {symbol} ({interval}) - "
-                    f"{record_count}件"
+                    "整合性チェック OK: %s (%s) - %d件",
+                    symbol,
+                    interval,
+                    record_count,
                 )
             else:
                 self.logger.warning(
-                    f"整合性チェック NG: {symbol} ({interval}) - "
-                    f"データがありません"
+                    "整合性チェック NG: %s (%s) - データがありません",
+                    symbol,
+                    interval,
                 )
 
             return result
 
         except Exception as e:
             self.logger.error(
-                f"整合性チェックエラー: {symbol} ({interval}): {e}"
+                "整合性チェックエラー: %s (%s): %s", symbol, interval, e
             )
             return {"valid": False, "error": str(e)}
 
@@ -300,7 +375,7 @@ class StockDataOrchestrator:
         if intervals is None:
             intervals = get_all_intervals()
 
-        self.logger.info(f"全時間軸データ更新開始: {symbol}")
+        self.logger.info("全時間軸データ更新開始: %s", symbol)
 
         results = self.fetch_and_save_multiple_timeframes(
             symbol=symbol, intervals=intervals, period=None  # 推奨期間を使用
@@ -325,9 +400,11 @@ class StockDataOrchestrator:
         }
 
         self.logger.info(
-            f"全時間軸データ更新完了: {symbol} - "
-            f"成功: {success_count}/{len(intervals)}, "
-            f"保存: {total_saved}件"
+            "全時間軸データ更新完了: %s - 成功: %d/%d, 保存: %d件",
+            symbol,
+            success_count,
+            len(intervals),
+            total_saved,
         )
 
         return summary
