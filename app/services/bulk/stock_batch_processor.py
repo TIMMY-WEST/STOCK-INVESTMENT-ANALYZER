@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import yfinance as yf
 
-from services.stock_data.converter import StockDataConverter
-from services.stock_data.fetcher import StockDataFetcher
-from services.stock_data.validator import StockDataValidator
+from app.services.stock_data.converter import StockDataConverter
+from app.services.stock_data.fetcher import StockDataFetcher
+from app.services.stock_data.validator import StockDataValidator
 
 
 logger = logging.getLogger(__name__)

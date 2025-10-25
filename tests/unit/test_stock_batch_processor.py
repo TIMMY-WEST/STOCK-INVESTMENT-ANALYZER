@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from services.bulk.stock_batch_processor import (
+from app.services.bulk.stock_batch_processor import (
     StockBatchProcessingError,
     StockBatchProcessor,
 )
@@ -33,7 +33,9 @@ class TestStockBatchProcessor:
             index=pd.date_range("2024-01-01", periods=2),
         )
 
-    @patch("services.stock_data.fetcher.StockDataFetcher.fetch_stock_data")
+    @patch(
+        "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
+    )
     def test_fetch_multiple_timeframes_success(
         self, mock_fetch, processor, sample_dataframe
     ):
@@ -49,7 +51,9 @@ class TestStockBatchProcessor:
         assert result["1wk"]["success"] is True
         assert mock_fetch.call_count == 2
 
-    @patch("services.stock_data.fetcher.StockDataFetcher.fetch_stock_data")
+    @patch(
+        "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
+    )
     def test_fetch_multiple_timeframes_partial_failure(
         self, mock_fetch, processor, sample_dataframe
     ):
@@ -65,8 +69,8 @@ class TestStockBatchProcessor:
         assert result["1d"]["success"] is True
         assert result["1wk"]["success"] is False
 
-    @patch("yfinance.download")
-    def test_fetch_batch_stock_data_success(self, mock_download, processor):
+    @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
+    def test_fetch_batch_stock_data_success(self, mock_tickers, processor):
         """複数銘柄一括取得成功のテスト."""
         # MultiIndex DataFrameを作成
         symbols = ["AAPL", "GOOGL"]
@@ -82,7 +86,9 @@ class TestStockBatchProcessor:
             index=dates,
         )
 
-        mock_download.return_value = multi_df
+        mock_tickers_instance = MagicMock()
+        mock_tickers_instance.history.return_value = multi_df
+        mock_tickers.return_value = mock_tickers_instance
 
         result = processor.fetch_batch_stock_data(symbols, "1d")
 
@@ -103,7 +109,7 @@ class TestStockBatchProcessor:
                 assert result[symbol]["success"] is False
                 assert "error" in result[symbol]
 
-    @patch("yfinance.Tickers")
+    @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
     def test_download_batch_from_yahoo_success(
         self, mock_tickers, processor, sample_dataframe
     ):
@@ -118,7 +124,7 @@ class TestStockBatchProcessor:
         mock_tickers.assert_called_once_with("7203.T AAPL")
         mock_tickers_instance.history.assert_called_once()
 
-    @patch("yfinance.Tickers")
+    @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
     def test_download_batch_from_yahoo_failure(self, mock_tickers, processor):
         """Yahoo Financeからの一括ダウンロード失敗テスト."""
         mock_tickers.side_effect = Exception("API Error")
@@ -145,7 +151,9 @@ class TestStockBatchProcessor:
                 "7203.T", ["invalid", "also_invalid"]
             )
 
-    @patch("services.stock_data.fetcher.StockDataFetcher.fetch_stock_data")
+    @patch(
+        "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
+    )
     def test_fetch_multiple_timeframes_empty_data(self, mock_fetch, processor):
         """空データでの複数時間軸取得テスト."""
         mock_fetch.return_value = pd.DataFrame()

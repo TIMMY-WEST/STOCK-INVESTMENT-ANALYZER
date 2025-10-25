@@ -92,9 +92,11 @@ repos:
           - types-requests>=2.31.0
           - sqlalchemy[mypy]>=2.0.0
         verbose: true
+        pass_filenames: false
         args:
           - --config-file=pyproject.toml
           - --no-incremental
+          - app
 
 # CI環境での設定
 ci:

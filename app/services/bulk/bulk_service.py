@@ -9,12 +9,15 @@ import logging
 import time
 from typing import Any, Callable, Dict, List, Optional
 
-from services.bulk.stock_batch_processor import StockBatchProcessor
-from services.common.error_handler import ErrorAction, ErrorHandler
-from services.stock_data.converter import StockDataConverter
-from services.stock_data.fetcher import StockDataFetcher
-from services.stock_data.saver import StockDataSaver
-from utils.structured_logger import get_batch_logger, setup_structured_logging
+from app.services.bulk.stock_batch_processor import StockBatchProcessor
+from app.services.common.error_handler import ErrorAction, ErrorHandler
+from app.services.stock_data.converter import StockDataConverter
+from app.services.stock_data.fetcher import StockDataFetcher
+from app.services.stock_data.saver import StockDataSaver
+from app.utils.structured_logger import (
+    get_batch_logger,
+    setup_structured_logging,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -296,8 +299,6 @@ class BulkDataService:
             raise BulkDataServiceError(
                 f"システムエラー: {symbol}: {error}"
             ) from error
-
-        return False  # type: ignore[unreachable]
 
     def fetch_single_stock(
         self, symbol: str, interval: str = "1d", period: Optional[str] = None

@@ -153,7 +153,9 @@ graph LR
 - `/` - メインページ
 - `/api/fetch-data` - 単一銘柄データ取得
 - `/api/stocks` - 株価データCRUD操作
-- `/api/test-connection` - DB接続テスト
+- `GET /api/system/health-check` - ヘルスチェック
+- `POST /api/system/db-connection-test` - DB接続テスト
+- `POST /api/system/api-connection-test` - 外部API接続テスト
 
 ### 3.2 データモデル (models.py)
 
@@ -243,13 +245,16 @@ graph LR
 
 #### Stock Master API (api/stock_master.py)
 **エンドポイント:**
-- `GET /api/stock-master/symbols` - 銘柄一覧取得
+- `GET /api/stock-master/list` - 銘柄一覧取得
 - `POST /api/stock-master/update` - 銘柄マスタ更新
 
 #### System Monitoring API (api/system_monitoring.py)
 **エンドポイント:**
-- `GET /api/monitoring/batch/executions` - バッチ実行履歴取得
-- `GET /api/monitoring/batch/current` - 現在実行中のバッチ取得
+- `GET /api/system/health-check` - ヘルスチェック
+- `POST /api/system/db-connection-test` - DB接続テスト
+- `POST /api/system/api-connection-test` - 外部API接続テスト
+
+Blueprint `url_prefix`: `/api/system`
 
 ### 3.5 ユーティリティ
 

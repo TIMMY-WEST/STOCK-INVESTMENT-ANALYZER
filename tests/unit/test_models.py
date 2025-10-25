@@ -11,13 +11,17 @@ import pytest
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from models import (
+from app.models import (
     Base,
+    BatchExecution,
+    BatchExecutionDetail,
     DatabaseError,
     StockDaily,
     StockDailyCRUD,
     StockDataBase,
     StockDataError,
+    StockMaster,
+    StockMasterUpdate,
     Stocks1d,
     get_db_session,
 )
@@ -171,7 +175,7 @@ class TestStockDailyCRUD:
 
         # モックの設定
         mock_stock = Mock(spec=StockDaily)
-        with patch("models.StockDaily", return_value=mock_stock):
+        with patch("app.models.StockDaily", return_value=mock_stock):
             result = StockDailyCRUD.create(self.mock_session, **test_data)
 
         # 検証
@@ -196,7 +200,7 @@ class TestStockDailyCRUD:
             "duplicate key", None, None
         )
 
-        with patch("models.StockDaily"):
+        with patch("app.models.StockDaily"):
             with pytest.raises(DatabaseError):
                 StockDailyCRUD.create(self.mock_session, **test_data)
 
@@ -235,7 +239,7 @@ class TestStockDailyCRUD:
 
         assert result == mock_stock
 
-    @patch("models.StockDaily")
+    @patch("app.models.StockDaily")
     def test_update_success(self, mock_stock_daily_class):
         """正常な更新のテスト."""
         mock_stock = Mock()
@@ -254,7 +258,7 @@ class TestStockDailyCRUD:
         assert result == mock_stock
         self.mock_session.flush.assert_called_once()
 
-    @patch("models.StockDaily")
+    @patch("app.models.StockDaily")
     def test_update_not_found(self, mock_stock_daily_class):
         """存在しないIDの更新のテスト."""
         mock_filter = Mock()
@@ -337,7 +341,7 @@ class TestDatabaseSession:
 
     def test_get_db_session(self):
         """get_db_sessionのテスト."""
-        with patch("models.SessionLocal") as mock_session_local:
+        with patch("app.models.SessionLocal") as mock_session_local:
             mock_session = Mock()
             mock_session_local.return_value = mock_session
 
@@ -351,7 +355,7 @@ class TestDatabaseSession:
 
     def test_get_db_session_exception_handling(self):
         """get_db_sessionの例外処理テスト."""
-        with patch("models.SessionLocal") as mock_session_local:
+        with patch("app.models.SessionLocal") as mock_session_local:
             mock_session = Mock()
             mock_session_local.return_value = mock_session
 

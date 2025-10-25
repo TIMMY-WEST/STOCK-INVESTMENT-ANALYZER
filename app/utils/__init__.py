@@ -3,7 +3,7 @@
 時間軸関連のユーティリティを提供します。
 """
 
-from utils.timeframe_utils import (
+from app.utils.timeframe_utils import (
     TIMEFRAME_DISPLAY_NAME,
     TIMEFRAME_MODEL_MAP,
     TIMEFRAME_RECOMMENDED_PERIOD,

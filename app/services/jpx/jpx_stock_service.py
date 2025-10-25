@@ -13,7 +13,7 @@ import pandas as pd
 import requests
 from sqlalchemy.orm import Session
 
-from models import StockMaster, StockMasterUpdate, get_db_session
+from app.models import StockMaster, StockMasterUpdate, get_db_session
 
 
 logger = logging.getLogger(__name__)

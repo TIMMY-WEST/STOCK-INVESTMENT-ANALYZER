@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Optional, TypeVar
 
 from sqlalchemy.orm import Session
 
-from models import get_db_session
+from app.models import get_db_session
 
 
 T = TypeVar("T")

@@ -318,7 +318,7 @@ class TestE2EApplication:
     def test_database_connection_endpoint(self, app_server, driver):
         """データベース接続テストエンドポイントの確認."""
         # APIエンドポイントに直接アクセス
-        api_url = urljoin(app_server, "/api/test-connection")
+        api_url = urljoin(app_server, "/api/system/health-check")
 
         try:
             response = requests.get(api_url, timeout=10)
@@ -327,9 +327,13 @@ class TestE2EApplication:
 
             # JSONレスポンスの構造を確認
             data = response.json()
-            assert "success" in data
-            assert "message" in data
+            assert "status" in data
+            assert (
+                "services" in data
+                and "database" in data["services"]
+                and "message" in data["services"]["database"]
+            )
 
         except requests.exceptions.RequestException:
             # ネットワークエラーの場合はスキップ
-            pytest.skip("データベース接続テストをスキップしました")
+            pytest.skip("ヘルスチェックをスキップしました")

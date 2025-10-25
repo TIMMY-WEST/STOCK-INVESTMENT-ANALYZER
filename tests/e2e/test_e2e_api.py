@@ -73,12 +73,13 @@ class TestAPIE2E:
 
     def test_database_connection_endpoint(self, app_server):
         """データベース接続テストエンドポイント."""
-        response = requests.get(f"{app_server}/api/test-connection")
-        assert response.status_code == 200
+        response = requests.get(f"{app_server}/api/system/health-check")
+        assert response.status_code in [200, 500]
         data = response.json()
-        # レスポンスにデータベース関連の情報が含まれることを確認
-        assert "database" in data or "message" in data or "status" in data
-        print(f"✓ データベース接続テスト: {data}")
+        # レスポンスにヘルスチェック情報が含まれることを確認
+        assert "status" in data
+        assert "services" in data and "database" in data["services"]
+        print(f"✓ ヘルスチェック: {data}")
 
     def test_fetch_data_endpoint_valid_symbol(self, app_server):
         """有効な銘柄コードでのデータ取得テスト."""

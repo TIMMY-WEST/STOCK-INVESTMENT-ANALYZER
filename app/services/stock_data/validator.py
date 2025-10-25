@@ -9,7 +9,7 @@ from typing import List
 
 import pandas as pd
 
-from utils.timeframe_utils import validate_interval
+from app.utils.timeframe_utils import validate_interval
 
 
 logger = logging.getLogger(__name__)

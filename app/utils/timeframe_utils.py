@@ -2,7 +2,7 @@
 
 from typing import Dict, Literal, Type
 
-from models import (
+from app.models import (
     StockDataBase,
     Stocks1d,
     Stocks1h,

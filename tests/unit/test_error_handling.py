@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yfinance as yf
 
-from models import DatabaseError, StockDataError
+from app.models import DatabaseError, StockDataError
 
 
 pytestmark = pytest.mark.integration
@@ -30,7 +30,9 @@ class TestErrorHandling:
         ]
 
         for symbol in invalid_symbols:
-            with patch("yfinance.Ticker") as mock_ticker:
+            with patch(
+                "app.services.stock_data.fetcher.yf.Ticker"
+            ) as mock_ticker:
                 # 空のDataFrameを返すようにモック設定
                 mock_ticker.return_value.history.return_value.empty = True
 
@@ -51,7 +53,7 @@ class TestErrorHandling:
         """ネットワークエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでConnectionErrorをシミュレート
         with patch(
-            "services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
+            "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
         ) as mock_fetch:
             mock_fetch.side_effect = ConnectionError(
                 "Network connection failed"
@@ -76,7 +78,7 @@ class TestErrorHandling:
         """タイムアウトエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでTimeoutErrorをシミュレート
         with patch(
-            "services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
+            "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
         ) as mock_fetch:
             mock_fetch.side_effect = TimeoutError("Request timeout")
 
@@ -111,12 +113,12 @@ class TestErrorHandling:
         )
 
         with patch(
-            "services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
+            "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
         ) as mock_fetch:
             mock_fetch.return_value = mock_df
 
             with patch(
-                "services.stock_data.saver.StockDataSaver.save_stock_data"
+                "app.services.stock_data.saver.StockDataSaver.save_stock_data"
             ) as mock_save:
                 mock_save.side_effect = DatabaseError(
                     "Database connection failed"
@@ -190,7 +192,7 @@ class TestErrorHandling:
 
     def test_get_stocks_database_error(self, client):
         """GET /api/stocks でのデータベースエラー時の動作確認テスト."""
-        with patch("models.StockDailyCRUD.get_with_filters") as mock_get:
+        with patch("app.app.StockDailyCRUD.get_with_filters") as mock_get:
             mock_get.side_effect = DatabaseError("Database query failed")
 
             response = client.get("/api/stocks")

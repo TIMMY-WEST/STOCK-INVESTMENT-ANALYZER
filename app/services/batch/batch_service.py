@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from models import BatchExecution, BatchExecutionDetail
-from utils.database_utils import execute_with_session, to_dict_if_exists
+from app.models import BatchExecution, BatchExecutionDetail
+from app.utils.database_utils import execute_with_session, to_dict_if_exists
 
 
 logger = logging.getLogger(__name__)

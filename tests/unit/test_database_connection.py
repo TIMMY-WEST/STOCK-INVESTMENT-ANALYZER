@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy import inspect
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from models import SessionLocal, engine, get_db_session
+from app.models import SessionLocal, engine, get_db_session
 
 
 class TestDatabaseConnectionPool(unittest.TestCase):
@@ -55,7 +55,7 @@ class TestSessionManagement(unittest.TestCase):
             # セッションが有効であることを確認
             self.assertTrue(db_session.is_active)
 
-    @patch("models.SessionLocal")
+    @patch("app.models.SessionLocal")
     def test_session_commit_on_success(self, mock_session_local):
         """正常終了時にセッションがコミットされることを確認."""
         mock_session = MagicMock()
@@ -70,7 +70,7 @@ class TestSessionManagement(unittest.TestCase):
         # closeが呼ばれたことを確認
         mock_session.close.assert_called_once()
 
-    @patch("models.SessionLocal")
+    @patch("app.models.SessionLocal")
     def test_session_rollback_on_exception(self, mock_session_local):
         """例外発生時にセッションがロールバックされることを確認."""
         mock_session = MagicMock()
@@ -88,7 +88,7 @@ class TestSessionManagement(unittest.TestCase):
         # commitは呼ばれていないことを確認
         mock_session.commit.assert_not_called()
 
-    @patch("models.SessionLocal")
+    @patch("app.models.SessionLocal")
     def test_session_always_closed(self, mock_session_local):
         """例外の有無に関わらずセッションが必ずクローズされることを確認."""
         mock_session = MagicMock()
@@ -145,7 +145,7 @@ class TestConnectionLeakPrevention(unittest.TestCase):
 class TestConnectionResilience(unittest.TestCase):
     """接続の回復力テストクラス."""
 
-    @patch("models.engine.pool.connect")
+    @patch("app.models.engine.pool.connect")
     def test_pool_pre_ping_detects_stale_connections(self, mock_connect):
         """pool_pre_pingが古い接続を検出できることを確認."""
         # 最初の接続は失敗、2回目は成功するようモック

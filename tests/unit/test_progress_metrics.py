@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from services.bulk.bulk_service import ProgressTracker
+from app.services.bulk.bulk_service import ProgressTracker
 
 
 class TestProgressTracker:

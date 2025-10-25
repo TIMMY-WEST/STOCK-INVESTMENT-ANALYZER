@@ -11,11 +11,11 @@ import threading
 import time
 from typing import Any, Callable, Dict, List, Optional
 
-from api import bulk_api
 from flask import current_app, jsonify, request
 
-from services.batch.batch_service import BatchService, BatchServiceError
-from services.bulk.bulk_service import BulkDataService
+from app.api import bulk_api
+from app.services.batch.batch_service import BatchService, BatchServiceError
+from app.services.bulk.bulk_service import BulkDataService
 
 
 logger = logging.getLogger(__name__)
@@ -724,7 +724,7 @@ def get_jpx_symbols():
         )
 
         # JPX銘柄サービスを使用して銘柄一覧を取得
-        from services.jpx.jpx_stock_service import JPXStockService
+        from app.services.jpx.jpx_stock_service import JPXStockService
 
         service = JPXStockService()
         result = service.get_stock_list(

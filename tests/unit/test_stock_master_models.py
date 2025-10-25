@@ -24,7 +24,7 @@ from sqlalchemy.orm import sessionmaker
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "app"))
 
-from models import Base, StockMaster, StockMasterUpdate  # noqa: E402
+from app.models import Base, StockMaster, StockMasterUpdate  # noqa: E402
 
 
 load_dotenv()

@@ -9,6 +9,9 @@ import time
 
 from flask import Blueprint, jsonify, request
 
+from app.models import get_db_session
+from app.services.stock_data.fetcher import StockDataFetcher
+
 
 # Blueprintの作成
 system_api = Blueprint("system_api", __name__, url_prefix="/api/system")
@@ -27,8 +30,6 @@ def test_database_connection():
 
     try:
         from sqlalchemy import text
-
-        from models import get_db_session
 
         # データベースセッションを取得（コンテキストマネージャーとして使用）
         with get_db_session() as session:
@@ -108,7 +109,7 @@ def test_api_connection():
         data = request.get_json(silent=True) or {}
         symbol = data.get("symbol", "7203.T")
 
-        from services.stock_data.fetcher import StockDataFetcher
+        # StockDataFetcher is imported at module scope
 
         # Yahoo Finance APIから少量のデータを取得してテスト
         fetcher = StockDataFetcher()
@@ -189,8 +190,6 @@ def health_check():
         try:
             from sqlalchemy import text
 
-            from models import get_db_session
-
             with get_db_session() as session:
                 session.execute(text("SELECT 1"))
         except Exception as e:
@@ -202,7 +201,7 @@ def health_check():
         api_status = "healthy"
         api_message = "API接続正常"
         try:
-            from services.stock_data.fetcher import StockDataFetcher
+            # StockDataFetcher is imported at module scope
 
             fetcher = StockDataFetcher()
             stock_data = fetcher.fetch_stock_data(

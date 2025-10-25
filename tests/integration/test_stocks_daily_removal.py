@@ -15,25 +15,29 @@ import os
 import sys
 import unittest
 
+from dotenv import load_dotenv  # noqa: E402
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-
-# プロジェクトルートをパスに追加
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "app"))
-
-from dotenv import load_dotenv  # noqa: E402
-
-from models import (  # noqa: E402
+from app.models import (  # noqa: E402
     Base,
     DatabaseError,
     StockDaily,
     StockDailyCRUD,
     StockDataError,
     Stocks1d,
+    Stocks1h,
+    Stocks1m,
     get_db_session,
 )
+
+
+# プロジェクトルートをパスに追加
+# sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "app"))
+
+# legacy: removed import from models (now using app.models)
+# legacy names were: Base, DatabaseError, StockDaily, StockDailyCRUD, StockDataError, Stocks1d, get_db_session
 
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))

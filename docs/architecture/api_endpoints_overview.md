@@ -10,6 +10,20 @@
 
 ---
 
+## フロント→バック呼び出し規約
+
+- フロントエンドはHTTP(S)で`/api/*`配下のエンドポイントのみを呼び出します。
+- エンドポイントは`app/api/*`に定義されたBlueprintが提供します。
+- フロントエンドから`app/services/*`やデータベースへ直接アクセスしません（禁止）。
+- WebSocketは進捗通知などの双方向通信に限定し、APIの代替にはしません。
+
+## Blueprint配置規約
+
+- 物理配置: `app/api/<module>.py` にBlueprintを定義します。
+- Blueprint名: `<module>_api`（例: `system_api`, `bulk_api`）。
+- URLプレフィックス: `/api/<module>/` を基本とし、株価データ管理は `/api/stocks` を使用します。
+- ルーティング責務: ルートはサービス層（`app/services/*`）を呼び出し、HTTPリクエスト/レスポンスの整形のみを担います。
+
 ## 目次
 
 1. [APIエンドポイント一覧](#apiエンドポイント一覧)
@@ -34,7 +48,7 @@
 
 | メソッド | パス | 用途 | RESTful準拠 |
 |---------|------|------|------------|
-| GET | `/api/test-connection` | データベース接続テスト | ⚠️ 部分的 |
+
 | POST | `/api/fetch-data` | Yahoo Financeから株価データ取得・保存 | ⚠️ 部分的 |
 | POST | `/api/stocks` | 株価データを作成 | ✅ 準拠 |
 | GET | `/api/stocks` | 株価データを取得（クエリパラメータ対応） | ✅ 準拠 |

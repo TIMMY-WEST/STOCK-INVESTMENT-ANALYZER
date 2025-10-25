@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from models import get_db_session
-from utils.timeframe_utils import (
+from app.models import get_db_session
+from app.utils.timeframe_utils import (
     get_display_name,
     get_model_for_interval,
     is_intraday_interval,

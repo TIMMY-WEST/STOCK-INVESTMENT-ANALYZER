@@ -138,6 +138,7 @@ stock-investment-analyzer/
 - **models.py**: SQLAlchemyを使用したデータベースモデル
 - **templates/**: Jinja2テンプレートファイル
 - **static/**: CSS、JavaScript、画像などの静的ファイル
+- **api/**: API Blueprint群（フロント→バック呼び出し用のルート定義）
 
 #### テスト（tests/）
 - **test_app.py**: Flaskアプリケーションの機能テスト
@@ -171,7 +172,7 @@ stock-investment-analyzer/
 │  ┌─── API Endpoints ─────────────┐  │
 │  │  • /api/fetch-data            │  │
 │  │  • /api/stocks                │  │
-│  │  • /api/progress              │  │
+│  │  • /api/bulk/status/<job_id>   │  │
 │  └───────────────────────────────┘  │
 │                                     │
 │  ┌─── Business Logic ──────────────┐ │

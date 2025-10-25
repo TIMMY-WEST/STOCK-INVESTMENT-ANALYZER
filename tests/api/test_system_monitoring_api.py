@@ -26,7 +26,7 @@ def client():
 class TestDatabaseConnectionTest:
     """データベース接続テストのテストクラス."""
 
-    @patch("models.get_db_session")
+    @patch("app.api.system_monitoring.get_db_session")
     def test_db_connection_success(self, mock_get_session, client):
         """正常系: データベース接続テスト成功."""
         # モックセッションの設定
@@ -64,7 +64,7 @@ class TestDatabaseConnectionTest:
         assert "details" in data
         assert "timestamp" in data
 
-    @patch("models.get_db_session")
+    @patch("app.api.system_monitoring.get_db_session")
     def test_db_connection_failure(self, mock_get_session, client):
         """異常系: データベース接続テスト失敗."""
         # エラーをスローするモックを設定
@@ -83,7 +83,7 @@ class TestDatabaseConnectionTest:
 class TestAPIConnectionTest:
     """Yahoo Finance API接続テストのテストクラス."""
 
-    @patch("services.stock_data.fetcher.StockDataFetcher")
+    @patch("app.api.system_monitoring.StockDataFetcher")
     def test_api_connection_success(self, mock_fetcher_class, client):
         """正常系: Yahoo Finance API接続テスト成功."""
         # モックの設定
@@ -107,7 +107,7 @@ class TestAPIConnectionTest:
         assert data["details"]["dataPoints"] > 0
         assert data["details"]["dataAvailable"] is True
 
-    @patch("services.stock_data.fetcher.StockDataFetcher")
+    @patch("app.api.system_monitoring.StockDataFetcher")
     def test_api_connection_no_data(self, mock_fetcher_class, client):
         """異常系: データ取得失敗."""
         # モックの設定（データなし）
@@ -126,7 +126,7 @@ class TestAPIConnectionTest:
         assert data["success"] is False
         assert "銘柄データを取得できませんでした" in data["message"]
 
-    @patch("services.stock_data.fetcher.StockDataFetcher")
+    @patch("app.api.system_monitoring.StockDataFetcher")
     def test_api_connection_failure(self, mock_fetcher_class, client):
         """異常系: API接続エラー."""
         # エラーをスローするモックを設定
@@ -145,8 +145,8 @@ class TestAPIConnectionTest:
 class TestHealthCheck:
     """統合ヘルスチェックのテストクラス."""
 
-    @patch("services.stock_data.fetcher.StockDataFetcher")
-    @patch("models.get_db_session")
+    @patch("app.api.system_monitoring.StockDataFetcher")
+    @patch("app.api.system_monitoring.get_db_session")
     def test_health_check_all_healthy(
         self, mock_get_session, mock_fetcher_class, client
     ):
@@ -171,8 +171,8 @@ class TestHealthCheck:
         assert data["services"]["database"]["status"] == "healthy"
         assert data["services"]["yahoo_finance_api"]["status"] == "healthy"
 
-    @patch("services.stock_data.fetcher.StockDataFetcher")
-    @patch("models.get_db_session")
+    @patch("app.api.system_monitoring.StockDataFetcher")
+    @patch("app.api.system_monitoring.get_db_session")
     def test_health_check_db_error(
         self, mock_get_session, mock_fetcher_class, client
     ):
@@ -194,8 +194,8 @@ class TestHealthCheck:
         assert data["status"] == "error"
         assert data["services"]["database"]["status"] == "error"
 
-    @patch("services.stock_data.fetcher.StockDataFetcher")
-    @patch("models.get_db_session")
+    @patch("app.api.system_monitoring.StockDataFetcher")
+    @patch("app.api.system_monitoring.get_db_session")
     def test_health_check_api_warning(
         self, mock_get_session, mock_fetcher_class, client
     ):

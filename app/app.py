@@ -7,14 +7,14 @@ including WebSocket support, database setup, and API blueprints.
 from datetime import date, datetime
 import os
 
-from api.bulk_data import bulk_api
-from api.stock_master import stock_master_api
-from api.system_monitoring import system_api
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 from flask_socketio import SocketIO
 
-from models import (
+from app.api.bulk_data import bulk_api
+from app.api.stock_master import stock_master_api
+from app.api.system_monitoring import system_api
+from app.models import (
     Base,
     DatabaseError,
     StockDailyCRUD,
@@ -22,8 +22,8 @@ from models import (
     engine,
     get_db_session,
 )
-from services.stock_data.orchestrator import StockDataOrchestrator
-from utils.timeframe_utils import (
+from app.services.stock_data.orchestrator import StockDataOrchestrator
+from app.utils.timeframe_utils import (
     get_model_for_interval,
     get_table_name,
     validate_interval,
@@ -75,36 +75,6 @@ def index():
 def websocket_test():
     """WebSocket進捗配信のテストページ."""
     return render_template("websocket_test.html")
-
-
-@app.route("/api/test-connection", methods=["GET"])
-def test_connection():
-    """データベース接続テスト用エンドポイント."""
-    from sqlalchemy import text
-
-    try:
-        with get_db_session() as session:
-            session.execute(text("SELECT 1"))
-
-        return jsonify(
-            {
-                "success": True,
-                "message": "データベース接続が正常に動作しています",
-                "database": os.getenv("DB_NAME"),
-                "user": os.getenv("DB_USER"),
-            }
-        )
-    except Exception as e:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": "DATABASE_CONNECTION_ERROR",
-                    "message": f"データベース接続に失敗しました: {str(e)}",
-                }
-            ),
-            500,
-        )
 
 
 @app.route("/api/fetch-data", methods=["POST"])
@@ -475,8 +445,12 @@ def get_stocks():
         interval = request.args.get("interval", "1d")
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
-        start_date = request.args.get("start_date")
-        end_date = request.args.get("end_date")
+        from_param = request.args.get("from")
+        to_param = request.args.get("to")
+        start_date_raw = (
+            from_param if from_param else request.args.get("start_date")
+        )
+        end_date_raw = to_param if to_param else request.args.get("end_date")
 
         # 時間軸のバリデーション
         if not validate_interval(interval):
@@ -500,16 +474,18 @@ def get_stocks():
         parsed_start_date = None
         parsed_end_date = None
 
-        if start_date:
+        if start_date_raw:
+            param_name = "from" if from_param else "start_date"
             valid, parsed_start_date, error_response = _parse_date_param(
-                start_date, "start_date"
+                start_date_raw, param_name
             )
             if not valid:
                 return jsonify(error_response), 400
 
-        if end_date:
+        if end_date_raw:
+            param_name = "to" if to_param else "end_date"
             valid, parsed_end_date, error_response = _parse_date_param(
-                end_date, "end_date"
+                end_date_raw, param_name
             )
             if not valid:
                 return jsonify(error_response), 400

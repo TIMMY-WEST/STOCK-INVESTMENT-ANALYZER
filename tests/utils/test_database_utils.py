@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from utils.database_utils import execute_with_session, to_dict_if_exists
+from app.utils.database_utils import execute_with_session, to_dict_if_exists
 
 
 class TestExecuteWithSession:
@@ -25,7 +25,7 @@ class TestExecuteWithSession:
         # Assert
         assert result == expected_result
 
-    @patch("utils.database_utils.get_db_session")
+    @patch("app.utils.database_utils.get_db_session")
     def test_without_provided_session(self, mock_get_db_session):
         """セッションが提供されない場合のテスト."""
         # Arrange

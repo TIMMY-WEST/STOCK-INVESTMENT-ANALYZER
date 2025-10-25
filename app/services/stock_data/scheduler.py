@@ -8,7 +8,7 @@ from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from services.stock_data.orchestrator import StockDataOrchestrator
+from app.services.stock_data.orchestrator import StockDataOrchestrator
 
 
 logger = logging.getLogger(__name__)
