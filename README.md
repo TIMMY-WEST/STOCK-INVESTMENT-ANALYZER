@@ -190,6 +190,42 @@ psql -U stock_user -d stock_data_system -f scripts/create_tables.sql
 psql -U stock_user -d stock_data_system -f scripts/insert_sample_data.sql
 ```
 
+### データベースリセット
+
+開発中にデータベースをクリーンな状態に戻す場合：
+
+**Windows:**
+```cmd
+scripts\setup\reset_db.bat
+```
+
+**Linux/macOS:**
+```bash
+chmod +x scripts/setup/reset_db.sh
+./scripts/setup/reset_db.sh
+```
+
+**Makeコマンド（Linux/macOS）:**
+```bash
+make db-reset
+```
+
+リセットスクリプトは以下の操作を実行します：
+- ✅ データベースバックアップ作成（オプション）
+- ✅ 既存データベースの削除
+- ✅ データベースの再作成
+- ✅ テーブルの作成
+- ✅ サンプルデータの投入
+- ✅ エラー時のロールバック機能
+
+**⚠️ 注意:** このスクリプトは**全てのデータを削除**します。本番環境では使用しないでください。
+
+**利用シーン:**
+- 開発中にデータベースの状態が不整合になった場合
+- テストデータを再投入したい場合
+- マイグレーション後の動作確認
+- 新規開発者の環境構築時
+
 ### 既存環境からの移行
 
 既存の `stocks_daily` テーブルから新しい8テーブル構成への移行：
