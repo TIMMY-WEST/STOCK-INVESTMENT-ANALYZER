@@ -4,6 +4,7 @@
 """
 
 import logging
+import threading
 from typing import Optional
 
 import pandas as pd
@@ -13,6 +14,11 @@ from services.stock_data_validator import StockDataValidator
 
 
 logger = logging.getLogger(__name__)
+
+# yfinanceのスレッドセーフティ問題を回避するためのグローバルロック
+# yfinanceは内部でグローバル辞書を使用しており、並行アクセス時に競合状態が発生する
+# 参考: https://github.com/ranaroussi/yfinance/issues/2557
+_yfinance_lock = threading.Lock()
 
 
 class StockDataFetchError(Exception):
@@ -104,30 +110,34 @@ class StockDataFetcher:
             StockDataFetchError: ダウンロードエラーの場合
         """
         try:
-            ticker = yf.Ticker(symbol)
+            # yfinanceのスレッドセーフティ問題を回避するためのロック
+            # 複数スレッドが同時にyfinanceにアクセスすると、内部のグローバル辞書で
+            # 競合状態が発生し、データが正しく取得できない場合がある
+            with _yfinance_lock:
+                ticker = yf.Ticker(symbol)
 
-            # 期間の設定
-            if period:
-                df = ticker.history(period=period, interval=interval)
-            else:
-                # デフォルト期間の設定
-                default_periods = {
-                    "1m": "7d",
-                    "2m": "60d",
-                    "5m": "60d",
-                    "15m": "60d",
-                    "30m": "60d",
-                    "60m": "730d",
-                    "90m": "60d",
-                    "1h": "730d",
-                    "1d": "max",
-                    "5d": "max",
-                    "1wk": "max",
-                    "1mo": "max",
-                    "3mo": "max",
-                }
-                period = default_periods.get(interval, "1y")
-                df = ticker.history(period=period, interval=interval)
+                # 期間の設定
+                if period:
+                    df = ticker.history(period=period, interval=interval)
+                else:
+                    # デフォルト期間の設定
+                    default_periods = {
+                        "1m": "7d",
+                        "2m": "60d",
+                        "5m": "60d",
+                        "15m": "60d",
+                        "30m": "60d",
+                        "60m": "730d",
+                        "90m": "60d",
+                        "1h": "730d",
+                        "1d": "max",
+                        "5d": "max",
+                        "1wk": "max",
+                        "1mo": "max",
+                        "3mo": "max",
+                    }
+                    period = default_periods.get(interval, "1y")
+                    df = ticker.history(period=period, interval=interval)
 
             return df
 

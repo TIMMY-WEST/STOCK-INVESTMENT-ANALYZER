@@ -137,22 +137,11 @@ class TestBulkDataService:
                 "Low": [99.0],
                 "Close": [103.0],
                 "Volume": [1000000],
-            }
+            },
+            index=[pd.Timestamp("2024-01-01")],
         )
 
         service.fetcher.fetch_stock_data = Mock(return_value=mock_df)
-        service.fetcher.convert_to_dict = Mock(
-            return_value=[
-                {
-                    "date": datetime(2024, 1, 1).date(),
-                    "open": 100.0,
-                    "high": 105.0,
-                    "low": 99.0,
-                    "close": 103.0,
-                    "volume": 1000000,
-                }
-            ]
-        )
         service.saver.save_stock_data = Mock(
             return_value={"saved": 1, "skipped": 0}
         )
@@ -178,13 +167,13 @@ class TestBulkDataService:
                 "Low": [99.0],
                 "Close": [103.0],
                 "Volume": [1000000],
-            }
+            },
+            index=[pd.Timestamp("2024-01-01")],
         )
 
         service.fetcher.fetch_stock_data = Mock(
             side_effect=[StockDataFetchError("一時的なエラー"), mock_df]
         )
-        service.fetcher.convert_to_dict = Mock(return_value=[{}])
         service.saver.save_stock_data = Mock(return_value={"saved": 1})
 
         # テスト実行

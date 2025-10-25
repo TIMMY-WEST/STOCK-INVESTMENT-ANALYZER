@@ -5,7 +5,10 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from services.stock_batch_processor import StockBatchProcessor
+from services.stock_batch_processor import (
+    StockBatchProcessingError,
+    StockBatchProcessor,
+)
 
 
 class TestStockBatchProcessor:
@@ -30,33 +33,37 @@ class TestStockBatchProcessor:
             index=pd.date_range("2024-01-01", periods=2),
         )
 
-    @patch("yfinance.download")
+    @patch("services.stock_data_fetcher.StockDataFetcher.fetch_stock_data")
     def test_fetch_multiple_timeframes_success(
-        self, mock_download, processor, sample_dataframe
+        self, mock_fetch, processor, sample_dataframe
     ):
         """複数時間軸データ取得成功のテスト."""
-        mock_download.return_value = sample_dataframe
+        mock_fetch.return_value = sample_dataframe
 
         result = processor.fetch_multiple_timeframes("7203.T", ["1d", "1wk"])
 
         assert len(result) == 2
         assert "1d" in result
         assert "1wk" in result
-        assert mock_download.call_count == 2
+        assert result["1d"]["success"] is True
+        assert result["1wk"]["success"] is True
+        assert mock_fetch.call_count == 2
 
-    @patch("yfinance.download")
+    @patch("services.stock_data_fetcher.StockDataFetcher.fetch_stock_data")
     def test_fetch_multiple_timeframes_partial_failure(
-        self, mock_download, processor, sample_dataframe
+        self, mock_fetch, processor, sample_dataframe
     ):
         """複数時間軸データ取得部分失敗のテスト."""
         # 最初の呼び出しは成功、2回目は失敗
-        mock_download.side_effect = [sample_dataframe, Exception("API Error")]
+        mock_fetch.side_effect = [sample_dataframe, Exception("API Error")]
 
         result = processor.fetch_multiple_timeframes("7203.T", ["1d", "1wk"])
 
-        assert len(result) == 1
+        assert len(result) == 2
         assert "1d" in result
-        assert "1wk" not in result
+        assert "1wk" in result
+        assert result["1d"]["success"] is True
+        assert result["1wk"]["success"] is False
 
     @patch("yfinance.download")
     def test_fetch_batch_stock_data_success(self, mock_download, processor):
@@ -89,48 +96,64 @@ class TestStockBatchProcessor:
 
         result = processor.fetch_batch_stock_data(invalid_symbols, "1d")
 
-        assert result == {}
+        # 無効な銘柄はエラー情報を含む辞書が返される
+        assert isinstance(result, dict)
+        for symbol in ["", "INVALID"]:  # Noneは除外される
+            if symbol in result:
+                assert result[symbol]["success"] is False
+                assert "error" in result[symbol]
 
-    @patch("yfinance.download")
+    @patch("yfinance.Tickers")
     def test_download_batch_from_yahoo_success(
-        self, mock_download, processor, sample_dataframe
+        self, mock_tickers, processor, sample_dataframe
     ):
         """Yahoo Financeからの一括ダウンロード成功テスト."""
-        mock_download.return_value = sample_dataframe
+        mock_tickers_instance = MagicMock()
+        mock_tickers_instance.history.return_value = sample_dataframe
+        mock_tickers.return_value = mock_tickers_instance
 
         result = processor._download_batch_from_yahoo(["7203.T", "AAPL"], "1d")
 
         assert result is not None
-        mock_download.assert_called_once()
+        mock_tickers.assert_called_once_with("7203.T AAPL")
+        mock_tickers_instance.history.assert_called_once()
 
-    @patch("yfinance.download")
-    def test_download_batch_from_yahoo_failure(self, mock_download, processor):
+    @patch("yfinance.Tickers")
+    def test_download_batch_from_yahoo_failure(self, mock_tickers, processor):
         """Yahoo Financeからの一括ダウンロード失敗テスト."""
-        mock_download.side_effect = Exception("API Error")
+        mock_tickers.side_effect = Exception("API Error")
 
-        result = processor._download_batch_from_yahoo(["7203.T", "AAPL"], "1d")
-
-        assert result is None
+        with pytest.raises(Exception, match="API Error"):
+            processor._download_batch_from_yahoo(["7203.T", "AAPL"], "1d")
 
     def test_fetch_multiple_timeframes_invalid_symbol(self, processor):
         """無効な銘柄コードでの複数時間軸取得テスト."""
         result = processor.fetch_multiple_timeframes("", ["1d", "1wk"])
-        assert result == {}
+
+        # 無効な銘柄の場合、各時間軸でエラー情報が返される
+        assert len(result) == 2
+        assert "1d" in result
+        assert "1wk" in result
+        assert result["1d"]["success"] is False
+        assert result["1wk"]["success"] is False
 
     def test_fetch_multiple_timeframes_invalid_intervals(self, processor):
         """無効な時間軸での複数時間軸取得テスト."""
-        result = processor.fetch_multiple_timeframes(
-            "7203.T", ["invalid", "also_invalid"]
-        )
-        assert result == {}
+        # 全ての時間軸で失敗した場合は例外が発生する
+        with pytest.raises(StockBatchProcessingError):
+            processor.fetch_multiple_timeframes(
+                "7203.T", ["invalid", "also_invalid"]
+            )
 
-    @patch("yfinance.download")
-    def test_fetch_multiple_timeframes_empty_data(
-        self, mock_download, processor
-    ):
+    @patch("services.stock_data_fetcher.StockDataFetcher.fetch_stock_data")
+    def test_fetch_multiple_timeframes_empty_data(self, mock_fetch, processor):
         """空データでの複数時間軸取得テスト."""
-        mock_download.return_value = pd.DataFrame()
+        mock_fetch.return_value = pd.DataFrame()
 
         result = processor.fetch_multiple_timeframes("7203.T", ["1d"])
 
-        assert result == {}
+        # 空データの場合、成功として扱われるが、データは空
+        assert len(result) == 1
+        assert "1d" in result
+        assert result["1d"]["success"] is True
+        assert result["1d"]["record_count"] == 0

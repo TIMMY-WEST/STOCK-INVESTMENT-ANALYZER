@@ -46,15 +46,70 @@ class StockDataConverter:
                 return []
 
             records = []
+            skipped_count = 0
+
             for index, row in df.iterrows():
+                # 価格データの妥当性をチェック
+                if not self._is_valid_price_data(row):
+                    skipped_count += 1
+                    self.logger.debug(
+                        f"データスキップ: 無効な価格データ "
+                        f"(Open:{row['Open']}, High:{row['High']}, "
+                        f"Low:{row['Low']}, Close:{row['Close']})"
+                    )
+                    continue
+
                 record = self._create_record_from_row(index, row, interval)
                 records.append(record)
+
+            if skipped_count > 0:
+                self.logger.info(f"無効なデータをスキップ: {skipped_count}件")
 
             self.logger.debug(f"データ変換完了: {len(records)}件 ({interval})")
             return records
 
         except Exception as e:
             raise StockDataConversionError(f"データ変換エラー: {e}") from e
+
+    def _is_valid_price_data(self, row: pd.Series) -> bool:
+        """価格データの妥当性をチェック.
+
+        データベース制約に準拠した価格データかどうかを検証します:
+        - high >= low AND high >= open AND high >= close AND low <= open AND low <= close
+
+        Args:
+            row: 価格データの行
+
+        Returns:
+            妥当な場合True
+        """
+        try:
+            open_price = float(row["Open"])
+            high_price = float(row["High"])
+            low_price = float(row["Low"])
+            close_price = float(row["Close"])
+
+            # 基本的な妥当性チェック
+            if any(
+                price <= 0
+                for price in [open_price, high_price, low_price, close_price]
+            ):
+                return False
+
+            # データベース制約チェック
+            if not (
+                high_price >= low_price
+                and high_price >= open_price
+                and high_price >= close_price
+                and low_price <= open_price
+                and low_price <= close_price
+            ):
+                return False
+
+            return True
+
+        except (ValueError, TypeError, KeyError):
+            return False
 
     def _create_record_from_row(
         self, index: pd.Timestamp, row: pd.Series, interval: str
@@ -68,24 +123,36 @@ class StockDataConverter:
 
         Returns:
             レコード辞書
+
+        Raises:
+            StockDataConversionError: インデックスが適切な型でない場合
         """
-        record = {
-            "open": float(row["Open"]),
-            "high": float(row["High"]),
-            "low": float(row["Low"]),
-            "close": float(row["Close"]),
-            "volume": int(row["Volume"]) if pd.notna(row["Volume"]) else 0,
-        }
+        try:
+            record = {
+                "open": float(row["Open"]),
+                "high": float(row["High"]),
+                "low": float(row["Low"]),
+                "close": float(row["Close"]),
+                "volume": int(row["Volume"]) if pd.notna(row["Volume"]) else 0,
+            }
 
-        # 時間軸に応じて日時フィールドを設定
-        if interval in ["1d", "1wk", "1mo"]:
-            # 日足以上は日付のみ
-            record["date"] = index.date()
-        else:
-            # 分足・時間足は日時
-            record["datetime"] = index.to_pydatetime()
+            # インデックスをTimestampに変換
+            if not isinstance(index, pd.Timestamp):
+                index = pd.Timestamp(index)
 
-        return record
+            # 時間軸に応じて日時フィールドを設定
+            if interval in ["1d", "1wk", "1mo"]:
+                # 日足以上は日付のみ
+                record["date"] = index.date()
+            else:
+                # 分足・時間足は日時
+                record["datetime"] = index.to_pydatetime()
+
+            return record
+        except (AttributeError, TypeError, ValueError) as e:
+            raise StockDataConversionError(
+                f"レコード作成エラー: インデックス={index}, エラー={str(e)}"
+            )
 
     def extract_price_data(self, df: pd.DataFrame) -> Dict[str, Any]:
         """価格データを抽出.
@@ -156,8 +223,9 @@ class StockDataConverter:
         if isinstance(df.columns, pd.MultiIndex):
             for symbol in symbols:
                 try:
-                    # 銘柄ごとのデータを抽出
+                    # 銘柄ごとのデータを抽出（銘柄コードはレベル1にある）
                     symbol_data = df.xs(symbol, level=1, axis=1)
+                    # 列名を単一レベルに変換（データ項目のレベルのみ残す）
                     result[symbol] = symbol_data
                 except KeyError:
                     # 該当銘柄のデータがない場合は空のDataFrame

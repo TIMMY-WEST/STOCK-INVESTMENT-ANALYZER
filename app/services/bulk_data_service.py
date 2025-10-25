@@ -10,6 +10,8 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 
 from services.error_handler import ErrorAction, ErrorHandler
+from services.stock_batch_processor import StockBatchProcessor
+from services.stock_data_converter import StockDataConverter
 from services.stock_data_fetcher import StockDataFetcher
 from services.stock_data_saver import StockDataSaver
 from utils.structured_logger import get_batch_logger, setup_structured_logging
@@ -205,7 +207,9 @@ class BulkDataService:
             batch_id: バッチID（構造化ログ用）。
         """
         self.fetcher = StockDataFetcher()
+        self.batch_processor = StockBatchProcessor()
         self.saver = StockDataSaver()
+        self.converter = StockDataConverter()
         self.max_workers = max_workers
         self.retry_count = retry_count
         self.logger = logger
@@ -248,7 +252,7 @@ class BulkDataService:
 
         # データ変換
         try:
-            data_list = self.fetcher.convert_to_dict(df, interval)
+            data_list = self.converter.convert_to_dict(df, interval)
             if not data_list:
                 self.logger.warning(f"変換後のデータが空です: {symbol}")
                 return False, [], fetch_duration
@@ -424,7 +428,7 @@ class BulkDataService:
         """バッチデータの変換処理.
 
         Args:
-            batch_data: バッチデータ
+            batch_data: バッチデータ（StockBatchProcessorから返された結果）
             interval: 時間軸
 
         Returns:
@@ -433,13 +437,30 @@ class BulkDataService:
         symbols_data = {}
         conversion_errors = []
 
-        for symbol, df in batch_data.items():
+        for symbol, result in batch_data.items():
             try:
-                data_list = self.fetcher.convert_to_dict(df, interval)
-                if data_list:
-                    symbols_data[symbol] = data_list
+                # StockBatchProcessorから返された結果の構造を確認
+                if isinstance(result, dict):
+                    if result.get("success", False):
+                        # 成功した場合、既に変換済みのデータを取得
+                        data_list = result.get("data", [])
+                        if data_list:
+                            symbols_data[symbol] = data_list
+                        else:
+                            self.logger.warning(f"データ変換後が空: {symbol}")
+                    else:
+                        # 失敗した場合、エラーメッセージを記録
+                        error_msg = result.get("error", "不明なエラー")
+                        conversion_errors.append(f"{symbol}: {error_msg}")
+                        self.logger.error(
+                            f"データ変換エラー: {symbol}: {error_msg}"
+                        )
                 else:
-                    self.logger.warning(f"データ変換後が空: {symbol}")
+                    # 予期しない形式の場合
+                    conversion_errors.append(f"{symbol}: 予期しないデータ形式")
+                    self.logger.error(
+                        f"データ変換エラー: {symbol}: 予期しないデータ形式"
+                    )
             except Exception as e:
                 conversion_errors.append(f"{symbol}: {e}")
                 self.logger.error(f"データ変換エラー: {symbol}: {e}")
@@ -592,7 +613,7 @@ class BulkDataService:
             try:
                 # バッチダウンロード
                 fetch_start = time.time()
-                batch_data = self.fetcher.fetch_batch_stock_data(
+                batch_data = self.batch_processor.fetch_batch_stock_data(
                     symbols=batch_symbols, interval=interval, period=period
                 )
                 fetch_duration = int((time.time() - fetch_start) * 1000)

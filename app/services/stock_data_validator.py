@@ -4,6 +4,7 @@
 """
 
 import logging
+import re
 from typing import List
 
 import pandas as pd
@@ -42,16 +43,27 @@ class StockDataValidator:
         # .T サフィックスを除去
         code = symbol.replace(".T", "")
 
+        # 日本株で無効なパターンを除外
+        # 英字と数字が混在する場合は除外（純粋なアルファベットは許可）
+        if re.search(r"[A-Za-z]", code) and not code.isalpha():
+            # ただし、米国株の特殊形式（例: BRK.A）は許可
+            if "." not in code:
+                self.logger.debug(
+                    f"無効な銘柄コード（英数字混在パターン）: {symbol}"
+                )
+                return False
+
+        # 有効なパターンをチェック
         # 数字のみ（4桁）が日本株の標準形式
         if code.isdigit() and len(code) == 4:
             return True
 
-        # その他の有効なフォーマット（米国株など）
-        # アルファベットのみ、または数字+アルファベットの組み合わせ
-        if code.replace(".", "").replace("-", "").isalnum():
-            # 無効なパターン（数字+A形式）を除外
-            if code[-1] == "A" and code[:-1].isdigit():
-                return False
+        # 複雑な米国株形式（例: BRK.A, BRK.B）
+        if "." in code and len(code) > 4:
+            return True
+
+        # 純粋なアルファベットのみ、または特定の形式
+        if code.replace(".", "").replace("-", "").isalpha() and len(code) >= 1:
             return True
 
         return False
