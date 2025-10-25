@@ -11,7 +11,8 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from models import BatchExecution, BatchExecutionDetail, get_db_session
+from models import BatchExecution, BatchExecutionDetail
+from utils.database_utils import execute_with_session, to_dict_if_exists
 
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,8 @@ class BatchService:
             BatchServiceError: バッチ作成エラー。
         """
         try:
-            if session:
-                # セッションが提供されている場合はそれを使用
+
+            def _create(s: Session) -> Dict[str, Any]:
                 batch = BatchExecution(
                     batch_type=batch_type,
                     status="running",
@@ -54,25 +55,11 @@ class BatchService:
                     successful_stocks=0,
                     failed_stocks=0,
                 )
-                session.add(batch)
-                session.flush()
+                s.add(batch)
+                s.flush()
                 return batch.to_dict()
-            else:
-                # セッションが提供されていない場合は新規作成
-                with get_db_session() as db_session:
-                    batch = BatchExecution(
-                        batch_type=batch_type,
-                        status="running",
-                        total_stocks=total_stocks,
-                        processed_stocks=0,
-                        successful_stocks=0,
-                        failed_stocks=0,
-                    )
-                    db_session.add(batch)
-                    db_session.flush()
-                    batch_dict = batch.to_dict()
 
-                return batch_dict
+            return execute_with_session(_create, session)
 
         except Exception as e:
             logger.error(f"バッチ作成エラー: {e}")
@@ -95,21 +82,16 @@ class BatchService:
             BatchServiceError: バッチ取得エラー。
         """
         try:
-            if session:
+
+            def _get(s: Session) -> Optional[Dict[str, Any]]:
                 batch = (
-                    session.query(BatchExecution)
+                    s.query(BatchExecution)
                     .filter(BatchExecution.id == batch_id)
                     .first()
                 )
-                return batch.to_dict() if batch else None
-            else:
-                with get_db_session() as db_session:
-                    batch = (
-                        db_session.query(BatchExecution)
-                        .filter(BatchExecution.id == batch_id)
-                        .first()
-                    )
-                    return batch.to_dict() if batch else None
+                return to_dict_if_exists(batch)
+
+            return execute_with_session(_get, session)
 
         except Exception as e:
             logger.error(f"バッチ取得エラー (batch_id={batch_id}): {e}")
@@ -141,9 +123,10 @@ class BatchService:
             BatchServiceError: 進捗更新エラー。
         """
         try:
-            if session:
+
+            def _update(s: Session) -> Optional[Dict[str, Any]]:
                 batch = (
-                    session.query(BatchExecution)
+                    s.query(BatchExecution)
                     .filter(BatchExecution.id == batch_id)
                     .first()
                 )
@@ -153,25 +136,10 @@ class BatchService:
                 batch.processed_stocks = processed_stocks
                 batch.successful_stocks = successful_stocks
                 batch.failed_stocks = failed_stocks
-                session.flush()
+                s.flush()
                 return batch.to_dict()
-            else:
-                with get_db_session() as db_session:
-                    batch = (
-                        db_session.query(BatchExecution)
-                        .filter(BatchExecution.id == batch_id)
-                        .first()
-                    )
-                    if not batch:
-                        return None
 
-                    batch.processed_stocks = processed_stocks
-                    batch.successful_stocks = successful_stocks
-                    batch.failed_stocks = failed_stocks
-                    db_session.flush()
-                    batch_dict = batch.to_dict()
-
-                return batch_dict
+            return execute_with_session(_update, session)
 
         except Exception as e:
             logger.error(f"バッチ進捗更新エラー (batch_id={batch_id}): {e}")
@@ -201,9 +169,10 @@ class BatchService:
             BatchServiceError: バッチ完了エラー。
         """
         try:
-            if session:
+
+            def _complete(s: Session) -> Optional[Dict[str, Any]]:
                 batch = (
-                    session.query(BatchExecution)
+                    s.query(BatchExecution)
                     .filter(BatchExecution.id == batch_id)
                     .first()
                 )
@@ -214,26 +183,10 @@ class BatchService:
                 batch.end_time = datetime.now()
                 if error_message:
                     batch.error_message = error_message
-                session.flush()
+                s.flush()
                 return batch.to_dict()
-            else:
-                with get_db_session() as db_session:
-                    batch = (
-                        db_session.query(BatchExecution)
-                        .filter(BatchExecution.id == batch_id)
-                        .first()
-                    )
-                    if not batch:
-                        return None
 
-                    batch.status = status
-                    batch.end_time = datetime.now()
-                    if error_message:
-                        batch.error_message = error_message
-                    db_session.flush()
-                    batch_dict = batch.to_dict()
-
-                return batch_dict
+            return execute_with_session(_complete, session)
 
         except Exception as e:
             logger.error(f"バッチ完了エラー (batch_id={batch_id}): {e}")
@@ -263,23 +216,17 @@ class BatchService:
             BatchServiceError: バッチ一覧取得エラー。
         """
         try:
-            if session:
-                query = session.query(BatchExecution)
+
+            def _list(s: Session) -> List[Dict[str, Any]]:
+                query = s.query(BatchExecution)
                 if status:
                     query = query.filter(BatchExecution.status == status)
                 query = query.order_by(BatchExecution.start_time.desc())
                 query = query.offset(offset).limit(limit)
                 batches = query.all()
                 return [batch.to_dict() for batch in batches]
-            else:
-                with get_db_session() as db_session:
-                    query = db_session.query(BatchExecution)
-                    if status:
-                        query = query.filter(BatchExecution.status == status)
-                    query = query.order_by(BatchExecution.start_time.desc())
-                    query = query.offset(offset).limit(limit)
-                    batches = query.all()
-                    return [batch.to_dict() for batch in batches]
+
+            return execute_with_session(_list, session)
 
         except Exception as e:
             logger.error(f"バッチ一覧取得エラー: {e}")
@@ -309,27 +256,18 @@ class BatchService:
             BatchServiceError: バッチ詳細作成エラー。
         """
         try:
-            if session:
+
+            def _create_detail(s: Session) -> Dict[str, Any]:
                 detail = BatchExecutionDetail(
                     batch_execution_id=batch_execution_id,
                     stock_code=stock_code,
                     status=status,
                 )
-                session.add(detail)
-                session.flush()
+                s.add(detail)
+                s.flush()
                 return detail.to_dict()
-            else:
-                with get_db_session() as db_session:
-                    detail = BatchExecutionDetail(
-                        batch_execution_id=batch_execution_id,
-                        stock_code=stock_code,
-                        status=status,
-                    )
-                    db_session.add(detail)
-                    db_session.flush()
-                    detail_dict = detail.to_dict()
 
-                return detail_dict
+            return execute_with_session(_create_detail, session)
 
         except Exception as e:
             logger.error(
@@ -363,9 +301,10 @@ class BatchService:
             BatchServiceError: バッチ詳細更新エラー。
         """
         try:
-            if session:
+
+            def _update_detail(s: Session) -> Optional[Dict[str, Any]]:
                 detail = (
-                    session.query(BatchExecutionDetail)
+                    s.query(BatchExecutionDetail)
                     .filter(BatchExecutionDetail.id == detail_id)
                     .first()
                 )
@@ -377,27 +316,10 @@ class BatchService:
                 detail.end_time = datetime.now()
                 if error_message:
                     detail.error_message = error_message
-                session.flush()
+                s.flush()
                 return detail.to_dict()
-            else:
-                with get_db_session() as db_session:
-                    detail = (
-                        db_session.query(BatchExecutionDetail)
-                        .filter(BatchExecutionDetail.id == detail_id)
-                        .first()
-                    )
-                    if not detail:
-                        return None
 
-                    detail.status = status
-                    detail.records_inserted = records_inserted
-                    detail.end_time = datetime.now()
-                    if error_message:
-                        detail.error_message = error_message
-                    db_session.flush()
-                    detail_dict = detail.to_dict()
-
-                return detail_dict
+            return execute_with_session(_update_detail, session)
 
         except Exception as e:
             logger.error(f"バッチ詳細更新エラー (detail_id={detail_id}): {e}")
@@ -422,9 +344,10 @@ class BatchService:
             BatchServiceError: バッチ詳細一覧取得エラー。
         """
         try:
-            if session:
+
+            def _get_details(s: Session) -> List[Dict[str, Any]]:
                 details = (
-                    session.query(BatchExecutionDetail)
+                    s.query(BatchExecutionDetail)
                     .filter(
                         BatchExecutionDetail.batch_execution_id
                         == batch_execution_id
@@ -432,17 +355,8 @@ class BatchService:
                     .all()
                 )
                 return [detail.to_dict() for detail in details]
-            else:
-                with get_db_session() as db_session:
-                    details = (
-                        db_session.query(BatchExecutionDetail)
-                        .filter(
-                            BatchExecutionDetail.batch_execution_id
-                            == batch_execution_id
-                        )
-                        .all()
-                    )
-                    return [detail.to_dict() for detail in details]
+
+            return execute_with_session(_get_details, session)
 
         except Exception as e:
             logger.error(
