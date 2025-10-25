@@ -17,11 +17,7 @@ import sys
 from bs4 import BeautifulSoup
 import pytest
 
-
-# アプリケーションのパスを追加
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from app.app import app  # noqa: E402
+from app import app  # noqa: E402
 
 
 class TestIntervalSelectorUI:
@@ -30,7 +26,12 @@ class TestIntervalSelectorUI:
     def test_interval_selector_html_structure(self):
         """足選択セレクターのHTML構造確認テスト."""
         template_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "templates", "index.html"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "app",
+            "templates",
+            "index.html",
         )
 
         with open(template_path, "r", encoding="utf-8") as f:
@@ -70,7 +71,7 @@ class TestIntervalSelectorUI:
     def test_interval_selector_css_styles(self):
         """足選択セレクターのCSSスタイル確認テスト."""
         css_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "style.css"
+            os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
         )
 
         with open(css_path, "r", encoding="utf-8") as f:
@@ -87,7 +88,7 @@ class TestIntervalSelectorUI:
     def test_interval_selector_javascript_functions(self):
         """足選択関連のJavaScript関数確認テスト."""
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(js_path, "r", encoding="utf-8") as f:
@@ -111,7 +112,7 @@ class TestIntervalSelectorUI:
     def test_interval_validation_logic(self):
         """足選択バリデーションロジックのテスト."""
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(js_path, "r", encoding="utf-8") as f:
@@ -228,7 +229,7 @@ class TestIntervalSelectorIntegration:
         """フロントエンドとバックエンドの統合確認テスト."""
         # app.jsファイルの確認
         app_js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "app.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "app.js"
         )
 
         with open(app_js_path, "r", encoding="utf-8") as f:
@@ -241,7 +242,7 @@ class TestIntervalSelectorIntegration:
 
         # script.jsファイルの確認
         script_js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(script_js_path, "r", encoding="utf-8") as f:
@@ -255,7 +256,7 @@ class TestIntervalSelectorIntegration:
     def test_backend_interval_processing(self):
         """バックエンドの足パラメータ処理確認テスト."""
         app_py_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "app.py"
+            os.path.dirname(__file__), "..", "..", "app", "app.py"
         )
 
         with open(app_py_path, "r", encoding="utf-8") as f:
@@ -283,7 +284,7 @@ class TestIntervalSelectorErrorHandling:
     def test_interval_error_display(self):
         """足選択エラー表示のテスト."""
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(js_path, "r", encoding="utf-8") as f:
@@ -302,7 +303,7 @@ class TestIntervalSelectorErrorHandling:
     def test_interval_error_clearing(self):
         """足選択エラークリア機能のテスト."""
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(js_path, "r", encoding="utf-8") as f:

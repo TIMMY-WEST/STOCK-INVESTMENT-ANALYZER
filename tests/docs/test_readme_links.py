@@ -16,7 +16,7 @@ class TestReadmeImprovement:
     @pytest.fixture
     def project_root(self):
         """プロジェクトルートディレクトリのパスを取得."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     @pytest.fixture
     def readme_content(self, project_root):
@@ -251,7 +251,7 @@ class TestRelatedFiles:
     @pytest.fixture
     def project_root(self):
         """プロジェクトルートディレクトリのパスを取得."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     def test_license_file_content(self, project_root):
         """LICENSEファイルの内容が適切であることを確認."""

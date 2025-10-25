@@ -15,7 +15,7 @@ class TestDocsQuality:
     @pytest.fixture
     def project_root(self):
         """プロジェクトルートディレクトリのパスを取得."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     @pytest.fixture
     def docs_dir(self, project_root):
@@ -227,7 +227,7 @@ class TestDocsLinkIntegrity:
     @pytest.fixture
     def project_root(self):
         """プロジェクトルートディレクトリのパスを取得."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     @pytest.fixture
     def docs_dir(self, project_root):

@@ -14,7 +14,7 @@ import pytest
 
 
 # プロジェクトルートディレクトリを取得
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 # .envファイルを読み込み
 load_dotenv(PROJECT_ROOT / ".env")

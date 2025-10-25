@@ -16,17 +16,18 @@ from bs4 import BeautifulSoup
 import pytest
 
 
-# アプリケーションのパスを追加
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-
 class TestTimeframeSelectorUI:
     """時間軸選択UI機能のテストクラス."""
 
     def test_html_template_structure(self):
         """HTMLテンプレートの構造確認テスト."""
         template_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "templates", "index.html"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "app",
+            "templates",
+            "index.html",
         )
 
         with open(template_path, "r", encoding="utf-8") as f:
@@ -57,7 +58,7 @@ class TestTimeframeSelectorUI:
     def test_css_styles_exist(self):
         """CSSスタイルの存在確認テスト."""
         css_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "style.css"
+            os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
         )
 
         with open(css_path, "r", encoding="utf-8") as f:
@@ -90,7 +91,7 @@ class TestTimeframeSelectorUI:
     def test_javascript_functions_exist(self):
         """JavaScript関数の存在確認テスト."""
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(js_path, "r", encoding="utf-8") as f:
@@ -117,7 +118,7 @@ class TestTimeframeSelectorUI:
     def test_timeframe_config_structure(self):
         """時間軸設定の構造確認テスト."""
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(js_path, "r", encoding="utf-8") as f:
@@ -132,7 +133,12 @@ class TestTimeframeSelectorUI:
     def test_accessibility_attributes(self):
         """アクセシビリティ属性の確認テスト."""
         template_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "templates", "index.html"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "app",
+            "templates",
+            "index.html",
         )
 
         with open(template_path, "r", encoding="utf-8") as f:
@@ -152,7 +158,7 @@ class TestTimeframeSelectorUI:
     def test_form_validation_integration(self):
         """フォームバリデーション統合の確認テスト."""
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "script.js"
+            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
         with open(js_path, "r", encoding="utf-8") as f:
@@ -175,7 +181,12 @@ class TestTimeframeSelectorConfiguration:
     def test_timeframe_options_completeness(self):
         """時間軸オプションの完全性テスト."""
         template_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "templates", "index.html"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "app",
+            "templates",
+            "index.html",
         )
 
         with open(template_path, "r", encoding="utf-8") as f:
@@ -205,7 +216,7 @@ class TestTimeframeSelectorConfiguration:
     def test_css_responsive_design(self):
         """CSSレスポンシブデザインのテスト."""
         css_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "static", "style.css"
+            os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
         )
 
         with open(css_path, "r", encoding="utf-8") as f:

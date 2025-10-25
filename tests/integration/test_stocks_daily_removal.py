@@ -21,7 +21,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 # プロジェクトルートをパスに追加
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "app"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "app"))
 
 from dotenv import load_dotenv  # noqa: E402
 
@@ -36,7 +36,7 @@ from models import (  # noqa: E402
 )
 
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 
 class TestStocksDailyRemoval(unittest.TestCase):
