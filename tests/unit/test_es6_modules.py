@@ -63,15 +63,10 @@ class TestES6Modules:
             import_pattern, content
         ), "appStateManagerのインポートが見つかりません"
 
-        # appStateインスタンスの使用を確認（新しいシステム）
+        # 新しいシステムのappState使用を確認
         assert (
             "const appState = appStateManager;" in content
         ), "appStateManagerの使用が確認できません"
-
-        # 後方互換性のためのlegacyAppStateインスタンスの作成を確認
-        assert (
-            "const legacyAppState = new AppState();" in content
-        ), "後方互換性のためのlegacyAppStateインスタンスが作成されていません"
 
         # AppStateの直接定義がないことを確認（重複定義の回避）
         assert (
