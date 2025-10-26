@@ -18,7 +18,9 @@ from app.services.jpx.jpx_stock_service import (
 logger = logging.getLogger(__name__)
 
 # Blueprintを作成
-stock_master_api = Blueprint("stock_master_api", __name__)
+stock_master_api = Blueprint(
+    "stock_master_api", __name__, url_prefix="/api/stock-master"
+)
 
 
 # APIキー認証
@@ -47,7 +49,7 @@ def require_api_key(f):
     return decorated_function
 
 
-@stock_master_api.route("/api/stock-master/update", methods=["POST"])
+@stock_master_api.route("/", methods=["POST"])
 @require_api_key
 def update_stock_master():
     """JPX銘柄マスタ更新API.
@@ -242,7 +244,7 @@ def _parse_is_active_param(
         )
 
 
-@stock_master_api.route("/api/stock-master/list", methods=["GET"])
+@stock_master_api.route("/", methods=["GET"])
 @require_api_key
 def get_stock_master_list():
     """JPX銘柄マスタ一覧取得API.
@@ -369,7 +371,7 @@ def get_stock_master_list():
         )
 
 
-@stock_master_api.route("/api/stock-master/status", methods=["GET"])
+@stock_master_api.route("/status", methods=["GET"])
 @require_api_key
 def get_stock_master_status():
     """JPX銘柄マスタ状態取得API.

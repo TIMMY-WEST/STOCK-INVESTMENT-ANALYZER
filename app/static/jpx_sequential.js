@@ -124,7 +124,7 @@ async function handleJpxSequentialStart() {
         // 1. JPX銘柄一覧を取得
         console.log('[JPX Sequential] 銘柄一覧取得開始');
         const symbolsResponse = await fetch(
-            `/api/bulk/jpx-sequential/get-symbols?limit=${limit}${marketCategory ? '&market_category=' + encodeURIComponent(marketCategory) : ''}`
+            `/api/bulk-data/jpx-sequential/symbols?limit=${limit}${marketCategory ? '&market_category=' + encodeURIComponent(marketCategory) : ''}`
         );
 
         if (!symbolsResponse.ok) {
@@ -155,7 +155,7 @@ async function handleJpxSequentialStart() {
 
         // 2. 順次取得ジョブを開始
         console.log('[JPX Sequential] ジョブ開始リクエスト送信');
-        const startResponse = await fetch('/api/bulk/jpx-sequential/start', {
+        const startResponse = await fetch('/api/bulk-data/jpx-sequential/jobs', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -205,7 +205,7 @@ async function handleJpxSequentialStop() {
     }
 
     try {
-        const response = await fetch(`/api/bulk/stop/${JpxSequentialState.jobId}`, {
+        const response = await fetch(`/api/bulk-data/jobs/${JpxSequentialState.jobId}/stop`, {
             method: 'POST'
         });
 
@@ -259,7 +259,7 @@ async function checkJpxSequentialStatus() {
     }
 
     try {
-        const response = await fetch(`/api/bulk/status/${JpxSequentialState.jobId}`);
+        const response = await fetch(`/api/bulk-data/jobs/${JpxSequentialState.jobId}`);
 
         if (!response.ok) {
             throw new Error(`ステータス取得エラー: ${response.status}`);
@@ -502,7 +502,7 @@ async function handleJpxStockMasterUpdate() {
     Utils.showLoading(statusDiv);
 
     try {
-        const response = await fetch('/api/stock-master/update', {
+        const response = await fetch('/api/stock-master/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

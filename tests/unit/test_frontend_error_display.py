@@ -30,7 +30,7 @@ class TestFrontendErrorDisplay:
             mock_ticker.return_value.history.return_value.empty = True
 
             response = client.post(
-                "/api/fetch-data",
+                "/api/stocks/data",
                 data=json.dumps({"symbol": "INVALID.T", "period": "1mo"}),
                 content_type="application/json",
             )
@@ -77,7 +77,7 @@ class TestFrontendErrorDisplay:
                 ) as mock_ticker:
                     mock_ticker.return_value.history.return_value.empty = True
                     response = client.post(
-                        "/api/fetch-data",
+                        "/api/stocks/data",
                         data=json.dumps(case["data"]),
                         content_type="application/json",
                     )
@@ -106,7 +106,7 @@ class TestFrontendErrorDisplay:
         with patch("app.services.stock_data.fetcher.yf.Ticker") as mock_ticker:
             mock_ticker.return_value.history.return_value.empty = True
             response = client.post(
-                "/api/fetch-data",
+                "/api/stocks/data",
                 data=json.dumps({"symbol": "INVALID", "period": "1mo"}),
                 content_type="application/json",
             )
@@ -129,7 +129,7 @@ class TestFrontendErrorDisplay:
                 Exception("API Error")
             )
             response = client.post(
-                "/api/fetch-data",
+                "/api/stocks/data",
                 data=json.dumps({"symbol": "7203.T", "period": "1mo"}),
                 content_type="application/json",
             )
@@ -156,7 +156,7 @@ class TestFrontendErrorDisplay:
             mock_ticker.side_effect = Exception(long_error_message)
 
             response = client.post(
-                "/api/fetch-data",
+                "/api/stocks/data",
                 data=json.dumps({"symbol": "7203.T", "period": "1mo"}),
                 content_type="application/json",
             )

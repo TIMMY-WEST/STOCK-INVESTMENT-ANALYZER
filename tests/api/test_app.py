@@ -17,7 +17,7 @@ def test_fetch_data_api_structure(client):
     """API基本構造のテスト（実際のAPIアクセス無し）."""
     # API エンドポイントの存在確認
     response = client.post(
-        "/api/fetch-data",
+        "/api/stocks/data",
         data=json.dumps({"symbol": "TEST", "period": "1mo"}),
         content_type="application/json",
     )
@@ -38,7 +38,7 @@ def test_fetch_data_api_max_period_structure(client):
     """maxオプション使用時のAPI基本構造テスト（Issue #45対応）."""
     # maxオプションでのAPI エンドポイントの存在確認
     response = client.post(
-        "/api/fetch-data",
+        "/api/stocks/data",
         data=json.dumps({"symbol": "TEST", "period": "max"}),
         content_type="application/json",
     )
@@ -74,7 +74,7 @@ def test_fetch_data_api_max_period_parameter_validation(client):
 
     for payload in valid_payloads:
         response = client.post(
-            "/api/fetch-data",
+            "/api/stocks/data",
             data=json.dumps(payload),
             content_type="application/json",
         )

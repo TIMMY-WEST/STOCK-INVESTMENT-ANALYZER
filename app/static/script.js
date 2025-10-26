@@ -9,9 +9,6 @@ import { AppState, Utils, ApiService, UIComponents, FormValidator, INTERVAL_PERI
 // アプリケーション状態管理インスタンス（新しいシステムを使用）
 const appState = appStateManager;
 
-// 後方互換性のための旧AppStateインスタンス
-const legacyAppState = new AppState();
-
 // アプリケーション初期化
 document.addEventListener('DOMContentLoaded', function() {
     initApp();
@@ -82,8 +79,8 @@ async function handleFetchSubmit(event) {
     try {
         console.log('[handleFetchSubmit] APIリクエスト送信開始');
 
-        // POST /api/fetch-data への非同期リクエスト
-        const response = await fetch('/api/fetch-data', {
+        // POST /api/stocks/data への非同期リクエスト（エンドポイントを修正）
+        const response = await fetch('/api/stocks/data', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1309,9 +1306,8 @@ const SystemStatusManager = {
         }
 
         try {
-            const response = await fetch('/api/system/db-connection-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+            const response = await fetch('/api/system/database/connection', {
+                method: 'GET'
             });
 
             const data = await response.json();
@@ -1385,10 +1381,8 @@ const SystemStatusManager = {
         }
 
         try {
-            const response = await fetch('/api/system/api-connection-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol: '7203.T' })
+            const response = await fetch('/api/system/external-api/connection', {
+                method: 'GET'
             });
 
             const data = await response.json();
@@ -1462,7 +1456,7 @@ const SystemStatusManager = {
         }
 
         try {
-            const response = await fetch('/api/system/health-check');
+            const response = await fetch('/api/system/health');
             const data = await response.json();
             console.log('[SystemStatusManager] ヘルスチェック結果:', data);
 

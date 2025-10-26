@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from app import app as flask_app
+from app.app import app as flask_app
 
 
 @pytest.fixture(autouse=True)
@@ -15,16 +15,17 @@ def setup_env(monkeypatch):
 
 def test_start_requires_api_key():
     client = flask_app.test_client()
-    resp = client.post("/api/bulk/start", json={"symbols": ["7203.T"]})
+    resp = client.post("/api/bulk-data/jobs", json={"symbols": ["7203.T"]})
     assert resp.status_code == 401
     body = resp.get_json()
     assert body["error"] == "UNAUTHORIZED"
 
 
-def test_start_accepted_with_api_key():
+def test_bulk_data_start_endpoint_structure():
+    """バルクデータ開始エンドポイントの基本構造テスト."""
     client = flask_app.test_client()
     resp = client.post(
-        "/api/bulk/start",
+        "/api/bulk-data/jobs",
         json={"symbols": ["7203.T", "6758.T"], "interval": "1d"},
         headers={"X-API-KEY": "test-key"},
     )
@@ -38,7 +39,7 @@ def test_rate_limit_exceeded():
     client = flask_app.test_client()
     # 1回目は許可
     resp1 = client.post(
-        "/api/bulk/start",
+        "/api/bulk-data/jobs",
         json={"symbols": ["7203.T"], "interval": "1d"},
         headers={"X-API-KEY": "test-key"},
     )
@@ -46,7 +47,7 @@ def test_rate_limit_exceeded():
 
     # 2回目は直後なので429が期待
     resp2 = client.post(
-        "/api/bulk/start",
+        "/api/bulk-data/jobs",
         json={"symbols": ["7203.T"], "interval": "1d"},
         headers={"X-API-KEY": "test-key"},
     )
@@ -56,7 +57,7 @@ def test_rate_limit_exceeded():
 def test_status_not_found():
     client = flask_app.test_client()
     resp = client.get(
-        "/api/bulk/status/unknown", headers={"X-API-KEY": "test-key"}
+        "/api/bulk-data/jobs/unknown", headers={"X-API-KEY": "test-key"}
     )
     assert resp.status_code == 404
     body = resp.get_json()
@@ -66,7 +67,7 @@ def test_status_not_found():
 def test_status_running_after_start():
     client = flask_app.test_client()
     resp = client.post(
-        "/api/bulk/start",
+        "/api/bulk-data/jobs",
         json={"symbols": ["7203.T", "6758.T"], "interval": "1d"},
         headers={"X-API-KEY": "test-key"},
     )
@@ -75,7 +76,7 @@ def test_status_running_after_start():
 
     # すぐにステータス確認（runningのはず）
     status = client.get(
-        f"/api/bulk/status/{job_id}", headers={"X-API-KEY": "test-key"}
+        f"/api/bulk-data/jobs/{job_id}", headers={"X-API-KEY": "test-key"}
     )
     assert status.status_code == 200
     body = status.get_json()

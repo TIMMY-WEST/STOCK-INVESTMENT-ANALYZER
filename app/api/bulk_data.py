@@ -11,12 +11,14 @@ import threading
 import time
 from typing import Any, Callable, Dict, List, Optional
 
-from flask import current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
-from app.api import bulk_api
 from app.services.batch.batch_service import BatchService, BatchServiceError
 from app.services.bulk.bulk_service import BulkDataService
 
+
+# Blueprintの作成
+bulk_api = Blueprint("bulk_api", __name__, url_prefix="/api/bulk-data")
 
 logger = logging.getLogger(__name__)
 
@@ -394,7 +396,7 @@ def _run_job(
         logger.info(f"[_run_job] ジョブ実行終了: job_id={job_id}")
 
 
-@bulk_api.route("/start", methods=["POST"])
+@bulk_api.route("/jobs", methods=["POST"])
 @require_api_key
 @rate_limit()
 def start_bulk_fetch():
@@ -526,7 +528,7 @@ def start_bulk_fetch():
         )
 
 
-@bulk_api.route("/status/<job_id>", methods=["GET"])
+@bulk_api.route("/jobs/<job_id>", methods=["GET"])
 @require_api_key
 @rate_limit()
 def get_job_status(job_id: str):
@@ -624,7 +626,7 @@ def get_job_status(job_id: str):
     return jsonify({"success": True, "job": response_job})
 
 
-@bulk_api.route("/stop/<job_id>", methods=["POST"])
+@bulk_api.route("/jobs/<job_id>/stop", methods=["POST"])
 @require_api_key
 @rate_limit()
 def stop_job(job_id: str):
@@ -672,7 +674,7 @@ JPX_SEQUENTIAL_INTERVALS = [
 ]
 
 
-@bulk_api.route("/jpx-sequential/get-symbols", methods=["GET"])
+@bulk_api.route("/jpx-sequential/symbols", methods=["GET"])
 @require_api_key
 @rate_limit()
 def get_jpx_symbols():
@@ -973,7 +975,7 @@ def _run_jpx_sequential_job(
             job["updated_at"] = time.time()
 
 
-@bulk_api.route("/jpx-sequential/start", methods=["POST"])
+@bulk_api.route("/jpx-sequential/jobs", methods=["POST"])
 @require_api_key
 @rate_limit()
 def start_jpx_sequential():

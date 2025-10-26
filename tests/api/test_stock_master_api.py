@@ -45,7 +45,7 @@ class TestStockMasterAPI:
 
         # APIを呼び出し
         response = self.client.post(
-            "/api/stock-master/update",
+            "/api/stock-master/",
             data=json.dumps(data),
             content_type="application/json",
             headers=self.headers,
@@ -85,7 +85,7 @@ class TestStockMasterAPI:
 
         # APIを呼び出し
         response = self.client.post(
-            "/api/stock-master/update",
+            "/api/stock-master/",
             data=json.dumps(data),
             content_type="application/json",
             headers=self.headers,
@@ -109,7 +109,7 @@ class TestStockMasterAPI:
 
         # APIを呼び出し
         response = self.client.post(
-            "/api/stock-master/update",
+            "/api/stock-master/",
             data=json.dumps(data),
             content_type="application/json",
             headers=self.headers,
@@ -138,7 +138,7 @@ class TestStockMasterAPI:
 
         # APIを呼び出し
         response = self.client.post(
-            "/api/stock-master/update",
+            "/api/stock-master/",
             data=json.dumps(data),
             content_type="application/json",
             headers=self.headers,
@@ -157,7 +157,7 @@ class TestStockMasterAPI:
         data = {"update_type": "manual"}
 
         response = self.client.post(
-            "/api/stock-master/update",
+            "/api/stock-master/",
             data=json.dumps(data),
             content_type="application/json",
         )
@@ -175,7 +175,7 @@ class TestStockMasterAPI:
         data = {"update_type": "manual"}
 
         response = self.client.post(
-            "/api/stock-master/update",
+            "/api/stock-master/",
             data=json.dumps(data),
             content_type="application/json",
             headers=headers,
@@ -214,9 +214,7 @@ class TestStockMasterAPI:
         mock_service_class.return_value = mock_service
 
         # APIを呼び出し
-        response = self.client.get(
-            "/api/stock-master/list", headers=self.headers
-        )
+        response = self.client.get("/api/stock-master/", headers=self.headers)
 
         # 検証
         assert response.status_code == 200
@@ -254,7 +252,7 @@ class TestStockMasterAPI:
 
         # クエリパラメータ付きでAPIを呼び出し
         response = self.client.get(
-            "/api/stock-master/list?is_active=false&market_category=プライム&limit=50&offset=10",
+            "/api/stock-master/?is_active=false&market_category=プライム&limit=50&offset=10",
             headers=self.headers,
         )
 
@@ -273,7 +271,7 @@ class TestStockMasterAPI:
         """銘柄一覧取得APIの無効なlimitパラメータテスト."""
         # 無効なlimitでAPIを呼び出し
         response = self.client.get(
-            "/api/stock-master/list?limit=invalid", headers=self.headers
+            "/api/stock-master/?limit=invalid", headers=self.headers
         )
 
         # 検証
@@ -291,7 +289,7 @@ class TestStockMasterAPI:
         """銘柄一覧取得APIのlimit範囲外テスト."""
         # 範囲外のlimitでAPIを呼び出し
         response = self.client.get(
-            "/api/stock-master/list?limit=2000", headers=self.headers
+            "/api/stock-master/?limit=2000", headers=self.headers
         )
 
         # 検証
@@ -309,7 +307,7 @@ class TestStockMasterAPI:
         """銘柄一覧取得APIの無効なis_activeパラメータテスト."""
         # 無効なis_activeでAPIを呼び出し
         response = self.client.get(
-            "/api/stock-master/list?is_active=invalid", headers=self.headers
+            "/api/stock-master/?is_active=invalid", headers=self.headers
         )
 
         # 検証
