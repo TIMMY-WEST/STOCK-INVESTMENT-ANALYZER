@@ -1,11 +1,12 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket進捗配信テスト</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <style>
+{% extends "base.html" %}
+
+{% from 'partials/form_components.html' import interval_select, period_select, required_indicator, progress_bar, progress_stats %}
+{% from 'partials/alerts.html' import success_alert, error_alert, warning_alert, info_alert %}
+
+{% block title %}WebSocket進捗配信テスト - 株価データ管理システム{% endblock %}
+
+{% block extra_css %}
+<style>
         body {
             font-family: Arial, sans-serif;
             max-width: 1000px;
@@ -144,9 +145,14 @@
             color: #155724;
         }
     </style>
-</head>
-<body>
-    <div class="container">
+{% endblock %}
+
+{% block socket_io %}
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
         <h1>WebSocket進捗配信テスト</h1>
 
         <div id="connection-status" class="status disconnected">
@@ -373,5 +379,9 @@
             addLog('ページを読み込みました');
         });
     </script>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- WebSocket specific JavaScript is included in the content block -->
+{% endblock %}
