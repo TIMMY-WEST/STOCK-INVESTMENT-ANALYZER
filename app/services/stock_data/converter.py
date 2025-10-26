@@ -5,7 +5,7 @@
 
 from datetime import datetime
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 import pandas as pd
 
@@ -59,7 +59,8 @@ class StockDataConverter:
                     )
                     continue
 
-                record = self._create_record_from_row(index, row, interval)
+                index_ts = cast(pd.Timestamp, index)
+                record = self._create_record_from_row(index_ts, row, interval)
                 records.append(record)
 
             if skipped_count > 0:
@@ -114,21 +115,18 @@ class StockDataConverter:
     def _create_record_from_row(
         self, index: pd.Timestamp, row: pd.Series, interval: str
     ) -> Dict[str, Any]:
-        """行データからレコード辞書を作成.
+        """陦後ョ繝ｼ繧ｿ縺九ｉ繝ｬ繧ｳ繝ｼ繝芽ｾ樊嶌繧剃ｽ懈・.
 
         Args:
-            index: 日時インデックス
-            row: 価格データの行
-            interval: 時間軸
+            index: 譌･譎ゅう繝ｳ繝・ャ繧ｯ繧ｹ
+            row: 陦後ョ繝ｼ繧ｿ
+            interval: 譎る俣霆ｸ
 
         Returns:
-            レコード辞書
-
-        Raises:
-            StockDataConversionError: インデックスが適切な型でない場合
+            繝ｬ繧ｳ繝ｼ繝芽ｾ樊嶌
         """
         try:
-            record = {
+            record: Dict[str, Any] = {
                 "open": float(row["Open"]),
                 "high": float(row["High"]),
                 "low": float(row["Low"]),
@@ -136,22 +134,16 @@ class StockDataConverter:
                 "volume": int(row["Volume"]) if pd.notna(row["Volume"]) else 0,
             }
 
-            # インデックスをTimestampに変換
-            if not isinstance(index, pd.Timestamp):
-                index = pd.Timestamp(index)
-
-            # 時間軸に応じて日時フィールドを設定
+            # 時系列インターバルに応じて日付/日時を設定
             if interval in ["1d", "1wk", "1mo"]:
-                # 日足以上は日付のみ
                 record["date"] = index.date()
             else:
-                # 分足・時間足は日時
                 record["datetime"] = index.to_pydatetime()
 
             return record
         except (AttributeError, TypeError, ValueError) as e:
             raise StockDataConversionError(
-                f"レコード作成エラー: インデックス={index}, エラー={str(e)}"
+                f"繝ｬ繧ｳ繝ｼ繝我ｽ懈・繧ｨ繝ｩ繝ｼ: 繧､繝ｳ繝・ャ繧ｯ繧ｹ={index}, 繧ｨ繝ｩ繝ｼ={str(e)}"
             )
 
     def extract_price_data(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -205,37 +197,23 @@ class StockDataConverter:
     def split_multi_symbol_result(
         self, df: pd.DataFrame, symbols: List[str]
     ) -> Dict[str, pd.DataFrame]:
-        """複数銘柄のダウンロード結果を個別の銘柄データに分割.
+        """複数銘柄のダウンロード結果を個別の銘柄データに分割."""
+        result: Dict[str, pd.DataFrame] = {}
 
-        Args:
-            df: 複数銘柄のDataFrame
-            symbols: 銘柄コードのリスト
-
-        Returns:
-            {銘柄コード: DataFrame} の辞書
-        """
-        result = {}
-
-        if df.empty:
-            return {symbol: pd.DataFrame() for symbol in symbols}
-
-        # マルチレベルカラムの場合
+        # マルチインデックス列の場合は銘柄ごとに抽出
         if isinstance(df.columns, pd.MultiIndex):
             for symbol in symbols:
                 try:
-                    # 銘柄ごとのデータを抽出（銘柄コードはレベル1にある）
                     symbol_data = df.xs(symbol, level=1, axis=1)
-                    # 列名を単一レベルに変換（データ項目のレベルのみ残す）
+                    if isinstance(symbol_data, pd.Series):
+                        symbol_data = symbol_data.to_frame()
                     result[symbol] = symbol_data
                 except KeyError:
-                    # 該当銘柄のデータがない場合は空のDataFrame
                     result[symbol] = pd.DataFrame()
         else:
-            # 単一銘柄の場合
             if len(symbols) == 1:
                 result[symbols[0]] = df
             else:
-                # 複数銘柄だがマルチレベルでない場合は空を返す
                 result = {symbol: pd.DataFrame() for symbol in symbols}
 
         return result
