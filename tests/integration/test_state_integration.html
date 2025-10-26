@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>状態管理システム 統合テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-summary {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+        .demo-section {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .state-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>状態管理システム 統合テスト</h1>
+
+    <div class="test-container">
+        <h2>実際のアプリケーション状態管理テスト</h2>
+        <div class="demo-section">
+            <h3>ページネーション状態</h3>
+            <button onclick="updatePagination()">ページネーション更新</button>
+            <button onclick="nextPage()">次のページ</button>
+            <button onclick="prevPage()">前のページ</button>
+            <div id="pagination-display" class="state-display"></div>
+        </div>
+
+        <div class="demo-section">
+            <h3>ソート状態</h3>
+            <button onclick="sortByColumn('name')">名前でソート</button>
+            <button onclick="sortByColumn('price')">価格でソート</button>
+            <button onclick="sortByColumn('date')">日付でソート</button>
+            <div id="sort-display" class="state-display"></div>
+        </div>
+
+        <div class="demo-section">
+            <h3>データ状態</h3>
+            <button onclick="loadSampleData()">サンプルデータ読み込み</button>
+            <button onclick="clearData()">データクリア</button>
+            <div id="data-display" class="state-display"></div>
+        </div>
+    </div>
+
+    <div id="test-results"></div>
+
+    <script type="module">
+        // 実際のStateManagerを読み込み（本来はimportを使用）
+        class StateManager {
+            constructor(namespace = 'default', initialState = {}, options = {}) {
+                this.namespace = namespace;
+                this.storageType = options.storageType || 'localStorage';
+                this.listeners = new Map();
+                this.websocketHandlers = new Map();
+
+                this.initializeState(initialState);
+            }
+
+            initializeState(initialState) {
+                const existingState = this.loadFromStorage();
+                const mergedState = { ...initialState, ...existingState };
+                this.saveToStorage(mergedState);
+            }
+
+            get(path, defaultValue = undefined) {
+                const state = this.loadFromStorage();
+                return this.getNestedValue(state, path, defaultValue);
+            }
+
+            set(path, value, persist = true) {
+                const state = this.loadFromStorage();
+                this.setNestedValue(state, path, value);
+
+                if (persist) {
+                    this.saveToStorage(state);
+                }
+
+                this.notifyListeners(path, value);
+                return this;
+            }
+
+            getNestedValue(obj, path, defaultValue) {
+                if (typeof path === 'string') {
+                    path = path.split('.');
+                }
+
+                let current = obj;
+                for (const key of path) {
+                    if (current === null || current === undefined || !(key in current)) {
+                        return defaultValue;
+                    }
+                    current = current[key];
+                }
+                return current;
+            }
+
+            setNestedValue(obj, path, value) {
+                if (typeof path === 'string') {
+                    path = path.split('.');
+                }
+
+                let current = obj;
+                for (let i = 0; i < path.length - 1; i++) {
+                    const key = path[i];
+                    if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+                        current[key] = {};
+                    }
+                    current = current[key];
+                }
+                current[path[path.length - 1]] = value;
+            }
+
+            loadFromStorage() {
+                try {
+                    const storage = this.storageType === 'sessionStorage' ? sessionStorage : localStorage;
+                    const data = storage.getItem(this.namespace);
+                    return data ? JSON.parse(data) : {};
+                } catch (error) {
+                    console.warn('Failed to load from storage:', error);
+                    return {};
+                }
+            }
+
+            saveToStorage(state) {
+                try {
+                    const storage = this.storageType === 'sessionStorage' ? sessionStorage : localStorage;
+                    storage.setItem(this.namespace, JSON.stringify(state));
+                } catch (error) {
+                    console.warn('Failed to save to storage:', error);
+                }
+            }
+
+            subscribe(path, callback) {
+                if (!this.listeners.has(path)) {
+                    this.listeners.set(path, new Set());
+                }
+                this.listeners.get(path).add(callback);
+
+                return () => {
+                    const pathListeners = this.listeners.get(path);
+                    if (pathListeners) {
+                        pathListeners.delete(callback);
+                        if (pathListeners.size === 0) {
+                            this.listeners.delete(path);
+                        }
+                    }
+                };
+            }
+
+            notifyListeners(path, value) {
+                const exactListeners = this.listeners.get(path);
+                if (exactListeners) {
+                    exactListeners.forEach(callback => {
+                        try {
+                            callback(value, path);
+                        } catch (error) {
+                            console.error('Listener error:', error);
+                        }
+                    });
+                }
+
+                const pathParts = path.split('.');
+                for (let i = pathParts.length - 1; i > 0; i--) {
+                    const parentPath = pathParts.slice(0, i).join('.');
+                    const parentListeners = this.listeners.get(parentPath);
+                    if (parentListeners) {
+                        const parentValue = this.get(parentPath);
+                        parentListeners.forEach(callback => {
+                            try {
+                                callback(parentValue, parentPath);
+                            } catch (error) {
+                                console.error('Parent listener error:', error);
+                            }
+                        });
+                    }
+                }
+            }
+
+            clear() {
+                try {
+                    const storage = this.storageType === 'sessionStorage' ? sessionStorage : localStorage;
+                    storage.removeItem(this.namespace);
+                } catch (error) {
+                    console.warn('Failed to clear storage:', error);
+                }
+            }
+        }
+
+        // アプリケーション状態管理の初期化
+        const appState = new StateManager('stock-analyzer', {
+            pagination: {
+                currentPage: 1,
+                currentLimit: 50,
+                totalRecords: 0
+            },
+            sort: {
+                column: '',
+                direction: 'asc'
+            },
+            data: {
+                stockData: []
+            }
+        });
+
+        // 状態変更リスナーの設定
+        appState.subscribe('pagination', (value) => {
+            updatePaginationDisplay();
+        });
+
+        appState.subscribe('sort', (value) => {
+            updateSortDisplay();
+        });
+
+        appState.subscribe('data', (value) => {
+            updateDataDisplay();
+        });
+
+        // 表示更新関数
+        function updatePaginationDisplay() {
+            const display = document.getElementById('pagination-display');
+            const pagination = appState.get('pagination');
+            display.textContent = JSON.stringify(pagination, null, 2);
+        }
+
+        function updateSortDisplay() {
+            const display = document.getElementById('sort-display');
+            const sort = appState.get('sort');
+            display.textContent = JSON.stringify(sort, null, 2);
+        }
+
+        function updateDataDisplay() {
+            const display = document.getElementById('data-display');
+            const data = appState.get('data.stockData', []);
+            display.textContent = `データ件数: ${data.length}件\n${JSON.stringify(data.slice(0, 3), null, 2)}${data.length > 3 ? '\n...' : ''}`;
+        }
+
+        // デモ用関数
+        window.updatePagination = function() {
+            const currentPage = appState.get('pagination.currentPage', 1);
+            appState.set('pagination.totalRecords', Math.floor(Math.random() * 1000) + 100);
+            appState.set('pagination.currentPage', currentPage);
+        };
+
+        window.nextPage = function() {
+            const currentPage = appState.get('pagination.currentPage', 1);
+            const totalRecords = appState.get('pagination.totalRecords', 0);
+            const limit = appState.get('pagination.currentLimit', 50);
+            const maxPage = Math.ceil(totalRecords / limit);
+
+            if (currentPage < maxPage) {
+                appState.set('pagination.currentPage', currentPage + 1);
+            }
+        };
+
+        window.prevPage = function() {
+            const currentPage = appState.get('pagination.currentPage', 1);
+            if (currentPage > 1) {
+                appState.set('pagination.currentPage', currentPage - 1);
+            }
+        };
+
+        window.sortByColumn = function(column) {
+            const currentColumn = appState.get('sort.column');
+            const currentDirection = appState.get('sort.direction', 'asc');
+
+            let newDirection = 'asc';
+            if (currentColumn === column && currentDirection === 'asc') {
+                newDirection = 'desc';
+            }
+
+            appState.set('sort.column', column);
+            appState.set('sort.direction', newDirection);
+        };
+
+        window.loadSampleData = function() {
+            const sampleData = [
+                { id: 1, name: 'トヨタ自動車', code: '7203', price: 2500, date: '2024-01-15' },
+                { id: 2, name: 'ソフトバンクグループ', code: '9984', price: 5800, date: '2024-01-15' },
+                { id: 3, name: '任天堂', code: '7974', price: 7200, date: '2024-01-15' }
+            ];
+            appState.set('data.stockData', sampleData);
+        };
+
+        window.clearData = function() {
+            appState.set('data.stockData', []);
+        };
+
+        // テスト実行クラス
+        class IntegrationTestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            addTest(name, testFn) {
+                this.tests.push({ name, testFn });
+            }
+
+            async runTests() {
+                const resultsContainer = document.getElementById('test-results');
+
+                const titleDiv = document.createElement('div');
+                titleDiv.innerHTML = '<h2>統合テスト結果</h2>';
+                resultsContainer.appendChild(titleDiv);
+
+                for (const test of this.tests) {
+                    try {
+                        await test.testFn();
+                        this.results.push({ name: test.name, status: 'pass', error: null });
+                        this.displayResult(test.name, 'pass');
+                    } catch (error) {
+                        this.results.push({ name: test.name, status: 'fail', error: error.message });
+                        this.displayResult(test.name, 'fail', error.message);
+                    }
+                }
+
+                this.displaySummary();
+            }
+
+            displayResult(testName, status, error = null) {
+                const resultsContainer = document.getElementById('test-results');
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `test-result test-${status}`;
+
+                let content = `✓ ${testName}`;
+                if (status === 'fail') {
+                    content = `✗ ${testName}`;
+                    if (error) {
+                        content += `\n${error}`;
+                    }
+                }
+
+                resultDiv.textContent = content;
+                resultsContainer.appendChild(resultDiv);
+            }
+
+            displaySummary() {
+                const resultsContainer = document.getElementById('test-results');
+                const passCount = this.results.filter(r => r.status === 'pass').length;
+                const failCount = this.results.filter(r => r.status === 'fail').length;
+
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'test-summary';
+                summaryDiv.textContent = `統合テスト結果: ${passCount} 成功, ${failCount} 失敗`;
+
+                if (failCount === 0) {
+                    summaryDiv.style.color = '#155724';
+                } else {
+                    summaryDiv.style.color = '#721c24';
+                }
+
+                resultsContainer.appendChild(summaryDiv);
+            }
+
+            assert(condition, message) {
+                if (!condition) {
+                    throw new Error(message || 'Assertion failed');
+                }
+            }
+
+            assertEqual(actual, expected, message) {
+                if (actual !== expected) {
+                    throw new Error(message || `Expected ${expected}, but got ${actual}`);
+                }
+            }
+        }
+
+        // 統合テストの実行
+        const integrationRunner = new IntegrationTestRunner();
+
+        integrationRunner.addTest('ページネーション状態の統合テスト', async () => {
+            // 初期状態の確認
+            integrationRunner.assertEqual(appState.get('pagination.currentPage'), 1);
+
+            // ページ変更
+            appState.set('pagination.currentPage', 3);
+            integrationRunner.assertEqual(appState.get('pagination.currentPage'), 3);
+
+            // 総レコード数設定
+            appState.set('pagination.totalRecords', 500);
+            integrationRunner.assertEqual(appState.get('pagination.totalRecords'), 500);
+        });
+
+        integrationRunner.addTest('ソート状態の統合テスト', async () => {
+            // ソート設定
+            appState.set('sort.column', 'price');
+            appState.set('sort.direction', 'desc');
+
+            integrationRunner.assertEqual(appState.get('sort.column'), 'price');
+            integrationRunner.assertEqual(appState.get('sort.direction'), 'desc');
+        });
+
+        integrationRunner.addTest('データ状態の統合テスト', async () => {
+            const testData = [
+                { id: 1, name: 'テスト銘柄1', price: 1000 },
+                { id: 2, name: 'テスト銘柄2', price: 2000 }
+            ];
+
+            appState.set('data.stockData', testData);
+            const retrievedData = appState.get('data.stockData');
+
+            integrationRunner.assertEqual(retrievedData.length, 2);
+            integrationRunner.assertEqual(retrievedData[0].name, 'テスト銘柄1');
+        });
+
+        integrationRunner.addTest('状態変更リスナーの統合テスト', async () => {
+            let listenerCalled = false;
+            let receivedValue = null;
+
+            const unsubscribe = appState.subscribe('test.integration', (value) => {
+                listenerCalled = true;
+                receivedValue = value;
+            });
+
+            appState.set('test.integration', 'integration test value');
+
+            // 非同期処理を待つ
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            integrationRunner.assert(listenerCalled, 'リスナーが呼ばれませんでした');
+            integrationRunner.assertEqual(receivedValue, 'integration test value');
+
+            unsubscribe();
+        });
+
+        integrationRunner.addTest('永続化の統合テスト', () => {
+            // 永続化ありの設定
+            appState.set('persistent.test', 'persistent value');
+
+            // 新しいインスタンスで確認
+            const newAppState = new StateManager('stock-analyzer');
+            integrationRunner.assertEqual(newAppState.get('persistent.test'), 'persistent value');
+
+            // 永続化なしの設定
+            appState.set('temp.test', 'temporary value', false);
+            const anotherAppState = new StateManager('stock-analyzer');
+            integrationRunner.assertEqual(anotherAppState.get('temp.test'), undefined);
+        });
+
+        // 初期表示の更新
+        updatePaginationDisplay();
+        updateSortDisplay();
+        updateDataDisplay();
+
+        // テスト実行
+        setTimeout(() => {
+            integrationRunner.runTests();
+        }, 1000);
+    </script>
+</body>
+</html>

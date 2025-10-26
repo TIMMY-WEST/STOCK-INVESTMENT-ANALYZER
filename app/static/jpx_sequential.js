@@ -4,12 +4,75 @@
 
 // ES6モジュールインポート
 import { Utils, UIComponents } from './app.js';
+import { StateManager } from './state-manager.js';
 
-// モジュール内状態管理
+// JPX順次取得専用の状態管理
+class JpxSequentialStateManager extends StateManager {
+    constructor() {
+        super('jpx_sequential', {
+            'job.id': null,
+            'job.checkInterval': null,
+            'job.intervalResults': []
+        });
+    }
+
+    // ジョブ関連のヘルパーメソッド
+    setJobId(jobId) {
+        this.set('job.id', jobId);
+    }
+
+    getJobId() {
+        return this.get('job.id');
+    }
+
+    setCheckInterval(interval) {
+        this.set('job.checkInterval', interval);
+    }
+
+    getCheckInterval() {
+        return this.get('job.checkInterval');
+    }
+
+    addIntervalResult(result) {
+        const results = this.get('job.intervalResults', []);
+        results.push(result);
+        this.set('job.intervalResults', results, false); // 大量データは永続化しない
+    }
+
+    clearIntervalResults() {
+        this.set('job.intervalResults', []);
+    }
+
+    clearJob() {
+        this.set('job.id', null);
+        this.set('job.checkInterval', null);
+        this.clearIntervalResults();
+    }
+}
+
+// インスタンス作成
+const jpxSequentialState = new JpxSequentialStateManager();
+
+// 後方互換性のためのレガシーオブジェクト
 const JpxSequentialState = {
-    jobId: null,
-    checkInterval: null,
-    intervalResults: []
+    get jobId() {
+        return jpxSequentialState.getJobId();
+    },
+    set jobId(value) {
+        jpxSequentialState.setJobId(value);
+    },
+    get checkInterval() {
+        return jpxSequentialState.getCheckInterval();
+    },
+    set checkInterval(value) {
+        jpxSequentialState.setCheckInterval(value);
+    },
+    get intervalResults() {
+        return jpxSequentialState.get('job.intervalResults', []);
+    },
+    set intervalResults(value) {
+        jpxSequentialState.set('job.intervalResults', value, false);
+    }
 };
 
 // ページ読み込み時の初期化

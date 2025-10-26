@@ -1,45 +1,20 @@
 /**
- * 株価データ管理システム - 共通ユーティリティとサービス
+ * 株価データ取得システム - 共通ユーティリティとサービス
  * ES6 Module版
  */
 
-// アプリケーション状態管理クラス
-export class AppState {
+// 新しい状態管理システムをインポート
+import { AppState as NewAppState, AppStateManager, appStateManager } from './state-manager.js';
+
+// 後方互換性のために既存のAppStateクラスを維持（非推奨）
+export class AppState extends NewAppState {
     constructor() {
-        this.currentPage = 0;
-        this.currentLimit = 25;
-        this.currentSymbol = '';
-        this.totalRecords = 0;
-        this.isLoading = false;
-        this.currentData = null;
-        this.sortColumn = null;
-        this.sortDirection = 'asc';
-        this.lastFetchParams = null;
-        this.itemsPerPage = 10;
-    }
-
-    // 状態をリセット
-    reset() {
-        this.currentData = null;
-        this.currentPage = 0;
-        this.sortColumn = null;
-        this.sortDirection = 'asc';
-        this.isLoading = false;
-        this.lastFetchParams = null;
-    }
-
-    // ローディング状態の管理
-    setLoading(isLoading) {
-        this.isLoading = isLoading;
-    }
-
-    // ページネーション状態の更新
-    updatePagination(page, limit, total) {
-        this.currentPage = page;
-        this.currentLimit = limit;
-        this.totalRecords = total;
+        super();
     }
 }
+
+// 新しい状態管理システムをエクスポート
+export { AppStateManager, appStateManager };
 
 // 期間と足の組み合わせ検証ルール
 export const INTERVAL_PERIOD_RULES = {

@@ -4,10 +4,13 @@
  */
 
 // 共通ユーティリティとサービスをインポート
-import { AppState, Utils, ApiService, UIComponents, FormValidator, INTERVAL_PERIOD_RULES } from './app.js';
+import { AppState, Utils, ApiService, UIComponents, FormValidator, INTERVAL_PERIOD_RULES, appStateManager } from './app.js';
 
-// アプリケーション状態管理インスタンス
-const appState = new AppState();
+// アプリケーション状態管理インスタンス（新しいシステムを使用）
+const appState = appStateManager;
+
+// 後方互換性のための旧AppStateインスタンス
+const legacyAppState = new AppState();
 
 // アプリケーション初期化
 document.addEventListener('DOMContentLoaded', function() {
@@ -242,9 +245,9 @@ async function loadStockData(page = null) {
 
         // ページが指定されている場合は使用、そうでなければ現在のページを使用
         if (page !== null) {
-            appState.currentPage = page;
+            appState.set('pagination.currentPage', page);
         }
-        appState.currentLimit = limit;
+        appState.set('pagination.currentLimit', limit);
 
         if (tableBody) {
             showLoadingInTable(tableBody);
@@ -252,8 +255,8 @@ async function loadStockData(page = null) {
 
         // URLパラメータ構築
         const params = new URLSearchParams({
-            limit: appState.currentLimit,
-            offset: appState.currentPage * appState.currentLimit,
+            limit: appState.get('pagination.currentLimit'),
+            offset: appState.get('pagination.currentPage') * appState.get('pagination.currentLimit'),
             interval: intervalFilter
         });
 
@@ -283,10 +286,10 @@ async function loadStockData(page = null) {
         }
 
         if (result.success) {
-            appState.totalRecords = result.pagination.total;
+            appState.set('pagination.totalRecords', result.pagination.total);
             updateDataTable(result.data);
             updatePagination();
-            updateDataSummary(symbolFilter, result.data.length, appState.totalRecords);
+            updateDataSummary(symbolFilter, result.data.length, appState.get('pagination.totalRecords'));
         } else {
             // エラーの場合もページネーションを更新（totalRecordsは0のまま）
             updatePagination();
@@ -338,7 +341,7 @@ function updateDataTable(stockData) {
     if (!tableBody) return;
 
     // 現在のストックデータを保存（ソート機能で使用）
-    appState.currentStockData = [...stockData];
+    appState.set('data.stockData', [...stockData], false); // 大量データは永続化しない
 
     if (stockData.length === 0) {
         tableBody.innerHTML = `
@@ -517,18 +520,19 @@ function initTableSorting() {
 
 // テーブルソート実行
 function sortTable(column) {
-    if (appState.currentStockData.length === 0) return;
+    if (appState.get('data.stockData', []).length === 0) return;
 
     // ソート方向を決定
-    if (appState.currentSortColumn === column) {
-        appState.currentSortDirection = appState.currentSortDirection === 'asc' ? 'desc' : 'asc';
+    if (appState.get('sort.column') === column) {
+        const newDirection = appState.get('sort.direction') === 'asc' ? 'desc' : 'asc';
+        appState.set('sort.direction', newDirection);
     } else {
-        appState.currentSortDirection = 'asc';
-        appState.currentSortColumn = column;
+        appState.set('sort.direction', 'asc');
+        appState.set('sort.column', column);
     }
 
     // データをソート
-    const sortedData = [...appState.currentStockData].sort((a, b) => {
+    const sortedData = [...appState.get('data.stockData', [])].sort((a, b) => {
         let aValue = a[column];
         let bValue = b[column];
 
@@ -549,17 +553,17 @@ function sortTable(column) {
         }
 
         if (aValue < bValue) {
-            return appState.currentSortDirection === 'asc' ? -1 : 1;
+            return appState.get('sort.direction') === 'asc' ? -1 : 1;
         }
         if (aValue > bValue) {
-            return appState.currentSortDirection === 'asc' ? 1 : -1;
+            return appState.get('sort.direction') === 'asc' ? 1 : -1;
         }
         return 0;
     });
 
     // ソートされたデータでテーブルを更新
     updateDataTable(sortedData);
-    updateSortIcons(column, appState.currentSortDirection);
+    updateSortIcons(column, appState.get('sort.direction'));
 }
 
 // ソートアイコンを更新
@@ -587,17 +591,17 @@ function initPagination() {
 
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
-            if (appState.currentPage > 0) {
-                loadStockData(appState.currentPage - 1);
+            if (appState.get('pagination.currentPage') > 0) {
+                loadStockData(appState.get('pagination.currentPage') - 1);
             }
         });
     }
 
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
-            const totalPages = Math.ceil(appState.totalRecords / appState.currentLimit);
-            if (appState.currentPage < totalPages - 1) {
-                loadStockData(appState.currentPage + 1);
+            const totalPages = Math.ceil(appState.get('pagination.totalRecords') / appState.get('pagination.currentLimit'));
+            if (appState.get('pagination.currentPage') < totalPages - 1) {
+                loadStockData(appState.get('pagination.currentPage') + 1);
             }
         });
     }
@@ -613,9 +617,9 @@ function updatePagination() {
     if (!paginationContainer || !paginationText || !prevBtn || !nextBtn) return;
 
     // 変数の安全性チェック
-    const safeTotalRecords = isNaN(appState.totalRecords) || appState.totalRecords < 0 ? 0 : appState.totalRecords;
-    const safeCurrentPage = isNaN(appState.currentPage) || appState.currentPage < 0 ? 0 : appState.currentPage;
-    const safeCurrentLimit = isNaN(appState.currentLimit) || appState.currentLimit <= 0 ? 25 : appState.currentLimit;
+    const safeTotalRecords = isNaN(appState.get('pagination.totalRecords')) || appState.get('pagination.totalRecords') < 0 ? 0 : appState.get('pagination.totalRecords');
+    const safeCurrentPage = isNaN(appState.get('pagination.currentPage')) || appState.get('pagination.currentPage') < 0 ? 0 : appState.get('pagination.currentPage');
+    const safeCurrentLimit = isNaN(appState.get('pagination.currentLimit')) || appState.get('pagination.currentLimit') <= 0 ? 25 : appState.get('pagination.currentLimit');
 
     // データが存在しない場合の処理
     if (safeTotalRecords === 0) {
@@ -636,11 +640,11 @@ function updatePagination() {
     paginationText.textContent = `表示中: ${startRecord}-${endRecord} / 全 ${safeTotalRecords} 件`;
 
     // ボタンの有効/無効を設定
-    prevBtn.disabled = appState.currentPage === 0;
-    nextBtn.disabled = appState.currentPage >= totalPages - 1;
+    prevBtn.disabled = appState.get('pagination.currentPage') === 0;
+    nextBtn.disabled = appState.get('pagination.currentPage') >= totalPages - 1;
 
     // ページネーションコンテナの表示/非表示
-    if (appState.totalRecords > appState.currentLimit) {
+    if (appState.get('pagination.totalRecords') > appState.get('pagination.currentLimit')) {
         paginationContainer.style.display = 'flex';
     } else {
         paginationContainer.style.display = 'none';
