@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SystemStatusManager - ユニットテスト</title>
+
+    <!-- テスト対象のCSS -->
+    <link rel="stylesheet" href="../app/static/style.css">
+
+    <!-- QUnit テストフレームワーク -->
+    <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.19.4.css">
+    <script src="https://code.jquery.com/qunit/qunit-2.19.4.js"></script>
+
+    <style>
+        /* テスト用の追加スタイル */
+        .test-container {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+        }
+
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .test-status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .test-status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .test-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-status.testing {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div id="qunit"></div>
+    <div id="qunit-fixture">
+        <!-- テスト用のHTML構造 -->
+        <div class="test-container">
+            <div class="test-section">
+                <div class="test-title">SystemStatusManager機能テスト</div>
+
+                <!-- システム状態確認セクション -->
+                <div id="system-status" class="system-status-section">
+                    <h3>システム状態確認</h3>
+                    <button id="system-check-btn" class="btn btn-primary">システム状態を確認</button>
+
+                    <!-- データベース接続テスト結果 -->
+                    <div id="db-test-result" class="test-result" style="display: none;">
+                        <h4>データベース接続テスト</h4>
+                        <div id="db-test-status" class="test-status">未実行</div>
+                        <div id="db-test-details" class="test-details"></div>
+                    </div>
+
+                    <!-- API接続テスト結果 -->
+                    <div id="api-test-result" class="test-result" style="display: none;">
+                        <h4>Yahoo Finance API接続テスト</h4>
+                        <div id="api-test-status" class="test-status">未実行</div>
+                        <div id="api-test-details" class="test-details"></div>
+                    </div>
+
+                    <!-- ヘルスチェック結果 -->
+                    <div id="health-check-result" class="test-result" style="display: none;">
+                        <h4>統合ヘルスチェック</h4>
+                        <div id="health-check-status" class="test-status">未実行</div>
+                        <div id="health-check-details" class="test-details"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- テスト対象のJavaScript -->
+    <script src="../app/static/script.js"></script>
+
+    <script>
+        // モックのfetch関数を作成
+        const originalFetch = window.fetch;
+        let mockResponses = {};
+
+        function mockFetch(url, options) {
+            if (mockResponses[url]) {
+                const response = mockResponses[url];
+                return Promise.resolve({
+                    ok: response.ok,
+                    status: response.status,
+                    json: () => Promise.resolve(response.data)
+                });
+            }
+            return originalFetch(url, options);
+        }
+
+        // テスト開始前の設定
+        QUnit.module('SystemStatusManager', function(hooks) {
+            hooks.beforeEach(function() {
+                // fetch関数をモックに置き換え
+                window.fetch = mockFetch;
+
+                // モックレスポンスをリセット
+                mockResponses = {};
+
+                // DOM要素をリセット
+                const statusElements = document.querySelectorAll('.test-status');
+                statusElements.forEach(el => {
+                    el.textContent = '未実行';
+                    el.className = 'test-status';
+                });
+
+                const detailsElements = document.querySelectorAll('.test-details');
+                detailsElements.forEach(el => {
+                    el.innerHTML = '';
+                });
+
+                const resultElements = document.querySelectorAll('.test-result');
+                resultElements.forEach(el => {
+                    el.style.display = 'none';
+                });
+            });
+
+            hooks.afterEach(function() {
+                // fetch関数を元に戻す
+                window.fetch = originalFetch;
+            });
+        });
+
+        // SystemStatusManagerオブジェクトの存在確認
+        QUnit.test('SystemStatusManagerオブジェクトが定義されている', function(assert) {
+            assert.ok(typeof SystemStatusManager === 'object', 'SystemStatusManagerオブジェクトが存在する');
+            assert.ok(typeof SystemStatusManager.runSystemCheck === 'function', 'runSystemCheck関数が存在する');
+            assert.ok(typeof SystemStatusManager.runDatabaseTest === 'function', 'runDatabaseTest関数が存在する');
+            assert.ok(typeof SystemStatusManager.runApiTest === 'function', 'runApiTest関数が存在する');
+            assert.ok(typeof SystemStatusManager.runHealthCheck === 'function', 'runHealthCheck関数が存在する');
+        });
+
+        // データベーステストの成功ケース
+        QUnit.test('runDatabaseTest - 成功ケース', async function(assert) {
+            // モックレスポンスを設定
+            mockResponses['/api/system/database-test'] = {
+                ok: true,
+                status: 200,
+                data: {
+                    success: true,
+                    message: 'データベース接続成功',
+                    details: {
+                        connection_time: 0.05,
+                        database_name: 'test_db'
+                    }
+                }
+            };
+
+            // テスト実行
+            const result = await SystemStatusManager.runDatabaseTest();
+
+            // 結果検証
+            assert.ok(result.success, 'テストが成功する');
+            assert.equal(result.message, 'データベース接続成功', '正しいメッセージが返される');
+
+            // UI要素の確認
+            const statusElement = document.getElementById('db-test-status');
+            assert.equal(statusElement.textContent, '成功', 'ステータスが正しく更新される');
+            assert.ok(statusElement.classList.contains('success'), '成功スタイルが適用される');
+        });
+
+        // データベーステストの失敗ケース
+        QUnit.test('runDatabaseTest - 失敗ケース', async function(assert) {
+            // モックレスポンスを設定
+            mockResponses['/api/system/database-test'] = {
+                ok: false,
+                status: 500,
+                data: {
+                    success: false,
+                    message: 'データベース接続エラー',
+                    error: 'Connection timeout'
+                }
+            };
+
+            // テスト実行
+            const result = await SystemStatusManager.runDatabaseTest();
+
+            // 結果検証
+            assert.notOk(result.success, 'テストが失敗する');
+            assert.equal(result.message, 'データベース接続エラー', '正しいエラーメッセージが返される');
+
+            // UI要素の確認
+            const statusElement = document.getElementById('db-test-status');
+            assert.equal(statusElement.textContent, '失敗', 'ステータスが正しく更新される');
+            assert.ok(statusElement.classList.contains('error'), 'エラースタイルが適用される');
+        });
+
+        // APIテストの成功ケース
+        QUnit.test('runApiTest - 成功ケース', async function(assert) {
+            // モックレスポンスを設定
+            mockResponses['/api/system/api-connection-test'] = {
+                ok: true,
+                status: 200,
+                data: {
+                    success: true,
+                    message: 'Yahoo Finance API接続成功',
+                    details: {
+                        response_time: 0.8,
+                        api_version: 'v1.0'
+                    }
+                }
+            };
+
+            // テスト実行
+            const result = await SystemStatusManager.runApiTest();
+
+            // 結果検証
+            assert.ok(result.success, 'テストが成功する');
+            assert.equal(result.message, 'Yahoo Finance API接続成功', '正しいメッセージが返される');
+
+            // UI要素の確認
+            const statusElement = document.getElementById('api-test-status');
+            assert.equal(statusElement.textContent, '成功', 'ステータスが正しく更新される');
+            assert.ok(statusElement.classList.contains('success'), '成功スタイルが適用される');
+        });
+
+        // ヘルスチェックの成功ケース
+        QUnit.test('runHealthCheck - 成功ケース', async function(assert) {
+            // モックレスポンスを設定
+            mockResponses['/api/system/health-check'] = {
+                ok: true,
+                status: 200,
+                data: {
+                    status: 'healthy',
+                    message: 'システムは正常に動作しています',
+                    checks: {
+                        database: 'ok',
+                        api: 'ok',
+                        memory: 'ok'
+                    }
+                }
+            };
+
+            // テスト実行
+            const result = await SystemStatusManager.runHealthCheck();
+
+            // 結果検証
+            assert.ok(result.success, 'テストが成功する');
+            assert.equal(result.message, 'システムは正常に動作しています', '正しいメッセージが返される');
+
+            // UI要素の確認
+            const statusElement = document.getElementById('health-check-status');
+            assert.equal(statusElement.textContent, '正常', 'ステータスが正しく更新される');
+            assert.ok(statusElement.classList.contains('success'), '成功スタイルが適用される');
+        });
+
+        // システム全体チェックのテスト
+        QUnit.test('runSystemCheck - 全体テスト', async function(assert) {
+            // 全てのモックレスポンスを設定
+            mockResponses['/api/system/database-test'] = {
+                ok: true,
+                status: 200,
+                data: { success: true, message: 'データベース接続成功' }
+            };
+            mockResponses['/api/system/api-connection-test'] = {
+                ok: true,
+                status: 200,
+                data: { success: true, message: 'API接続成功' }
+            };
+            mockResponses['/api/system/health-check'] = {
+                ok: true,
+                status: 200,
+                data: { status: 'healthy', message: 'システム正常' }
+            };
+
+            // テスト実行
+            await SystemStatusManager.runSystemCheck();
+
+            // 各テスト結果の確認
+            const dbStatus = document.getElementById('db-test-status');
+            const apiStatus = document.getElementById('api-test-status');
+            const healthStatus = document.getElementById('health-check-status');
+
+            assert.equal(dbStatus.textContent, '成功', 'データベーステストが成功');
+            assert.equal(apiStatus.textContent, '成功', 'APIテストが成功');
+            assert.equal(healthStatus.textContent, '正常', 'ヘルスチェックが成功');
+        });
+
+        // エラーハンドリングのテスト
+        QUnit.test('ネットワークエラーのハンドリング', async function(assert) {
+            // fetch関数がエラーを投げるようにモック
+            window.fetch = function() {
+                return Promise.reject(new Error('Network error'));
+            };
+
+            // テスト実行
+            const result = await SystemStatusManager.runDatabaseTest();
+
+            // 結果検証
+            assert.notOk(result.success, 'ネットワークエラーが適切に処理される');
+            assert.ok(result.message.includes('Network error'), 'エラーメッセージが含まれる');
+
+            // UI要素の確認
+            const statusElement = document.getElementById('db-test-status');
+            assert.equal(statusElement.textContent, '失敗', 'ステータスがエラーに更新される');
+            assert.ok(statusElement.classList.contains('error'), 'エラースタイルが適用される');
+        });
+
+        // ボタンクリックイベントのテスト
+        QUnit.test('システム状態確認ボタンのクリックイベント', function(assert) {
+            const done = assert.async();
+
+            // モックレスポンスを設定
+            mockResponses['/api/system/database-test'] = {
+                ok: true,
+                status: 200,
+                data: { success: true, message: 'テスト成功' }
+            };
+            mockResponses['/api/system/api-connection-test'] = {
+                ok: true,
+                status: 200,
+                data: { success: true, message: 'テスト成功' }
+            };
+            mockResponses['/api/system/health-check'] = {
+                ok: true,
+                status: 200,
+                data: { status: 'healthy', message: 'テスト成功' }
+            };
+
+            // ボタンクリックをシミュレート
+            const button = document.getElementById('system-check-btn');
+            button.click();
+
+            // 少し待ってから結果を確認
+            setTimeout(() => {
+                const dbResult = document.getElementById('db-test-result');
+                const apiResult = document.getElementById('api-test-result');
+                const healthResult = document.getElementById('health-check-result');
+
+                assert.equal(dbResult.style.display, 'block', 'データベーステスト結果が表示される');
+                assert.equal(apiResult.style.display, 'block', 'APIテスト結果が表示される');
+                assert.equal(healthResult.style.display, 'block', 'ヘルスチェック結果が表示される');
+
+                done();
+            }, 100);
+        });
+    </script>
+</body>
+</html>

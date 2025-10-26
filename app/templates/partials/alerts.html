@@ -1,0 +1,47 @@
+{# 成功メッセージ #}
+{% macro success_alert(id, message="", dismissible=true) %}
+<div id="{{ id }}" class="alert alert-success {% if dismissible %}alert-dismissible{% endif %}" role="alert" style="display: none;">
+    <span class="alert-message">{{ message }}</span>
+    {% if dismissible %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# エラーメッセージ #}
+{% macro error_alert(id, message="", dismissible=true) %}
+<div id="{{ id }}" class="alert alert-danger {% if dismissible %}alert-dismissible{% endif %}" role="alert" style="display: none;">
+    <span class="alert-message">{{ message }}</span>
+    {% if dismissible %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# 警告メッセージ #}
+{% macro warning_alert(id, message="", dismissible=true) %}
+<div id="{{ id }}" class="alert alert-warning {% if dismissible %}alert-dismissible{% endif %}" role="alert" style="display: none;">
+    <span class="alert-message">{{ message }}</span>
+    {% if dismissible %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# 情報メッセージ #}
+{% macro info_alert(id, message="", dismissible=true) %}
+<div id="{{ id }}" class="alert alert-info {% if dismissible %}alert-dismissible{% endif %}" role="alert" style="display: none;">
+    <span class="alert-message">{{ message }}</span>
+    {% if dismissible %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# 結果表示エリア #}
+{% macro result_display(id) %}
+<div id="{{ id }}" class="result-display" style="display: none;">
+    <h4>取得結果</h4>
+    <div class="result-content"></div>
+</div>
+{% endmacro %}

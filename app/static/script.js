@@ -66,7 +66,6 @@ async function handleFetchSubmit(event) {
 
     // バリデーション
     const errors = validateForm(formData);
-    console.log('[handleFetchSubmit] バリデーション結果:', errors);
     if (Object.keys(errors).length > 0) {
         console.log('[handleFetchSubmit] バリデーションエラー、hideLoading() 呼び出し');
         hideLoading(); // バリデーションエラー時にローディング状態を解除
@@ -120,7 +119,18 @@ async function handleFetchSubmit(event) {
 // フォームバリデーション（FormValidatorクラスを使用）
 function validateForm(formData) {
     const validator = new FormValidator();
-    return validator.validateStockForm(formData);
+
+    // FormDataをプレーンオブジェクトに変換
+    const data = {
+        symbol: formData.get('symbol'),
+        period: formData.get('period'),
+        interval: formData.get('interval')
+    };
+
+    const result = validator.validateStockForm(data);
+
+    // バリデーション結果のerrorsオブジェクトのみを返す
+    return result.errors;
 }
 
 // バリデーションエラー表示
@@ -252,7 +262,25 @@ async function loadStockData(page = null) {
         }
 
         const response = await fetch(`/api/stocks?${params.toString()}`);
-        const result = await response.json();
+
+        // レスポンステキストを取得してJSONパースを安全に実行
+        const responseText = await response.text();
+        let result;
+
+        try {
+            result = JSON.parse(responseText);
+        } catch (jsonError) {
+            console.error('JSONパースエラー:', jsonError);
+            console.error('レスポンステキスト:', responseText.substring(0, 500) + '...');
+
+            // NaN値が含まれている場合の対処
+            if (responseText.includes('NaN')) {
+                console.warn('レスポンスにNaN値が含まれています。サーバー側の修正が必要です。');
+                throw new Error('サーバーから無効なデータが返されました。管理者にお問い合わせください。');
+            }
+
+            throw new Error('サーバーレスポンスの解析に失敗しました: ' + jsonError.message);
+        }
 
         if (result.success) {
             appState.totalRecords = result.pagination.total;
@@ -1202,3 +1230,303 @@ function announceIntervalSelection(selectedValue) {
         }
     }, 1000);
 }
+
+// システム状態管理
+const SystemStatusManager = {
+    /**
+     * 初期化
+     */
+    init: function() {
+        const checkBtn = document.getElementById('system-check-btn');
+        if (checkBtn) {
+            checkBtn.addEventListener('click', this.runSystemCheck.bind(this));
+            console.log('[SystemStatusManager] システム状態確認ボタンのイベントリスナーを設定しました');
+        } else {
+            console.warn('[SystemStatusManager] system-check-btn要素が見つかりません');
+        }
+    },
+
+    /**
+     * システム状態チェックの実行
+     */
+    runSystemCheck: async function() {
+        const btn = document.getElementById('system-check-btn');
+        const resultsContainer = document.getElementById('monitoring-results');
+
+        if (!btn || !resultsContainer) {
+            console.error('[SystemStatusManager] 必要な要素が見つかりません');
+            return;
+        }
+
+        try {
+            console.log('[SystemStatusManager] システム状態チェック開始');
+
+            // ボタンを無効化し、テキストを変更
+            btn.disabled = true;
+            btn.textContent = 'チェック実行中...';
+
+            // 結果コンテナを表示
+            resultsContainer.style.display = 'block';
+
+            // 3つのテストを順次実行
+            await this.runDatabaseTest();
+            await this.runApiTest();
+            await this.runHealthCheck();
+
+            console.log('[SystemStatusManager] システム状態チェック完了');
+
+        } catch (error) {
+            console.error('[SystemStatusManager] システム状態チェック中にエラーが発生:', error);
+            this.showError('システム状態チェック中にエラーが発生しました: ' + error.message);
+        } finally {
+            // ボタンを元に戻す
+            btn.disabled = false;
+            btn.textContent = 'システム状態の確認';
+        }
+    },
+
+    /**
+     * データベース接続テスト
+     */
+    runDatabaseTest: async function() {
+        console.log('[SystemStatusManager] データベース接続テスト開始');
+
+        const statusElement = document.getElementById('db-test-status');
+        const detailsElement = document.getElementById('db-test-details');
+        const resultContainer = document.getElementById('db-test-result');
+
+        if (resultContainer) {
+            resultContainer.style.display = 'block';
+        }
+
+        if (statusElement) {
+            statusElement.textContent = 'テスト中...';
+            statusElement.className = 'test-status testing';
+        }
+
+        try {
+            const response = await fetch('/api/system/db-connection-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
+            console.log('[SystemStatusManager] データベース接続テスト結果:', data);
+
+            if (statusElement) {
+                if (data.success) {
+                    statusElement.textContent = '✅ 正常';
+                    statusElement.className = 'test-status success';
+                } else {
+                    statusElement.textContent = '❌ エラー';
+                    statusElement.className = 'test-status error';
+                }
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="test-detail">
+                        <strong>結果:</strong> ${data.success ? '接続成功' : '接続失敗'}
+                    </div>
+                    <div class="test-detail">
+                        <strong>メッセージ:</strong> ${data.message || 'なし'}
+                    </div>
+                    <div class="test-detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('[SystemStatusManager] データベース接続テストエラー:', error);
+
+            if (statusElement) {
+                statusElement.textContent = '❌ エラー';
+                statusElement.className = 'test-status error';
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="test-detail error">
+                        <strong>エラー:</strong> ${error.message}
+                    </div>
+                    <div class="test-detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return { success: false, message: error.message };
+        }
+    },
+
+    /**
+     * API接続テスト
+     */
+    runApiTest: async function() {
+        console.log('[SystemStatusManager] API接続テスト開始');
+
+        const statusElement = document.getElementById('api-test-status');
+        const detailsElement = document.getElementById('api-test-details');
+        const resultContainer = document.getElementById('api-test-result');
+
+        if (resultContainer) {
+            resultContainer.style.display = 'block';
+        }
+
+        if (statusElement) {
+            statusElement.textContent = 'テスト中...';
+            statusElement.className = 'test-status testing';
+        }
+
+        try {
+            const response = await fetch('/api/system/api-connection-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: '7203.T' })
+            });
+
+            const data = await response.json();
+            console.log('[SystemStatusManager] API接続テスト結果:', data);
+
+            if (statusElement) {
+                if (data.success) {
+                    statusElement.textContent = '✅ 正常';
+                    statusElement.className = 'test-status success';
+                } else {
+                    statusElement.textContent = '❌ エラー';
+                    statusElement.className = 'test-status error';
+                }
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="test-detail">
+                        <strong>結果:</strong> ${data.success ? 'API接続成功' : 'API接続失敗'}
+                    </div>
+                    <div class="test-detail">
+                        <strong>メッセージ:</strong> ${data.message || 'なし'}
+                    </div>
+                    <div class="test-detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('[SystemStatusManager] API接続テストエラー:', error);
+
+            if (statusElement) {
+                statusElement.textContent = '❌ エラー';
+                statusElement.className = 'test-status error';
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="test-detail error">
+                        <strong>エラー:</strong> ${error.message}
+                    </div>
+                    <div class="test-detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return { success: false, message: error.message };
+        }
+    },
+
+    /**
+     * ヘルスチェック
+     */
+    runHealthCheck: async function() {
+        console.log('[SystemStatusManager] ヘルスチェック開始');
+
+        const statusElement = document.getElementById('health-check-status');
+        const detailsElement = document.getElementById('health-check-details');
+        const resultContainer = document.getElementById('health-check-result');
+
+        if (resultContainer) {
+            resultContainer.style.display = 'block';
+        }
+
+        if (statusElement) {
+            statusElement.textContent = 'チェック中...';
+            statusElement.className = 'test-status testing';
+        }
+
+        try {
+            const response = await fetch('/api/system/health-check');
+            const data = await response.json();
+            console.log('[SystemStatusManager] ヘルスチェック結果:', data);
+
+            if (statusElement) {
+                if (data.status === 'healthy') {
+                    statusElement.textContent = '✅ 正常';
+                    statusElement.className = 'test-status success';
+                } else {
+                    statusElement.textContent = '❌ 異常';
+                    statusElement.className = 'test-status error';
+                }
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="test-detail">
+                        <strong>ステータス:</strong> ${data.status || '不明'}
+                    </div>
+                    <div class="test-detail">
+                        <strong>メッセージ:</strong> ${data.message || 'なし'}
+                    </div>
+                    <div class="test-detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('[SystemStatusManager] ヘルスチェックエラー:', error);
+
+            if (statusElement) {
+                statusElement.textContent = '❌ エラー';
+                statusElement.className = 'test-status error';
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="test-detail error">
+                        <strong>エラー:</strong> ${error.message}
+                    </div>
+                    <div class="test-detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return { success: false, message: error.message };
+        }
+    },
+
+    /**
+     * エラー表示
+     */
+    showError: function(message) {
+        const resultsContainer = document.getElementById('monitoring-results');
+        if (resultsContainer) {
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>エラー:</strong> ${message}
+                </div>
+            `;
+        }
+    }
+};
+
+// DOMContentLoadedイベントでSystemStatusManagerを初期化
+document.addEventListener('DOMContentLoaded', function() {
+    SystemStatusManager.init();
+});

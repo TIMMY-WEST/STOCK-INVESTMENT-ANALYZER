@@ -276,17 +276,79 @@ export class UIComponents {
 
     // メッセージをクリア
     static clearMessages() {
-        const errorContainer = document.getElementById('error-container');
-        const successContainer = document.getElementById('success-container');
+        const container = document.getElementById('result-container');
 
-        if (errorContainer) {
-            errorContainer.style.display = 'none';
-            errorContainer.innerHTML = '';
+        if (container) {
+            container.style.display = 'none';
+            container.innerHTML = '';
         }
+    }
 
-        if (successContainer) {
-            successContainer.style.display = 'none';
-            successContainer.innerHTML = '';
+    // エラーメッセージの表示（script.js互換）
+    static showErrorMessage(message) {
+        const container = document.getElementById('result-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    ${Utils.escapeHtml(message)}
+                </div>
+            `;
+            container.style.display = 'block';
+        }
+    }
+
+    // 成功メッセージの表示（script.js互換）
+    static showSuccessMessage(message) {
+        const container = document.getElementById('result-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-success" role="alert">
+                    ${Utils.escapeHtml(message)}
+                </div>
+            `;
+            container.style.display = 'block';
+        }
+    }
+
+    // 詳細な成功メッセージの表示
+    static showDetailedSuccessMessage(message, data) {
+        const container = document.getElementById('result-container');
+        if (container) {
+            let detailsHtml = '';
+
+            if (data) {
+                detailsHtml = '<div class="mt-2">';
+
+                if (data.records_count !== undefined) {
+                    detailsHtml += `<p><strong>取得レコード数:</strong> ${data.records_count}</p>`;
+                }
+
+                if (data.saved_records !== undefined) {
+                    detailsHtml += `<p><strong>保存レコード数:</strong> ${data.saved_records}</p>`;
+                }
+
+                if (data.period) {
+                    detailsHtml += `<p><strong>期間:</strong> ${data.period}</p>`;
+                }
+
+                if (data.interval) {
+                    detailsHtml += `<p><strong>足:</strong> ${data.interval}</p>`;
+                }
+
+                if (data.date_range) {
+                    detailsHtml += `<p><strong>データ期間:</strong> ${data.date_range.start} ～ ${data.date_range.end}</p>`;
+                }
+
+                detailsHtml += '</div>';
+            }
+
+            container.innerHTML = `
+                <div class="alert alert-success" role="alert">
+                    ${Utils.escapeHtml(message)}
+                    ${detailsHtml}
+                </div>
+            `;
+            container.style.display = 'block';
         }
     }
 
@@ -350,5 +412,41 @@ export class FormValidator {
         }
 
         return null;
+    }
+
+    // インスタンスメソッドとしてvalidateStockFormを追加
+    validateStockForm(formData) {
+        const errors = {};
+
+        // 銘柄コードの検証
+        const symbolError = FormValidator.validateSymbol(formData.symbol);
+        if (symbolError) {
+            errors.symbol = symbolError;
+        }
+
+        // 期間の検証
+        const periodError = FormValidator.validateRequired(formData.period, '期間');
+        if (periodError) {
+            errors.period = periodError;
+        }
+
+        // 足の検証
+        const intervalError = FormValidator.validateRequired(formData.interval, '足');
+        if (intervalError) {
+            errors.interval = intervalError;
+        }
+
+        // 期間と足の組み合わせ検証
+        if (!periodError && !intervalError) {
+            const combinationError = FormValidator.validateIntervalPeriod(formData.interval, formData.period);
+            if (combinationError) {
+                errors.combination = combinationError;
+            }
+        }
+
+        return {
+            isValid: Object.keys(errors).length === 0,
+            errors: errors
+        };
     }
 }

@@ -86,13 +86,29 @@ class StockDataBase:
         Returns:
             Dict[str, Any]: モデルの辞書表現
         """
+
+        def safe_float_conversion(value):
+            """Decimal値を安全にfloatに変換し、NaN値をNoneに変換する."""
+            if value is None:
+                return None
+            try:
+                float_val = float(value)
+                # NaN値をチェックしてNoneに変換
+                import math
+
+                if math.isnan(float_val) or math.isinf(float_val):
+                    return None
+                return float_val
+            except (ValueError, TypeError, OverflowError):
+                return None
+
         result = {
             "id": self.id,
             "symbol": self.symbol,
-            "open": float(self.open) if self.open else None,
-            "high": float(self.high) if self.high else None,
-            "low": float(self.low) if self.low else None,
-            "close": float(self.close) if self.close else None,
+            "open": safe_float_conversion(self.open),
+            "high": safe_float_conversion(self.high),
+            "low": safe_float_conversion(self.low),
+            "close": safe_float_conversion(self.close),
             "volume": self.volume,
             "created_at": (
                 self.created_at.isoformat() if self.created_at else None
