@@ -14,48 +14,37 @@ class ErrorCode(Enum):
     各エラーに一意のコードを割り当て、ログ分析とトラブルシューティングを支援します。
     """
 
-    # システムエラー (1000番台)
-    SYSTEM_UNKNOWN = "SYS_1000"
-    SYSTEM_CONFIG = "SYS_1001"
-    SYSTEM_RESOURCE = "SYS_1002"
+    # システムエラー
+    SYSTEM_ERROR = "SYS001"
 
-    # データベースエラー (2000番台)
-    DATABASE_CONNECTION = "DB_2000"
-    DATABASE_QUERY = "DB_2001"
-    DATABASE_INTEGRITY = "DB_2002"
-    DATABASE_TRANSACTION = "DB_2003"
-    DATABASE_TIMEOUT = "DB_2004"
+    # データベースエラー
+    DATABASE_CONNECTION = "DB001"
+    DATABASE_TIMEOUT = "DB002"
+    DATABASE_SAVE = "DB003"
 
-    # 株価データエラー (3000番台)
-    STOCK_DATA_FETCH = "STK_3000"
-    STOCK_DATA_VALIDATION = "STK_3001"
-    STOCK_DATA_CONVERSION = "STK_3002"
-    STOCK_DATA_SAVE = "STK_3003"
-    STOCK_DATA_NOT_FOUND = "STK_3004"
+    # API/ネットワークエラー
+    API_TIMEOUT = "API001"
+    API_RATE_LIMIT = "API002"
+    API_AUTHENTICATION = "API003"
+    API_CONNECTION = "API004"
 
-    # バッチ処理エラー (4000番台)
-    BATCH_EXECUTION = "BCH_4000"
-    BATCH_PROCESSING = "BCH_4001"
-    BATCH_TIMEOUT = "BCH_4002"
-    BATCH_RESOURCE = "BCH_4003"
+    # 株価データエラー
+    STOCK_DATA_FETCH = "STK001"
+    STOCK_DATA_VALIDATION = "STK002"
+    STOCK_DATA_CONVERSION = "STK003"
+    STOCK_DATA_NOT_FOUND = "STK004"
 
-    # API/ネットワークエラー (5000番台)
-    API_CONNECTION = "API_5000"
-    API_TIMEOUT = "API_5001"
-    API_RATE_LIMIT = "API_5002"
-    API_AUTHENTICATION = "API_5003"
-    API_RESPONSE = "API_5004"
+    # バッチ処理エラー
+    BATCH_TIMEOUT = "BAT001"
+    BATCH_RESOURCE = "BAT002"
+    BATCH_PROCESSING = "BAT003"
 
-    # バリデーションエラー (6000番台)
-    VALIDATION_REQUIRED = "VAL_6000"
-    VALIDATION_FORMAT = "VAL_6001"
-    VALIDATION_RANGE = "VAL_6002"
-    VALIDATION_TYPE = "VAL_6003"
+    # バリデーションエラー
+    VALIDATION_REQUIRED_FIELD = "VAL001"
+    VALIDATION_INVALID_FORMAT = "VAL002"
 
-    # ビジネスロジックエラー (7000番台)
-    BUSINESS_RULE = "BIZ_7000"
-    BUSINESS_STATE = "BIZ_7001"
-    BUSINESS_PERMISSION = "BIZ_7002"
+    # ビジネスロジックエラー
+    BUSINESS_LOGIC_INVALID_OPERATION = "BIZ001"
 
 
 class BaseStockAnalyzerException(Exception):
@@ -82,7 +71,7 @@ class BaseStockAnalyzerException(Exception):
         super().__init__(message)
         self.message = message
         self.error_code = error_code
-        self.details = details or {}
+        self.details = details
         self.original_exception = original_exception
 
     def to_dict(self) -> Dict[str, Any]:
@@ -105,7 +94,7 @@ class BaseStockAnalyzerException(Exception):
 
     def __str__(self) -> str:
         """文字列表現を返す."""
-        return f"[{self.error_code.value}] {self.message}"
+        return self.message
 
 
 class SystemException(BaseStockAnalyzerException):
@@ -115,7 +104,19 @@ class SystemException(BaseStockAnalyzerException):
     システムレベルの問題を表す例外です。
     """
 
-    pass
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+        original_exception: Optional[Exception] = None,
+    ):
+        """システム例外を初期化します."""
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.SYSTEM_ERROR,
+            details=details,
+            original_exception=original_exception,
+        )
 
 
 class DatabaseException(BaseStockAnalyzerException):
@@ -215,14 +216,14 @@ class StockDataFetchError(StockDataException):
         )
 
 
-class StockDataValidationError(StockDataException):
+class StockDataValidationError(ValidationException):
     """株価データバリデーションエラー."""
 
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         """株価データバリデーションエラーを初期化します."""
         super().__init__(
             message=message,
-            error_code=ErrorCode.STOCK_DATA_VALIDATION,
+            error_code=ErrorCode.VALIDATION_INVALID_FORMAT,
             details=details,
         )
 
@@ -239,14 +240,14 @@ class StockDataConversionError(StockDataException):
         )
 
 
-class StockDataSaveError(StockDataException):
+class StockDataSaveError(DatabaseException):
     """株価データ保存エラー."""
 
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         """株価データ保存エラーを初期化します."""
         super().__init__(
             message=message,
-            error_code=ErrorCode.STOCK_DATA_SAVE,
+            error_code=ErrorCode.DATABASE_SAVE,
             details=details,
         )
 
@@ -258,7 +259,7 @@ class BatchServiceError(BatchProcessingException):
         """バッチサービスエラーを初期化します."""
         super().__init__(
             message=message,
-            error_code=ErrorCode.BATCH_EXECUTION,
+            error_code=ErrorCode.BATCH_PROCESSING,
             details=details,
         )
 
@@ -306,6 +307,5 @@ class StockDataOrchestrationError(SystemException):
         """株価データオーケストレーションエラーを初期化します."""
         super().__init__(
             message=message,
-            error_code=ErrorCode.SYSTEM_UNKNOWN,
             details=details,
         )

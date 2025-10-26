@@ -1207,6 +1207,26 @@ body {
     }
 }
 
+/* Responsive tweaks for timeframe selector (tests expect breakpoints) */
+@media (max-width: 768px) {
+    .timeframe-selector-container {
+        gap: var(--spacing-sm);
+    }
+    .timeframe-indicator {
+        font-size: calc(var(--font-size-sm) * 0.95);
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .timeframe-selector-container {
+        gap: var(--spacing-xs);
+    }
+    .timeframe-indicator {
+        font-size: calc(var(--font-size-sm) * 0.9);
+    }
+}
+
 /* ========================================
    Print Styles
    ======================================== */
@@ -1503,6 +1523,51 @@ body {
 .interval-indicator::before {
     content: "⏱️";
     margin-right: var(--spacing-sm);
+}
+
+/* Interval error message (compatibility with tests) */
+.interval-error {
+    color: var(--error-color);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+    display: none;
+}
+
+.interval-error.show {
+    display: block;
+}
+
+/* =============================
+   Timeframe Selector UI (Issue #67)
+   ============================= */
+/* Container for timeframe selector (required by tests) */
+.timeframe-selector-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+/* Validation state helpers (used by JS) */
+.is-invalid {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+}
+
+.is-valid {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+}
+
+/* Field error message (generic alias to form__error) */
+.field-error {
+    color: var(--error-color);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+    display: none;
+}
+
+.field-error.show {
+    display: block;
 }
 
 /* 必須項目インジケーター */
