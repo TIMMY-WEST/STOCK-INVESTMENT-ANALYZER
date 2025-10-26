@@ -18,12 +18,12 @@ class TestAPIE2E:
     @pytest.fixture(scope="class")
     def app_server(self):
         """Flaskアプリケーションサーバーを起動するフィクスチャ."""
-        # アプリケーションのパスを設定
-        app_dir = os.path.join(os.path.dirname(__file__), "..", "..", "app")
-        sys.path.insert(0, app_dir)
+        # プロジェクトルートディレクトリをPythonパスに追加
+        project_root = os.path.join(os.path.dirname(__file__), "..", "..")
+        sys.path.insert(0, project_root)
 
         # Flaskアプリをインポート
-        from app import app
+        from app.app import app
 
         app.config["TESTING"] = True
 
@@ -73,7 +73,7 @@ class TestAPIE2E:
 
     def test_database_connection_endpoint(self, app_server):
         """データベース接続テストエンドポイント."""
-        response = requests.get(f"{app_server}/api/system/health-check")
+        response = requests.get(f"{app_server}/api/system/health")
         assert response.status_code in [200, 500]
         data = response.json()
         # レスポンスにヘルスチェック情報が含まれることを確認
@@ -84,7 +84,7 @@ class TestAPIE2E:
     def test_fetch_data_endpoint_valid_symbol(self, app_server):
         """有効な銘柄コードでのデータ取得テスト."""
         payload = {"symbol": "AAPL", "period": "1mo"}
-        response = requests.post(f"{app_server}/api/fetch-data", json=payload)
+        response = requests.post(f"{app_server}/api/stocks/data", json=payload)
 
         # レスポンスの確認
         assert response.status_code in [
@@ -105,7 +105,7 @@ class TestAPIE2E:
     def test_fetch_data_endpoint_invalid_symbol(self, app_server):
         """無効な銘柄コードでのエラーハンドリングテスト."""
         payload = {"symbol": "INVALID_SYMBOL_12345", "period": "1mo"}
-        response = requests.post(f"{app_server}/api/fetch-data", json=payload)
+        response = requests.post(f"{app_server}/api/stocks/data", json=payload)
 
         # エラーレスポンスの確認
         assert response.status_code in [400, 404, 500]
@@ -116,7 +116,7 @@ class TestAPIE2E:
     def test_fetch_data_endpoint_max_period(self, app_server):
         """maxオプションでのデータ取得テスト（Issue #45対応）."""
         payload = {"symbol": "AAPL", "period": "max"}
-        response = requests.post(f"{app_server}/api/fetch-data", json=payload)
+        response = requests.post(f"{app_server}/api/stocks/data", json=payload)
 
         # レスポンスの確認
         assert response.status_code in [200, 400, 500]
@@ -152,7 +152,7 @@ class TestAPIE2E:
     def test_fetch_data_endpoint_max_period_japanese_stock(self, app_server):
         """日本株でのmaxオプションテスト（Issue #45対応）."""
         payload = {"symbol": "7203.T", "period": "max"}  # トヨタ自動車
-        response = requests.post(f"{app_server}/api/fetch-data", json=payload)
+        response = requests.post(f"{app_server}/api/stocks/data", json=payload)
 
         # レスポンスの確認
         assert response.status_code in [200, 400, 500]
@@ -218,7 +218,7 @@ class TestAPIE2E:
 
         # 不正なJSONデータ
         response = requests.post(
-            f"{app_server}/api/fetch-data",
+            f"{app_server}/api/stocks/data",
             data="invalid json",
             headers={"Content-Type": "application/json"},
         )

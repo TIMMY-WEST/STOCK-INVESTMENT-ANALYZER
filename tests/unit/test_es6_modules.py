@@ -58,17 +58,20 @@ class TestES6Modules:
             content = f.read()
 
         # app.jsからのインポートを確認
-        import_pattern = (
-            r"import\s+\{[^}]*AppState[^}]*\}\s+from\s+['\"]\.\/app\.js['\"]"
-        )
+        import_pattern = r"import\s+\{[^}]*appStateManager[^}]*\}\s+from\s+['\"]\.\/app\.js['\"]"
         assert re.search(
             import_pattern, content
-        ), "AppStateのインポートが見つかりません"
+        ), "appStateManagerのインポートが見つかりません"
 
-        # appStateインスタンスの作成を確認
+        # appStateインスタンスの使用を確認（新しいシステム）
         assert (
-            "const appState = new AppState();" in content
-        ), "appStateインスタンスが作成されていません"
+            "const appState = appStateManager;" in content
+        ), "appStateManagerの使用が確認できません"
+
+        # 後方互換性のためのlegacyAppStateインスタンスの作成を確認
+        assert (
+            "const legacyAppState = new AppState();" in content
+        ), "後方互換性のためのlegacyAppStateインスタンスが作成されていません"
 
         # AppStateの直接定義がないことを確認（重複定義の回避）
         assert (

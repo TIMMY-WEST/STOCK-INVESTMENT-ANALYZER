@@ -33,7 +33,7 @@ class TestE2EApplication:
         sys.path.insert(0, app_dir)
 
         # Flaskアプリをインポート
-        from app import app
+        from app.app import app
 
         app.config["TESTING"] = True
 

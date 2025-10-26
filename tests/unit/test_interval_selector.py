@@ -17,7 +17,7 @@ import sys
 from bs4 import BeautifulSoup
 import pytest
 
-from app import app  # noqa: E402
+from app.app import app  # noqa: E402
 
 
 class TestIntervalSelectorUI:
@@ -145,7 +145,7 @@ class TestIntervalSelectorAPI:
 
         # APIエンドポイントにPOSTリクエスト送信
         response = self.client.post(
-            "/api/fetch-data",
+            "/api/stocks/data",
             data=json.dumps(test_data),
             content_type="application/json",
         )
@@ -177,7 +177,7 @@ class TestIntervalSelectorAPI:
 
         # APIエンドポイントにPOSTリクエスト送信
         response = self.client.post(
-            "/api/fetch-data",
+            "/api/stocks/data",
             data=json.dumps(test_data),
             content_type="application/json",
         )
@@ -199,7 +199,7 @@ class TestIntervalSelectorAPI:
 
         # APIエンドポイントにPOSTリクエスト送信
         response = self.client.post(
-            "/api/fetch-data",
+            "/api/stocks/data",
             data=json.dumps(test_data),
             content_type="application/json",
         )

@@ -37,7 +37,7 @@ class TestErrorHandling:
                 mock_ticker.return_value.history.return_value.empty = True
 
                 response = client.post(
-                    "/api/fetch-data",
+                    "/api/stocks/data",
                     data=json.dumps({"symbol": symbol, "period": "1mo"}),
                     content_type="application/json",
                 )
@@ -60,7 +60,7 @@ class TestErrorHandling:
             )
 
             response = client.post(
-                "/api/fetch-data",
+                "/api/stocks/data",
                 data=json.dumps(
                     {"symbol": "7203.T", "period": "1mo", "interval": "1d"}
                 ),
@@ -83,7 +83,7 @@ class TestErrorHandling:
             mock_fetch.side_effect = TimeoutError("Request timeout")
 
             response = client.post(
-                "/api/fetch-data",
+                "/api/stocks/data",
                 data=json.dumps(
                     {"symbol": "7203.T", "period": "1mo", "interval": "1d"}
                 ),
@@ -125,7 +125,7 @@ class TestErrorHandling:
                 )
 
                 response = client.post(
-                    "/api/fetch-data",
+                    "/api/stocks/data",
                     data=json.dumps(
                         {"symbol": "7203.T", "period": "1mo", "interval": "1d"}
                     ),
@@ -210,7 +210,7 @@ class TestErrorHandling:
         """不正なJSONリクエストでのエラーテスト."""
         # Content-Typeがapplication/jsonでない場合
         response = client.post(
-            "/api/fetch-data", data="invalid json", content_type="text/plain"
+            "/api/stocks/data", data="invalid json", content_type="text/plain"
         )
 
         # Flask内部でエラーが発生することを確認
@@ -221,7 +221,7 @@ class TestErrorHandling:
         """必須フィールド不足時のエラーテスト."""
         # symbolフィールドなしでリクエスト
         response = client.post(
-            "/api/fetch-data",
+            "/api/stocks/data",
             data=json.dumps({"period": "1mo"}),
             content_type="application/json",
         )
@@ -230,7 +230,7 @@ class TestErrorHandling:
         # このテストは正常に動作する可能性が高い
         # ただし、空のsymbolでテストすることで無効なケースをテスト
         response = client.post(
-            "/api/fetch-data",
+            "/api/stocks/data",
             data=json.dumps({"symbol": "", "period": "1mo"}),
             content_type="application/json",
         )

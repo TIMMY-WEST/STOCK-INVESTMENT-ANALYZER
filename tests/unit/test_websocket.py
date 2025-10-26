@@ -7,7 +7,7 @@ import pytest
 @pytest.fixture
 def app_instance():
     """Flaskアプリインスタンスを作成."""
-    from app import app, socketio
+    from app.app import app, socketio
 
     app.config["TESTING"] = True
     return app, socketio

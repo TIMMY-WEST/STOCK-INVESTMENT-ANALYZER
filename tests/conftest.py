@@ -26,7 +26,7 @@ sys.path.insert(
 @pytest.fixture
 def app():
     """Flaskアプリケーションのテスト用フィクスチャ."""
-    from app import app
+    from app.app import app
 
     app.config["TESTING"] = True
     return app
