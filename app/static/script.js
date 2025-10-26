@@ -162,13 +162,13 @@ function showFieldError(fieldName, message) {
     const field = document.getElementById(fieldName);
     if (!field) return;
 
-    field.classList.add('form-control-error');
+    field.classList.add('form__control--error');
 
     // エラーメッセージ要素を作成または更新
-    let errorElement = field.parentNode.querySelector('.field-error');
+    let errorElement = field.parentNode.querySelector('.form__error');
     if (!errorElement) {
         errorElement = document.createElement('div');
-        errorElement.className = 'field-error';
+        errorElement.className = 'form__error';
         errorElement.style.color = '#dc3545';
         errorElement.style.fontSize = '0.875rem';
         errorElement.style.marginTop = '0.25rem';
@@ -181,12 +181,12 @@ function showFieldError(fieldName, message) {
 
 function clearFieldErrors() {
     // エラークラスを削除
-    document.querySelectorAll('.form-control-error').forEach(el => {
-        el.classList.remove('form-control-error');
+    document.querySelectorAll('.form__control--error').forEach(el => {
+        el.classList.remove('form__control--error');
     });
 
     // エラーメッセージを非表示
-    document.querySelectorAll('.field-error').forEach(el => {
+    document.querySelectorAll('.form__error').forEach(el => {
         el.style.display = 'none';
     });
 
@@ -365,7 +365,7 @@ function updateDataTable(stockData) {
             <td data-label="終値" class="text-right">${formatCurrency(stock.close)}</td>
             <td data-label="出来高" class="text-right">${formatNumber(stock.volume)}</td>
             <td data-label="操作">
-                <button type="button" class="btn btn-danger btn-sm" onclick="deleteStock(${stock.id})">
+                <button type="button" class="btn btn--danger btn--sm" onclick="deleteStock(${stock.id})">
                     削除
                 </button>
             </td>
@@ -737,14 +737,14 @@ function validateTimeframeSelection(event) {
  */
 function updateTimeframeIndicator(selectedValue) {
     const indicator = document.getElementById('timeframe-indicator');
-    const indicatorText = indicator.querySelector('.indicator-text');
+    const indicatorText = indicator.querySelector('.form__indicator-text');
 
     if (!indicator || !indicatorText) {
         return;
     }
 
     // 既存のクラスをクリア
-    indicator.className = 'timeframe-indicator';
+    indicator.className = 'form__timeframe-indicator';
 
     // 期間に応じたメッセージとスタイルを設定
     const timeframeConfig = getTimeframeConfig(selectedValue);
@@ -1074,14 +1074,14 @@ function validateIntervalSelection(event) {
  */
 function updateIntervalIndicator(selectedValue) {
     const indicator = document.getElementById('interval-indicator');
-    const indicatorText = indicator.querySelector('.indicator-text');
+    const indicatorText = indicator.querySelector('.form__indicator-text');
 
     if (!indicator || !indicatorText) {
         return;
     }
 
     // 既存のクラスをクリア
-    indicator.className = 'interval-indicator';
+    indicator.className = 'form__interval-indicator';
 
     // 足に応じたメッセージとスタイルを設定
     const intervalConfig = getIntervalConfig(selectedValue);
@@ -1301,7 +1301,7 @@ const SystemStatusManager = {
 
         if (statusElement) {
             statusElement.textContent = 'テスト中...';
-            statusElement.className = 'test-status testing';
+            statusElement.className = 'status status--testing';
         }
 
         try {
@@ -1316,22 +1316,22 @@ const SystemStatusManager = {
             if (statusElement) {
                 if (data.success) {
                     statusElement.textContent = '✅ 正常';
-                    statusElement.className = 'test-status success';
+                    statusElement.className = 'status status--success';
                 } else {
                     statusElement.textContent = '❌ エラー';
-                    statusElement.className = 'test-status error';
+                    statusElement.className = 'status status--error';
                 }
             }
 
             if (detailsElement) {
                 detailsElement.innerHTML = `
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>結果:</strong> ${data.success ? '接続成功' : '接続失敗'}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>メッセージ:</strong> ${data.message || 'なし'}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
                     </div>
                 `;
@@ -1343,15 +1343,15 @@ const SystemStatusManager = {
 
             if (statusElement) {
                 statusElement.textContent = '❌ エラー';
-                statusElement.className = 'test-status error';
+                statusElement.className = 'status status--error';
             }
 
             if (detailsElement) {
                 detailsElement.innerHTML = `
-                    <div class="test-detail error">
+                    <div class="status__detail status__detail--error">
                         <strong>エラー:</strong> ${error.message}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
                     </div>
                 `;
@@ -1377,7 +1377,7 @@ const SystemStatusManager = {
 
         if (statusElement) {
             statusElement.textContent = 'テスト中...';
-            statusElement.className = 'test-status testing';
+            statusElement.className = 'status status--testing';
         }
 
         try {
@@ -1393,22 +1393,22 @@ const SystemStatusManager = {
             if (statusElement) {
                 if (data.success) {
                     statusElement.textContent = '✅ 正常';
-                    statusElement.className = 'test-status success';
+                    statusElement.className = 'status status--success';
                 } else {
                     statusElement.textContent = '❌ エラー';
-                    statusElement.className = 'test-status error';
+                    statusElement.className = 'status status--error';
                 }
             }
 
             if (detailsElement) {
                 detailsElement.innerHTML = `
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>結果:</strong> ${data.success ? 'API接続成功' : 'API接続失敗'}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>メッセージ:</strong> ${data.message || 'なし'}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
                     </div>
                 `;
@@ -1420,15 +1420,15 @@ const SystemStatusManager = {
 
             if (statusElement) {
                 statusElement.textContent = '❌ エラー';
-                statusElement.className = 'test-status error';
+                statusElement.className = 'status status--error';
             }
 
             if (detailsElement) {
                 detailsElement.innerHTML = `
-                    <div class="test-detail error">
+                    <div class="status__detail status__detail--error">
                         <strong>エラー:</strong> ${error.message}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
                     </div>
                 `;
@@ -1454,7 +1454,7 @@ const SystemStatusManager = {
 
         if (statusElement) {
             statusElement.textContent = 'チェック中...';
-            statusElement.className = 'test-status testing';
+            statusElement.className = 'status status--testing';
         }
 
         try {
@@ -1465,22 +1465,22 @@ const SystemStatusManager = {
             if (statusElement) {
                 if (data.status === 'healthy') {
                     statusElement.textContent = '✅ 正常';
-                    statusElement.className = 'test-status success';
+                    statusElement.className = 'status status--success';
                 } else {
                     statusElement.textContent = '❌ 異常';
-                    statusElement.className = 'test-status error';
+                    statusElement.className = 'status status--error';
                 }
             }
 
             if (detailsElement) {
                 detailsElement.innerHTML = `
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>ステータス:</strong> ${data.status || '不明'}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>メッセージ:</strong> ${data.message || 'なし'}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
                     </div>
                 `;
@@ -1492,15 +1492,15 @@ const SystemStatusManager = {
 
             if (statusElement) {
                 statusElement.textContent = '❌ エラー';
-                statusElement.className = 'test-status error';
+                statusElement.className = 'status status--error';
             }
 
             if (detailsElement) {
                 detailsElement.innerHTML = `
-                    <div class="test-detail error">
+                    <div class="status__detail status__detail--error">
                         <strong>エラー:</strong> ${error.message}
                     </div>
-                    <div class="test-detail">
+                    <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
                     </div>
                 `;

@@ -470,6 +470,9 @@ class ErrorHandler:
             "total_errors": len(self.error_records),
             "error_stats": dict(self.error_stats),
             "error_records_count": len(self.error_records),
+            "temporary": self.error_stats.get("temporary", 0),
+            "permanent": self.error_stats.get("permanent", 0),
+            "system": self.error_stats.get("system", 0),
         }
 
     def clear_error_records(self):
