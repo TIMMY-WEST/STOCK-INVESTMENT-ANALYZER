@@ -45,58 +45,56 @@ repos:
         name: デバッグ文の検出
         exclude: ^(venv/|\.venv/|migrations/)
 
-  # ===== Black (コードフォーマッタ) =====
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
+  # ===== Lint/Format with status summary (local) =====
+  - repo: local
     hooks:
-      - id: black
-        name: Blackによるコードフォーマット
+      - id: black-status
+        name: Blackによるコードフォーマット（サマリー収集）
+        entry: python scripts/hooks/run_check_with_status.py --check black
+        language: system
+        types: [python]
         exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/)
 
-  # ===== isort (インポート文の整理) =====
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        name: isortによるインポート文の整理
+
+      - id: isort-status
+        name: isortによるインポート文の整理（サマリー収集）
+        entry: python scripts/hooks/run_check_with_status.py --check isort
+        language: system
+        types: [python]
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/)
+
         args: ["--profile", "black", "--line-length", "79"]
-        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/)
 
-  # ===== flake8 (Linter) =====
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
-    hooks:
-      - id: flake8
-        name: flake8によるコードチェック
+      - id: flake8-status
+        name: flake8によるコードチェック（サマリー収集）
+        entry: python scripts/hooks/run_check_with_status.py --check flake8
+        language: system
+        types: [python]
         exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/|\.serena/|\.claude/)
         verbose: true
         args:
           - '--max-line-length=79'
           - '--max-complexity=10'
-        additional_dependencies:
-          # flake8拡張プラグイン
-          - flake8-bugbear>=24.0.0
-          - flake8-docstrings>=1.7.0
-          - flake8-comprehensions>=3.14.0
 
-  # ===== mypy (型チェック) =====
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.0
-    hooks:
-      - id: mypy
-        name: mypyによる型チェック
-        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/|tests/|reset_.*\.py|fix_.*\.py|scripts/)
-        additional_dependencies:
-          - types-Flask>=1.1.0
-          - types-python-dateutil>=2.8.0
-          - types-requests>=2.31.0
-          - sqlalchemy[mypy]>=2.0.0
-        verbose: true
+
+      - id: mypy-status
+        name: mypyによる型チェック（サマリー収集）
+        entry: python scripts/hooks/run_check_with_status.py --check mypy
+        language: system
         pass_filenames: false
+        verbose: true
         args:
           - --config-file=pyproject.toml
           - --no-incremental
           - app
+
+
+      - id: commit-status-summary
+        name: コミット最終サマリー
+        entry: python scripts/hooks/final_status_summary.py
+        language: system
+        pass_filenames: false
+        always_run: true
 
 # CI環境での設定
 ci:

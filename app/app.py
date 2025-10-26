@@ -8,12 +8,31 @@ from datetime import date, datetime
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request
+from flask import Blueprint, Flask, jsonify, render_template, request
 from flask_socketio import SocketIO
 
-from app.api.bulk_data import bulk_api
-from app.api.stock_master import stock_master_api
-from app.api.system_monitoring import system_api
+from app.api.bulk_data import (
+    bulk_api,
+    get_job_status,
+    start_bulk_fetch,
+    stop_job,
+)
+from app.api.stock_master import (
+    get_stock_master_list,
+    stock_master_api,
+    update_stock_master,
+)
+from app.api.system_monitoring import (
+    health_check,
+    system_api,
+    test_api_connection,
+    test_database_connection,
+)
+from app.middleware import APIVersioningMiddleware
+from app.middleware.versioning import (
+    create_versioned_blueprint_name,
+    create_versioned_url_prefix,
+)
 from app.models import (
     Base,
     DatabaseError,
@@ -39,13 +58,82 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 app.config["SOCKETIO"] = socketio
 
+# APIバージョニング設定
+app.config["API_DEFAULT_VERSION"] = "v1"
+app.config["API_SUPPORTED_VERSIONS"] = ["v1"]
+
+# APIバージョニングミドルウェア初期化
+versioning_middleware = APIVersioningMiddleware(app)
+
 # テーブル作成
 Base.metadata.create_all(bind=engine)
 
-# Blueprint登録
+# 既存Blueprint登録（後方互換性のため保持）
 app.register_blueprint(bulk_api)
 app.register_blueprint(stock_master_api)
 app.register_blueprint(system_api)
+
+# バージョン付きBlueprint登録（v1）
+# v1バージョンのBlueprint作成と登録
+bulk_api_v1 = Blueprint(
+    create_versioned_blueprint_name("bulk_api", "v1"),
+    __name__,
+    url_prefix=create_versioned_url_prefix("/api/bulk-data", "v1"),
+)
+
+stock_master_api_v1 = Blueprint(
+    create_versioned_blueprint_name("stock_master_api", "v1"),
+    __name__,
+    url_prefix=create_versioned_url_prefix("/api/stock-master", "v1"),
+)
+
+system_api_v1 = Blueprint(
+    create_versioned_blueprint_name("system_api", "v1"),
+    __name__,
+    url_prefix=create_versioned_url_prefix("/api/system", "v1"),
+)
+
+# v1 APIエンドポイントを既存のAPIエンドポイントと同じ実装で登録
+# bulk_data APIのv1エンドポイント
+bulk_api_v1.add_url_rule(
+    "/start", "start_bulk_fetch", start_bulk_fetch, methods=["POST"]
+)
+bulk_api_v1.add_url_rule(
+    "/status/<job_id>", "get_job_status", get_job_status, methods=["GET"]
+)
+bulk_api_v1.add_url_rule(
+    "/stop/<job_id>", "stop_job", stop_job, methods=["POST"]
+)
+
+# stock_master APIのv1エンドポイント
+stock_master_api_v1.add_url_rule(
+    "/", "update_stock_master", update_stock_master, methods=["POST"]
+)
+stock_master_api_v1.add_url_rule(
+    "/list", "get_stock_master_list", get_stock_master_list, methods=["GET"]
+)
+
+# system APIのv1エンドポイント
+system_api_v1.add_url_rule(
+    "/database/connection",
+    "test_database_connection",
+    test_database_connection,
+    methods=["GET"],
+)
+system_api_v1.add_url_rule(
+    "/external-api/connection",
+    "test_api_connection",
+    test_api_connection,
+    methods=["GET"],
+)
+system_api_v1.add_url_rule(
+    "/health-check", "health_check", health_check, methods=["GET"]
+)
+
+# バージョン付きBlueprint登録
+app.register_blueprint(bulk_api_v1)
+app.register_blueprint(stock_master_api_v1)
+app.register_blueprint(system_api_v1)
 
 
 # WebSocketイベントハンドラ
