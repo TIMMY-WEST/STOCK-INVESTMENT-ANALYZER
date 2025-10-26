@@ -77,7 +77,7 @@ def websocket_test():
     return render_template("websocket_test.html")
 
 
-@app.route("/api/fetch-data", methods=["POST"])
+@app.route("/api/stocks/data", methods=["POST"])
 def fetch_data():
     """Fetch stock data for a given symbol and period.
 
@@ -687,7 +687,7 @@ def delete_stock(stock_id):
         )
 
 
-@app.route("/api/stocks/test-data", methods=["POST"])
+@app.route("/api/stocks/test", methods=["POST"])
 def create_test_data():
     """テスト用サンプルデータを作成."""
     try:

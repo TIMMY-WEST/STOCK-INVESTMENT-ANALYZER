@@ -19,7 +19,7 @@ system_api = Blueprint("system_api", __name__, url_prefix="/api/system")
 logger = logging.getLogger(__name__)
 
 
-@system_api.route("/db-connection-test", methods=["POST"])
+@system_api.route("/database/connection", methods=["GET"])
 def test_database_connection():
     """データベース接続テスト.
 
@@ -93,7 +93,7 @@ def test_database_connection():
         )
 
 
-@system_api.route("/api-connection-test", methods=["POST"])
+@system_api.route("/external-api/connection", methods=["GET"])
 def test_api_connection():
     """Yahoo Finance API接続テスト.
 
@@ -174,7 +174,7 @@ def test_api_connection():
         )
 
 
-@system_api.route("/health-check", methods=["GET"])
+@system_api.route("/health", methods=["GET"])
 def health_check():
     """統合ヘルスチェック.
 

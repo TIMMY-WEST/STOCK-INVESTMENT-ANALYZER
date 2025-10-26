@@ -53,7 +53,7 @@ class TestDatabaseConnectionTest:
         mock_get_session.return_value.__exit__.return_value = False
 
         # APIリクエスト
-        response = client.post("/api/system/db-connection-test")
+        response = client.get("/api/system/database/connection")
 
         # アサーション
         assert response.status_code == 200
@@ -71,7 +71,7 @@ class TestDatabaseConnectionTest:
         mock_get_session.side_effect = Exception("接続エラー")
 
         # APIリクエスト
-        response = client.post("/api/system/db-connection-test")
+        response = client.get("/api/system/database/connection")
 
         # アサーション
         assert response.status_code == 500
@@ -94,8 +94,8 @@ class TestAPIConnectionTest:
         mock_fetcher_class.return_value = mock_fetcher
 
         # APIリクエスト
-        response = client.post(
-            "/api/system/api-connection-test", json={"symbol": "7203.T"}
+        response = client.get(
+            "/api/system/external-api/connection?symbol=7203.T"
         )
 
         # アサーション
@@ -116,8 +116,8 @@ class TestAPIConnectionTest:
         mock_fetcher_class.return_value = mock_fetcher
 
         # APIリクエスト
-        response = client.post(
-            "/api/system/api-connection-test", json={"symbol": "INVALID.T"}
+        response = client.get(
+            "/api/system/external-api/connection?symbol=INVALID.T"
         )
 
         # アサーション
@@ -133,7 +133,7 @@ class TestAPIConnectionTest:
         mock_fetcher_class.side_effect = Exception("API接続エラー")
 
         # APIリクエスト
-        response = client.post("/api/system/api-connection-test")
+        response = client.get("/api/system/external-api/connection")
 
         # アサーション
         assert response.status_code == 500
@@ -162,7 +162,7 @@ class TestHealthCheck:
         mock_fetcher_class.return_value = mock_fetcher
 
         # APIリクエスト
-        response = client.get("/api/system/health-check")
+        response = client.get("/api/system/health")
 
         # アサーション
         assert response.status_code == 200
@@ -186,7 +186,7 @@ class TestHealthCheck:
         mock_fetcher_class.return_value = mock_fetcher
 
         # APIリクエスト
-        response = client.get("/api/system/health-check")
+        response = client.get("/api/system/health")
 
         # アサーション
         assert response.status_code == 200
@@ -211,7 +211,7 @@ class TestHealthCheck:
         mock_fetcher_class.return_value = mock_fetcher
 
         # APIリクエスト
-        response = client.get("/api/system/health-check")
+        response = client.get("/api/system/health")
 
         # アサーション
         assert response.status_code == 200
