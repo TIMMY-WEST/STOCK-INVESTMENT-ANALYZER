@@ -37,7 +37,10 @@ class TestBulkDataAPI:
         if response.status_code == 202:
             data = response.get_json()
             assert "job_id" in data
-            assert "success" in data
+            # 新実装では status="accepted" または success=True を許容
+            assert (data.get("status") in ["success", "accepted"]) or (
+                data.get("success") is True
+            )
 
     def test_job_status_endpoint_structure(self, client):
         """GET /api/bulk-data/jobs/<job_id> エンドポイントの構造テスト."""
@@ -48,7 +51,22 @@ class TestBulkDataAPI:
         assert response.status_code in [200, 404, 401]
 
         data = response.get_json()
-        assert "success" in data or "error" in data
+        # 新実装では success や job を返すため柔軟にチェック
+        assert (
+            ("status" in data)
+            or ("success" in data)
+            or ("job" in data)
+            or ("error" in data)
+        )
+        if response.status_code in [404, 401]:
+            assert "error" in data
+            # error がオブジェクトまたは文字列の両方を許容
+            if isinstance(data["error"], dict):
+                assert "code" in data["error"]
+                assert "message" in data["error"]
+            else:
+                assert isinstance(data["error"], str)
+                assert "message" in data
 
     def test_job_stop_endpoint_structure(self, client):
         """POST /api/bulk-data/jobs/<job_id>/stop エンドポイントの構造テスト."""
@@ -59,7 +77,21 @@ class TestBulkDataAPI:
         assert response.status_code in [200, 404, 401]
 
         data = response.get_json()
-        assert "success" in data or "error" in data
+        # 新実装では success や message を返すため柔軟にチェック
+        assert (
+            ("status" in data)
+            or ("success" in data)
+            or ("message" in data)
+            or ("error" in data)
+        )
+        if response.status_code in [404, 401]:
+            assert "error" in data
+            if isinstance(data["error"], dict):
+                assert "code" in data["error"]
+                assert "message" in data["error"]
+            else:
+                assert isinstance(data["error"], str)
+                assert "message" in data
 
     def test_jpx_symbols_endpoint_structure(self, client):
         """GET /api/bulk-data/jpx-sequential/symbols エンドポイントの構造テスト."""
@@ -71,7 +103,10 @@ class TestBulkDataAPI:
 
         if response.status_code == 200:
             data = response.get_json()
-            assert "success" in data
+            # success(bool) も許容
+            assert (data.get("status") == "success") or (
+                data.get("success") is True
+            )
 
     def test_jpx_jobs_endpoint_structure(self, client):
         """POST /api/bulk-data/jpx-sequential/jobs エンドポイントの構造テスト."""
@@ -84,7 +119,11 @@ class TestBulkDataAPI:
 
         if response.status_code == 202:
             data = response.get_json()
-            assert "job_id" in data or "success" in data
+            assert (
+                ("job_id" in data)
+                or (data.get("status") in ["success", "accepted"])
+                or (data.get("success") is True)
+            )
 
 
 class TestStockMasterAPI:
@@ -98,7 +137,13 @@ class TestStockMasterAPI:
         assert response.status_code in [200, 202, 401, 500]
 
         data = response.get_json()
-        assert "success" in data or "error" in data or "message" in data
+        assert "status" in data
+        if response.status_code in [401, 500]:
+            assert "error" in data
+            assert "code" in data["error"]
+            assert "message" in data["error"]
+        else:
+            assert "message" in data
 
     def test_stock_master_list_endpoint(self, client):
         """GET /api/stock-master/ エンドポイントの構造テスト."""
@@ -132,7 +177,7 @@ class TestSystemMonitoringAPI:
         assert response.status_code in [200, 500]
 
         data = response.get_json()
-        assert "success" in data
+        assert data["status"] == "success" or data["status"] == "error"
 
     def test_external_api_connection_endpoint(self, client):
         """GET /api/system/external-api/connection エンドポイントの構造テスト."""
@@ -140,7 +185,7 @@ class TestSystemMonitoringAPI:
         assert response.status_code in [200, 500]
 
         data = response.get_json()
-        assert "success" in data
+        assert data["status"] == "success" or data["status"] == "error"
 
     def test_health_endpoint(self, client):
         """GET /api/system/health エンドポイントの構造テスト."""
@@ -148,7 +193,11 @@ class TestSystemMonitoringAPI:
         assert response.status_code in [200, 500]
 
         data = response.get_json()
-        assert "services" in data or "success" in data
+        if response.status_code == 200:
+            assert "data" in data
+            assert "overall_status" in data["data"]
+        else:
+            assert data["status"] == "error"
 
 
 class TestMainStocksAPI:
@@ -164,7 +213,7 @@ class TestMainStocksAPI:
         assert response.status_code in [200, 400, 502]
 
         data = response.get_json()
-        assert "success" in data
+        assert "status" in data
         assert "message" in data
 
     def test_stocks_test_endpoint(self, client):
@@ -174,10 +223,25 @@ class TestMainStocksAPI:
             json={"symbol": "TEST"},
             content_type="application/json",
         )
-        assert response.status_code in [200, 400, 500]
+        # 作成時は201も許容
+        assert response.status_code in [200, 201, 400, 500]
 
         data = response.get_json()
-        assert "success" in data or "message" in data or "error" in data
+        if response.status_code in [400, 500]:
+            assert "error" in data
+            # error がオブジェクトまたは文字列の両方を許容
+            if isinstance(data["error"], dict):
+                assert "code" in data["error"]
+                assert "message" in data["error"]
+            else:
+                assert isinstance(data["error"], str)
+                assert "message" in data
+        else:
+            assert (
+                ("status" in data)
+                or ("success" in data)
+                or ("message" in data)
+            )
 
 
 class TestRESTfulCompliance:
@@ -240,7 +304,8 @@ class TestRESTfulCompliance:
         response = client.get("/api/system/health")
         if response.status_code == 200:
             data = response.get_json()
-            assert "services" in data or "success" in data
+            assert "data" in data
+            assert "overall_status" in data["data"]
 
         # 202 Accepted - 非同期処理の開始
         response = client.post(
@@ -249,9 +314,11 @@ class TestRESTfulCompliance:
             headers={"X-API-KEY": "test-key"},
         )
         if response.status_code == 202:
+            data = response.get_json()
             assert (
-                "job_id" in response.get_json()
-                or "success" in response.get_json()
+                ("job_id" in data)
+                or (data.get("status") in ["success", "accepted"])
+                or (data.get("success") is True)
             )
 
         # 404 Not Found - 存在しないリソース
@@ -260,11 +327,25 @@ class TestRESTfulCompliance:
             headers={"X-API-KEY": "test-key"},
         )
         if response.status_code == 404:
-            assert "error" in response.get_json()
+            data = response.get_json()
+            assert "error" in data
+            if isinstance(data["error"], dict):
+                assert "code" in data["error"]
+                assert "message" in data["error"]
+            else:
+                assert isinstance(data["error"], str)
+                assert "message" in data
 
         # 401 Unauthorized - 認証エラー
         response = client.post(
             "/api/bulk-data/jobs", json={"symbols": ["7203.T"]}
         )
         if response.status_code == 401:
-            assert "error" in response.get_json()
+            data = response.get_json()
+            assert "error" in data
+            if isinstance(data["error"], dict):
+                assert "code" in data["error"]
+                assert "message" in data["error"]
+            else:
+                assert isinstance(data["error"], str)
+                assert "message" in data

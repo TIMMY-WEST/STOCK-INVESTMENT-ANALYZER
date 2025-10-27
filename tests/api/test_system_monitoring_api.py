@@ -58,11 +58,12 @@ class TestDatabaseConnectionTest:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data["success"] is True
-        assert "responseTime" in data
+        assert data["status"] == "success"
+        # 新形式ではmeta内に移動
+        assert "response_time_ms" in data["meta"]
         assert data["message"] == "データベース接続正常"
-        assert "details" in data
-        assert "timestamp" in data
+        assert "data" in data
+        assert "timestamp" in data["meta"]
 
     @patch("app.api.system_monitoring.get_db_session")
     def test_db_connection_failure(self, mock_get_session, client):
@@ -76,8 +77,9 @@ class TestDatabaseConnectionTest:
         # アサーション
         assert response.status_code == 500
         data = response.get_json()
-        assert data["success"] is False
-        assert "接続エラー" in data["message"]
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "接続エラー" in data["error"]["message"]
 
 
 class TestAPIConnectionTest:
@@ -101,11 +103,12 @@ class TestAPIConnectionTest:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data["success"] is True
+        assert data["status"] == "success"
         assert data["message"] == "Yahoo Finance API接続正常"
-        assert data["details"]["symbol"] == "7203.T"
-        assert data["details"]["dataPoints"] > 0
-        assert data["details"]["dataAvailable"] is True
+        # 新形式ではdataフィールド内に移動（スネークケース）
+        assert data["data"]["symbol"] == "7203.T"
+        assert data["data"]["data_points"] > 0
+        assert data["data"]["data_available"] is True
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     def test_api_connection_no_data(self, mock_fetcher_class, client):
@@ -123,8 +126,9 @@ class TestAPIConnectionTest:
         # アサーション
         assert response.status_code == 404
         data = response.get_json()
-        assert data["success"] is False
-        assert "銘柄データを取得できませんでした" in data["message"]
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "銘柄データを取得できませんでした" in data["error"]["message"]
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     def test_api_connection_failure(self, mock_fetcher_class, client):
@@ -138,8 +142,9 @@ class TestAPIConnectionTest:
         # アサーション
         assert response.status_code == 500
         data = response.get_json()
-        assert data["success"] is False
-        assert "API接続エラー" in data["message"]
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "API接続エラー" in data["error"]["message"]
 
 
 class TestHealthCheck:
@@ -167,9 +172,12 @@ class TestHealthCheck:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data["status"] == "healthy"
-        assert data["services"]["database"]["status"] == "healthy"
-        assert data["services"]["yahoo_finance_api"]["status"] == "healthy"
+        assert data["data"]["overall_status"] == "healthy"
+        assert data["data"]["services"]["database"]["status"] == "healthy"
+        assert (
+            data["data"]["services"]["yahoo_finance_api"]["status"]
+            == "healthy"
+        )
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     @patch("app.api.system_monitoring.get_db_session")
@@ -191,8 +199,8 @@ class TestHealthCheck:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data["status"] == "error"
-        assert data["services"]["database"]["status"] == "error"
+        assert data["data"]["overall_status"] == "error"
+        assert data["data"]["services"]["database"]["status"] == "error"
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     @patch("app.api.system_monitoring.get_db_session")
@@ -216,5 +224,8 @@ class TestHealthCheck:
         # アサーション
         assert response.status_code == 200
         data = response.get_json()
-        assert data["status"] == "degraded"
-        assert data["services"]["yahoo_finance_api"]["status"] == "warning"
+        assert data["data"]["overall_status"] == "degraded"
+        assert (
+            data["data"]["services"]["yahoo_finance_api"]["status"]
+            == "warning"
+        )

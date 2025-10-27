@@ -126,9 +126,7 @@ def _update_phase1_progress(job_id: str, progress: Dict[str, Any]) -> None:
     if job:
         job["progress"] = progress
         job["updated_at"] = time.time()
-        logger.debug(
-            f"[progress_callback] Phase 1進捗更新完了: job_id={job_id}"
-        )
+        logger.debug(f"[progress_callback] Phase 1進捗更新完了: job_id={job_id}")
     else:
         logger.warning(
             f"[progress_callback] Phase 1ジョブが見つかりません: job_id={job_id}"
@@ -189,9 +187,7 @@ def _send_websocket_progress(
                     },
                 )
             else:
-                logger.debug(
-                    "[progress_callback] WebSocket未設定のため進捗通知スキップ"
-                )
+                logger.debug("[progress_callback] WebSocket未設定のため進捗通知スキップ")
         except RuntimeError:
             logger.debug(
                 "[progress_callback] アプリケーションコンテキスト外のためWebSocket通知スキップ"
@@ -652,9 +648,7 @@ def stop_job(job_id: str):
         )
     job["status"] = "cancel_requested"
     job["updated_at"] = time.time()
-    return jsonify(
-        {"success": True, "message": "キャンセルを受け付けました", "job": job}
-    )
+    return jsonify({"success": True, "message": "キャンセルを受け付けました", "job": job})
 
 
 # ========================================
@@ -739,9 +733,7 @@ def get_jpx_symbols():
         # 銘柄コードリストを作成（Yahoo Finance形式: コード.T）
         symbols = [f"{stock['stock_code']}.T" for stock in result["stocks"]]
 
-        logger.info(
-            f"[jpx-sequential] JPX銘柄一覧取得成功: {len(symbols)}銘柄"
-        )
+        logger.info(f"[jpx-sequential] JPX銘柄一覧取得成功: {len(symbols)}銘柄")
 
         return (
             jsonify(
@@ -903,9 +895,7 @@ def _run_jpx_sequential_job(
         job = JOBS.get(job_id)
 
         if not job:
-            logger.error(
-                f"[jpx-sequential] ジョブが見つかりません: job_id={job_id}"
-            )
+            logger.error(f"[jpx-sequential] ジョブが見つかりません: job_id={job_id}")
             return
 
         try:
@@ -914,9 +904,7 @@ def _run_jpx_sequential_job(
             # 8種類の時間軸を順次実行
             for idx, interval_config in enumerate(JPX_SEQUENTIAL_INTERVALS):
                 name = interval_config["name"]
-                logger.info(
-                    f"[jpx-sequential] 時間軸処理開始: {idx + 1}/8 - {name}"
-                )
+                logger.info(f"[jpx-sequential] 時間軸処理開始: {idx + 1}/8 - {name}")
 
                 # ジョブステータスを更新
                 job["current_interval"] = name
@@ -1001,9 +989,7 @@ def start_jpx_sequential():
             or not isinstance(symbols, list)
             or not all(isinstance(s, str) for s in symbols)
         ):
-            logger.error(
-                "[jpx-sequential] バリデーションエラー: symbols が無効"
-            )
+            logger.error("[jpx-sequential] バリデーションエラー: symbols が無効")
             return (
                 jsonify(
                     {
@@ -1066,9 +1052,7 @@ def start_jpx_sequential():
                 logger.error(f"[jpx-sequential] Phase 2バッチ作成エラー: {e}")
 
         # バックグラウンドでジョブ実行
-        logger.info(
-            f"[jpx-sequential] バックグラウンドジョブ開始: job_id={job_id}"
-        )
+        logger.info(f"[jpx-sequential] バックグラウンドジョブ開始: job_id={job_id}")
         app = current_app._get_current_object()
         thread = threading.Thread(
             target=_run_jpx_sequential_job,
@@ -1090,9 +1074,7 @@ def start_jpx_sequential():
         return jsonify(response_data), 202
 
     except Exception as e:
-        logger.error(
-            f"[jpx-sequential] 順次取得開始エラー: {e}", exc_info=True
-        )
+        logger.error(f"[jpx-sequential] 順次取得開始エラー: {e}", exc_info=True)
         return (
             jsonify(
                 {

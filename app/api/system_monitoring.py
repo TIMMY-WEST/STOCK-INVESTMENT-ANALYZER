@@ -7,10 +7,11 @@ from datetime import datetime
 import logging
 import time
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 
 from app.models import get_db_session
 from app.services.stock_data.fetcher import StockDataFetcher
+from app.utils.api_response import APIResponse, ErrorCode
 
 
 # Blueprintの作成
@@ -57,39 +58,32 @@ def test_database_connection():
 
             response_time = (time.time() - start_time) * 1000  # ミリ秒
 
-            return (
-                jsonify(
-                    {
-                        "success": True,
-                        "message": "データベース接続正常",
-                        "responseTime": round(response_time, 2),
-                        "details": {
-                            "host": "localhost",  # 実際の設定から取得可能
-                            "database": db_result,
-                            "tableExists": table_exists_result,
-                            "connectionCount": connection_count_result,
-                        },
-                        "timestamp": datetime.utcnow().isoformat() + "Z",
-                    }
-                ),
-                200,
+            return APIResponse.success(
+                data={
+                    "database": db_result,
+                    "table_exists": table_exists_result,
+                    "connection_count": connection_count_result,
+                },
+                message="データベース接続正常",
+                meta={
+                    "response_time_ms": round(response_time, 2),
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                },
+                status_code=200,
             )
 
     except Exception as e:
         logger.error(f"データベース接続テストエラー: {e}", exc_info=True)
         response_time = (time.time() - start_time) * 1000
 
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": f"データベース接続エラー: {str(e)}",
-                    "responseTime": round(response_time, 2),
-                    "details": {},
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                }
-            ),
-            500,
+        return APIResponse.error(
+            error_code=ErrorCode.DATABASE_ERROR,
+            message=f"データベース接続エラー: {str(e)}",
+            details={
+                "response_time_ms": round(response_time, 2),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            },
+            status_code=500,
         )
 
 
@@ -109,8 +103,6 @@ def test_api_connection():
         data = request.get_json(silent=True) or {}
         symbol = data.get("symbol", "7203.T")
 
-        # StockDataFetcher is imported at module scope
-
         # Yahoo Finance APIから少量のデータを取得してテスト
         fetcher = StockDataFetcher()
         stock_data = fetcher.fetch_stock_data(
@@ -126,51 +118,43 @@ def test_api_connection():
             # データポイント数を取得
             data_points = len(stock_data)
 
-            return (
-                jsonify(
-                    {
-                        "success": True,
-                        "message": "Yahoo Finance API接続正常",
-                        "responseTime": round(response_time, 2),
-                        "details": {
-                            "symbol": symbol,
-                            "dataAvailable": True,
-                            "dataPoints": data_points,
-                        },
-                        "timestamp": datetime.utcnow().isoformat() + "Z",
-                    }
-                ),
-                200,
+            return APIResponse.success(
+                data={
+                    "symbol": symbol,
+                    "data_available": True,
+                    "data_points": data_points,
+                },
+                message="Yahoo Finance API接続正常",
+                meta={
+                    "response_time_ms": round(response_time, 2),
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                },
+                status_code=200,
             )
         else:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "message": f"銘柄データを取得できませんでした: {symbol}",
-                        "responseTime": round(response_time, 2),
-                        "details": {"symbol": symbol},
-                        "timestamp": datetime.utcnow().isoformat() + "Z",
-                    }
-                ),
-                404,
+            return APIResponse.error(
+                error_code=ErrorCode.DATA_NOT_FOUND,
+                message=f"銘柄データを取得できませんでした: {symbol}",
+                details={
+                    "symbol": symbol,
+                    "response_time_ms": round(response_time, 2),
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                },
+                status_code=404,
             )
 
     except Exception as e:
         logger.error(f"API接続テストエラー: {e}", exc_info=True)
         response_time = (time.time() - start_time) * 1000
 
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": f"Yahoo Finance API接続エラー: {str(e)}",
-                    "responseTime": round(response_time, 2),
-                    "details": {},
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                }
-            ),
-            500,
+        return APIResponse.error(
+            error_code=ErrorCode.EXTERNAL_API_ERROR,
+            message=f"Yahoo Finance API接続エラー: {str(e)}",
+            details={
+                "response_time_ms": round(response_time, 2),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            },
+            status_code=500,
         )
 
 
@@ -201,8 +185,6 @@ def health_check():
         api_status = "healthy"
         api_message = "API接続正常"
         try:
-            # StockDataFetcher is imported at module scope
-
             fetcher = StockDataFetcher()
             stock_data = fetcher.fetch_stock_data(
                 symbol="7203.T", period="1d", interval="1d"
@@ -226,46 +208,35 @@ def health_check():
         else:
             overall_status = "healthy"
 
-        return (
-            jsonify(
-                {
-                    "status": overall_status,
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                    "services": {
-                        "database": {
-                            "status": db_status,
-                            "message": db_message,
-                        },
-                        "yahoo_finance_api": {
-                            "status": api_status,
-                            "message": api_message,
-                        },
+        return APIResponse.success(
+            data={
+                "overall_status": overall_status,
+                "services": {
+                    "database": {
+                        "status": db_status,
+                        "message": db_message,
                     },
-                }
-            ),
-            200,
+                    "yahoo_finance_api": {
+                        "status": api_status,
+                        "message": api_message,
+                    },
+                },
+            },
+            meta={
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            },
+            status_code=200,
         )
 
     except Exception as e:
         logger.error(f"ヘルスチェックエラー: {e}", exc_info=True)
 
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                    "services": {
-                        "database": {
-                            "status": "unknown",
-                            "message": "ステータス不明",
-                        },
-                        "yahoo_finance_api": {
-                            "status": "unknown",
-                            "message": "ステータス不明",
-                        },
-                    },
-                    "error": str(e),
-                }
-            ),
-            500,
+        return APIResponse.error(
+            error_code=ErrorCode.INTERNAL_SERVER_ERROR,
+            message="ヘルスチェック実行中にエラーが発生しました",
+            details={
+                "error": str(e),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            },
+            status_code=500,
         )

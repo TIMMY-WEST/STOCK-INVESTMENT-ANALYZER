@@ -38,13 +38,15 @@ class TestFrontendErrorDisplay:
             data = json.loads(response.data)
 
             # エラーレスポンスの必須フィールドを確認
-            assert "success" in data
+            assert "status" in data
+            assert data["status"] == "error"
             assert "error" in data
             assert "message" in data
-            assert data["success"] is False
-            assert isinstance(data["error"], str)
-            assert isinstance(data["message"], str)
-            assert len(data["message"]) > 0
+            assert "code" in data["error"]
+            assert "message" in data["error"]
+            assert isinstance(data["error"]["code"], str)
+            assert isinstance(data["error"]["message"], str)
+            assert len(data["error"]["message"]) > 0
 
     def test_user_friendly_error_messages(self, client):
         """ユーザーフレンドリーなエラーメッセージの確認."""
@@ -85,7 +87,7 @@ class TestFrontendErrorDisplay:
             data = json.loads(response.data)
 
             # エラーメッセージが日本語で分かりやすいかチェック
-            message = data.get("message", "")
+            message = data.get("error", {}).get("message", "")
             for keyword in case["expected_keywords"]:
                 assert (
                     keyword in message
@@ -111,12 +113,12 @@ class TestFrontendErrorDisplay:
                 content_type="application/json",
             )
             data = json.loads(response.data)
-            tested_error_codes.add(data.get("error"))
+            tested_error_codes.add(data.get("error", {}).get("code"))
 
         # VALIDATION_ERROR
         response = client.get("/api/stocks?start_date=invalid")
         data = json.loads(response.data)
-        tested_error_codes.add(data.get("error"))
+        tested_error_codes.add(data.get("error", {}).get("code"))
 
         # DATA_FETCH_ERROR - Issue #68の実装により、データ取得エラーはDATA_FETCH_ERRORになる
         tested_error_codes.add("DATA_FETCH_ERROR")
@@ -134,7 +136,7 @@ class TestFrontendErrorDisplay:
                 content_type="application/json",
             )
             data = json.loads(response.data)
-            tested_error_codes.add(data.get("error"))
+            tested_error_codes.add(data.get("error", {}).get("code"))
 
         # 全ての重要なエラーコードがテストされていることを確認
         # DATABASE_ERRORは実際のDBエラーを起こしにくいため、基本的なエラーコードのみチェック
@@ -162,7 +164,7 @@ class TestFrontendErrorDisplay:
             )
 
             data = json.loads(response.data)
-            message = data.get("message", "")
+            message = data.get("error", {}).get("message", "")
 
             # エラーメッセージが適切な長さに制限されているかチェック
             # 実装によっては長いメッセージが返る場合があるため、より現実的な制限を設定
@@ -181,9 +183,7 @@ class TestFrontendErrorDisplay:
         response_time = end_time - start_time
 
         # 3秒以内にレスポンスが返ることを確認
-        assert (
-            response_time < 3.0
-        ), f"エラーレスポンス時間が長すぎます: {response_time}秒"
+        assert response_time < 3.0, f"エラーレスポンス時間が長すぎます: {response_time}秒"
         assert response.status_code == 400
 
     def test_concurrent_error_handling(self, client):
@@ -199,6 +199,7 @@ class TestFrontendErrorDisplay:
         for response in responses:
             assert response.status_code == 400
             data = json.loads(response.data)
-            assert data["success"] is False
+            assert data["status"] == "error"
             assert "error" in data
-            assert "message" in data
+            assert "code" in data["error"]
+            assert "message" in data["error"]
