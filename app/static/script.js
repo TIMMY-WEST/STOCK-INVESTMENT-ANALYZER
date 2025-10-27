@@ -97,15 +97,20 @@ async function handleFetchSubmit(event) {
         hideLoading();
         console.log('[handleFetchSubmit] hideLoading() 呼び出し完了');
 
-        if (result.success) {
+        // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+        const isSuccess = result.status === 'success' || result.success === true;
+
+        if (isSuccess) {
             console.log('[handleFetchSubmit] 成功: showSuccess() 呼び出し');
-            showSuccess('データを取得しました', result.data);
+            showSuccess(result.message || 'データを取得しました', result.data);
             console.log('[handleFetchSubmit] showSuccess() 完了');
             // データテーブル更新
             await loadStockData();
         } else {
             console.log('[handleFetchSubmit] 失敗: showError() 呼び出し');
-            showError(result.message || 'データ取得に失敗しました');
+            // エラーレスポンスの場合はerror.messageを使用
+            const errorMessage = result.error?.message || result.message || 'データ取得に失敗しました';
+            showError(errorMessage);
         }
 
     } catch (error) {
@@ -282,15 +287,23 @@ async function loadStockData(page = null) {
             throw new Error('サーバーレスポンスの解析に失敗しました: ' + jsonError.message);
         }
 
-        if (result.success) {
-            appState.set('pagination.totalRecords', result.pagination.total);
+        // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+        const isSuccess = result.status === 'success' || result.success === true;
+
+        if (isSuccess) {
+            // 新形式のpagination情報はmeta.paginationにある
+            const pagination = result.meta?.pagination || result.pagination;
+            if (pagination) {
+                appState.set('pagination.totalRecords', pagination.total);
+            }
             updateDataTable(result.data);
             updatePagination();
             updateDataSummary(symbolFilter, result.data.length, appState.get('pagination.totalRecords'));
         } else {
             // エラーの場合もページネーションを更新（totalRecordsは0のまま）
             updatePagination();
-            showErrorInTable(tableBody, result.message || 'データの読み込みに失敗しました');
+            const errorMessage = result.error?.message || result.message || 'データの読み込みに失敗しました';
+            showErrorInTable(tableBody, errorMessage);
         }
 
     } catch (error) {
@@ -412,12 +425,16 @@ async function deleteStock(stockId) {
 
         const result = await response.json();
 
-        if (result.success) {
-            showSuccess('データを削除しました', { symbol: '', records_count: 0, saved_records: 0, date_range: { start: '', end: '' } });
+        // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+        const isSuccess = result.status === 'success' || result.success === true;
+
+        if (isSuccess) {
+            showSuccess(result.message || 'データを削除しました', result.data || { symbol: '', records_count: 0, saved_records: 0, date_range: { start: '', end: '' } });
             // テーブル再読み込み
             await loadStockData();
         } else {
-            showError(result.message || 'データの削除に失敗しました');
+            const errorMessage = result.error?.message || result.message || 'データの削除に失敗しました';
+            showError(errorMessage);
         }
 
     } catch (error) {
@@ -1313,8 +1330,11 @@ const SystemStatusManager = {
             const data = await response.json();
             console.log('[SystemStatusManager] データベース接続テスト結果:', data);
 
+            // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+            const isSuccess = data.status === 'success' || data.success === true;
+
             if (statusElement) {
-                if (data.success) {
+                if (isSuccess) {
                     statusElement.textContent = '✅ 正常';
                     statusElement.className = 'status status--success';
                 } else {
@@ -1324,12 +1344,13 @@ const SystemStatusManager = {
             }
 
             if (detailsElement) {
+                const errorMessage = data.error?.message || data.message || 'なし';
                 detailsElement.innerHTML = `
                     <div class="status__detail">
-                        <strong>結果:</strong> ${data.success ? '接続成功' : '接続失敗'}
+                        <strong>結果:</strong> ${isSuccess ? '接続成功' : '接続失敗'}
                     </div>
                     <div class="status__detail">
-                        <strong>メッセージ:</strong> ${data.message || 'なし'}
+                        <strong>メッセージ:</strong> ${errorMessage}
                     </div>
                     <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
@@ -1388,8 +1409,11 @@ const SystemStatusManager = {
             const data = await response.json();
             console.log('[SystemStatusManager] API接続テスト結果:', data);
 
+            // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+            const isSuccess = data.status === 'success' || data.success === true;
+
             if (statusElement) {
-                if (data.success) {
+                if (isSuccess) {
                     statusElement.textContent = '✅ 正常';
                     statusElement.className = 'status status--success';
                 } else {
@@ -1399,12 +1423,13 @@ const SystemStatusManager = {
             }
 
             if (detailsElement) {
+                const errorMessage = data.error?.message || data.message || 'なし';
                 detailsElement.innerHTML = `
                     <div class="status__detail">
-                        <strong>結果:</strong> ${data.success ? 'API接続成功' : 'API接続失敗'}
+                        <strong>結果:</strong> ${isSuccess ? 'API接続成功' : 'API接続失敗'}
                     </div>
                     <div class="status__detail">
-                        <strong>メッセージ:</strong> ${data.message || 'なし'}
+                        <strong>メッセージ:</strong> ${errorMessage}
                     </div>
                     <div class="status__detail">
                         <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
@@ -1460,8 +1485,12 @@ const SystemStatusManager = {
             const data = await response.json();
             console.log('[SystemStatusManager] ヘルスチェック結果:', data);
 
+            // 新しいレスポンス形式では、data.data.overall_statusにステータスがある
+            const overallStatus = data.data?.overall_status || data.status;
+            const isHealthy = overallStatus === 'healthy';
+
             if (statusElement) {
-                if (data.status === 'healthy') {
+                if (isHealthy) {
                     statusElement.textContent = '✅ 正常';
                     statusElement.className = 'status status--success';
                 } else {
@@ -1473,7 +1502,7 @@ const SystemStatusManager = {
             if (detailsElement) {
                 detailsElement.innerHTML = `
                     <div class="status__detail">
-                        <strong>ステータス:</strong> ${data.status || '不明'}
+                        <strong>ステータス:</strong> ${overallStatus || '不明'}
                     </div>
                     <div class="status__detail">
                         <strong>メッセージ:</strong> ${data.message || 'なし'}
