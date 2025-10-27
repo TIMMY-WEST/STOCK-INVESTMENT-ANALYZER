@@ -45,9 +45,9 @@ class TestErrorHandling:
                 # レスポンス検証
                 assert response.status_code == 400
                 data = json.loads(response.data)
-                assert data["success"] is False
-                assert data["error"] == "INVALID_SYMBOL"
-                assert "銘柄コード" in data["message"]
+                assert data["status"] == "error"
+                assert data["error"]["code"] == "INVALID_SYMBOL"
+                assert "銘柄コード" in data["error"]["message"]
 
     def test_fetch_data_network_error(self, client):
         """ネットワークエラー時の動作確認テスト."""
@@ -70,9 +70,9 @@ class TestErrorHandling:
             # レスポンス検証
             assert response.status_code == 502
             data = json.loads(response.data)
-            assert data["success"] is False
-            assert data["error"] == "EXTERNAL_API_ERROR"
-            assert "データ取得に失敗" in data["message"]
+            assert data["status"] == "error"
+            assert data["error"]["code"] == "EXTERNAL_API_ERROR"
+            assert "データ取得に失敗" in data["error"]["message"]
 
     def test_fetch_data_timeout_error(self, client):
         """タイムアウトエラー時の動作確認テスト."""
@@ -93,8 +93,8 @@ class TestErrorHandling:
             # レスポンス検証
             assert response.status_code == 502
             data = json.loads(response.data)
-            assert data["success"] is False
-            assert data["error"] == "EXTERNAL_API_ERROR"
+            assert data["status"] == "error"
+            assert data["error"]["code"] == "EXTERNAL_API_ERROR"
 
     def test_fetch_data_database_error(self, client):
         """データベース接続エラー時の動作確認テスト."""
@@ -136,9 +136,9 @@ class TestErrorHandling:
                 # DatabaseErrorはExceptionとして捕捉され、502エラーが返される
                 assert response.status_code == 502
                 data = json.loads(response.data)
-                assert data["success"] is False
-                assert data["error"] == "EXTERNAL_API_ERROR"
-                assert "データ取得に失敗" in data["message"]
+                assert data["status"] == "error"
+                assert data["error"]["code"] == "EXTERNAL_API_ERROR"
+                assert "データ取得に失敗" in data["error"]["message"]
 
     def test_get_stocks_invalid_date_format(self, client):
         """不正な日付フォーマットでのバリデーションテスト."""
@@ -155,9 +155,9 @@ class TestErrorHandling:
             # レスポンス検証 - 400または200を許可（実装により異なる）
             if response.status_code == 400:
                 data = json.loads(response.data)
-                assert data["success"] is False
-                assert data["error"] == "VALIDATION_ERROR"
-                assert "start_date" in data["message"]
+                assert data["status"] == "error"
+                assert data["error"]["code"] == "VALIDATION_ERROR"
+                assert "start_date" in data["error"]["message"]
             else:
                 # 一部の日付は通る可能性があるため、200も許可
                 assert response.status_code == 200
@@ -172,9 +172,9 @@ class TestErrorHandling:
             # レスポンス検証
             assert response.status_code == 400
             data = json.loads(response.data)
-            assert data["success"] is False
-            assert data["error"] == "VALIDATION_ERROR"
-            assert "limit" in data["message"]
+            assert data["status"] == "error"
+            assert data["error"]["code"] == "VALIDATION_ERROR"
+            assert "limit" in data["error"]["message"]
 
     def test_get_stocks_invalid_offset_values(self, client):
         """不正なoffset値でのバリデーションテスト."""
@@ -186,9 +186,9 @@ class TestErrorHandling:
             # レスポンス検証
             assert response.status_code == 400
             data = json.loads(response.data)
-            assert data["success"] is False
-            assert data["error"] == "VALIDATION_ERROR"
-            assert "offset" in data["message"]
+            assert data["status"] == "error"
+            assert data["error"]["code"] == "VALIDATION_ERROR"
+            assert "offset" in data["error"]["message"]
 
     def test_get_stocks_database_error(self, client):
         """GET /api/stocks でのデータベースエラー時の動作確認テスト."""
@@ -200,8 +200,8 @@ class TestErrorHandling:
             # レスポンス検証 - 実装によっては200で返る可能性もある
             if response.status_code == 500:
                 data = json.loads(response.data)
-                assert data["success"] is False
-                assert data["error"] == "DATABASE_ERROR"
+                assert data["status"] == "error"
+                assert data["error"]["code"] == "DATABASE_ERROR"
             else:
                 # 200で返った場合もOKとする（例外処理の実装により異なる）
                 assert response.status_code == 200

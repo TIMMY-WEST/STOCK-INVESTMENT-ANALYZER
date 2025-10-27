@@ -65,10 +65,7 @@ class TestAPIE2E:
         # HTMLページが正常に返されることを確認
         assert "html" in response.text.lower()
         # 実際のページコンテンツに基づいた検証
-        assert (
-            "株価データ管理システム" in response.text
-            or "株価" in response.text
-        )
+        assert "株価データ管理システム" in response.text or "株価" in response.text
         print("✓ ホームページアクセス成功")
 
     def test_database_connection_endpoint(self, app_server):
@@ -77,8 +74,12 @@ class TestAPIE2E:
         assert response.status_code in [200, 500]
         data = response.json()
         # レスポンスにヘルスチェック情報が含まれることを確認
-        assert "status" in data
-        assert "services" in data and "database" in data["services"]
+        assert "data" in data
+        assert "overall_status" in data["data"]
+        assert (
+            "services" in data["data"]
+            and "database" in data["data"]["services"]
+        )
         print(f"✓ ヘルスチェック: {data}")
 
     def test_fetch_data_endpoint_valid_symbol(self, app_server):
@@ -98,9 +99,7 @@ class TestAPIE2E:
             assert "data" in data or "message" in data
             print("✓ 有効な銘柄コードでのデータ取得成功")
         else:
-            print(
-                f"✓ データ取得エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ データ取得エラー（予想される動作）: {response.status_code}")
 
     def test_fetch_data_endpoint_invalid_symbol(self, app_server):
         """無効な銘柄コードでのエラーハンドリングテスト."""
@@ -109,9 +108,7 @@ class TestAPIE2E:
 
         # エラーレスポンスの確認
         assert response.status_code in [400, 404, 500]
-        print(
-            f"✓ 無効な銘柄コードでのエラーハンドリング: {response.status_code}"
-        )
+        print(f"✓ 無効な銘柄コードでのエラーハンドリング: {response.status_code}")
 
     def test_fetch_data_endpoint_max_period(self, app_server):
         """maxオプションでのデータ取得テスト（Issue #45対応）."""
@@ -123,8 +120,8 @@ class TestAPIE2E:
 
         if response.status_code == 200:
             data = response.json()
-            assert "success" in data
-            assert data["success"] is True
+            assert "status" in data
+            assert data["status"] == "success"
             assert "data" in data
 
             # maxオプション特有の検証
@@ -135,9 +132,7 @@ class TestAPIE2E:
 
                 # maxオプションでは大量のデータが取得されることを確認
                 if "records_count" in stock_data:
-                    assert (
-                        stock_data["records_count"] > 1000
-                    )  # maxは通常大量のデータ
+                    assert stock_data["records_count"] > 1000  # maxは通常大量のデータ
 
                 print(
                     f"✓ maxオプションでのデータ取得成功: {stock_data.get('records_count', 0)}件"
@@ -145,9 +140,7 @@ class TestAPIE2E:
             else:
                 print("✓ maxオプションでのデータ取得成功（データ構造確認）")
         else:
-            print(
-                f"✓ maxオプションでのデータ取得エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ maxオプションでのデータ取得エラー（予想される動作）: {response.status_code}")
 
     def test_fetch_data_endpoint_max_period_japanese_stock(self, app_server):
         """日本株でのmaxオプションテスト（Issue #45対応）."""
@@ -159,23 +152,19 @@ class TestAPIE2E:
 
         if response.status_code == 200:
             data = response.json()
-            assert "success" in data
-            assert data["success"] is True
+            assert "status" in data
+            assert data["status"] == "success"
 
             if "data" in data and data["data"]:
                 stock_data = data["data"]
                 assert "symbol" in stock_data
                 assert stock_data["symbol"] == "7203.T"
 
-                print(
-                    f"✓ 日本株（{stock_data['symbol']}）でのmaxオプション取得成功"
-                )
+                print(f"✓ 日本株（{stock_data['symbol']}）でのmaxオプション取得成功")
             else:
                 print("✓ 日本株でのmaxオプション取得成功（データ構造確認）")
         else:
-            print(
-                f"✓ 日本株でのmaxオプション取得エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ 日本株でのmaxオプション取得エラー（予想される動作）: {response.status_code}")
 
     def test_stocks_api_endpoints(self, app_server):
         """株式データCRUD APIエンドポイントのテスト."""
@@ -201,13 +190,9 @@ class TestAPIE2E:
             assert "message" in data
             print(f"✓ テストデータ作成成功: {data.get('message', '')}")
         elif response.status_code == 404:
-            print(
-                "✓ テストデータ作成エンドポイントが存在しません（予想される動作）"
-            )
+            print("✓ テストデータ作成エンドポイントが存在しません（予想される動作）")
         else:
-            print(
-                f"✓ テストデータ作成エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ テストデータ作成エラー（予想される動作）: {response.status_code}")
 
     def test_api_error_handling(self, app_server):
         """API エラーハンドリングのテスト."""
@@ -271,25 +256,26 @@ class TestAPIE2E:
         response = requests.get(f"{app_server}/api/stocks")
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
+        assert data["status"] == "success"
         assert "data" in data
-        assert "pagination" in data
+        assert "meta" in data
+        assert "pagination" in data["meta"]
         print("✓ 全株価データ取得成功")
 
         # 2. ページネーション機能テスト
         response = requests.get(f"{app_server}/api/stocks?limit=5&offset=0")
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
-        assert data["pagination"]["limit"] == 5
-        assert data["pagination"]["offset"] == 0
+        assert data["status"] == "success"
+        assert data["meta"]["pagination"]["limit"] == 5
+        assert data["meta"]["pagination"]["offset"] == 0
         print("✓ ページネーション機能テスト成功")
 
         # 3. 銘柄コードフィルタリングテスト
         response = requests.get(f"{app_server}/api/stocks?symbol=7203.T")
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
+        assert data["status"] == "success"
         print("✓ 銘柄コードフィルタリングテスト成功")
 
         # 4. 日付範囲フィルタリングテスト
@@ -298,15 +284,16 @@ class TestAPIE2E:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] is True
+        assert data["status"] == "success"
         print("✓ 日付範囲フィルタリングテスト成功")
 
         # 5. 無効なパラメータテスト
         response = requests.get(f"{app_server}/api/stocks?limit=-1")
         assert response.status_code == 400
         data = response.json()
-        assert data["success"] is False
-        assert data["error"] == "VALIDATION_ERROR"
+        assert data["status"] == "error"
+        assert "error" in data
+        assert data["error"]["code"] == "VALIDATION_ERROR"
         print("✓ 無効なパラメータエラーハンドリング成功")
 
         # 6. 無効な日付形式テスト
@@ -315,8 +302,9 @@ class TestAPIE2E:
         )
         assert response.status_code == 400
         data = response.json()
-        assert data["success"] is False
-        assert data["error"] == "VALIDATION_ERROR"
+        assert data["status"] == "error"
+        assert "error" in data
+        assert data["error"]["code"] == "VALIDATION_ERROR"
         print("✓ 無効な日付形式エラーハンドリング成功")
 
     def test_individual_stock_data_reading(self, app_server):
@@ -334,21 +322,20 @@ class TestAPIE2E:
             response = requests.get(f"{app_server}/api/stocks/{stock_id}")
             assert response.status_code == 200
             individual_data = response.json()
-            assert individual_data["success"] is True
+            assert individual_data["status"] == "success"
             assert "data" in individual_data
             assert individual_data["data"]["id"] == stock_id
             print(f"✓ 個別株価データ取得成功 (ID: {stock_id})")
         else:
-            print(
-                "✓ 株価データが存在しないため、個別データ取得テストをスキップ"
-            )
+            print("✓ 株価データが存在しないため、個別データ取得テストをスキップ")
 
         # 2. 存在しないIDでの個別データ取得
         response = requests.get(f"{app_server}/api/stocks/99999")
         assert response.status_code == 404
         error_data = response.json()
-        assert error_data["success"] is False
-        assert error_data["error"] == "NOT_FOUND"
+        assert error_data["status"] == "error"
+        assert "error" in error_data
+        assert error_data["error"]["code"] == "NOT_FOUND"
         print("✓ 存在しないIDでの404エラーハンドリング成功")
 
     def test_data_deletion_endpoints(self, app_server):
@@ -381,7 +368,7 @@ class TestAPIE2E:
             )
             assert delete_response.status_code == 200
             delete_data = delete_response.json()
-            assert delete_data["success"] is True
+            assert delete_data["status"] == "success"
             assert f"ID {created_id}" in delete_data["message"]
             print(f"✓ 有効なIDでの削除成功 (ID: {created_id})")
 
@@ -394,9 +381,7 @@ class TestAPIE2E:
 
         elif create_response.status_code == 400:
             # 重複データの場合、既存データを使用してテスト
-            print(
-                "✓ テストデータが既に存在するため、既存データで削除テストを実行"
-            )
+            print("✓ テストデータが既に存在するため、既存データで削除テストを実行")
 
             # 既存のデータを取得
             response = requests.get(
@@ -413,7 +398,7 @@ class TestAPIE2E:
                     )
                     assert delete_response.status_code == 200
                     delete_data = delete_response.json()
-                    assert delete_data["success"] is True
+                    assert delete_data["status"] == "success"
                     print(f"✓ 既存データの削除成功 (ID: {existing_id})")
         else:
             print("✓ テストデータ作成に失敗したため、削除テストをスキップ")
@@ -422,8 +407,9 @@ class TestAPIE2E:
         response = requests.delete(f"{app_server}/api/stocks/99999")
         assert response.status_code == 404
         error_data = response.json()
-        assert error_data["success"] is False
-        assert error_data["error"] == "NOT_FOUND"
+        assert error_data["status"] == "error"
+        assert "error" in error_data
+        assert error_data["error"]["code"] == "NOT_FOUND"
         print("✓ 存在しないIDでの削除時404エラーハンドリング成功")
 
     def test_data_deletion_with_validation(self, app_server):
@@ -444,8 +430,9 @@ class TestAPIE2E:
         assert response.status_code == 404
         try:
             error_data = response.json()
-            assert error_data["success"] is False
-            assert error_data["error"] == "NOT_FOUND"
+            assert error_data["status"] == "error"
+            assert "error" in error_data
+            assert error_data["error"]["code"] == "NOT_FOUND"
         except requests.exceptions.JSONDecodeError:
             # JSONレスポンスでない場合もあるため、ステータスコードのみ確認
             pass

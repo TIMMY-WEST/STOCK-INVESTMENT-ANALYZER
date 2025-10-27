@@ -43,15 +43,19 @@ class TestAPIVersioningE2E:
         response = requests.get(f"{base_url}/api/system/health-check")
         assert response.status_code == 200
         data = response.json()
-        assert "status" in data
-        assert "timestamp" in data
+        assert data["status"] == "success"
+        assert "data" in data
+        assert "overall_status" in data["data"]
+        assert "timestamp" in data["data"]
 
         # バージョン付きヘルスチェックエンドポイント
         response = requests.get(f"{base_url}/api/v1/system/health-check")
         assert response.status_code == 200
         data = response.json()
-        assert "status" in data
-        assert "timestamp" in data
+        assert data["status"] == "success"
+        assert "data" in data
+        assert "overall_status" in data["data"]
+        assert "timestamp" in data["data"]
 
     def test_database_connection_endpoints(self, test_server):
         """データベース接続テストエンドポイントのE2Eテスト."""
@@ -61,7 +65,9 @@ class TestAPIVersioningE2E:
         response = requests.get(f"{base_url}/api/system/database/connection")
         assert response.status_code == 200
         data = response.json()
-        assert "database_status" in data
+        assert data["status"] == "success"
+        assert "data" in data
+        assert "database_status" in data["data"]
 
         # バージョン付きデータベース接続テストエンドポイント
         response = requests.get(
@@ -69,7 +75,9 @@ class TestAPIVersioningE2E:
         )
         assert response.status_code == 200
         data = response.json()
-        assert "database_status" in data
+        assert data["status"] == "success"
+        assert "data" in data
+        assert "database_status" in data["data"]
 
     def test_api_connection_endpoints(self, test_server):
         """API接続テストエンドポイントのE2Eテスト."""
@@ -81,7 +89,9 @@ class TestAPIVersioningE2E:
         )
         assert response.status_code == 200
         data = response.json()
-        assert "api_status" in data
+        assert data["status"] == "success"
+        assert "data" in data
+        assert "api_status" in data["data"]
 
         # バージョン付きAPI接続テストエンドポイント
         response = requests.get(
@@ -89,7 +99,9 @@ class TestAPIVersioningE2E:
         )
         assert response.status_code == 200
         data = response.json()
-        assert "api_status" in data
+        assert data["status"] == "success"
+        assert "data" in data
+        assert "api_status" in data["data"]
 
     def test_stock_master_endpoints_with_auth(self, test_server):
         """株式マスタエンドポイントの認証付きE2Eテスト."""
@@ -98,9 +110,19 @@ class TestAPIVersioningE2E:
         # APIキーなしでのリクエスト（認証エラーを期待）
         response = requests.get(f"{base_url}/api/stock-master/stocks")
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
         response = requests.get(f"{base_url}/api/v1/stock-master/stocks")
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
         # 無効なAPIキーでのリクエスト（認証エラーを期待）
         headers = {"X-API-Key": "invalid-key"}
@@ -108,11 +130,21 @@ class TestAPIVersioningE2E:
             f"{base_url}/api/stock-master/stocks", headers=headers
         )
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
         response = requests.get(
             f"{base_url}/api/v1/stock-master/stocks", headers=headers
         )
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
     def test_bulk_data_endpoints_with_auth(self, test_server):
         """バルクデータエンドポイントの認証付きE2Eテスト."""
@@ -121,9 +153,19 @@ class TestAPIVersioningE2E:
         # APIキーなしでのリクエスト（認証エラーを期待）
         response = requests.get(f"{base_url}/api/bulk-data/jobs")
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
         response = requests.get(f"{base_url}/api/v1/bulk-data/jobs")
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
         # 無効なAPIキーでのリクエスト（認証エラーを期待）
         headers = {"X-API-Key": "invalid-key"}
@@ -131,11 +173,21 @@ class TestAPIVersioningE2E:
             f"{base_url}/api/bulk-data/jobs", headers=headers
         )
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
         response = requests.get(
             f"{base_url}/api/v1/bulk-data/jobs", headers=headers
         )
         assert response.status_code == 401
+        data = response.json()
+        assert data["status"] == "error"
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
 
     def test_nonexistent_endpoints(self, test_server):
         """存在しないエンドポイントのE2Eテスト."""
@@ -166,7 +218,12 @@ class TestAPIVersioningE2E:
             data2 = response2.json()
 
             # タイムスタンプは異なる可能性があるため、statusのみ比較
-            assert data1["status"] == data2["status"]
+            assert data1["status"] == "success"
+            assert data2["status"] == "success"
+            assert (
+                data1["data"]["overall_status"]
+                == data2["data"]["overall_status"]
+            )
 
     def test_content_type_headers(self, test_server):
         """Content-Typeヘッダーのテスト."""

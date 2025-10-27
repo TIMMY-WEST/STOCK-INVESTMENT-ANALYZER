@@ -30,7 +30,7 @@ def test_fetch_data_api_structure(client):
     ]  # 正常, バリデーションエラー, 外部API エラーのいずれか
 
     data = json.loads(response.data)
-    assert "success" in data
+    assert "status" in data
     assert "message" in data
 
 
@@ -51,14 +51,14 @@ def test_fetch_data_api_max_period_structure(client):
     ]  # 正常, バリデーションエラー, 外部API エラーのいずれか
 
     data = json.loads(response.data)
-    assert "success" in data
+    assert "status" in data
     assert "message" in data
 
     # maxオプションが正しく処理されることを確認（エラーでも構造は保持される）
-    if response.status_code == 200 and data.get("success"):
+    if response.status_code == 200 and data.get("status") == "success":
         # 成功時のデータ構造確認
         assert "data" in data
-    elif not data.get("success"):
+    elif data.get("status") == "error":
         # エラー時でも適切なエラーメッセージが返されることを確認
         assert "error" in data or "message" in data
 
@@ -83,7 +83,7 @@ def test_fetch_data_api_max_period_parameter_validation(client):
         assert response.status_code in [200, 400, 502]
 
         data = json.loads(response.data)
-        assert "success" in data
+        assert "status" in data
 
         # maxオプションが無効なパラメータとして拒否されないことを確認
         if response.status_code == 400:

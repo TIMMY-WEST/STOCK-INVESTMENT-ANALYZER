@@ -119,7 +119,7 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error_code"] == "INVALID_PARAMETER"
+        assert response_data["error"]["code"] == "INVALID_PARAMETER"
         assert "update_typeは" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
@@ -148,7 +148,7 @@ class TestStockMasterAPI:
         assert response.status_code == 500
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error_code"] == "JPX_DOWNLOAD_ERROR"
+        assert response_data["error"]["code"] == "JPX_DOWNLOAD_ERROR"
         assert "ダウンロードに失敗しました" in response_data["message"]
 
     def test_update_stock_master_no_api_key(self):
@@ -184,7 +184,8 @@ class TestStockMasterAPI:
         # 検証
         assert response.status_code == 401
         response_data = json.loads(response.data)
-        assert response_data["error"] == "認証が必要です"
+        assert response_data["status"] == "error"
+        assert response_data["error"]["message"] == "認証が必要です"
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.JPXStockService")
@@ -278,11 +279,8 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error_code"] == "INVALID_PARAMETER"
-        assert (
-            "limitとoffsetは数値である必要があります"
-            in response_data["message"]
-        )
+        assert response_data["error"]["code"] == "INVALID_PARAMETER"
+        assert "limitとoffsetは数値である必要があります" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     def test_get_stock_master_list_limit_out_of_range(self):
@@ -296,11 +294,8 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error_code"] == "INVALID_PARAMETER"
-        assert (
-            "limitは1から1000の間である必要があります"
-            in response_data["message"]
-        )
+        assert response_data["error"]["code"] == "INVALID_PARAMETER"
+        assert "limitは1から1000の間である必要があります" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     def test_get_stock_master_list_invalid_is_active(self):
@@ -314,12 +309,10 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error_code"] == "INVALID_PARAMETER"
+        assert response_data["error"]["code"] == "INVALID_PARAMETER"
         assert "is_activeは" in response_data["message"]
 
-    @pytest.mark.skip(
-        reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み"
-    )
+    @pytest.mark.skip(reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み")
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.get_db_session")
     def test_get_stock_master_status_success(self, mock_get_db_session):
@@ -384,9 +377,7 @@ class TestStockMasterAPI:
         assert response_data["data"]["inactive_stocks"] == 10
         assert response_data["data"]["last_update"]["id"] == 123
 
-    @pytest.mark.skip(
-        reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み"
-    )
+    @pytest.mark.skip(reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み")
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.get_db_session")
     def test_get_stock_master_status_no_update_history(
