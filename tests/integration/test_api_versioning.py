@@ -20,23 +20,31 @@ class TestAPIVersioningIntegration:
     def test_backward_compatibility_bulk_api(self, client):
         """バルクAPIの後方互換性テスト."""
         # 既存のエンドポイント（バージョンなし）
-        response = client.get("/api/bulk-data/jobs")
+        response = client.post(
+            "/api/bulk-data/jobs",
+            json={"symbols": ["7203.T"], "interval": "1d"},
+        )
         assert response.status_code in [
             200,
+            202,
             401,
-        ]  # 認証エラーまたは正常レスポンス
+        ]  # 認証エラーまたは正常/受理レスポンス
 
         # 新しいバージョン付きエンドポイント
-        response = client.get("/api/v1/bulk-data/jobs")
+        response = client.post(
+            "/api/v1/bulk-data/jobs",
+            json={"symbols": ["7203.T"], "interval": "1d"},
+        )
         assert response.status_code in [
             200,
+            202,
             401,
-        ]  # 認証エラーまたは正常レスポンス
+        ]  # 認証エラーまたは正常/受理レスポンス
 
     def test_backward_compatibility_stock_master_api(self, client):
         """株式マスタAPIの後方互換性テスト."""
         # 既存のエンドポイント（バージョンなし）
-        response = client.get("/api/stock-master/stocks")
+        response = client.get("/api/stock-master/")
         assert response.status_code in [
             200,
             401,
@@ -61,7 +69,7 @@ class TestAPIVersioningIntegration:
         assert "overall_status" in data["data"]
 
         # 新しいバージョン付きエンドポイント
-        response = client.get("/api/v1/system/health")
+        response = client.get("/api/v1/system/health-check")
         assert response.status_code == 200
         data = response.get_json()
         # 新しいAPIレスポンス形式を検証
@@ -72,12 +80,14 @@ class TestAPIVersioningIntegration:
     def test_version_parsing_in_request(self, client):
         """リクエスト内でのバージョン解析テスト."""
         # バージョン付きリクエストでのバージョン情報確認
-        with app.test_request_context("/api/v1/system/health"):
+        with app.test_request_context("/api/v1/system/health-check"):
             from flask import request
 
             # ミドルウェアを手動で実行
-            middleware = APIVersioningMiddleware(app)
-            middleware.before_request()
+            middleware = APIVersioningMiddleware()
+            # ログ出力でrequest.appが参照されるため明示的に設定
+            request.app = app
+            middleware.process_request(request)
             assert hasattr(request, "api_version")
             assert request.api_version == "v1"
 
@@ -87,8 +97,9 @@ class TestAPIVersioningIntegration:
             from flask import request
 
             # ミドルウェアを手動で実行
-            middleware = APIVersioningMiddleware(app)
-            middleware.before_request()
+            middleware = APIVersioningMiddleware()
+            request.app = app
+            middleware.process_request(request)
             assert hasattr(request, "api_version")
             assert request.api_version == "v1"  # デフォルトバージョン
 
@@ -98,8 +109,9 @@ class TestAPIVersioningIntegration:
             from flask import request
 
             # ミドルウェアを手動で実行
-            middleware = APIVersioningMiddleware(app)
-            middleware.before_request()
+            middleware = APIVersioningMiddleware()
+            request.app = app
+            middleware.process_request(request)
             assert hasattr(request, "api_version")
             assert request.api_version == "v1"  # デフォルトバージョン
 
@@ -109,7 +121,7 @@ class TestAPIVersioningIntegration:
         response1 = client.get("/api/system/health")
 
         # バージョン付きエンドポイント
-        response2 = client.get("/api/v1/system/health")
+        response2 = client.get("/api/v1/system/health-check")
 
         # 両方とも同じレスポンスを返すことを確認
         assert response1.status_code == response2.status_code
@@ -156,7 +168,7 @@ class TestAPIVersioningIntegration:
             # システムAPIのヘルスチェック（v1）
             try:
                 url = url_for("system_api_v1.health_check")
-                assert url == "/api/v1/system/health"
+                assert url == "/api/v1/system/health-check"
             except Exception:
                 pass  # ルートが見つからない場合はスキップ
 
@@ -182,7 +194,8 @@ class TestAPIVersioningIntegration:
 
         # 存在しないバージョンへのリクエスト
         response = client.get("/api/v999/system/health")
-        assert response.status_code == 404
+        # 未サポートバージョンはミドルウェアで400を返す
+        assert response.status_code == 400
         # エラーレスポンスの場合、新しい形式を確認
         data = response.get_json()
         if data and "status" in data:
@@ -200,9 +213,9 @@ class TestAPIVersioningConfiguration:
         """デフォルト設定のテスト."""
         test_app = Flask(__name__)
         middleware = APIVersioningMiddleware(test_app)
-
-        assert middleware.default_version == "v1"
-        assert middleware.supported_versions == ["v1"]
+        info = middleware.get_version_info()
+        assert info["default_version"] == "v1"
+        assert info["supported_versions"] == ["v1"]
 
     def test_custom_configuration(self):
         """カスタム設定のテスト."""
@@ -211,9 +224,9 @@ class TestAPIVersioningConfiguration:
         test_app.config["API_SUPPORTED_VERSIONS"] = ["v1", "v2", "v3"]
 
         middleware = APIVersioningMiddleware(test_app)
-
-        assert middleware.default_version == "v2"
-        assert middleware.supported_versions == ["v1", "v2", "v3"]
+        info = middleware.get_version_info()
+        assert info["default_version"] == "v2"
+        assert info["supported_versions"] == ["v1", "v2", "v3"]
 
     def test_configuration_validation(self):
         """設定値の検証テスト."""
@@ -226,8 +239,9 @@ class TestAPIVersioningConfiguration:
 
         # この場合でもミドルウェアは正常に動作する（設定の検証は実装次第）
         middleware = APIVersioningMiddleware(test_app)
-        assert middleware.default_version == "v2"
-        assert middleware.supported_versions == ["v1", "v3"]
+        info = middleware.get_version_info()
+        assert info["default_version"] == "v2"
+        assert info["supported_versions"] == ["v1", "v3"]
 
 
 class TestAPIVersioningPerformance:
@@ -241,7 +255,7 @@ class TestAPIVersioningPerformance:
         times = []
         for _ in range(10):
             start_time = time.time()
-            response = client.get("/api/v1/system/health")
+            response = client.get("/api/v1/system/health-check")
             end_time = time.time()
             times.append(end_time - start_time)
             assert response.status_code == 200
@@ -259,7 +273,8 @@ class TestAPIVersioningPerformance:
         """バージョン解析のパフォーマンステスト."""
         import time
 
-        from app.middleware.versioning import parse_api_version
+        # 実装変更に合わせ、extract_version_from_urlを使用
+        middleware = APIVersioningMiddleware()
 
         test_paths = [
             "/api/v1/stocks",
@@ -272,7 +287,7 @@ class TestAPIVersioningPerformance:
         start_time = time.time()
         for _ in range(1000):
             for path in test_paths:
-                parse_api_version(path)
+                middleware.extract_version_from_url(path)[0]
         end_time = time.time()
 
         # 1000回の解析が1秒以内に完了することを確認

@@ -97,13 +97,13 @@ system_api_v1 = Blueprint(
 # v1 APIエンドポイントを既存のAPIエンドポイントと同じ実装で登録
 # bulk_data APIのv1エンドポイント
 bulk_api_v1.add_url_rule(
-    "/start", "start_bulk_fetch", start_bulk_fetch, methods=["POST"]
+    "/jobs", "start_bulk_fetch", start_bulk_fetch, methods=["POST"]
 )
 bulk_api_v1.add_url_rule(
-    "/status/<job_id>", "get_job_status", get_job_status, methods=["GET"]
+    "/jobs/<job_id>", "get_job_status", get_job_status, methods=["GET"]
 )
 bulk_api_v1.add_url_rule(
-    "/stop/<job_id>", "stop_job", stop_job, methods=["POST"]
+    "/jobs/<job_id>/stop", "stop_job", stop_job, methods=["POST"]
 )
 
 # stock_master APIのv1エンドポイント
@@ -111,7 +111,7 @@ stock_master_api_v1.add_url_rule(
     "/", "update_stock_master", update_stock_master, methods=["POST"]
 )
 stock_master_api_v1.add_url_rule(
-    "/list", "get_stock_master_list", get_stock_master_list, methods=["GET"]
+    "/stocks", "get_stock_master_list", get_stock_master_list, methods=["GET"]
 )
 
 # system APIのv1エンドポイント
