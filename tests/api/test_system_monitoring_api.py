@@ -105,10 +105,10 @@ class TestAPIConnectionTest:
         data = response.get_json()
         assert data["status"] == "success"
         assert data["message"] == "Yahoo Finance API接続正常"
-        # 新形式ではdataフィールド内に移動
+        # 新形式ではdataフィールド内に移動（スネークケース）
         assert data["data"]["symbol"] == "7203.T"
-        assert data["data"]["dataPoints"] > 0
-        assert data["data"]["dataAvailable"] is True
+        assert data["data"]["data_points"] > 0
+        assert data["data"]["data_available"] is True
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     def test_api_connection_no_data(self, mock_fetcher_class, client):

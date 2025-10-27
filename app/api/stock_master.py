@@ -7,7 +7,7 @@ from functools import wraps
 import logging
 import os
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 
 from app.services.jpx.jpx_stock_service import (
     JPXStockService,
@@ -43,7 +43,11 @@ def require_api_key(f):
         api_key = request.headers.get("X-API-Key")
         if not api_key or api_key != expected_api_key:
             logger.warning(f"無効なAPIキー: {api_key}")
-            return jsonify({"error": "認証が必要です"}), 401
+            return APIResponse.error(
+                error_code=ErrorCode.UNAUTHORIZED,
+                message="認証が必要です",
+                status_code=401,
+            )
 
         return f(*args, **kwargs)
 

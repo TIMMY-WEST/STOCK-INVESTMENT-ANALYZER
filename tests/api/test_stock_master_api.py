@@ -119,7 +119,7 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error"]["code"] == "VALIDATION_ERROR"
+        assert response_data["error"]["code"] == "INVALID_PARAMETER"
         assert "update_typeは" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
