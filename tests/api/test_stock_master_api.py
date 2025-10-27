@@ -119,7 +119,7 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error"]["code"] == "INVALID_PARAMETER"
+        assert response_data["error"]["code"] == "VALIDATION_ERROR"
         assert "update_typeは" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
@@ -222,9 +222,10 @@ class TestStockMasterAPI:
         response_data = json.loads(response.data)
         assert response_data["status"] == "success"
         assert response_data["message"] == "銘柄一覧を取得しました"
-        assert response_data["data"]["total"] == 2
-        assert len(response_data["data"]["stocks"]) == 2
-        assert response_data["data"]["stocks"][0]["stock_code"] == "1301"
+        # dataは直接リスト、paginationはmeta内
+        assert response_data["meta"]["pagination"]["total"] == 2
+        assert len(response_data["data"]) == 2
+        assert response_data["data"][0]["stock_code"] == "1301"
 
         # サービスメソッドが正しく呼ばれたことを確認
         mock_service.get_stock_list.assert_called_once_with(
@@ -279,7 +280,7 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error"]["code"] == "INVALID_PARAMETER"
+        assert response_data["error"]["code"] == "VALIDATION_ERROR"
         assert "limitとoffsetは数値である必要があります" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
@@ -294,7 +295,7 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error"]["code"] == "INVALID_PARAMETER"
+        assert response_data["error"]["code"] == "VALIDATION_ERROR"
         assert "limitは1から1000の間である必要があります" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
@@ -309,7 +310,7 @@ class TestStockMasterAPI:
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
-        assert response_data["error"]["code"] == "INVALID_PARAMETER"
+        assert response_data["error"]["code"] == "VALIDATION_ERROR"
         assert "is_activeは" in response_data["message"]
 
     @pytest.mark.skip(reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み")

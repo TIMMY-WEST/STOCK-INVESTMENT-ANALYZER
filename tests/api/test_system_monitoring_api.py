@@ -59,10 +59,11 @@ class TestDatabaseConnectionTest:
         assert response.status_code == 200
         data = response.get_json()
         assert data["status"] == "success"
-        assert "responseTime" in data
+        # 新形式ではmeta内に移動
+        assert "response_time_ms" in data["meta"]
         assert data["message"] == "データベース接続正常"
-        assert "details" in data
-        assert "timestamp" in data
+        assert "data" in data
+        assert "timestamp" in data["meta"]
 
     @patch("app.api.system_monitoring.get_db_session")
     def test_db_connection_failure(self, mock_get_session, client):
@@ -104,9 +105,10 @@ class TestAPIConnectionTest:
         data = response.get_json()
         assert data["status"] == "success"
         assert data["message"] == "Yahoo Finance API接続正常"
-        assert data["details"]["symbol"] == "7203.T"
-        assert data["details"]["dataPoints"] > 0
-        assert data["details"]["dataAvailable"] is True
+        # 新形式ではdataフィールド内に移動
+        assert data["data"]["symbol"] == "7203.T"
+        assert data["data"]["dataPoints"] > 0
+        assert data["data"]["dataAvailable"] is True
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     def test_api_connection_no_data(self, mock_fetcher_class, client):

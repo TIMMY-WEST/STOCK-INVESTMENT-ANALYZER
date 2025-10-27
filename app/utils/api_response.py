@@ -68,6 +68,7 @@ class APIResponse:
 
         response: Dict[str, Any] = {
             "status": "error",
+            "message": message,  # トップレベルにもmessageを追加（後方互換性）
             "error": error_obj,
         }
 

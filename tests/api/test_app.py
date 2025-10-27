@@ -31,6 +31,7 @@ def test_fetch_data_api_structure(client):
 
     data = json.loads(response.data)
     assert "status" in data
+    # messageはトップレベルに常に存在（成功時もエラー時も）
     assert "message" in data
 
 
@@ -52,6 +53,7 @@ def test_fetch_data_api_max_period_structure(client):
 
     data = json.loads(response.data)
     assert "status" in data
+    # messageはトップレベルに常に存在（成功時もエラー時も）
     assert "message" in data
 
     # maxオプションが正しく処理されることを確認（エラーでも構造は保持される）
