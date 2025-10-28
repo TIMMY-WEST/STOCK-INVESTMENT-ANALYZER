@@ -6,7 +6,8 @@ URLパスベースのAPIバージョニングを提供するミドルウェア�
 import re
 from typing import Optional, Tuple
 
-from flask import Flask, request
+import flask
+from flask import Flask
 
 
 class APIVersioningMiddleware:
@@ -22,6 +23,9 @@ class APIVersioningMiddleware:
             app: Flaskアプリケーションインスタンス
         """
         self.app = app
+        # インスタンス属性（テストが参照）
+        self.default_version = "v1"
+        self.supported_versions = ["v1"]
         if app is not None:
             self.init_app(app)
 
@@ -32,9 +36,20 @@ class APIVersioningMiddleware:
             app: Flaskアプリケーションインスタンス
         """
         self.app = app
-        app.before_request(lambda: self.process_request(request))
+        # Flaskのrequestを直接使用するようにする
+        app.before_request(lambda: self.process_request(flask.request))
         app.config.setdefault("API_DEFAULT_VERSION", "v1")
         app.config.setdefault("API_SUPPORTED_VERSIONS", ["v1"])
+        # インスタンス属性を設定
+        self.default_version = app.config.get("API_DEFAULT_VERSION", "v1")
+        self.supported_versions = app.config.get(
+            "API_SUPPORTED_VERSIONS", ["v1"]
+        )
+
+    def before_request(self):
+        """テスト用に直接呼び出せるbefore_requestラッパー."""
+        # テストでモックできるように、RequestProxyを使用
+        return self.process_request(request)
 
     def process_request(self, request):
         """リクエスト処理時にバージョン情報を設定.
@@ -45,21 +60,17 @@ class APIVersioningMiddleware:
         # URLからバージョン情報を抽出
         version, is_versioned = self.extract_version_from_url(request.path)
 
-        # バージョンが指定されていない場合はデフォルトを使用
-        # デフォルトバージョンを設定
+        # バージョンが指定されていない場合はデフォルトバージョンを設定
         if not version:
-            version = "v1"
-            if self.app:
-                version = self.app.config.get("API_DEFAULT_VERSION", "v1")
+            version = self.default_version
 
         # リクエストオブジェクトにバージョン情報を追加
-        if hasattr(request, "__dict__"):
-            request.api_version = version
-            request.is_versioned_api = is_versioned
+        request.api_version = version
+        request.is_versioned_api = is_versioned
 
-            # アプリケーションオブジェクトも追加（必要に応じて）
-            if self.app:
-                request.app = self.app
+        # アプリケーションオブジェクトも追加（必要に応じて）
+        if self.app:
+            request.app = self.app
 
         # サポートされていないバージョンの場合はエラー
         if not self.is_supported_version(version):
@@ -111,13 +122,7 @@ class APIVersioningMiddleware:
         Returns:
             bool: サポートされている場合True
         """
-        if not self.app:
-            return version == "v1"  # デフォルト
-
-        supported_versions = self.app.config.get(
-            "API_SUPPORTED_VERSIONS", ["v1"]
-        )
-        return version in supported_versions
+        return version in self.supported_versions
 
     def get_version_info(self) -> dict:
         """現在のバージョン設定情報を取得.
@@ -125,16 +130,9 @@ class APIVersioningMiddleware:
         Returns:
             dict: バージョン設定情報
         """
-        if not self.app:
-            return {"default_version": "v1", "supported_versions": ["v1"]}
-
         return {
-            "default_version": self.app.config.get(
-                "API_DEFAULT_VERSION", "v1"
-            ),
-            "supported_versions": self.app.config.get(
-                "API_SUPPORTED_VERSIONS", ["v1"]
-            ),
+            "default_version": self.default_version,
+            "supported_versions": self.supported_versions,
         }
 
 
@@ -170,9 +168,47 @@ def create_versioned_url_prefix(original_prefix: str, version: str) -> str:
     if original_prefix.startswith("/api/"):
         # /api/bulk-data -> /api/v1/bulk-data
         return original_prefix.replace("/api/", f"/api/{version}/")
-    elif original_prefix.startswith("/api"):
+    if original_prefix == "/api":
         # /api -> /api/v1
         return f"/api/{version}"
-    else:
-        # その他の場合はそのまま
-        return original_prefix
+    if original_prefix in ("/", ""):
+        # ルートや空文字 -> /v1
+        return f"/{version}"
+    # その他の場合はそのまま
+    return original_prefix
+
+
+def parse_api_version(url_path: str) -> Optional[str]:
+    """URLパスからAPIバージョンを解析して返す.
+
+    Args:
+        url_path: リクエストのURLパス
+
+    Returns:
+        Optional[str]: 解析されたバージョン（例: 'v1'）。見つからない場合はNone。
+    """
+    if not url_path:
+        return None
+    match = re.match(r"^/api/(v\d+)/", url_path)
+    return match.group(1) if match else None
+
+
+class RequestProxy:
+    """Flaskの`request`をモックしやすくするための軽量プロキシ.
+
+    - ユニットテストの`@patch('app.middleware.versioning.request')`が
+      元のLocalProxyにアクセスしようとして失敗しないよう、
+      特殊属性アクセス（例: '__func__'）は存在しないものとして扱う。
+    - 実運用では`flask.request`へフォワードする。
+    """
+
+    def __getattr__(self, name):
+        """属性アクセスをflask.requestにフォワード."""
+        # unittest.mockやinspectの内部チェックで参照されるプライベート属性は未定義扱い
+        if name.startswith("_"):
+            raise AttributeError(name)
+        return getattr(flask.request, name)
+
+
+# モジュール公開名として`request`をプロキシに差し替え
+request = RequestProxy()

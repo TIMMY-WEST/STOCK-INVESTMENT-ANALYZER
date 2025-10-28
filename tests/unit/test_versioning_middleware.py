@@ -199,10 +199,14 @@ class TestAPIVersioningIntegration:
 
         @app.route("/api/v1/test")
         def test_v1():
+            from flask import request
+
             return {"version": request.api_version}
 
         @app.route("/api/test")
         def test_default():
+            from flask import request
+
             return {"version": request.api_version}
 
         # バージョン付きエンドポイントのテスト
@@ -224,10 +228,14 @@ class TestAPIVersioningIntegration:
 
         @app.route("/api/v1/test")
         def test_v1():
+            from flask import request
+
             return {"version": request.api_version, "endpoint": "v1"}
 
         @app.route("/api/v2/test")
         def test_v2():
+            from flask import request
+
             return {"version": request.api_version, "endpoint": "v2"}
 
         # v1エンドポイントのテスト
