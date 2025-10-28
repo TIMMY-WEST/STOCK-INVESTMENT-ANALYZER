@@ -159,6 +159,7 @@ def test_api_connection():
 
 
 @system_api.route("/health", methods=["GET"])
+@system_api.route("/health-check", methods=["GET"])
 def health_check():
     """統合ヘルスチェック.
 

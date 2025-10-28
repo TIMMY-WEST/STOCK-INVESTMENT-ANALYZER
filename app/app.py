@@ -22,6 +22,7 @@ from app.api.stock_master import (
     stock_master_api,
     update_stock_master,
 )
+from app.api.swagger import swagger_bp
 from app.api.system_monitoring import (
     health_check,
     system_api,
@@ -135,6 +136,9 @@ system_api_v1.add_url_rule(
 app.register_blueprint(bulk_api_v1)
 app.register_blueprint(stock_master_api_v1)
 app.register_blueprint(system_api_v1)
+
+# Swagger UIブループリント登録
+app.register_blueprint(swagger_bp)
 
 
 # WebSocketイベントハンドラ
