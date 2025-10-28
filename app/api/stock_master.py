@@ -233,6 +233,7 @@ def _parse_is_active_param(
 
 
 @stock_master_api.route("/", methods=["GET"])
+@stock_master_api.route("/stocks", methods=["GET"])
 @require_api_key
 def get_stock_master_list():
     """JPX銘柄マスタ一覧取得API.
