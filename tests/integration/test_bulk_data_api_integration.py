@@ -73,7 +73,7 @@ class TestBulkDataJobsAPI:
         assert response.status_code in [400, 422]
         data = response.get_json()
 
-        assert data["status"] == "error" or "error" in data
+        assert data["success"] is False and "error" in data
         assert "message" in data
 
     def test_create_bulk_job_unauthorized(self, client):
@@ -106,13 +106,23 @@ class TestBulkDataJobsAPI:
 
     def test_get_job_status_success(self, client, mocker):
         """GET /api/bulk-data/jobs/{job_id} - ジョブステータス取得成功."""
-        mock_job = mocker.Mock()
-        mock_job.job_id = "test-job-123"
-        mock_job.status = "completed"
-        mock_job.total = 10
-        mock_job.processed = 10
+        # JOBS辞書に直接ジョブを追加
+        from app.api.bulk_data import JOBS
 
-        mocker.patch("app.api.bulk_data.get_job_status", return_value=mock_job)
+        test_job = {
+            "id": "test-job-123",
+            "status": "completed",
+            "progress": {
+                "total": 10,
+                "processed": 10,
+                "successful": 8,
+                "failed": 2,
+                "progress_percentage": 100.0,
+            },
+            "created_at": 1234567890,
+            "updated_at": 1234567890,
+        }
+        JOBS["test-job-123"] = test_job
 
         response = client.get(
             "/api/bulk-data/jobs/test-job-123",
@@ -122,8 +132,12 @@ class TestBulkDataJobsAPI:
         assert response.status_code == 200
         data = response.get_json()
 
-        # レスポンス形式の検証
-        assert "status" in data or "success" in data or "job" in data
+        assert data["success"] is True
+        assert "job" in data
+        assert data["job"]["id"] == "test-job-123"
+
+        # テスト後にクリーンアップ
+        JOBS.pop("test-job-123", None)
 
     def test_get_job_status_not_found(self, client, mocker):
         """GET /api/bulk-data/jobs/{job_id} - 存在しないジョブ."""
@@ -142,23 +156,37 @@ class TestBulkDataJobsAPI:
 
     def test_stop_job_success(self, client, mocker):
         """POST /api/bulk-data/jobs/{job_id}/stop - ジョブ停止成功."""
-        mock_result = {"status": "stopped", "job_id": "test-job-123"}
+        # JOBS辞書に直接ジョブを追加
+        from app.api.bulk_data import JOBS
 
-        mocker.patch("app.api.bulk_data.stop_job", return_value=mock_result)
+        test_job = {
+            "id": "test-job-456",
+            "status": "running",
+            "progress": {
+                "total": 10,
+                "processed": 5,
+                "successful": 4,
+                "failed": 1,
+                "progress_percentage": 50.0,
+            },
+            "created_at": 1234567890,
+            "updated_at": 1234567890,
+        }
+        JOBS["test-job-456"] = test_job
 
         response = client.post(
-            "/api/bulk-data/jobs/test-job-123/stop",
+            "/api/bulk-data/jobs/test-job-456/stop",
             headers={"X-API-KEY": "test-key"},
         )
 
         assert response.status_code == 200
         data = response.get_json()
 
-        assert (
-            data.get("status") in ["success", "stopped"]
-            or data.get("success") is True
-        )
-        assert "message" in data or "status" in data
+        assert data["success"] is True
+        assert "message" in data
+
+        # テスト後にクリーンアップ
+        JOBS.pop("test-job-456", None)
 
     def test_stop_job_not_found(self, client, mocker):
         """POST /api/bulk-data/jobs/{job_id}/stop - 存在しないジョブの停止."""
@@ -226,14 +254,17 @@ class TestJPXSequentialAPI:
 
     def test_create_jpx_sequential_job_success(self, client, mocker):
         """POST /api/bulk-data/jpx-sequential/jobs - JPXバルクジョブ作成成功."""
-        mock_job = mocker.Mock()
-        mock_job.job_id = "jpx-job-123"
-        mock_job.status = "pending"
-
+        # BatchServiceのモックを設定
         mocker.patch(
-            "app.api.bulk_data.start_jpx_sequential_job",
-            return_value=mock_job,
+            "app.api.bulk_data.BatchService.create_batch",
+            return_value={"id": "batch-123"},
         )
+        mocker.patch(
+            "app.api.bulk_data.ENABLE_PHASE2", False
+        )  # Phase2を無効にしてシンプルにテスト
+        mocker.patch(
+            "app.api.bulk_data._run_jpx_sequential_job"
+        )  # バックグラウンドジョブをモック
 
         response = client.post(
             "/api/bulk-data/jpx-sequential/jobs",
@@ -245,11 +276,10 @@ class TestJPXSequentialAPI:
         assert response.status_code in [200, 202]
         data = response.get_json()
 
-        assert (
-            data.get("status") in ["success", "accepted"]
-            or data.get("success") is True
-            or "job_id" in data
-        )
+        assert data["success"] is True
+        assert "job_id" in data
+        assert data["status"] == "accepted"
+        assert data["total_symbols"] == 2
 
 
 class TestBulkDataAPIErrorHandling:
@@ -297,8 +327,9 @@ class TestBulkDataAPIErrorHandling:
 
     def test_service_unavailable(self, client, mocker):
         """POST /api/bulk-data/jobs - サービス利用不可."""
+        # threading.Threadをモックして例外を発生させる
         mocker.patch(
-            "app.api.bulk_data.start_bulk_fetch",
+            "app.api.bulk_data.threading.Thread",
             side_effect=Exception("Service unavailable"),
         )
 

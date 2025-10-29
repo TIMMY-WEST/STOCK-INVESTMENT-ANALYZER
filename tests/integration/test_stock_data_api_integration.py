@@ -327,26 +327,43 @@ class TestStockDataAPIIntegration:
 
     def test_create_test_stock_success(self, client, mocker):
         """POST /api/stocks/test - テスト用株価データ作成成功."""
-        # StockDailyCRUD.createをモック
-        mock_stock = mocker.Mock()
-        mock_stock.id = 1
-        mock_stock.symbol = "TEST"
+        # StockDailyCRUD.bulk_createをモック（実際のエンドポイントが使用するメソッド）
+        mock_stocks = []
+        for i in range(3):
+            mock_stock = mocker.Mock()
+            mock_stock.to_dict.return_value = {
+                "id": i + 1,
+                "symbol": "7203.T",
+                "date": f"2024-09-0{i + 7}",
+                "open": 2500.0,
+                "high": 2550.0,
+                "low": 2480.0,
+                "close": 2530.0,
+                "volume": 1500000,
+            }
+            mock_stocks.append(mock_stock)
+
+        # データベースセッションをモック
+        mock_session = mocker.Mock()
+        mocker.patch("app.app.get_db_session", return_value=mock_session)
+        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
+        mock_session.__exit__ = mocker.Mock(return_value=None)
 
         mocker.patch(
-            "app.models.StockDailyCRUD.create", return_value=mock_stock
+            "app.app.StockDailyCRUD.bulk_create", return_value=mock_stocks
         )
 
         response = client.post(
             "/api/stocks/test",
-            json={"symbol": "TEST"},
             content_type="application/json",
         )
 
         assert response.status_code in [200, 201]
         data = response.get_json()
-
-        assert data.get("success") is True or data.get("status") == "success"
-        assert "message" in data or "success" in data
+        assert data["success"] is True
+        assert "message" in data
+        assert "data" in data
+        assert len(data["data"]) == 3
 
 
 class TestStockDataAPIResponseFormat:
