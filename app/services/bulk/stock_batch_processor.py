@@ -62,9 +62,7 @@ class StockBatchProcessor:
         results = {}
         errors = []
 
-        self.logger.info(
-            f"複数時間軸データ取得開始: {symbol} ({len(intervals)}種類)"
-        )
+        self.logger.info(f"複数時間軸データ取得開始: {symbol} ({len(intervals)}種類)")
 
         for interval in intervals:
             try:
@@ -99,15 +97,12 @@ class StockBatchProcessor:
                     "interval": interval,
                 }
 
-                self.logger.warning(
-                    f"時間軸データ取得失敗: {symbol} ({interval}): {e}"
-                )
+                self.logger.warning(f"時間軸データ取得失敗: {symbol} ({interval}): {e}")
 
         # 全て失敗した場合はエラー
         if not results or all(not r.get("success") for r in results.values()):
             raise StockBatchProcessingError(
-                f"全ての時間軸でデータ取得に失敗しました: {symbol}\n"
-                + "\n".join(errors)
+                f"全ての時間軸でデータ取得に失敗しました: {symbol}\n" + "\n".join(errors)
             )
 
         success_count = sum(1 for r in results.values() if r.get("success"))
@@ -142,9 +137,7 @@ class StockBatchProcessor:
         # 結果辞書の初期化
         results = self._initialize_results(invalid_symbols)
 
-        self.logger.info(
-            f"一括データ取得開始: {len(valid_symbols)}銘柄 ({interval})"
-        )
+        self.logger.info(f"一括データ取得開始: {len(valid_symbols)}銘柄 ({interval})")
 
         # 有効な銘柄のデータを処理
         self._process_valid_symbols(valid_symbols, interval, period, results)
@@ -158,9 +151,10 @@ class StockBatchProcessor:
         self, symbols: List[str]
     ) -> tuple[List[str], List[str]]:
         """銘柄コードの検証とフィルタリング."""
-        valid_symbols, invalid_symbols = (
-            self.validator.validate_and_filter_symbols(symbols)
-        )
+        (
+            valid_symbols,
+            invalid_symbols,
+        ) = self.validator.validate_and_filter_symbols(symbols)
 
         if invalid_symbols:
             self.logger.warning(f"無効な銘柄コード: {invalid_symbols}")
@@ -287,9 +281,7 @@ class StockBatchProcessor:
     ) -> None:
         """一括処理の結果をログ出力."""
         success_count = sum(1 for r in results.values() if r.get("success"))
-        self.logger.info(
-            f"一括データ取得完了: 成功: {success_count}/{total_symbols}"
-        )
+        self.logger.info(f"一括データ取得完了: 成功: {success_count}/{total_symbols}")
 
     def _download_batch_from_yahoo(
         self,

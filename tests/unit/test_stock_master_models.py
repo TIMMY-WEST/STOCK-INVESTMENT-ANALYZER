@@ -111,9 +111,7 @@ class TestStockMasterTableStructure:
         stock_code_unique = any(
             "stock_code" in uc["column_names"] for uc in unique_constraints
         )
-        assert (
-            stock_code_unique
-        ), "stock_code にユニーク制約が設定されていません"
+        assert stock_code_unique, "stock_code にユニーク制約が設定されていません"
 
     def test_stock_master_indexes(self, engine):
         """stock_master テーブルのインデックスを検証."""
@@ -125,9 +123,7 @@ class TestStockMasterTableStructure:
         expected_indexes = ["idx_stock_master_code", "idx_stock_master_active"]
 
         for idx_name in expected_indexes:
-            assert (
-                idx_name in indexes
-            ), f"インデックス {idx_name} が存在しません"
+            assert idx_name in indexes, f"インデックス {idx_name} が存在しません"
 
 
 class TestStockMasterCRUD:
@@ -167,9 +163,7 @@ class TestStockMasterCRUD:
         session.commit()
 
         # 同じ銘柄コードで2つ目を作成（エラーが発生するはず）
-        stock2 = StockMaster(
-            stock_code="7203", stock_name="重複銘柄", is_active=1
-        )
+        stock2 = StockMaster(stock_code="7203", stock_name="重複銘柄", is_active=1)
         session.add(stock2)
 
         with pytest.raises(IntegrityError):

@@ -38,9 +38,7 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_file_not_empty(self):
         """ガイドファイルが空でないことを確認."""
-        self.assertGreater(
-            len(self.guide_content.strip()), 0, "API使用例ガイドが空です"
-        )
+        self.assertGreater(len(self.guide_content.strip()), 0, "API使用例ガイドが空です")
 
     def test_required_sections_exist(self):
         """必要なセクションが存在することを確認."""
@@ -179,9 +177,7 @@ class TestAPIUsageGuide(unittest.TestCase):
         code_block_start = self.guide_content.count("```")
 
         # コードブロックの数は偶数である必要がある（開始と終了のペア）
-        self.assertEqual(
-            code_block_start % 2, 0, "コードブロックの開始と終了が一致しません"
-        )
+        self.assertEqual(code_block_start % 2, 0, "コードブロックの開始と終了が一致しません")
 
     def test_table_formatting(self):
         """テーブルが適切にフォーマットされていることを確認."""
@@ -199,9 +195,7 @@ class TestAPIUsageGuide(unittest.TestCase):
         internal_link_pattern = r"\[.*\]\(#.*\)"
         internal_links = re.findall(internal_link_pattern, self.guide_content)
 
-        self.assertGreater(
-            len(internal_links), 0, "内部リンクが見つかりません"
-        )
+        self.assertGreater(len(internal_links), 0, "内部リンクが見つかりません")
 
     def test_sample_symbols_consistency(self):
         """サンプルで使用される銘柄コードの一貫性を確認."""
@@ -221,9 +215,7 @@ class TestAPIUsageGuide(unittest.TestCase):
         localhost_pattern = r"http://localhost:5000"
         localhost_matches = re.findall(localhost_pattern, self.guide_content)
 
-        self.assertGreater(
-            len(localhost_matches), 0, "localhostのURLが見つかりません"
-        )
+        self.assertGreater(len(localhost_matches), 0, "localhostのURLが見つかりません")
 
     def test_japanese_content_exists(self):
         """日本語のコンテンツが存在することを確認."""
@@ -231,22 +223,16 @@ class TestAPIUsageGuide(unittest.TestCase):
         japanese_pattern = r"[ひらがなカタカナ漢字]"
         japanese_matches = re.findall(japanese_pattern, self.guide_content)
 
-        self.assertGreater(
-            len(japanese_matches), 0, "日本語のコンテンツが見つかりません"
-        )
+        self.assertGreater(len(japanese_matches), 0, "日本語のコンテンツが見つかりません")
 
     def test_file_size_reasonable(self):
         """ファイルサイズが適切であることを確認."""
         file_size = self.full_guide_path.stat().st_size
 
         # 最小サイズ: 10KB、最大サイズ: 500KB
-        self.assertGreaterEqual(
-            file_size, 10 * 1024, "ファイルサイズが小さすぎます"  # 10KB
-        )
+        self.assertGreaterEqual(file_size, 10 * 1024, "ファイルサイズが小さすぎます")  # 10KB
 
-        self.assertLessEqual(
-            file_size, 500 * 1024, "ファイルサイズが大きすぎます"  # 500KB
-        )
+        self.assertLessEqual(file_size, 500 * 1024, "ファイルサイズが大きすぎます")  # 500KB
 
     def test_no_broken_markdown_syntax(self):
         """マークダウン構文エラーがないことを確認."""

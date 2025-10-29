@@ -95,9 +95,7 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ取得エラー (batch_id={batch_id}): {e}")
-            raise BatchServiceError(
-                f"バッチ情報の取得に失敗しました: {e}"
-            ) from e
+            raise BatchServiceError(f"バッチ情報の取得に失敗しました: {e}") from e
 
     @staticmethod
     def update_batch_progress(
@@ -143,9 +141,7 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ進捗更新エラー (batch_id={batch_id}): {e}")
-            raise BatchServiceError(
-                f"バッチ進捗の更新に失敗しました: {e}"
-            ) from e
+            raise BatchServiceError(f"バッチ進捗の更新に失敗しました: {e}") from e
 
     @staticmethod
     def complete_batch(
@@ -190,9 +186,7 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ完了エラー (batch_id={batch_id}): {e}")
-            raise BatchServiceError(
-                f"バッチの完了処理に失敗しました: {e}"
-            ) from e
+            raise BatchServiceError(f"バッチの完了処理に失敗しました: {e}") from e
 
     @staticmethod
     def list_batches(
@@ -230,9 +224,7 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ一覧取得エラー: {e}")
-            raise BatchServiceError(
-                f"バッチ一覧の取得に失敗しました: {e}"
-            ) from e
+            raise BatchServiceError(f"バッチ一覧の取得に失敗しました: {e}") from e
 
     @staticmethod
     def create_batch_detail(
@@ -273,9 +265,7 @@ class BatchService:
             logger.error(
                 f"バッチ詳細作成エラー (batch_id={batch_execution_id}, stock_code={stock_code}): {e}"
             )
-            raise BatchServiceError(
-                f"バッチ詳細の作成に失敗しました: {e}"
-            ) from e
+            raise BatchServiceError(f"バッチ詳細の作成に失敗しました: {e}") from e
 
     @staticmethod
     def update_batch_detail(
@@ -323,9 +313,7 @@ class BatchService:
 
         except Exception as e:
             logger.error(f"バッチ詳細更新エラー (detail_id={detail_id}): {e}")
-            raise BatchServiceError(
-                f"バッチ詳細の更新に失敗しました: {e}"
-            ) from e
+            raise BatchServiceError(f"バッチ詳細の更新に失敗しました: {e}") from e
 
     @staticmethod
     def get_batch_details(
@@ -359,9 +347,5 @@ class BatchService:
             return execute_with_session(_get_details, session)
 
         except Exception as e:
-            logger.error(
-                f"バッチ詳細一覧取得エラー (batch_id={batch_execution_id}): {e}"
-            )
-            raise BatchServiceError(
-                f"バッチ詳細一覧の取得に失敗しました: {e}"
-            ) from e
+            logger.error(f"バッチ詳細一覧取得エラー (batch_id={batch_execution_id}): {e}")
+            raise BatchServiceError(f"バッチ詳細一覧の取得に失敗しました: {e}") from e

@@ -162,6 +162,4 @@ class TestLoggingSetup:
 
         assert isinstance(adapter, BatchLoggerAdapter)
         assert adapter.extra["batch_id"] == "test-123"
-        assert (
-            adapter.extra["worker_id"] == "1"
-        )  # worker_idは文字列に変換される
+        assert adapter.extra["worker_id"] == "1"  # worker_idは文字列に変換される

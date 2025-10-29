@@ -70,9 +70,7 @@ class JPXStockService:
             JPXParseError: データのパースに失敗した場合。
         """
         try:
-            logger.info(
-                f"JPX銘柄一覧をダウンロード中: {self.JPX_STOCK_LIST_URL}"
-            )
+            logger.info(f"JPX銘柄一覧をダウンロード中: {self.JPX_STOCK_LIST_URL}")
 
             # Excelファイルをダウンロード
             response = self.session.get(
@@ -187,16 +185,10 @@ class JPXStockService:
             normalized_df = pd.DataFrame()
             normalized_df["stock_code"] = selected_df.get("コード", "")
             normalized_df["stock_name"] = selected_df.get("銘柄名", "")
-            normalized_df["market_category"] = selected_df.get(
-                "市場・商品区分", ""
-            )
-            normalized_df["sector_code_33"] = selected_df.get(
-                "33業種コード", ""
-            )
+            normalized_df["market_category"] = selected_df.get("市場・商品区分", "")
+            normalized_df["sector_code_33"] = selected_df.get("33業種コード", "")
             normalized_df["sector_name_33"] = selected_df.get("33業種区分", "")
-            normalized_df["sector_code_17"] = selected_df.get(
-                "17業種コード", ""
-            )
+            normalized_df["sector_code_17"] = selected_df.get("17業種コード", "")
             normalized_df["sector_name_17"] = selected_df.get("17業種区分", "")
             normalized_df["scale_code"] = selected_df.get("規模コード", "")
             normalized_df["scale_category"] = selected_df.get("規模区分", "")

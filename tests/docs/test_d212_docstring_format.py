@@ -19,9 +19,7 @@ class TestD212DocstringFormat:
         )
 
         # D212エラーが存在しないことを確認
-        assert (
-            result.returncode == 0
-        ), f"D212エラーが検出されました: {result.stdout}"
+        assert result.returncode == 0, f"D212エラーが検出されました: {result.stdout}"
         # flake8がエラーなしの場合は"0"または空文字を出力
         assert result.stdout.strip() in [
             "",

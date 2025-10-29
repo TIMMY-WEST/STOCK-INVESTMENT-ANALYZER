@@ -72,9 +72,7 @@ class TestProgressTracker:
         assert progress["successful"] == 50
         assert progress["failed"] == 0
         assert progress["progress_percentage"] == 50.0
-        assert (
-            progress["stocks_per_second"] >= 0
-        )  # 高速実行時は0になる可能性がある
+        assert progress["stocks_per_second"] >= 0  # 高速実行時は0になる可能性がある
         assert "estimated_completion" in progress
 
     def test_get_summary(self):
@@ -197,9 +195,7 @@ class TestBulkDataService:
         assert result["success"] is False
         assert result["error"] == "永続的なエラー"
         assert result["attempts"] == 2  # retry_count=2なので2回試行
-        assert (
-            service.fetcher.fetch_stock_data.call_count == 2
-        )  # 実際の呼び出し回数は2回
+        assert service.fetcher.fetch_stock_data.call_count == 2  # 実際の呼び出し回数は2回
 
     def test_fetch_multiple_stocks(self, service):
         """複数銘柄取得のテスト."""

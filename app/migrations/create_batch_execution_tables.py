@@ -169,9 +169,7 @@ def upgrade():
                         "CREATE INDEX idx_batch_execution_details_batch_stock ON batch_execution_details(batch_execution_id, stock_code)"
                     )
                 )
-                logger.info(
-                    "batch_execution_detailsテーブルの作成が完了しました。"
-                )
+                logger.info("batch_execution_detailsテーブルの作成が完了しました。")
 
             logger.info("Phase 2バッチ実行テーブルの作成が完了しました。")
 

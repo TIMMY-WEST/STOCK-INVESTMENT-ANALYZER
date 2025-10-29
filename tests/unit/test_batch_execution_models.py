@@ -60,9 +60,7 @@ class TestBatchExecutionModel:
         assert result["successful_stocks"] == 45
         assert result["failed_stocks"] == 5
         assert result["id"] is None  # まだDBに保存されていない
-        assert (
-            result["start_time"] is None
-        )  # server_defaultなのでインスタンス作成時はNone
+        assert result["start_time"] is None  # server_defaultなのでインスタンス作成時はNone
         assert result["end_time"] is None
         assert result["error_message"] is None
         assert result["created_at"] is None

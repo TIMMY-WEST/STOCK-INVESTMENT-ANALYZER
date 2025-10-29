@@ -559,9 +559,7 @@ class StockMasterUpdate(Base):
     update_type: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'manual', 'scheduled'
-    total_stocks: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )  # 総銘柄数
+    total_stocks: Mapped[int] = mapped_column(Integer, nullable=False)  # 総銘柄数
     added_stocks: Mapped[Optional[int]] = mapped_column(
         Integer, default=0
     )  # 新規追加銘柄数
@@ -574,9 +572,7 @@ class StockMasterUpdate(Base):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'success', 'failed'
-    error_message: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # エラーメッセージ
+    error_message: Mapped[Optional[str]] = mapped_column(String)  # エラーメッセージ
     started_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -635,9 +631,7 @@ class BatchExecution(Base):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'running', 'completed', 'failed', 'paused'
-    total_stocks: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )  # 総銘柄数
+    total_stocks: Mapped[int] = mapped_column(Integer, nullable=False)  # 総銘柄数
     processed_stocks: Mapped[Optional[int]] = mapped_column(
         Integer, default=0
     )  # 処理済み銘柄数
@@ -653,9 +647,7 @@ class BatchExecution(Base):
     end_time: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True)
     )
-    error_message: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # エラーメッセージ
+    error_message: Mapped[Optional[str]] = mapped_column(String)  # エラーメッセージ
     created_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -751,9 +743,7 @@ class BatchExecutionDetail(Base):
     end_time: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True)
     )
-    error_message: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # エラーメッセージ
+    error_message: Mapped[Optional[str]] = mapped_column(String)  # エラーメッセージ
     records_inserted: Mapped[Optional[int]] = mapped_column(
         Integer, default=0
     )  # 挿入されたレコード数
@@ -1101,9 +1091,7 @@ class StockDailyCRUD:
             return stock_data
         except IntegrityError as e:
             if "uk_stocks_daily_symbol_date" in str(e):
-                raise StockDataError(
-                    "銘柄コードと日付の組み合わせが既に存在します"
-                )
+                raise StockDataError("銘柄コードと日付の組み合わせが既に存在します")
             raise DatabaseError(f"データベース制約違反: {str(e)}")
         except SQLAlchemyError as e:
             raise DatabaseError(f"データベースエラー: {str(e)}")
