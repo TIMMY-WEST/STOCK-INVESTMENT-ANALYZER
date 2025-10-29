@@ -112,9 +112,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
                 )
             )
             table_count = result.scalar()
-            self.assertEqual(
-                table_count, 1, "stocks_1d テーブルが存在しません"
-            )
+            self.assertEqual(table_count, 1, "stocks_1d テーブルが存在しません")
 
     def test_stock_daily_alias_works(self):
         """Verify that StockDaily エイリアスが正常に動作することを確認."""
@@ -128,9 +126,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
         # StockDaily を使用してデータ作成
         with get_db_session() as session:
             stock_data = StockDailyCRUD.create(session, **self.test_data)
-            self.assertIsNotNone(
-                stock_data, "StockDaily を使用したデータ作成に失敗しました"
-            )
+            self.assertIsNotNone(stock_data, "StockDaily を使用したデータ作成に失敗しました")
             self.assertEqual(stock_data.symbol, self.test_data["symbol"])
 
     def test_stocks_1d_crud_operations(self):
@@ -432,9 +428,7 @@ class TestDatabaseConnection(unittest.TestCase):
                 """
                     )
                 ).scalar()
-                self.assertEqual(
-                    result, 1, f"テーブル {table_name} が存在しません"
-                )
+                self.assertEqual(result, 1, f"テーブル {table_name} が存在しません")
 
 
 if __name__ == "__main__":

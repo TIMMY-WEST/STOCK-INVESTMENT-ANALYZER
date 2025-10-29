@@ -327,9 +327,7 @@ class ErrorHandler:
             )
             return ErrorAction.RETRY
         else:
-            self.logger.warning(
-                f"最大リトライ回数到達: {stock_code} - スキップします"
-            )
+            self.logger.warning(f"最大リトライ回数到達: {stock_code} - スキップします")
             return ErrorAction.SKIP
 
     def _handle_permanent_error(
@@ -345,9 +343,7 @@ class ErrorHandler:
         Returns:
             ErrorAction: 実行すべきアクション。
         """
-        self.logger.warning(
-            f"永続的エラー検出: {stock_code} - スキップします: {error}"
-        )
+        self.logger.warning(f"永続的エラー検出: {stock_code} - スキップします: {error}")
         return ErrorAction.SKIP
 
     def _handle_system_error(
@@ -363,9 +359,7 @@ class ErrorHandler:
         Returns:
             ErrorAction: 実行すべきアクション。
         """
-        self.logger.error(
-            f"システムエラー検出: {stock_code} - バッチを停止します: {error}"
-        )
+        self.logger.error(f"システムエラー検出: {stock_code} - バッチを停止します: {error}")
         return ErrorAction.ABORT
 
     def retry_with_backoff(self, retry_count: int) -> float:

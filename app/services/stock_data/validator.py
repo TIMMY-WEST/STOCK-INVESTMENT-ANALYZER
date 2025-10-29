@@ -48,9 +48,7 @@ class StockDataValidator:
         if re.search(r"[A-Za-z]", code) and not code.isalpha():
             # ただし、米国株の特殊形式（例: BRK.A）は許可
             if "." not in code:
-                self.logger.debug(
-                    f"無効な銘柄コード（英数字混在パターン）: {symbol}"
-                )
+                self.logger.debug(f"無効な銘柄コード（英数字混在パターン）: {symbol}")
                 return False
 
         # 有効なパターンをチェック
@@ -179,9 +177,7 @@ class StockDataValidator:
             StockDataValidationError: データが無効な場合
         """
         if df.empty:
-            raise StockDataValidationError(
-                f"データが取得できませんでした: {symbol}"
-            )
+            raise StockDataValidationError(f"データが取得できませんでした: {symbol}")
 
         if not self.is_valid_price_data(df):
             raise StockDataValidationError(f"無効な価格データです: {symbol}")

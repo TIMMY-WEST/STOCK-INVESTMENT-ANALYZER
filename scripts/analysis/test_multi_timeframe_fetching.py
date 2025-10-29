@@ -93,9 +93,7 @@ def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
                 success_count += 1
                 saved = result["save_result"]["saved"]
                 total_saved += saved
-                logger.info(
-                    f"✓ {get_display_name(interval)}: " f"{saved}件保存"
-                )
+                logger.info(f"✓ {get_display_name(interval)}: " f"{saved}件保存")
             else:
                 logger.error(
                     f"✗ {get_display_name(interval)}: "

@@ -64,9 +64,7 @@ class TestIntervalSelectorUI:
         ]
 
         for interval in expected_intervals:
-            assert (
-                interval in option_values
-            ), f"足種別 {interval} のオプションが見つかりません"
+            assert interval in option_values, f"足種別 {interval} のオプションが見つかりません"
 
     def test_interval_selector_css_styles(self):
         """足選択セレクターのCSSスタイル確認テスト."""
@@ -81,9 +79,7 @@ class TestIntervalSelectorUI:
         interval_css_classes = [".interval-selector", ".interval-error"]
 
         for css_class in interval_css_classes:
-            assert (
-                css_class in css_content
-            ), f"CSSクラス {css_class} が見つかりません"
+            assert css_class in css_content, f"CSSクラス {css_class} が見つかりません"
 
     def test_interval_selector_javascript_functions(self):
         """足選択関連のJavaScript関数確認テスト."""
@@ -119,9 +115,7 @@ class TestIntervalSelectorUI:
             js_content = f.read()
 
         # バリデーション関数内で有効な足種別リストが定義されているか確認
-        assert (
-            "validIntervals" in js_content
-        ), "有効な足種別リストが定義されていません"
+        assert "validIntervals" in js_content, "有効な足種別リストが定義されていません"
 
         # validateForm関数に足選択バリデーションが統合されているか確認
         assert (
@@ -159,9 +153,7 @@ class TestIntervalSelectorAPI:
         # レスポンスデータの確認
         if response.status_code == 200:
             response_data = json.loads(response.data)
-            assert (
-                "data" in response_data
-            ), "レスポンスにdataが含まれていません"
+            assert "data" in response_data, "レスポンスにdataが含まれていません"
             assert (
                 "interval" in response_data["data"]
             ), "レスポンスのdataにintervalが含まれていません"
@@ -183,14 +175,10 @@ class TestIntervalSelectorAPI:
         )
 
         # バリデーションエラーが返されることを確認
-        assert (
-            response.status_code == 400
-        ), "無効な足種別でバリデーションエラーが発生していません"
+        assert response.status_code == 400, "無効な足種別でバリデーションエラーが発生していません"
 
         response_data = json.loads(response.data)
-        assert (
-            "error" in response_data
-        ), "エラーレスポンスにerrorフィールドがありません"
+        assert "error" in response_data, "エラーレスポンスにerrorフィールドがありません"
 
     def test_api_handles_missing_interval_parameter(self):
         """APIが足パラメータが欠けている場合を処理するかテスト."""
@@ -214,9 +202,7 @@ class TestIntervalSelectorAPI:
         if response.status_code == 200:
             response_data = json.loads(response.data)
             # デフォルトのinterval値（1d）が使用されることを確認
-            assert (
-                "data" in response_data
-            ), "レスポンスにdataが含まれていません"
+            assert "data" in response_data, "レスポンスにdataが含まれていません"
             assert (
                 "interval" in response_data["data"]
             ), "レスポンスのdataにintervalが含まれていません"
@@ -236,9 +222,7 @@ class TestIntervalSelectorIntegration:
             app_js_content = f.read()
 
         # fetchStockData関数がintervalパラメータを処理するか確認
-        assert (
-            "interval" in app_js_content
-        ), "app.jsでintervalパラメータが処理されていません"
+        assert "interval" in app_js_content, "app.jsでintervalパラメータが処理されていません"
 
         # script.jsファイルの確認
         script_js_path = os.path.join(
@@ -263,14 +247,10 @@ class TestIntervalSelectorIntegration:
             app_py_content = f.read()
 
         # fetch_data関数でintervalパラメータが処理されているか確認
-        assert (
-            "interval" in app_py_content
-        ), "app.pyでintervalパラメータが処理されていません"
+        assert "interval" in app_py_content, "app.pyでintervalパラメータが処理されていません"
 
         # valid_intervalsリストが定義されているか確認
-        assert (
-            "valid_intervals" in app_py_content
-        ), "有効な足種別リストが定義されていません"
+        assert "valid_intervals" in app_py_content, "有効な足種別リストが定義されていません"
 
         # ticker.historyにintervalパラメータが渡されているか確認
         assert (
@@ -291,9 +271,7 @@ class TestIntervalSelectorErrorHandling:
             js_content = f.read()
 
         # showFieldError関数でintervalフィールドのエラー処理が含まれているか確認
-        assert (
-            "showIntervalError" in js_content
-        ), "足選択エラー表示機能が実装されていません"
+        assert "showIntervalError" in js_content, "足選択エラー表示機能が実装されていません"
 
         # setIntervalSelectorState関数が実装されているか確認
         assert (
@@ -310,9 +288,7 @@ class TestIntervalSelectorErrorHandling:
             js_content = f.read()
 
         # clearFieldErrors関数でintervalフィールドのエラークリアが含まれているか確認
-        assert (
-            "clearIntervalError" in js_content
-        ), "足選択エラークリア機能が実装されていません"
+        assert "clearIntervalError" in js_content, "足選択エラークリア機能が実装されていません"
 
 
 if __name__ == "__main__":

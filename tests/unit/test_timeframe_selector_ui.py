@@ -45,15 +45,11 @@ class TestTimeframeSelectorUI:
 
         # 必須項目インジケーターの確認
         required_indicator = soup.find("span", class_="required-indicator")
-        assert (
-            required_indicator is not None
-        ), "必須項目インジケーターが見つかりません"
+        assert required_indicator is not None, "必須項目インジケーターが見つかりません"
 
         # 時間軸インジケーターの確認
         timeframe_indicator = soup.find("div", {"id": "timeframe-indicator"})
-        assert (
-            timeframe_indicator is not None
-        ), "時間軸インジケーターが見つかりません"
+        assert timeframe_indicator is not None, "時間軸インジケーターが見つかりません"
 
     def test_css_styles_exist(self):
         """CSSスタイルの存在確認テスト."""
@@ -76,9 +72,7 @@ class TestTimeframeSelectorUI:
         ]
 
         for css_class in required_classes:
-            assert (
-                css_class in css_content
-            ), f"CSSクラス {css_class} が見つかりません"
+            assert css_class in css_content, f"CSSクラス {css_class} が見つかりません"
 
         # レスポンシブデザインの確認
         assert (
@@ -170,9 +164,7 @@ class TestTimeframeSelectorUI:
         ), "時間軸バリデーションが統合されていません"
 
         # initApp関数に初期化が含まれているか確認
-        assert (
-            "initTimeframeSelector" in js_content
-        ), "時間軸セレクター初期化が含まれていません"
+        assert "initTimeframeSelector" in js_content, "時間軸セレクター初期化が含まれていません"
 
 
 class TestTimeframeSelectorConfiguration:
@@ -206,12 +198,8 @@ class TestTimeframeSelectorConfiguration:
 
             # 各オプションにvalue属性があることを確認
             for option in options:
-                assert (
-                    option.get("value") is not None
-                ), "オプションにvalue属性がありません"
-                assert (
-                    option.get_text().strip() != ""
-                ), "オプションにテキストがありません"
+                assert option.get("value") is not None, "オプションにvalue属性がありません"
+                assert option.get_text().strip() != "", "オプションにテキストがありません"
 
     def test_css_responsive_design(self):
         """CSSレスポンシブデザインのテスト."""
@@ -229,9 +217,7 @@ class TestTimeframeSelectorConfiguration:
         media_query_pattern = r"@media\s*\([^)]*max-width[^)]*\)\s*\{[^}]*\}"
         media_queries = re.findall(media_query_pattern, css_content, re.DOTALL)
 
-        assert (
-            len(media_queries) >= 2
-        ), "十分なメディアクエリが定義されていません"
+        assert len(media_queries) >= 2, "十分なメディアクエリが定義されていません"
 
 
 if __name__ == "__main__":

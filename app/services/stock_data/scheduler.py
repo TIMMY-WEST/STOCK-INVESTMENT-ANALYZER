@@ -37,9 +37,7 @@ class StockDataScheduler:
 
     def _job_error_listener(self, event):
         """ジョブ実行エラー時のリスナー."""
-        self.logger.error(
-            f"ジョブ実行エラー: {event.job_id} - {event.exception}"
-        )
+        self.logger.error(f"ジョブ実行エラー: {event.job_id} - {event.exception}")
 
     def add_daily_update_job(
         self,
@@ -73,8 +71,7 @@ class StockDataScheduler:
         )
 
         self.logger.info(
-            f"日次更新ジョブ追加: {symbol} "
-            f"(実行時刻: {hour:02d}:{minute:02d})"
+            f"日次更新ジョブ追加: {symbol} " f"(実行時刻: {hour:02d}:{minute:02d})"
         )
 
     def add_intraday_update_job(

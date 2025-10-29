@@ -35,14 +35,10 @@ class TestES6Modules:
             content = f.read()
 
         # AppStateクラスのエクスポートを確認
-        assert (
-            "export class AppState" in content
-        ), "AppStateクラスがエクスポートされていません"
+        assert "export class AppState" in content, "AppStateクラスがエクスポートされていません"
 
         # Utilsクラスのエクスポートを確認
-        assert (
-            "export class Utils" in content
-        ), "Utilsクラスがエクスポートされていません"
+        assert "export class Utils" in content, "Utilsクラスがエクスポートされていません"
 
         # UIComponentsクラスのエクスポートを確認
         assert (
@@ -69,9 +65,7 @@ class TestES6Modules:
         ), "appStateManagerの使用が確認できません"
 
         # AppStateの直接定義がないことを確認（重複定義の回避）
-        assert (
-            "const AppState = {" not in content
-        ), "AppStateの重複定義が存在します"
+        assert "const AppState = {" not in content, "AppStateの重複定義が存在します"
 
     def test_jpx_sequential_js_imports(self, static_dir):
         """jpx_sequential.jsが正しくインポートしているかテスト."""
@@ -97,9 +91,7 @@ class TestES6Modules:
 
         # app.jsのモジュール読み込みを確認
         app_js_pattern = r'<script\s+type="module"\s+src="[^"]*app\.js[^"]*">'
-        assert re.search(
-            app_js_pattern, content
-        ), "app.jsがモジュールとして読み込まれていません"
+        assert re.search(app_js_pattern, content), "app.jsがモジュールとして読み込まれていません"
 
         # script.jsのモジュール読み込みを確認
         script_js_pattern = (
@@ -165,11 +157,7 @@ class TestES6Modules:
             # 基本的なES6構文チェック
             if filename == "app.js":
                 # exportが存在することを確認
-                assert (
-                    "export" in content
-                ), f"{filename}にexport文が見つかりません"
+                assert "export" in content, f"{filename}にexport文が見つかりません"
             else:
                 # importが存在することを確認
-                assert (
-                    "import" in content
-                ), f"{filename}にimport文が見つかりません"
+                assert "import" in content, f"{filename}にimport文が見つかりません"

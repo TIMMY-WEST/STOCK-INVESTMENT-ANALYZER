@@ -216,7 +216,6 @@ class TestJPXStockService:
         ), patch.object(
             self.service, "_complete_update_record"
         ):
-
             result = self.service.update_stock_master("manual")
 
         # 検証

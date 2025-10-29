@@ -65,10 +65,7 @@ class TestAPIE2E:
         # HTMLページが正常に返されることを確認
         assert "html" in response.text.lower()
         # 実際のページコンテンツに基づいた検証
-        assert (
-            "株価データ管理システム" in response.text
-            or "株価" in response.text
-        )
+        assert "株価データ管理システム" in response.text or "株価" in response.text
         print("✓ ホームページアクセス成功")
 
     def test_database_connection_endpoint(self, app_server):
@@ -102,9 +99,7 @@ class TestAPIE2E:
             assert "data" in data or "message" in data
             print("✓ 有効な銘柄コードでのデータ取得成功")
         else:
-            print(
-                f"✓ データ取得エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ データ取得エラー（予想される動作）: {response.status_code}")
 
     def test_fetch_data_endpoint_invalid_symbol(self, app_server):
         """無効な銘柄コードでのエラーハンドリングテスト."""
@@ -113,9 +108,7 @@ class TestAPIE2E:
 
         # エラーレスポンスの確認
         assert response.status_code in [400, 404, 500]
-        print(
-            f"✓ 無効な銘柄コードでのエラーハンドリング: {response.status_code}"
-        )
+        print(f"✓ 無効な銘柄コードでのエラーハンドリング: {response.status_code}")
 
     def test_fetch_data_endpoint_max_period(self, app_server):
         """maxオプションでのデータ取得テスト（Issue #45対応）."""
@@ -139,9 +132,7 @@ class TestAPIE2E:
 
                 # maxオプションでは大量のデータが取得されることを確認
                 if "records_count" in stock_data:
-                    assert (
-                        stock_data["records_count"] > 1000
-                    )  # maxは通常大量のデータ
+                    assert stock_data["records_count"] > 1000  # maxは通常大量のデータ
 
                 print(
                     f"✓ maxオプションでのデータ取得成功: {stock_data.get('records_count', 0)}件"
@@ -149,9 +140,7 @@ class TestAPIE2E:
             else:
                 print("✓ maxオプションでのデータ取得成功（データ構造確認）")
         else:
-            print(
-                f"✓ maxオプションでのデータ取得エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ maxオプションでのデータ取得エラー（予想される動作）: {response.status_code}")
 
     def test_fetch_data_endpoint_max_period_japanese_stock(self, app_server):
         """日本株でのmaxオプションテスト（Issue #45対応）."""
@@ -171,15 +160,11 @@ class TestAPIE2E:
                 assert "symbol" in stock_data
                 assert stock_data["symbol"] == "7203.T"
 
-                print(
-                    f"✓ 日本株（{stock_data['symbol']}）でのmaxオプション取得成功"
-                )
+                print(f"✓ 日本株（{stock_data['symbol']}）でのmaxオプション取得成功")
             else:
                 print("✓ 日本株でのmaxオプション取得成功（データ構造確認）")
         else:
-            print(
-                f"✓ 日本株でのmaxオプション取得エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ 日本株でのmaxオプション取得エラー（予想される動作）: {response.status_code}")
 
     def test_stocks_api_endpoints(self, app_server):
         """株式データCRUD APIエンドポイントのテスト."""
@@ -205,13 +190,9 @@ class TestAPIE2E:
             assert "message" in data
             print(f"✓ テストデータ作成成功: {data.get('message', '')}")
         elif response.status_code == 404:
-            print(
-                "✓ テストデータ作成エンドポイントが存在しません（予想される動作）"
-            )
+            print("✓ テストデータ作成エンドポイントが存在しません（予想される動作）")
         else:
-            print(
-                f"✓ テストデータ作成エラー（予想される動作）: {response.status_code}"
-            )
+            print(f"✓ テストデータ作成エラー（予想される動作）: {response.status_code}")
 
     def test_api_error_handling(self, app_server):
         """API エラーハンドリングのテスト."""
@@ -346,9 +327,7 @@ class TestAPIE2E:
             assert individual_data["data"]["id"] == stock_id
             print(f"✓ 個別株価データ取得成功 (ID: {stock_id})")
         else:
-            print(
-                "✓ 株価データが存在しないため、個別データ取得テストをスキップ"
-            )
+            print("✓ 株価データが存在しないため、個別データ取得テストをスキップ")
 
         # 2. 存在しないIDでの個別データ取得
         response = requests.get(f"{app_server}/api/stocks/99999")
@@ -406,9 +385,7 @@ class TestAPIE2E:
 
         elif create_response.status_code == 400:
             # 重複データの場合、既存データを使用してテスト
-            print(
-                "✓ テストデータが既に存在するため、既存データで削除テストを実行"
-            )
+            print("✓ テストデータが既に存在するため、既存データで削除テストを実行")
 
             # 既存のデータを取得
             response = requests.get(

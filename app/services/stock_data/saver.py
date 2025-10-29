@@ -168,9 +168,7 @@ class StockDataSaver:
                     results[interval] = result
 
                 except Exception as e:
-                    self.logger.error(
-                        f"時間軸 {interval} のデータ保存エラー: {e}"
-                    )
+                    self.logger.error(f"時間軸 {interval} のデータ保存エラー: {e}")
                     results[interval] = {
                         "symbol": symbol,
                         "interval": interval,
@@ -263,10 +261,12 @@ class StockDataSaver:
                 )
 
                 # バルクインサート用のレコードリストと統計を構築
-                all_records_to_insert, results_by_symbol, totals = (
-                    _build_batch_inserts_and_stats(
-                        filtered_symbols_data, symbols_data
-                    )
+                (
+                    all_records_to_insert,
+                    results_by_symbol,
+                    totals,
+                ) = _build_batch_inserts_and_stats(
+                    filtered_symbols_data, symbols_data
                 )
                 total_saved = totals["total_saved"]
                 total_skipped = totals["total_skipped"]
@@ -521,9 +521,7 @@ class StockDataSaver:
                 saved_count += 1
             except Exception as e:
                 error_count += 1
-                self.logger.error(
-                    f"レコード準備エラー: {symbol} ({current_date}): {e}"
-                )
+                self.logger.error(f"レコード準備エラー: {symbol} ({current_date}): {e}")
         stats = {
             "saved": saved_count,
             "skipped": skipped_count,

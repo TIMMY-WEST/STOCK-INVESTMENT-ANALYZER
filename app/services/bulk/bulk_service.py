@@ -453,15 +453,11 @@ class BulkDataService:
                         # 失敗した場合、エラーメッセージを記録
                         error_msg = result.get("error", "不明なエラー")
                         conversion_errors.append(f"{symbol}: {error_msg}")
-                        self.logger.error(
-                            f"データ変換エラー: {symbol}: {error_msg}"
-                        )
+                        self.logger.error(f"データ変換エラー: {symbol}: {error_msg}")
                 else:
                     # 予期しない形式の場合
                     conversion_errors.append(f"{symbol}: 予期しないデータ形式")
-                    self.logger.error(
-                        f"データ変換エラー: {symbol}: 予期しないデータ形式"
-                    )
+                    self.logger.error(f"データ変換エラー: {symbol}: 予期しないデータ形式")
             except Exception as e:
                 conversion_errors.append(f"{symbol}: {e}")
                 self.logger.error(f"データ変換エラー: {symbol}: {e}")
@@ -815,9 +811,7 @@ class BulkDataService:
         summary["total_downloaded"] = total_downloaded
         summary["total_saved"] = total_saved
         summary["total_skipped"] = total_skipped
-        summary["errors"] = tracker.error_details[
-            :100
-        ]  # エラー詳細（最大100件）
+        summary["errors"] = tracker.error_details[:100]  # エラー詳細（最大100件）
 
         # エラーハンドラーからエラーレポートを生成
         error_report = self.error_handler.generate_error_report()
@@ -858,9 +852,7 @@ class BulkDataService:
             with open(file_path, "r", encoding="utf-8") as f:
                 symbols = [line.strip() for line in f if line.strip()]
 
-            self.logger.info(
-                f"銘柄リストファイル読み込み: {file_path} ({len(symbols)}銘柄)"
-            )
+            self.logger.info(f"銘柄リストファイル読み込み: {file_path} ({len(symbols)}銘柄)")
 
             return self.fetch_multiple_stocks(
                 symbols=symbols,

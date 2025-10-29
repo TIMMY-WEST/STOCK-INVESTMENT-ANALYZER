@@ -259,7 +259,6 @@ class TestStockDataOrchestrator:
             "get_latest_date",
             return_value=date(2024, 1, 1),
         ):
-
             result = orchestrator.check_data_integrity("7203.T", "1d")
 
             assert result["valid"] is True

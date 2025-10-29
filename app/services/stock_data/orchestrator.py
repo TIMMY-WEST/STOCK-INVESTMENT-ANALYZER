@@ -156,8 +156,7 @@ class StockDataOrchestrator:
             result = self._process_single_timeframe(symbol, interval, df)
 
             self.logger.info(
-                "データ取得・保存完了: %s (時間軸: %s) - "
-                "取得: %d件, 保存: %d件",
+                "データ取得・保存完了: %s (時間軸: %s) - " "取得: %d件, 保存: %d件",
                 symbol,
                 get_display_name(interval),
                 result["fetch_count"],
@@ -167,9 +166,7 @@ class StockDataOrchestrator:
             return result
 
         except (StockDataFetchError, StockDataSaveError) as e:
-            self.logger.error(
-                "データ取得・保存エラー: %s (%s): %s", symbol, interval, e
-            )
+            self.logger.error("データ取得・保存エラー: %s (%s): %s", symbol, interval, e)
             return self._build_error_result(symbol, interval, e)
 
     def fetch_and_save_multiple_timeframes(
@@ -259,9 +256,7 @@ class StockDataOrchestrator:
                     symbol, interval, df
                 )
             except (StockDataSaveError, Exception) as e:
-                self.logger.error(
-                    "データ保存エラー: %s (%s): %s", symbol, interval, e
-                )
+                self.logger.error("データ保存エラー: %s (%s): %s", symbol, interval, e)
                 results[interval] = self._build_error_result(
                     symbol, interval, e
                 )
@@ -317,9 +312,7 @@ class StockDataOrchestrator:
             return result
 
         except Exception as e:
-            self.logger.error(
-                "整合性チェックエラー: %s (%s): %s", symbol, interval, e
-            )
+            self.logger.error("整合性チェックエラー: %s (%s): %s", symbol, interval, e)
             return {"valid": False, "error": str(e)}
 
     def get_status(
