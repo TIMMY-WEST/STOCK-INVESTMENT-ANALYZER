@@ -14,7 +14,7 @@ from flask import (
     render_template_string,
     request,
 )
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 
 # Swagger UIブループリント作成

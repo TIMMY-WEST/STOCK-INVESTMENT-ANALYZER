@@ -41,12 +41,15 @@ class TestStockMasterAPI:
         }
 
         mocker.patch(
-            "app.api.stock_master.update_stock_master",
-            return_value=(mock_result, 200),
+            "app.services.jpx.jpx_stock_service.JPXStockService.update_stock_master",
+            return_value=mock_result,
         )
 
         response = client.post(
-            "/api/stock-master/", headers={"X-API-KEY": "test-key"}
+            "/api/stock-master/",
+            headers={"X-API-KEY": "test-key"},
+            json={},
+            content_type="application/json",
         )
 
         assert response.status_code in [200, 202]
@@ -67,7 +70,7 @@ class TestStockMasterAPI:
     def test_update_stock_master_service_error(self, client, mocker):
         """POST /api/stock-master/ - サービスエラー."""
         mocker.patch(
-            "app.api.stock_master.update_stock_master",
+            "app.services.jpx.jpx_stock_service.JPXStockService.update_stock_master",
             side_effect=Exception("Service error"),
         )
 
@@ -187,15 +190,18 @@ class TestSystemMonitoringAPI:
         assert "message" in data
 
     def test_database_connection_failure(self, client, mocker):
-        """GET /api/system/database/connection - DB接続テスト失敗."""
-        mock_result = {
-            "status": "error",
-            "message": "Database connection failed",
-        }
+        """GET /api/system/database/connection - データベース接続失敗."""
+        # データベースセッションのexecuteメソッドでエラーを発生させる
+        mock_session = mocker.MagicMock()
+        mock_session.execute.side_effect = Exception(
+            "Database connection failed"
+        )
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
 
         mocker.patch(
-            "app.api.system_monitoring.test_database_connection",
-            return_value=(mock_result, 500),
+            "app.api.system_monitoring.get_db_session",
+            return_value=mock_session,
         )
 
         response = client.get("/api/system/database/connection")
@@ -225,15 +231,10 @@ class TestSystemMonitoringAPI:
         assert data["status"] == "success"
 
     def test_external_api_connection_failure(self, client, mocker):
-        """GET /api/system/external-api/connection - 外部API接続テスト失敗."""
-        mock_result = {
-            "status": "error",
-            "message": "External API connection failed",
-        }
-
+        """GET /api/system/external-api/connection - 外部API接続失敗."""
         mocker.patch(
-            "app.api.system_monitoring.test_api_connection",
-            return_value=(mock_result, 500),
+            "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data",
+            side_effect=Exception("API connection failed"),
         )
 
         response = client.get("/api/system/external-api/connection")
@@ -269,18 +270,10 @@ class TestSystemMonitoringAPI:
 
     def test_health_check_degraded(self, client, mocker):
         """GET /api/system/health - ヘルスチェック劣化状態."""
-        mock_result = {
-            "data": {
-                "overall_status": "degraded",
-                "database": "ok",
-                "external_api": "error",
-                "timestamp": "2025-01-01T00:00:00",
-            }
-        }
-
+        # StockDataFetcherが空のデータを返すようにモック（警告状態）
         mocker.patch(
-            "app.api.system_monitoring.health_check",
-            return_value=(mock_result, 200),
+            "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data",
+            return_value=None,
         )
 
         response = client.get("/api/system/health")
@@ -292,19 +285,27 @@ class TestSystemMonitoringAPI:
 
     def test_health_check_error(self, client, mocker):
         """GET /api/system/health - ヘルスチェックエラー."""
-        mock_result = {"status": "error", "message": "Health check failed"}
+        # データベースセッションのexecuteメソッドでエラーを発生させる
+        mock_session = mocker.MagicMock()
+        mock_session.execute.side_effect = Exception(
+            "Database connection failed"
+        )
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
 
         mocker.patch(
-            "app.api.system_monitoring.health_check",
-            return_value=(mock_result, 500),
+            "app.api.system_monitoring.get_db_session",
+            return_value=mock_session,
         )
 
         response = client.get("/api/system/health")
 
-        assert response.status_code == 500
+        assert (
+            response.status_code == 200
+        )  # ヘルスチェックは200を返すが、overall_statusがerrorになる
         data = response.get_json()
 
-        assert data["status"] == "error"
+        assert data["data"]["overall_status"] == "error"
 
     def test_system_monitoring_response_format(self, client, mocker):
         """システム監視APIレスポンス形式検証."""
@@ -331,9 +332,15 @@ class TestSystemMonitoringAPIEdgeCases:
 
     def test_database_connection_timeout(self, client, mocker):
         """GET /api/system/database/connection - タイムアウトテスト."""
+        # データベースセッションのexecuteメソッドでタイムアウトエラーを発生させる
+        mock_session = mocker.MagicMock()
+        mock_session.execute.side_effect = TimeoutError("Connection timeout")
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
+
         mocker.patch(
-            "app.api.system_monitoring.test_database_connection",
-            side_effect=TimeoutError("Connection timeout"),
+            "app.api.system_monitoring.get_db_session",
+            return_value=mock_session,
         )
 
         response = client.get("/api/system/database/connection")
@@ -344,7 +351,7 @@ class TestSystemMonitoringAPIEdgeCases:
     def test_external_api_connection_timeout(self, client, mocker):
         """GET /api/system/external-api/connection - タイムアウトテスト."""
         mocker.patch(
-            "app.api.system_monitoring.test_api_connection",
+            "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data",
             side_effect=TimeoutError("API timeout"),
         )
 
@@ -354,18 +361,23 @@ class TestSystemMonitoringAPIEdgeCases:
 
     def test_health_check_partial_failure(self, client, mocker):
         """GET /api/system/health - 部分的な障害."""
-        mock_result = {
-            "data": {
-                "overall_status": "degraded",
-                "database": "error",
-                "external_api": "ok",
-                "timestamp": "2025-01-01T00:00:00",
-            }
-        }
+        # データベースセッションのexecuteメソッドでエラーを発生させる
+        mock_session = mocker.MagicMock()
+        mock_session.execute.side_effect = Exception(
+            "Database connection failed"
+        )
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
 
         mocker.patch(
-            "app.api.system_monitoring.health_check",
-            return_value=(mock_result, 200),
+            "app.api.system_monitoring.get_db_session",
+            return_value=mock_session,
+        )
+
+        # 外部APIは正常に動作するようにモック
+        mocker.patch(
+            "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data",
+            return_value={"7203.T": {"price": 100.0}},
         )
 
         response = client.get("/api/system/health")
@@ -374,7 +386,7 @@ class TestSystemMonitoringAPIEdgeCases:
         assert response.status_code in [200, 207]
         data = response.get_json()
 
-        assert data["data"]["overall_status"] in ["degraded", "unhealthy"]
+        assert data["data"]["overall_status"] in ["degraded", "error"]
 
 
 class TestCombinedAPIIntegration:
