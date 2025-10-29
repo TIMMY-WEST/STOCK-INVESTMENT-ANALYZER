@@ -27,13 +27,17 @@ def socketio_client(app_instance):
     return socketio.test_client(app)
 
 
-def test_websocket_connection(socketio_client):
+def test_websocket_connection_with_valid_client_returns_successful_connection(
+    self, client
+):
     """WebSocket接続のテスト."""
     # 接続確認
     assert socketio_client.is_connected()
 
 
-def test_websocket_disconnect(socketio_client):
+def test_websocket_disconnection_with_active_connection_returns_clean_disconnect(
+    self, client
+):
     """WebSocket切断のテスト."""
     # 接続確認
     assert socketio_client.is_connected()

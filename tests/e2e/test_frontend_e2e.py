@@ -139,7 +139,9 @@ def driver():
 class TestFrontendUI:
     """フロントエンドUIのテストクラス."""
 
-    def test_page_load(self, driver, test_server):
+    def test_frontend_page_load_with_valid_url_returns_successful_response(
+        self,
+    ):
         """ページが正常に読み込まれることを確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
@@ -193,7 +195,9 @@ class TestFrontendUI:
             text = pagination_text.text
 
             # NaN表示がないことを確認
-            assert "NaN" not in text, f"ページネーション表示にNaNが含まれています: {text}"
+            assert (
+                "NaN" not in text
+            ), f"ページネーション表示にNaNが含まれています: {text}"
 
             # 正しい形式で表示されていることを確認
             assert "表示中:" in text
@@ -211,7 +215,9 @@ class TestFrontendUI:
                 match = re.search(
                     r"表示中: ([\d,]+)-([\d,]+) / 全 ([\d,]+) 件", text
                 )
-                assert match, f"ページネーション表示の形式が正しくありません: {text}"
+                assert (
+                    match
+                ), f"ページネーション表示の形式が正しくありません: {text}"
 
                 # カンマを除去して数値に変換
                 start, end, total = [
@@ -227,7 +233,9 @@ class TestFrontendUI:
             # タイムアウトした場合でもページネーション表示をチェック
             pagination_text = driver.find_element(By.ID, "pagination-text")
             text = pagination_text.text
-            assert "NaN" not in text, f"データ読み込み中にNaN表示が発生しました: {text}"
+            assert (
+                "NaN" not in text
+            ), f"データ読み込み中にNaN表示が発生しました: {text}"
 
     def test_pagination_buttons_state(self, driver, test_server):
         """ページネーションボタンの状態を確認."""

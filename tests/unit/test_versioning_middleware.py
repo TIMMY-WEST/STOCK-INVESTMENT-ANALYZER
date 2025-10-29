@@ -16,7 +16,7 @@ from app.middleware.versioning import (
 class TestAPIVersioningMiddleware:
     """APIVersioningMiddlewareクラスのテスト."""
 
-    def test_init_with_app(self):
+    def test_init_with_app_with_valid_app_returns_initialized_middleware(self):
         """アプリケーションとの初期化テスト."""
         app = Flask(__name__)
         middleware = APIVersioningMiddleware(app)
@@ -25,7 +25,9 @@ class TestAPIVersioningMiddleware:
         assert middleware.default_version == "v1"
         assert middleware.supported_versions == ["v1"]
 
-    def test_init_with_custom_config(self):
+    def test_init_with_custom_config_with_valid_config_returns_configured_middleware(
+        self,
+    ):
         """カスタム設定での初期化テスト."""
         app = Flask(__name__)
         app.config["API_DEFAULT_VERSION"] = "v2"
@@ -58,7 +60,9 @@ class TestAPIVersioningMiddleware:
         assert middleware.supported_versions == ["v1", "v2"]
 
     @patch("app.middleware.versioning.request")
-    def test_before_request_with_versioned_path(self, mock_request):
+    def test_before_request_with_versioned_path_with_valid_version_returns_processed_request(
+        self, mock_request
+    ):
         """バージョン付きパスでのbefore_requestテスト."""
         app = Flask(__name__)
         middleware = APIVersioningMiddleware(app)
@@ -70,7 +74,9 @@ class TestAPIVersioningMiddleware:
             assert mock_request.api_version == "v2"
 
     @patch("app.middleware.versioning.request")
-    def test_before_request_with_non_versioned_path(self, mock_request):
+    def test_before_request_with_non_versioned_path_with_default_path_returns_unmodified_request(
+        self, mock_request
+    ):
         """バージョンなしパスでのbefore_requestテスト."""
         app = Flask(__name__)
         middleware = APIVersioningMiddleware(app)
@@ -82,7 +88,9 @@ class TestAPIVersioningMiddleware:
             assert mock_request.api_version == "v1"  # デフォルトバージョン
 
     @patch("app.middleware.versioning.request")
-    def test_before_request_with_non_api_path(self, mock_request):
+    def test_before_request_with_non_api_path_with_static_path_returns_unmodified_request(
+        self, mock_request
+    ):
         """API以外のパスでのbefore_requestテスト."""
         app = Flask(__name__)
         middleware = APIVersioningMiddleware(app)

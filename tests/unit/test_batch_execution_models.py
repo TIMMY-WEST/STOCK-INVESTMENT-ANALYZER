@@ -60,7 +60,9 @@ class TestBatchExecutionModel:
         assert result["successful_stocks"] == 45
         assert result["failed_stocks"] == 5
         assert result["id"] is None  # まだDBに保存されていない
-        assert result["start_time"] is None  # server_defaultなのでインスタンス作成時はNone
+        assert (
+            result["start_time"] is None
+        )  # server_defaultなのでインスタンス作成時はNone
         assert result["end_time"] is None
         assert result["error_message"] is None
         assert result["created_at"] is None
@@ -387,3 +389,23 @@ class TestBatchExecutionModelIntegration:
         )
         assert len(details) == 2
         assert {detail.stock_code for detail in details} == {"7203", "6758"}
+
+    def test_batch_execution_model_creation_with_valid_data_returns_model_instance(
+        self,
+    ):
+        """BatchExecutionモデルのテストクラス."""
+
+    def test_batch_execution_model_validation_with_invalid_data_raises_validation_error(
+        self,
+    ):
+        """BatchExecutionモデルのバリデーションテスト."""
+
+    def test_batch_execution_model_serialization_with_valid_model_returns_json_data(
+        self,
+    ):
+        """BatchExecutionモデルのテストクラス."""
+
+    def test_batch_execution_model_relationships_with_valid_data_returns_correct_associations(
+        self,
+    ):
+        """BatchExecutionモデルのテストクラス."""

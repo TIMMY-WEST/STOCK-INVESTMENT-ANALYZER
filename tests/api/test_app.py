@@ -6,14 +6,14 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
-def test_index_route(client):
+def test_index_route_with_get_request_returns_success_response(client):
     """トップページのテスト."""
     response = client.get("/")
     assert response.status_code == 200
     assert "株価データ管理システム".encode("utf-8") in response.data
 
 
-def test_fetch_data_api_structure(client):
+def test_fetch_data_api_with_basic_request_returns_valid_structure(client):
     """API基本構造のテスト（実際のAPIアクセス無し）."""
     # API エンドポイントの存在確認
     response = client.post(
@@ -35,7 +35,7 @@ def test_fetch_data_api_structure(client):
     assert "message" in data
 
 
-def test_fetch_data_api_max_period_structure(client):
+def test_fetch_data_api_with_max_period_returns_valid_structure(client):
     """maxオプション使用時のAPI基本構造テスト（Issue #45対応）."""
     # maxオプションでのAPI エンドポイントの存在確認
     response = client.post(
@@ -65,7 +65,7 @@ def test_fetch_data_api_max_period_structure(client):
         assert "error" in data or "message" in data
 
 
-def test_fetch_data_api_max_period_parameter_validation(client):
+def test_fetch_data_api_with_max_period_parameter_passes_validation(client):
     """maxオプションのパラメータバリデーションテスト（Issue #45対応）."""
     # 正しいmaxオプションの形式
     valid_payloads = [

@@ -36,7 +36,7 @@ class TestStockBatchProcessor:
     @patch(
         "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
     )
-    def test_fetch_multiple_timeframes_success(
+    def test_fetch_multiple_timeframes_with_valid_data_returns_success(
         self, mock_fetch, processor, sample_dataframe
     ):
         """複数時間軸データ取得成功のテスト."""
@@ -54,7 +54,7 @@ class TestStockBatchProcessor:
     @patch(
         "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
     )
-    def test_fetch_multiple_timeframes_partial_failure(
+    def test_fetch_multiple_timeframes_with_partial_failure_returns_partial_success(
         self, mock_fetch, processor, sample_dataframe
     ):
         """複数時間軸データ取得部分失敗のテスト."""
@@ -70,7 +70,9 @@ class TestStockBatchProcessor:
         assert result["1wk"]["success"] is False
 
     @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
-    def test_fetch_batch_stock_data_success(self, mock_tickers, processor):
+    def test_fetch_batch_stock_data_with_valid_symbols_returns_success(
+        self, mock_tickers, processor
+    ):
         """複数銘柄一括取得成功のテスト."""
         # MultiIndex DataFrameを作成
         symbols = ["AAPL", "GOOGL"]
@@ -96,7 +98,9 @@ class TestStockBatchProcessor:
         assert "AAPL" in result
         assert "GOOGL" in result
 
-    def test_fetch_batch_stock_data_invalid_symbols(self, processor):
+    def test_fetch_batch_stock_data_with_invalid_symbols_returns_error(
+        self, processor
+    ):
         """無効な銘柄コードでの一括取得テスト."""
         invalid_symbols = ["", "INVALID", None]
 
@@ -110,7 +114,7 @@ class TestStockBatchProcessor:
                 assert "error" in result[symbol]
 
     @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
-    def test_download_batch_from_yahoo_success(
+    def test_download_batch_from_yahoo_with_valid_symbols_returns_success(
         self, mock_tickers, processor, sample_dataframe
     ):
         """Yahoo Financeからの一括ダウンロード成功テスト."""
@@ -125,14 +129,18 @@ class TestStockBatchProcessor:
         mock_tickers_instance.history.assert_called_once()
 
     @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
-    def test_download_batch_from_yahoo_failure(self, mock_tickers, processor):
+    def test_download_batch_from_yahoo_with_failure_returns_error(
+        self, mock_tickers, processor
+    ):
         """Yahoo Financeからの一括ダウンロード失敗テスト."""
         mock_tickers.side_effect = Exception("API Error")
 
         with pytest.raises(Exception, match="API Error"):
             processor._download_batch_from_yahoo(["7203.T", "AAPL"], "1d")
 
-    def test_fetch_multiple_timeframes_invalid_symbol(self, processor):
+    def test_fetch_multiple_timeframes_with_invalid_symbol_returns_error(
+        self, processor
+    ):
         """無効な銘柄コードでの複数時間軸取得テスト."""
         result = processor.fetch_multiple_timeframes("", ["1d", "1wk"])
 
@@ -143,7 +151,9 @@ class TestStockBatchProcessor:
         assert result["1d"]["success"] is False
         assert result["1wk"]["success"] is False
 
-    def test_fetch_multiple_timeframes_invalid_intervals(self, processor):
+    def test_fetch_multiple_timeframes_with_invalid_intervals_returns_error(
+        self, processor
+    ):
         """無効な時間軸での複数時間軸取得テスト."""
         # 全ての時間軸で失敗した場合は例外が発生する
         with pytest.raises(StockBatchProcessingError):

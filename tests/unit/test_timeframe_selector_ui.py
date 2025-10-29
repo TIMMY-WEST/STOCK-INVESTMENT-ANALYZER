@@ -19,7 +19,9 @@ import pytest
 class TestTimeframeSelectorUI:
     """時間軸選択UI機能のテストクラス."""
 
-    def test_html_template_structure(self):
+    def test_html_template_structure_with_valid_template_returns_valid_structure(
+        self,
+    ):
         """HTMLテンプレートの構造確認テスト."""
         template_path = os.path.join(
             os.path.dirname(__file__),
@@ -45,13 +47,17 @@ class TestTimeframeSelectorUI:
 
         # 必須項目インジケーターの確認
         required_indicator = soup.find("span", class_="required-indicator")
-        assert required_indicator is not None, "必須項目インジケーターが見つかりません"
+        assert (
+            required_indicator is not None
+        ), "必須項目インジケーターが見つかりません"
 
         # 時間軸インジケーターの確認
         timeframe_indicator = soup.find("div", {"id": "timeframe-indicator"})
-        assert timeframe_indicator is not None, "時間軸インジケーターが見つかりません"
+        assert (
+            timeframe_indicator is not None
+        ), "時間軸インジケーターが見つかりません"
 
-    def test_css_styles_exist(self):
+    def test_css_styles_exist_with_valid_css_returns_required_styles(self):
         """CSSスタイルの存在確認テスト."""
         css_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
@@ -72,7 +78,9 @@ class TestTimeframeSelectorUI:
         ]
 
         for css_class in required_classes:
-            assert css_class in css_content, f"CSSクラス {css_class} が見つかりません"
+            assert (
+                css_class in css_content
+            ), f"CSSクラス {css_class} が見つかりません"
 
         # レスポンシブデザインの確認
         assert (
@@ -82,7 +90,9 @@ class TestTimeframeSelectorUI:
             "@media (max-width: 480px)" in css_content
         ), "モバイル用メディアクエリが見つかりません"
 
-    def test_javascript_functions_exist(self):
+    def test_javascript_functions_exist_with_valid_js_returns_required_functions(
+        self,
+    ):
         """JavaScript関数の存在確認テスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
@@ -109,7 +119,9 @@ class TestTimeframeSelectorUI:
                 pattern, js_content
             ), f"JavaScript関数 {function_name} が見つかりません"
 
-    def test_timeframe_config_structure(self):
+    def test_timeframe_config_structure_with_valid_config_returns_required_structure(
+        self,
+    ):
         """時間軸設定の構造確認テスト."""
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
@@ -124,7 +136,9 @@ class TestTimeframeSelectorUI:
         assert "long-term" in js_content, "長期間設定が見つかりません"
         assert "max-term" in js_content, "最大期間設定が見つかりません"
 
-    def test_accessibility_attributes(self):
+    def test_accessibility_attributes_with_valid_html_returns_required_attributes(
+        self,
+    ):
         """アクセシビリティ属性の確認テスト."""
         template_path = os.path.join(
             os.path.dirname(__file__),
@@ -164,7 +178,9 @@ class TestTimeframeSelectorUI:
         ), "時間軸バリデーションが統合されていません"
 
         # initApp関数に初期化が含まれているか確認
-        assert "initTimeframeSelector" in js_content, "時間軸セレクター初期化が含まれていません"
+        assert (
+            "initTimeframeSelector" in js_content
+        ), "時間軸セレクター初期化が含まれていません"
 
 
 class TestTimeframeSelectorConfiguration:
@@ -198,8 +214,12 @@ class TestTimeframeSelectorConfiguration:
 
             # 各オプションにvalue属性があることを確認
             for option in options:
-                assert option.get("value") is not None, "オプションにvalue属性がありません"
-                assert option.get_text().strip() != "", "オプションにテキストがありません"
+                assert (
+                    option.get("value") is not None
+                ), "オプションにvalue属性がありません"
+                assert (
+                    option.get_text().strip() != ""
+                ), "オプションにテキストがありません"
 
     def test_css_responsive_design(self):
         """CSSレスポンシブデザインのテスト."""
@@ -217,7 +237,9 @@ class TestTimeframeSelectorConfiguration:
         media_query_pattern = r"@media\s*\([^)]*max-width[^)]*\)\s*\{[^}]*\}"
         media_queries = re.findall(media_query_pattern, css_content, re.DOTALL)
 
-        assert len(media_queries) >= 2, "十分なメディアクエリが定義されていません"
+        assert (
+            len(media_queries) >= 2
+        ), "十分なメディアクエリが定義されていません"
 
 
 if __name__ == "__main__":

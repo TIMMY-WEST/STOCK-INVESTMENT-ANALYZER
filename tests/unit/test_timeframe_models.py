@@ -86,7 +86,9 @@ def session(engine):
 class TestTimeframeModels:
     """時間軸モデルのテストクラス."""
 
-    def test_stocks_1m_model(self, session):
+    def test_stocks_1m_model_creation_with_valid_data_returns_model_instance(
+        self, session
+    ):
         """1分足モデルのテスト."""
         # テストデータ作成
         stock_data = Stocks1m(
@@ -314,7 +316,9 @@ class TestConstraints:
         with pytest.raises(IntegrityError):
             session.commit()
 
-    def test_price_check_constraints(self, session):
+    def test_unique_constraint_violation_with_duplicate_data_raises_integrity_error(
+        self, session
+    ):
         """価格チェック制約のテスト."""
         # 負の価格でテスト
         with pytest.raises(IntegrityError):

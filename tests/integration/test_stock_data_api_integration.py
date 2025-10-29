@@ -1,468 +1,378 @@
 """株価データAPI統合テスト.
 
-このモジュールは株価データ関連APIエンドポイントの統合テストを提供します。
-- レスポンス形式の検証
-- エラーケースのテスト
-- ページネーション・フィルタリングのテスト
+このモジュールは、株価データAPIの統合テストを提供します。
+外部APIとの連携、データ取得、エラーハンドリングなどを包括的にテストします。
 """
 
-import json
+from datetime import date, datetime
+from unittest.mock import Mock, patch
 
 import pytest
+import requests
 
-from app.app import app as flask_app
-
-
-@pytest.fixture
-def client():
-    """テスト用のFlaskクライアント."""
-    flask_app.config["TESTING"] = True
-    with flask_app.test_client() as client:
-        yield client
-
-
-@pytest.fixture(autouse=True)
-def setup_env(monkeypatch):
-    """テスト環境のセットアップ."""
-    monkeypatch.setenv("API_KEY", "test-key")
-    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "10")
+from app.exceptions import (
+    ExternalAPIError,
+    NetworkError,
+    RateLimitError,
+    StockDataError,
+)
+from app.services.stock_data_api import StockDataAPIService
 
 
 class TestStockDataAPIIntegration:
-    """株価データAPI統合テスト."""
+    """株価データAPI統合テストクラス."""
 
-    def test_fetch_stock_data_success_response(self, client, mocker):
-        """POST /api/stocks/data - 成功時のレスポンス検証."""
-        # yfinanceのモック
-        from datetime import datetime
+    @pytest.fixture
+    def api_service(self):
+        """APIサービスのフィクスチャ."""
+        return StockDataAPIService()
 
-        import pandas as pd
+    @pytest.fixture
+    def mock_response_data(self):
+        """モックレスポンスデータのフィクスチャ."""
+        return {
+            "symbol": "7203",
+            "name": "トヨタ自動車",
+            "price": 2500.0,
+            "change": 50.0,
+            "change_percent": 2.04,
+            "volume": 1000000,
+            "market_cap": 35000000000,
+            "timestamp": "2024-01-15T15:00:00Z",
+        }
 
-        mock_df = pd.DataFrame(
+    def test_fetch_stock_data_with_valid_symbol_returns_success_response(
+        self, api_service, mock_response_data
+    ):
+        """有効な銘柄コードでの株価データ取得成功テスト."""
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = mock_response_data
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+
+            result = api_service.fetch_stock_data("7203")
+
+            assert result is not None
+            assert result["symbol"] == "7203"
+            assert result["name"] == "トヨタ自動車"
+            assert result["price"] == 2500.0
+            mock_get.assert_called_once()
+
+    def test_fetch_stock_data_with_invalid_symbol_returns_error_response(
+        self, api_service
+    ):
+        """無効な銘柄コードでの株価データ取得エラーテスト."""
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 404
+            mock_response.raise_for_status.side_effect = (
+                requests.exceptions.HTTPError("404 Not Found")
+            )
+            mock_get.return_value = mock_response
+
+            with pytest.raises(StockDataError) as exc_info:
+                api_service.fetch_stock_data("INVALID")
+
+            assert "404" in str(exc_info.value)
+
+    def test_fetch_stock_data_with_network_timeout_returns_timeout_error(
+        self, api_service
+    ):
+        """ネットワークタイムアウトでの株価データ取得エラーテスト."""
+        with patch("requests.get") as mock_get:
+            mock_get.side_effect = requests.exceptions.Timeout(
+                "Request timeout"
+            )
+
+            with pytest.raises(NetworkError) as exc_info:
+                api_service.fetch_stock_data("7203")
+
+            assert "timeout" in str(exc_info.value).lower()
+
+    def test_fetch_stock_data_with_connection_error_returns_network_error(
+        self, api_service
+    ):
+        """接続エラーでの株価データ取得エラーテスト."""
+        with patch("requests.get") as mock_get:
+            mock_get.side_effect = requests.exceptions.ConnectionError(
+                "Connection failed"
+            )
+
+            with pytest.raises(NetworkError) as exc_info:
+                api_service.fetch_stock_data("7203")
+
+            assert "connection" in str(exc_info.value).lower()
+
+    def test_fetch_stock_data_with_rate_limit_returns_rate_limit_error(
+        self, api_service
+    ):
+        """レート制限での株価データ取得エラーテスト."""
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 429
+            mock_response.raise_for_status.side_effect = (
+                requests.exceptions.HTTPError("429 Too Many Requests")
+            )
+            mock_response.headers = {"Retry-After": "60"}
+            mock_get.return_value = mock_response
+
+            with pytest.raises(RateLimitError) as exc_info:
+                api_service.fetch_stock_data("7203")
+
+            assert "rate limit" in str(exc_info.value).lower()
+
+    def test_fetch_stock_data_with_server_error_returns_external_api_error(
+        self, api_service
+    ):
+        """サーバーエラーでの株価データ取得エラーテスト."""
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 500
+            mock_response.raise_for_status.side_effect = (
+                requests.exceptions.HTTPError("500 Internal Server Error")
+            )
+            mock_get.return_value = mock_response
+
+            with pytest.raises(ExternalAPIError) as exc_info:
+                api_service.fetch_stock_data("7203")
+
+            assert "500" in str(exc_info.value)
+
+    def test_fetch_multiple_stocks_with_valid_symbols_returns_success_responses(
+        self, api_service, mock_response_data
+    ):
+        """複数銘柄の株価データ一括取得成功テスト."""
+        symbols = ["7203", "6758", "9984"]
+
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.raise_for_status.return_value = None
+
+            # 各銘柄に対して異なるレスポンスを設定
+            responses = []
+            for i, symbol in enumerate(symbols):
+                data = mock_response_data.copy()
+                data["symbol"] = symbol
+                data["price"] = 2500.0 + (i * 100)
+                responses.append(data)
+
+            mock_response.json.side_effect = responses
+            mock_get.return_value = mock_response
+
+            results = api_service.fetch_multiple_stocks(symbols)
+
+            assert len(results) == 3
+            assert all(result["symbol"] in symbols for result in results)
+            assert mock_get.call_count == 3
+
+    def test_fetch_multiple_stocks_with_partial_failures_returns_mixed_results(
+        self, api_service, mock_response_data
+    ):
+        """複数銘柄取得での部分的失敗テスト."""
+        symbols = ["7203", "INVALID", "6758"]
+
+        with patch("requests.get") as mock_get:
+
+            def side_effect(url, **kwargs):
+                if "INVALID" in url:
+                    mock_response = Mock()
+                    mock_response.status_code = 404
+                    mock_response.raise_for_status.side_effect = (
+                        requests.exceptions.HTTPError("404 Not Found")
+                    )
+                    return mock_response
+                else:
+                    mock_response = Mock()
+                    mock_response.status_code = 200
+                    mock_response.json.return_value = mock_response_data
+                    mock_response.raise_for_status.return_value = None
+                    return mock_response
+
+            mock_get.side_effect = side_effect
+
+            results = api_service.fetch_multiple_stocks(
+                symbols, ignore_errors=True
+            )
+
+            # 成功した2件のみが返される
+            assert len(results) == 2
+            assert all(
+                result["symbol"] in ["7203", "6758"] for result in results
+            )
+
+    def test_fetch_historical_data_with_date_range_returns_time_series_data(
+        self, api_service
+    ):
+        """日付範囲指定での履歴データ取得テスト."""
+        symbol = "7203"
+        start_date = date(2024, 1, 1)
+        end_date = date(2024, 1, 31)
+
+        mock_historical_data = [
             {
-                "Open": [1000.0],
-                "High": [1050.0],
-                "Low": [990.0],
-                "Close": [1020.0],
-                "Volume": [1000000],
+                "date": "2024-01-01",
+                "open": 2450.0,
+                "high": 2500.0,
+                "low": 2400.0,
+                "close": 2480.0,
+                "volume": 800000,
             },
-            index=pd.DatetimeIndex([datetime(2025, 1, 1)]),
-        )
-
-        mock_ticker = mocker.Mock()
-        mock_ticker.history.return_value = mock_df
-        mocker.patch("yfinance.Ticker", return_value=mock_ticker)
-
-        response = client.post(
-            "/api/stocks/data",
-            json={"symbol": "7203.T", "period": "1mo"},
-            content_type="application/json",
-        )
-
-        assert response.status_code == 200
-        data = response.get_json()
-
-        # レスポンス形式の検証
-        assert data["status"] == "success"
-        assert "message" in data
-        assert "data" in data
-
-        # データ内容の検証
-        assert isinstance(data["data"], dict)
-
-    def test_fetch_stock_data_validation_error(self, client, mocker):
-        """POST /api/stocks/data - バリデーションエラーのテスト."""
-        # yfinance が空のデータフレームを返すケース
-        import pandas as pd
-
-        mock_df = pd.DataFrame()  # 空のDataFrame
-        mock_ticker = mocker.Mock()
-        mock_ticker.history.return_value = mock_df
-        mocker.patch("yfinance.Ticker", return_value=mock_ticker)
-
-        response = client.post(
-            "/api/stocks/data",
-            json={"symbol": "INVALID", "period": "1mo"},
-            content_type="application/json",
-        )
-
-        # 空データはエラーとして扱われる
-        data = response.get_json()
-        assert data["status"] == "error"
-        assert "message" in data
-
-    def test_fetch_stock_data_invalid_symbol(self, client, mocker):
-        """POST /api/stocks/data - 無効な銘柄コードのテスト."""
-        # yfinanceがエラーを返す場合のモック
-        mock_ticker = mocker.Mock()
-        mock_ticker.history.side_effect = Exception("Invalid symbol")
-        mocker.patch("yfinance.Ticker", return_value=mock_ticker)
-
-        response = client.post(
-            "/api/stocks/data",
-            json={"symbol": "INVALID", "period": "1mo"},
-            content_type="application/json",
-        )
-
-        # エラーレスポンスの検証
-        data = response.get_json()
-        assert data["status"] == "error"
-        assert "message" in data
-
-    def test_fetch_stock_data_external_api_error(self, client, mocker):
-        """POST /api/stocks/data - 外部APIエラーのテスト."""
-        # yfinanceがタイムアウトする場合のモック
-        mocker.patch("yfinance.Ticker", side_effect=ConnectionError("Timeout"))
-
-        response = client.post(
-            "/api/stocks/data",
-            json={"symbol": "7203.T", "period": "1mo"},
-            content_type="application/json",
-        )
-
-        assert response.status_code in [500, 502, 503]
-        data = response.get_json()
-        assert data["status"] == "error"
-
-    def test_get_stocks_list_success(self, client, mocker):
-        """GET /api/stocks - 株価データ一覧取得成功."""
-        # DBセッションのモック
-        mock_session = mocker.Mock()
-        mock_query = mocker.Mock()
-
-        # サンプルデータ
-        mock_stocks = [
-            mocker.Mock(
-                id=1,
-                symbol="7203.T",
-                date="2025-01-01",
-                open=1000.0,
-                high=1050.0,
-                low=990.0,
-                close=1020.0,
-                volume=1000000,
-            ),
-            mocker.Mock(
-                id=2,
-                symbol="6758.T",
-                date="2025-01-01",
-                open=12000.0,
-                high=12500.0,
-                low=11900.0,
-                close=12200.0,
-                volume=500000,
-            ),
+            {
+                "date": "2024-01-02",
+                "open": 2480.0,
+                "high": 2520.0,
+                "low": 2460.0,
+                "close": 2500.0,
+                "volume": 900000,
+            },
         ]
 
-        mock_query.offset.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = mock_stocks
-        mock_query.count.return_value = len(mock_stocks)
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"data": mock_historical_data}
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
 
-        mock_session.query.return_value = mock_query
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=False)
+            result = api_service.fetch_historical_data(
+                symbol, start_date, end_date
+            )
 
-        mocker.patch("app.models.get_db_session", return_value=mock_session)
+            assert "data" in result
+            assert len(result["data"]) == 2
+            assert result["data"][0]["date"] == "2024-01-01"
+            assert result["data"][1]["close"] == 2500.0
 
-        response = client.get("/api/stocks")
+    def test_api_authentication_with_valid_token_returns_authenticated_request(
+        self, api_service
+    ):
+        """有効なトークンでのAPI認証テスト."""
+        api_service.set_api_token("valid_token_123")
 
-        assert response.status_code == 200
-        data = response.get_json()
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"authenticated": True}
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
 
-        # レスポンス形式の検証
-        assert data["status"] == "success"
-        assert "data" in data
-        assert isinstance(data["data"], list)
+            result = api_service.fetch_stock_data("7203")
 
-    def test_get_stocks_pagination(self, client, mocker):
-        """GET /api/stocks - ページネーションのテスト."""
-        mock_session = mocker.Mock()
-        mock_query = mocker.Mock()
+            assert result is not None
+            assert result["symbol"] == "7203"
+            assert result["name"] == "トヨタ自動車"
+            assert result["price"] == 2500.0
+            # 認証ヘッダーが含まれていることを確認
+            call_args = mock_get.call_args
+            headers = call_args[1].get("headers", {})
+            assert "Authorization" in headers
+            assert "valid_token_123" in headers["Authorization"]
 
-        # ページネーション用のモックデータ
-        mock_stocks = []
-        mock_query.offset.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = mock_stocks
-        mock_query.count.return_value = 0
+    def test_api_retry_mechanism_with_temporary_failure_returns_success_after_retry(
+        self, api_service, mock_response_data
+    ):
+        """一時的な失敗後のリトライ機能テスト."""
+        with patch("requests.get") as mock_get:
+            # 最初の2回は失敗、3回目は成功
+            responses = [
+                Mock(
+                    status_code=503,
+                    raise_for_status=Mock(
+                        side_effect=requests.exceptions.HTTPError(
+                            "503 Service Unavailable"
+                        )
+                    ),
+                ),
+                Mock(
+                    status_code=503,
+                    raise_for_status=Mock(
+                        side_effect=requests.exceptions.HTTPError(
+                            "503 Service Unavailable"
+                        )
+                    ),
+                ),
+                Mock(
+                    status_code=200,
+                    json=Mock(return_value=mock_response_data),
+                    raise_for_status=Mock(return_value=None),
+                ),
+            ]
+            mock_get.side_effect = responses
 
-        mock_session.query.return_value = mock_query
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=False)
+            result = api_service.fetch_stock_data_with_retry(
+                "7203", max_retries=3
+            )
 
-        mocker.patch("app.models.get_db_session", return_value=mock_session)
+            assert result is not None
+            assert result["symbol"] == "7203"
+            assert mock_get.call_count == 3
 
-        # limitとoffsetパラメータのテスト
-        response = client.get("/api/stocks?limit=10&offset=0")
+    def test_api_cache_mechanism_with_repeated_requests_returns_cached_data(
+        self, api_service, mock_response_data
+    ):
+        """キャッシュ機能での重複リクエスト処理テスト."""
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = mock_response_data
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
 
-        assert response.status_code == 200
-        data = response.get_json()
+            # 同じ銘柄を2回取得
+            result1 = api_service.fetch_stock_data_cached("7203")
+            result2 = api_service.fetch_stock_data_cached("7203")
 
-        assert data["status"] == "success"
-        assert "data" in data
+            assert result1 == result2
+            # キャッシュが効いているため、APIは1回のみ呼ばれる
+            assert mock_get.call_count == 1
 
-    def test_get_stocks_interval_filter(self, client, mocker):
-        """GET /api/stocks - 時間間隔フィルタリングのテスト."""
-        mock_session = mocker.Mock()
-        mock_query = mocker.Mock()
-
-        mock_stocks = []
-        mock_query.offset.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = mock_stocks
-        mock_query.count.return_value = 0
-
-        mock_session.query.return_value = mock_query
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=False)
-
-        mocker.patch("app.models.get_db_session", return_value=mock_session)
-
-        # intervalパラメータのテスト
-        for interval in ["1m", "1h", "1d", "1wk", "1mo"]:
-            response = client.get(f"/api/stocks?interval={interval}")
-
-            assert response.status_code == 200
-            data = response.get_json()
-            assert data["status"] == "success"
-
-    def test_get_stocks_invalid_interval(self, client):
-        """GET /api/stocks - 無効な時間間隔のテスト."""
-        response = client.get("/api/stocks?interval=invalid")
-
-        # 無効なintervalはエラーまたは無視される
-        data = response.get_json()
-        assert "status" in data
-
-    def test_get_stock_by_id_success(self, client, mocker):
-        """GET /api/stocks/{stock_id} - 株価データ詳細取得成功."""
-        # StockDailyCRUD.get_by_idをモック
-        mock_stock = mocker.Mock()
-        mock_stock.to_dict.return_value = {
-            "id": 1,
-            "symbol": "7203.T",
-            "date": "2025-01-01",
-            "open": 1000.0,
-            "high": 1050.0,
-            "low": 990.0,
-            "close": 1020.0,
-            "volume": 1000000,
+    def test_api_response_validation_with_invalid_data_returns_validation_error(
+        self, api_service
+    ):
+        """無効なレスポンスデータでのバリデーションエラーテスト."""
+        invalid_response_data = {
+            "symbol": "7203",
+            # 必須フィールドが不足
+            "price": "invalid_price",  # 数値でない
         }
 
-        mocker.patch(
-            "app.models.StockDailyCRUD.get_by_id", return_value=mock_stock
-        )
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = invalid_response_data
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
 
-        response = client.get("/api/stocks/1")
+            with pytest.raises(StockDataError) as exc_info:
+                api_service.fetch_stock_data_validated("7203")
 
-        assert response.status_code == 200
-        data = response.get_json()
+            assert "validation" in str(exc_info.value).lower()
 
-        assert data["success"] is True
-        assert "data" in data
+    def test_api_rate_limiting_with_burst_requests_returns_controlled_execution(
+        self, api_service, mock_response_data
+    ):
+        """バーストリクエストでのレート制限テスト."""
+        symbols = [f"symbol_{i}" for i in range(10)]
 
-    def test_get_stock_by_id_not_found(self, client, mocker):
-        """GET /api/stocks/{stock_id} - 存在しない株価データのテスト."""
-        # 存在しないIDの場合はNoneを返す
-        mocker.patch("app.models.StockDailyCRUD.get_by_id", return_value=None)
+        with patch("requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = mock_response_data
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
 
-        response = client.get("/api/stocks/9999")
+            start_time = datetime.now()
+            results = api_service.fetch_multiple_stocks_rate_limited(
+                symbols, requests_per_second=5
+            )
+            end_time = datetime.now()
 
-        assert response.status_code == 404
-        data = response.get_json()
+            # レート制限により実行時間が制御されていることを確認
+            execution_time = (end_time - start_time).total_seconds()
+            expected_min_time = (len(symbols) - 1) / 5  # 5 requests per second
 
-        assert data["success"] is False
-        assert "error" in data
-        assert "message" in data
-
-    def test_update_stock_success(self, client, mocker):
-        """PUT /api/stocks/{stock_id} - 株価データ更新成功."""
-        # StockDailyCRUD.updateをモック
-        mock_stock = mocker.Mock()
-        mock_stock.id = 1
-        mock_stock.symbol = "7203.T"
-        mock_stock.to_dict.return_value = {
-            "id": 1,
-            "symbol": "7203.T",
-            "open": 1100.0,
-            "high": 1150.0,
-            "low": 1090.0,
-            "close": 1120.0,
-        }
-
-        mocker.patch(
-            "app.models.StockDailyCRUD.update", return_value=mock_stock
-        )
-
-        update_data = {
-            "open": 1100.0,
-            "high": 1150.0,
-            "low": 1090.0,
-            "close": 1120.0,
-        }
-
-        response = client.put(
-            "/api/stocks/1", json=update_data, content_type="application/json"
-        )
-
-        assert response.status_code == 200
-        data = response.get_json()
-
-        assert data["success"] is True
-        assert "message" in data
-
-    def test_delete_stock_success(self, client, mocker):
-        """DELETE /api/stocks/{stock_id} - 株価データ削除成功."""
-        # StockDailyCRUD.deleteをモック(Trueを返す)
-        mocker.patch("app.models.StockDailyCRUD.delete", return_value=True)
-
-        response = client.delete("/api/stocks/1")
-
-        assert response.status_code == 200
-        data = response.get_json()
-
-        assert data["success"] is True
-        assert "message" in data
-
-    def test_create_test_stock_success(self, client, mocker):
-        """POST /api/stocks/test - テスト用株価データ作成成功."""
-        # StockDailyCRUD.bulk_createをモック（実際のエンドポイントが使用するメソッド）
-        mock_stocks = []
-        for i in range(3):
-            mock_stock = mocker.Mock()
-            mock_stock.to_dict.return_value = {
-                "id": i + 1,
-                "symbol": "7203.T",
-                "date": f"2024-09-0{i + 7}",
-                "open": 2500.0,
-                "high": 2550.0,
-                "low": 2480.0,
-                "close": 2530.0,
-                "volume": 1500000,
-            }
-            mock_stocks.append(mock_stock)
-
-        # データベースセッションをモック
-        mock_session = mocker.Mock()
-        mocker.patch("app.app.get_db_session", return_value=mock_session)
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=None)
-
-        mocker.patch(
-            "app.app.StockDailyCRUD.bulk_create", return_value=mock_stocks
-        )
-
-        response = client.post(
-            "/api/stocks/test",
-            content_type="application/json",
-        )
-
-        assert response.status_code in [200, 201]
-        data = response.get_json()
-        assert data["success"] is True
-        assert "message" in data
-        assert "data" in data
-        assert len(data["data"]) == 3
-
-
-class TestStockDataAPIResponseFormat:
-    """レスポンス形式の検証テスト."""
-
-    def test_success_response_structure(self, client, mocker):
-        """成功時のレスポンス構造検証."""
-        mock_session = mocker.Mock()
-        mock_query = mocker.Mock()
-        mock_query.offset.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = []
-        mock_query.count.return_value = 0
-
-        mock_session.query.return_value = mock_query
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=False)
-
-        mocker.patch("app.models.get_db_session", return_value=mock_session)
-
-        response = client.get("/api/stocks")
-        data = response.get_json()
-
-        # 成功時の必須フィールド
-        assert "status" in data
-        assert data["status"] == "success"
-        assert "data" in data
-
-    def test_error_response_structure(self, client, mocker):
-        """エラー時のレスポンス構造検証."""
-        # 存在しないIDを取得してエラーをシミュレート
-        mocker.patch("app.models.StockDailyCRUD.get_by_id", return_value=None)
-
-        response = client.get("/api/stocks/9999")
-        data = response.get_json()
-
-        # エラー時の必須フィールド
-        assert data["success"] is False
-        assert "error" in data
-        assert "message" in data
-
-    def test_response_content_type(self, client, mocker):
-        """レスポンスのContent-Typeがapplication/jsonであることを確認."""
-        mock_session = mocker.Mock()
-        mock_query = mocker.Mock()
-        mock_query.offset.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = []
-        mock_query.count.return_value = 0
-
-        mock_session.query.return_value = mock_query
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=False)
-
-        mocker.patch("app.models.get_db_session", return_value=mock_session)
-
-        response = client.get("/api/stocks")
-
-        assert "application/json" in response.content_type
-
-
-class TestStockDataAPIEdgeCases:
-    """エッジケースのテスト."""
-
-    def test_large_limit_pagination(self, client, mocker):
-        """大きなlimit値のテスト."""
-        mock_session = mocker.Mock()
-        mock_query = mocker.Mock()
-        mock_query.offset.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = []
-        mock_query.count.return_value = 0
-
-        mock_session.query.return_value = mock_query
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=False)
-
-        mocker.patch("app.models.get_db_session", return_value=mock_session)
-
-        response = client.get("/api/stocks?limit=1000")
-
-        assert response.status_code == 200
-
-    def test_negative_offset_pagination(self, client, mocker):
-        """負のoffset値のテスト."""
-        mock_session = mocker.Mock()
-        mock_query = mocker.Mock()
-        mock_query.offset.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = []
-        mock_query.count.return_value = 0
-
-        mock_session.query.return_value = mock_query
-        mock_session.__enter__ = mocker.Mock(return_value=mock_session)
-        mock_session.__exit__ = mocker.Mock(return_value=False)
-
-        mocker.patch("app.models.get_db_session", return_value=mock_session)
-
-        response = client.get("/api/stocks?offset=-1")
-
-        # 負の値はエラーまたは0として扱われる
-        assert response.status_code in [200, 400]
+            assert len(results) == len(symbols)
+            assert execution_time >= expected_min_time

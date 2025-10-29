@@ -388,7 +388,7 @@ def create_state_manager_test_html():
     return test_html
 
 
-def test_create_state_manager_test_file():
+def test_create_state_manager_test_file_with_valid_config_returns_test_file():
     """状態管理テストファイルの作成をテスト."""
     test_html = create_state_manager_test_html()
 
@@ -405,4 +405,4 @@ def test_create_state_manager_test_file():
 
 
 if __name__ == "__main__":
-    test_create_state_manager_test_file()
+    test_create_state_manager_test_file_with_valid_config_returns_test_file()

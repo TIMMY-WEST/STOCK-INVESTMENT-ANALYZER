@@ -30,7 +30,7 @@ class TestProgressTracker:
         assert isinstance(tracker.start_time, datetime)
         assert tracker.error_details == []
 
-    def test_update_success(self):
+    def test_update_success_with_valid_symbol_returns_updated_tracker(self):
         """成功時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
@@ -42,7 +42,7 @@ class TestProgressTracker:
         assert tracker.current_symbol == "7203.T"
         assert len(tracker.error_details) == 0
 
-    def test_update_failure(self):
+    def test_update_failure_with_invalid_symbol_returns_error_tracker(self):
         """失敗時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
@@ -58,7 +58,7 @@ class TestProgressTracker:
         assert tracker.error_details[0]["symbol"] == "INVALID.T"
         assert tracker.error_details[0]["error"] == "データ取得エラー"
 
-    def test_get_progress(self):
+    def test_get_progress_with_valid_tracker_returns_progress_data(self):
         """進捗情報取得のテスト."""
         tracker = ProgressTracker(total=100)
 
@@ -72,10 +72,12 @@ class TestProgressTracker:
         assert progress["successful"] == 50
         assert progress["failed"] == 0
         assert progress["progress_percentage"] == 50.0
-        assert progress["stocks_per_second"] >= 0  # 高速実行時は0になる可能性がある
+        assert (
+            progress["stocks_per_second"] >= 0
+        )  # 高速実行時は0になる可能性がある
         assert "estimated_completion" in progress
 
-    def test_get_summary(self):
+    def test_get_summary_with_valid_tracker_returns_summary_data(self):
         """サマリー取得のテスト."""
         tracker = ProgressTracker(total=10)
 
@@ -118,14 +120,16 @@ class TestBulkDataService:
         with patch("app.services.bulk.bulk_service.StockDataSaver") as mock:
             yield mock
 
-    def test_init(self, service):
+    def test_init_with_valid_service_returns_service_instance(self, service):
         """初期化のテスト."""
         assert service.max_workers == 2
         assert service.retry_count == 2
         assert service.fetcher is not None
         assert service.saver is not None
 
-    def test_fetch_single_stock_success(self, service):
+    def test_fetch_single_stock_success_with_valid_symbol_returns_stock_data(
+        self, service
+    ):
         """単一銘柄取得成功のテスト."""
         # モックの設定
         mock_df = pd.DataFrame(
@@ -155,7 +159,9 @@ class TestBulkDataService:
         service.fetcher.fetch_stock_data.assert_called_once()
         service.saver.save_stock_data.assert_called_once()
 
-    def test_fetch_single_stock_with_retry(self, service):
+    def test_fetch_single_stock_with_retry_with_temporary_error_returns_success(
+        self, service
+    ):
         """リトライ機能のテスト."""
         # 1回目は失敗、2回目は成功
         mock_df = pd.DataFrame(
@@ -182,7 +188,9 @@ class TestBulkDataService:
         assert result["attempt"] == 2
         assert service.fetcher.fetch_stock_data.call_count == 2
 
-    def test_fetch_single_stock_all_retries_failed(self, service):
+    def test_fetch_single_stock_all_retries_failed_with_persistent_error_returns_failure(
+        self, service
+    ):
         """全リトライ失敗のテスト."""
         service.fetcher.fetch_stock_data = Mock(
             side_effect=StockDataFetchError("永続的なエラー")
@@ -195,9 +203,13 @@ class TestBulkDataService:
         assert result["success"] is False
         assert result["error"] == "永続的なエラー"
         assert result["attempts"] == 2  # retry_count=2なので2回試行
-        assert service.fetcher.fetch_stock_data.call_count == 2  # 実際の呼び出し回数は2回
+        assert (
+            service.fetcher.fetch_stock_data.call_count == 2
+        )  # 実際の呼び出し回数は2回
 
-    def test_fetch_multiple_stocks(self, service):
+    def test_fetch_multiple_stocks_with_valid_symbols_returns_summary(
+        self, service
+    ):
         """複数銘柄取得のテスト."""
         symbols = ["7203.T", "6758.T", "9984.T"]
 
@@ -223,7 +235,9 @@ class TestBulkDataService:
         assert len(summary["results"]) == 3
         assert service.fetch_single_stock.call_count == 3
 
-    def test_fetch_multiple_stocks_with_progress_callback(self, service):
+    def test_fetch_multiple_stocks_with_progress_callback_with_valid_symbols_returns_progress_updates(
+        self, service
+    ):
         """進捗コールバック付き複数銘柄取得のテスト."""
         symbols = ["7203.T", "6758.T"]
         progress_updates = []
@@ -248,7 +262,9 @@ class TestBulkDataService:
         # 検証
         assert len(progress_updates) >= 2  # 最低2回は呼ばれる
 
-    def test_fetch_all_stocks_from_list_file(self, service):
+    def test_fetch_all_stocks_from_list_file_with_valid_file_returns_summary(
+        self, service
+    ):
         """ファイルから銘柄リスト読み込みのテスト."""
         file_content = "7203.T\n6758.T\n9984.T\n"
 
@@ -264,14 +280,18 @@ class TestBulkDataService:
             call_args = service.fetch_multiple_stocks.call_args
             assert call_args[1]["symbols"] == ["7203.T", "6758.T", "9984.T"]
 
-    def test_fetch_all_stocks_from_list_file_not_found(self, service):
+    def test_fetch_all_stocks_from_list_file_not_found_with_invalid_file_raises_error(
+        self, service
+    ):
         """ファイルが見つからない場合のテスト."""
         with pytest.raises(BulkDataServiceError) as exc_info:
             service.fetch_all_stocks_from_list_file("nonexistent.txt")
 
         assert "見つかりません" in str(exc_info.value)
 
-    def test_estimate_completion_time(self, service):
+    def test_estimate_completion_time_with_valid_symbol_count_returns_estimation(
+        self, service
+    ):
         """完了時間推定のテスト."""
         service.fetch_single_stock = Mock(return_value={"success": True})
 
@@ -285,7 +305,9 @@ class TestBulkDataService:
         assert "estimated_total_minutes" in estimation
         assert estimation["max_workers"] == 2
 
-    def test_estimate_completion_time_error(self, service):
+    def test_estimate_completion_time_error_with_fetch_error_returns_error_estimation(
+        self, service
+    ):
         """完了時間推定エラーのテスト."""
         service.fetch_single_stock = Mock(
             side_effect=StockDataFetchError("エラー")
