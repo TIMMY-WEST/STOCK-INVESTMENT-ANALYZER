@@ -17,17 +17,23 @@ class TestStockDataValidator:
         """バリデーターインスタンス."""
         return StockDataValidator()
 
-    def test_is_valid_stock_code_valid(self, validator):
+    def test_stock_data_validator_validate_symbol_with_valid_symbol_returns_true(
+        self, validator
+    ):
         """有効な銘柄コードのテスト."""
         assert validator.is_valid_stock_code("7203.T") is True
         assert validator.is_valid_stock_code("AAPL") is True
         assert validator.is_valid_stock_code("1234.T") is True
 
-    def test_is_valid_stock_code_invalid(self, validator):
+    def test_stock_data_validator_validate_symbol_with_invalid_symbol_returns_false(
+        self, validator
+    ):
         """無効な銘柄コードのテスト."""
         assert validator.is_valid_stock_code("") is False
         assert validator.is_valid_stock_code(None) is False
-        assert validator.is_valid_stock_code("123A") is False  # 数字+A形式は無効
+        assert (
+            validator.is_valid_stock_code("123A") is False
+        )  # 数字+A形式は無効
         assert validator.is_valid_stock_code("!@#$") is False  # 特殊文字は無効
 
     def test_format_symbol_for_yahoo(self, validator):
@@ -102,10 +108,46 @@ class TestStockDataValidator:
         from app.services.stock_data.validator import StockDataValidationError
 
         # 空のDataFrame
-        with pytest.raises(StockDataValidationError, match="データが取得できませんでした"):
+        with pytest.raises(
+            StockDataValidationError, match="データが取得できませんでした"
+        ):
             validator.validate_dataframe_structure(pd.DataFrame(), "7203.T")
 
         # 必要な列が不足
         df_missing_cols = pd.DataFrame({"Open": [100.0], "High": [105.0]})
-        with pytest.raises(StockDataValidationError, match="無効な価格データです"):
+        with pytest.raises(
+            StockDataValidationError, match="無効な価格データです"
+        ):
             validator.validate_dataframe_structure(df_missing_cols, "7203.T")
+
+    def test_stock_data_validator_validate_data_with_valid_data_returns_validation_success(
+        self, validator
+    ):
+        """有効なデータのバリデーションテスト."""
+        df = pd.DataFrame(
+            {
+                "Open": [100.0],
+                "High": [105.0],
+                "Low": [99.0],
+                "Close": [103.0],
+                "Volume": [1000000],
+            },
+            index=pd.date_range("2023-01-01", periods=1),
+        )
+        assert validator.is_valid_price_data(df) is True
+
+    def test_stock_data_validator_validate_data_with_invalid_data_returns_validation_error(
+        self, validator
+    ):
+        """無効なデータのバリデーションテスト."""
+        df = pd.DataFrame(
+            {
+                "Open": [100.0],
+                "High": [105.0],
+                "Low": [99.0],
+                "Close": [103.0],
+                # Volume列が不足
+            },
+            index=pd.date_range("2023-01-01", periods=1),
+        )
+        assert validator.is_valid_price_data(df) is False

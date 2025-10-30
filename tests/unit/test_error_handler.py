@@ -34,19 +34,25 @@ class TestErrorHandler:
 
     # ===== エラー分類テスト =====
 
-    def test_classify_timeout_error_as_temporary(self, error_handler):
+    def test_classify_timeout_error_with_timeout_exception_returns_temporary(
+        self, error_handler
+    ):
         """タイムアウトエラーを一時的エラーとして分類."""
         error = Timeout("Request timed out")
         error_type = error_handler.classify_error(error)
         assert error_type == ErrorType.TEMPORARY
 
-    def test_classify_connection_error_as_temporary(self, error_handler):
+    def test_classify_connection_error_with_connection_exception_returns_temporary(
+        self, error_handler
+    ):
         """接続エラーを一時的エラーとして分類."""
         error = ConnectionError("Failed to connect")
         error_type = error_handler.classify_error(error)
         assert error_type == ErrorType.TEMPORARY
 
-    def test_classify_429_as_temporary(self, error_handler):
+    def test_classify_429_with_rate_limit_returns_temporary(
+        self, error_handler
+    ):
         """429エラー（Rate Limit）を一時的エラーとして分類."""
         # HTTPErrorのモック作成
         response_mock = Mock()
@@ -57,7 +63,9 @@ class TestErrorHandler:
         error_type = error_handler.classify_error(error)
         assert error_type == ErrorType.TEMPORARY
 
-    def test_classify_503_as_temporary(self, error_handler):
+    def test_classify_503_with_service_unavailable_returns_temporary(
+        self, error_handler
+    ):
         """503エラー（Service Unavailable）を一時的エラーとして分類."""
         response_mock = Mock()
         response_mock.status_code = 503
@@ -67,7 +75,9 @@ class TestErrorHandler:
         error_type = error_handler.classify_error(error)
         assert error_type == ErrorType.TEMPORARY
 
-    def test_classify_404_as_permanent(self, error_handler):
+    def test_classify_404_with_not_found_returns_permanent(
+        self, error_handler
+    ):
         """404エラーを永続的エラーとして分類."""
         response_mock = Mock()
         response_mock.status_code = 404
@@ -189,7 +199,9 @@ class TestErrorHandler:
         assert report["statistics"]["temporary_errors"] == 2
         assert report["statistics"]["permanent_errors"] == 1
 
-    def test_clear_error_records(self, error_handler):
+    def test_error_handler_clear_error_records_with_existing_records_returns_empty_state(
+        self, error_handler
+    ):
         """エラー記録がクリアされる."""
         error_handler.handle_error(
             Timeout("timeout"), "7203.T", {"retry_count": 0}

@@ -15,7 +15,7 @@ from app.api.swagger import swagger_bp
 class TestSwaggerAPI:
     """Swagger UI APIのテストクラス."""
 
-    def test_swagger_ui_page(self, client):
+    def test_swagger_ui_page_with_request_returns_html_content(self, client):
         """Swagger UIページのテスト."""
         response = client.get("/api/docs/")
 
@@ -28,7 +28,9 @@ class TestSwaggerAPI:
         assert "Stock Investment Analyzer API Documentation" in html_content
         assert "SwaggerUIBundle" in html_content
 
-    def test_openapi_json_endpoint(self, client):
+    def test_swagger_openapi_json_with_request_returns_valid_spec(
+        self, client
+    ):
         """OpenAPI仕様書JSONエンドポイントのテスト."""
         response = client.get("/api/docs/openapi.json")
 
@@ -50,7 +52,9 @@ class TestSwaggerAPI:
         assert openapi_spec["info"]["title"] == "Stock Investment Analyzer API"
         assert openapi_spec["info"]["version"] == "1.0.0"
 
-    def test_openapi_yaml_endpoint(self, client):
+    def test_swagger_openapi_yaml_with_request_returns_valid_spec(
+        self, client
+    ):
         """OpenAPI仕様書YAMLエンドポイントのテスト."""
         response = client.get("/api/docs/openapi.yaml")
 
@@ -67,7 +71,9 @@ class TestSwaggerAPI:
         assert "paths" in openapi_spec
         assert "components" in openapi_spec
 
-    def test_redoc_page(self, client):
+    def test_swagger_redoc_page_with_request_returns_html_content(
+        self, client
+    ):
         """ReDocページのテスト."""
         response = client.get("/api/docs/redoc/")
 
@@ -83,7 +89,9 @@ class TestSwaggerAPI:
         )
         assert "redoc.standalone.js" in html_content
 
-    def test_docs_health_endpoint(self, client):
+    def test_swagger_docs_health_with_request_returns_healthy_status(
+        self, client
+    ):
         """ドキュメントサービスヘルスチェックエンドポイントのテスト."""
         response = client.get("/api/docs/health")
 
@@ -95,7 +103,9 @@ class TestSwaggerAPI:
         assert health_data["data"]["service"] == "swagger-docs"
         assert health_data["data"]["status"] == "healthy"
 
-    def test_openapi_spec_content_validation(self, client):
+    def test_swagger_openapi_spec_content_with_validation_returns_proper_structure(
+        self, client
+    ):
         """OpenAPI仕様書の内容詳細検証."""
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
@@ -123,7 +133,9 @@ class TestSwaggerAPI:
         assert "/api/system/health-check" in paths
         assert "/api/system/database/connection" in paths
 
-    def test_openapi_spec_components_validation(self, client):
+    def test_swagger_openapi_spec_components_with_validation_returns_proper_schemas(
+        self, client
+    ):
         """OpenAPI仕様書のコンポーネント検証."""
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
@@ -152,19 +164,25 @@ class TestSwaggerAPI:
         assert "NotFound" in responses
         assert "InternalServerError" in responses
 
-    def test_swagger_blueprint_registration(self, app):
+    def test_swagger_blueprint_registration_with_app_returns_proper_registration(
+        self, app
+    ):
         """Swagger UIブループリントの登録確認."""
         # ブループリントが正しく登録されているか確認
         blueprint_names = [bp.name for bp in app.blueprints.values()]
         assert "swagger" in blueprint_names
 
-    def test_swagger_error_handling(self, client):
+    def test_swagger_error_handling_with_nonexistent_endpoint_returns_not_found(
+        self, client
+    ):
         """Swagger UIのエラーハンドリングテスト."""
         # 存在しないエンドポイントへのアクセス
         response = client.get("/api/docs/nonexistent")
         assert response.status_code == 404
 
-    def test_openapi_spec_security_definitions(self, client):
+    def test_swagger_openapi_spec_security_with_definitions_returns_proper_schemes(
+        self, client
+    ):
         """OpenAPI仕様書のセキュリティ定義検証."""
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
@@ -178,7 +196,9 @@ class TestSwaggerAPI:
             # 現在は認証なしだが、将来的にAPIキーやJWTが追加される可能性
             assert isinstance(security_schemes, dict)
 
-    def test_openapi_spec_tags_validation(self, client):
+    def test_swagger_openapi_spec_tags_with_validation_returns_proper_tags(
+        self, client
+    ):
         """OpenAPI仕様書のタグ検証."""
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
@@ -194,7 +214,9 @@ class TestSwaggerAPI:
         assert "銘柄マスター" in tag_names
         assert "システム監視" in tag_names
 
-    def test_content_type_headers(self, client):
+    def test_swagger_content_type_headers_with_requests_returns_proper_headers(
+        self, client
+    ):
         """レスポンスのContent-Typeヘッダー検証."""
         # Swagger UIページ
         response = client.get("/api/docs/")
@@ -212,7 +234,9 @@ class TestSwaggerAPI:
         response = client.get("/api/docs/redoc")
         assert "text/html" in response.content_type
 
-    def test_openapi_spec_examples_validation(self, client):
+    def test_swagger_openapi_spec_examples_with_validation_returns_proper_samples(
+        self, client
+    ):
         """OpenAPI仕様書のサンプルデータ検証."""
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()

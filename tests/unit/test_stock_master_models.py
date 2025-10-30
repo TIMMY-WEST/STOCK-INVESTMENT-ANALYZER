@@ -79,7 +79,9 @@ class TestStockMasterTableStructure:
             "stock_master_updates" in tables
         ), "stock_master_updates テーブルが存在しません"
 
-    def test_stock_master_columns(self, engine):
+    def test_stock_master_columns_with_database_schema_returns_expected_columns(
+        self, engine
+    ):
         """stock_master テーブルのカラムを検証."""
         inspector = inspect(engine)
         columns = {
@@ -113,7 +115,9 @@ class TestStockMasterTableStructure:
         )
         assert stock_code_unique, "stock_code にユニーク制約が設定されていません"
 
-    def test_stock_master_indexes(self, engine):
+    def test_stock_master_indexes_with_database_schema_returns_expected_indexes(
+        self, engine
+    ):
         """stock_master テーブルのインデックスを検証."""
         inspector = inspect(engine)
         indexes = {
@@ -129,7 +133,9 @@ class TestStockMasterTableStructure:
 class TestStockMasterCRUD:
     """StockMaster モデルのCRUD操作テスト."""
 
-    def test_create_stock_master(self, session, clean_stock_master_tables):
+    def test_stock_master_create_with_valid_data_returns_saved_record(
+        self, session, clean_stock_master_tables
+    ):
         """銘柄マスタの作成テスト."""
         stock = StockMaster(
             stock_code="7203",
@@ -171,7 +177,9 @@ class TestStockMasterCRUD:
 
         session.rollback()
 
-    def test_update_stock_master(self, session, clean_stock_master_tables):
+    def test_stock_master_update_with_modified_data_returns_updated_record(
+        self, session, clean_stock_master_tables
+    ):
         """銘柄マスタの更新テスト."""
         stock = StockMaster(
             stock_code="7203", stock_name="トヨタ自動車", is_active=1
@@ -191,7 +199,9 @@ class TestStockMasterCRUD:
         assert result.stock_name == "トヨタ自動車株式会社"
         assert result.market_category == "プライム"
 
-    def test_deactivate_stock(self, session, clean_stock_master_tables):
+    def test_stock_master_deactivate_stock_with_active_record_returns_inactive_status(
+        self, session, clean_stock_master_tables
+    ):
         """銘柄の無効化テスト."""
         stock = StockMaster(
             stock_code="7203", stock_name="トヨタ自動車", is_active=1
@@ -209,7 +219,9 @@ class TestStockMasterCRUD:
         )
         assert result.is_active == 0
 
-    def test_to_dict_method(self, session, clean_stock_master_tables):
+    def test_stock_master_to_dict_method_with_complete_data_returns_formatted_dictionary(
+        self, session, clean_stock_master_tables
+    ):
         """to_dict メソッドのテスト."""
         stock = StockMaster(
             stock_code="7203",
@@ -236,7 +248,9 @@ class TestStockMasterCRUD:
 class TestStockMasterUpdateCRUD:
     """StockMasterUpdate モデルのCRUD操作テスト."""
 
-    def test_create_update_record(self, session, clean_stock_master_tables):
+    def test_stock_master_update_create_update_record_with_valid_data_returns_saved_record(
+        self, session, clean_stock_master_tables
+    ):
         """更新履歴レコードの作成テスト."""
         update_record = StockMasterUpdate(
             update_type="manual",
@@ -259,7 +273,9 @@ class TestStockMasterUpdateCRUD:
         assert result.removed_stocks == 5
         assert result.status == "success"
 
-    def test_failed_update_record(self, session, clean_stock_master_tables):
+    def test_stock_master_update_failed_update_record_with_error_data_returns_failed_status(
+        self, session, clean_stock_master_tables
+    ):
         """失敗した更新履歴レコードのテスト."""
         update_record = StockMasterUpdate(
             update_type="scheduled",

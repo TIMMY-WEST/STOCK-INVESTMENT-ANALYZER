@@ -13,7 +13,9 @@ from app.services.bulk.bulk_service import ProgressTracker
 class TestProgressTracker:
     """進捗トラッカーのテスト."""
 
-    def test_initialization(self):
+    def test_progress_tracker_initialization_with_total_count_sets_initial_values(
+        self,
+    ):
         """初期化のテスト."""
         tracker = ProgressTracker(total=100)
 
@@ -24,7 +26,7 @@ class TestProgressTracker:
         assert tracker.current_symbol is None
         assert len(tracker.error_details) == 0
 
-    def test_update_success(self):
+    def test_progress_tracker_update_with_success_increments_counters(self):
         """成功時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
@@ -45,7 +47,7 @@ class TestProgressTracker:
         assert sum(tracker.records_fetched_list) == 50
         assert sum(tracker.records_saved_list) == 50
 
-    def test_update_failed(self):
+    def test_progress_tracker_update_with_failure_records_error_details(self):
         """失敗時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
@@ -61,7 +63,9 @@ class TestProgressTracker:
         assert tracker.error_details[0]["symbol"] == "9999.T"
         assert "Connection timeout" in tracker.error_details[0]["error"]
 
-    def test_get_progress(self):
+    def test_progress_tracker_get_progress_with_multiple_updates_returns_metrics(
+        self,
+    ):
         """進捗情報取得のテスト."""
         tracker = ProgressTracker(total=10)
 
@@ -99,7 +103,9 @@ class TestProgressTracker:
         assert progress["performance"]["total_records_fetched"] == 250
         assert progress["performance"]["total_records_saved"] == 225
 
-    def test_metrics_calculation(self):
+    def test_progress_tracker_metrics_calculation_with_mixed_results_returns_accurate_statistics(
+        self,
+    ):
         """メトリクス計算のテスト."""
         tracker = ProgressTracker(total=20)
 
@@ -139,7 +145,9 @@ class TestProgressTracker:
         )  # 15 * 50
         assert progress["performance"]["total_records_saved"] == 720  # 15 * 48
 
-    def test_get_summary(self):
+    def test_progress_tracker_get_summary_with_completed_tasks_returns_comprehensive_summary(
+        self,
+    ):
         """サマリー取得のテスト."""
         tracker = ProgressTracker(total=5)
 
@@ -162,7 +170,9 @@ class TestProgressTracker:
         assert "throughput" in summary
         assert "performance" in summary
 
-    def test_empty_metrics(self):
+    def test_progress_tracker_empty_metrics_with_no_processed_items_returns_zero_values(
+        self,
+    ):
         """空のメトリクスのテスト."""
         tracker = ProgressTracker(total=10)
 
@@ -175,7 +185,9 @@ class TestProgressTracker:
         assert progress["performance"]["total_records_fetched"] == 0
         assert progress["performance"]["total_records_saved"] == 0
 
-    def test_eta_calculation(self):
+    def test_progress_tracker_eta_calculation_with_partial_completion_returns_estimated_time(
+        self,
+    ):
         """ETA計算のテスト."""
         tracker = ProgressTracker(total=10)
 

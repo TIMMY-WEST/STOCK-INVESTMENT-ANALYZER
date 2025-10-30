@@ -23,7 +23,7 @@ class TestJPXStockService:
         """各テストメソッドの前に実行される初期化処理."""
         self.service = JPXStockService()
 
-    def test_init(self):
+    def test_init_with_default_config_returns_service_instance(self):
         """初期化のテスト."""
         assert (
             self.service.JPX_STOCK_LIST_URL
@@ -34,7 +34,9 @@ class TestJPXStockService:
 
     @patch("app.services.jpx.jpx_stock_service.requests.Session.get")
     @patch("app.services.jpx.jpx_stock_service.pd.read_excel")
-    def test_fetch_jpx_stock_list_success(self, mock_read_excel, mock_get):
+    def test_fetch_jpx_stock_list_success_with_valid_response_returns_dataframe(
+        self, mock_read_excel, mock_get
+    ):
         """JPX銘柄一覧取得の成功テスト."""
         # モックレスポンスを設定
         mock_response = Mock()
@@ -75,7 +77,9 @@ class TestJPXStockService:
         mock_read_excel.assert_called_once()
 
     @patch("app.services.jpx.jpx_stock_service.requests.Session.get")
-    def test_fetch_jpx_stock_list_download_error(self, mock_get):
+    def test_fetch_jpx_stock_list_download_error_with_connection_error_raises_jpx_download_error(
+        self, mock_get
+    ):
         """JPX銘柄一覧取得のダウンロードエラーテスト."""
         # リクエストエラーを発生させる
         mock_get.side_effect = requests.exceptions.RequestException(
@@ -89,7 +93,9 @@ class TestJPXStockService:
 
     @patch("app.services.jpx.jpx_stock_service.requests.Session.get")
     @patch("app.services.jpx.jpx_stock_service.pd.read_excel")
-    def test_fetch_jpx_stock_list_parse_error(self, mock_read_excel, mock_get):
+    def test_fetch_jpx_stock_list_parse_error_with_invalid_excel_raises_jpx_parse_error(
+        self, mock_read_excel, mock_get
+    ):
         """JPX銘柄一覧取得のパースエラーテスト."""
         # モックレスポンスを設定
         mock_response = Mock()
@@ -105,7 +111,9 @@ class TestJPXStockService:
 
         assert "JPXデータの処理に失敗しました" in str(exc_info.value)
 
-    def test_normalize_jpx_data_success(self):
+    def test_normalize_jpx_data_success_with_valid_dataframe_returns_normalized_data(
+        self,
+    ):
         """JPXデータ正規化の成功テスト."""
         # テスト用のDataFrameを作成
         input_df = pd.DataFrame(
@@ -137,7 +145,9 @@ class TestJPXStockService:
         assert result[0]["sector_name_33"] == "水産・農林業"
         assert "data_date" in result[0]
 
-    def test_normalize_jpx_data_minimal_columns(self):
+    def test_normalize_jpx_data_minimal_columns_with_basic_data_returns_normalized_data(
+        self,
+    ):
         """最小限のカラムでのJPXデータ正規化テスト."""
         # 最小限のカラムのみのDataFrame
         test_data = pd.DataFrame(
@@ -155,7 +165,9 @@ class TestJPXStockService:
         assert result[1]["stock_name"] == "日本水産"
         assert result[0]["sector_code_33"] is None
 
-    def test_normalize_jpx_data_no_required_columns(self):
+    def test_normalize_jpx_data_no_required_columns_with_unknown_columns_returns_fallback_data(
+        self,
+    ):
         """必要な列がない場合でもフォールバックで処理されることを確認."""
         # 必要な列がないDataFrameを作成
         input_df = pd.DataFrame(
@@ -174,7 +186,7 @@ class TestJPXStockService:
 
     @patch("app.services.jpx.jpx_stock_service.get_db_session")
     @patch.object(JPXStockService, "fetch_jpx_stock_list")
-    def test_update_stock_master_success(
+    def test_update_stock_master_success_with_valid_data_returns_update_result(
         self, mock_fetch, mock_get_db_session
     ):
         """銘柄マスタ更新の成功テスト."""
@@ -226,7 +238,9 @@ class TestJPXStockService:
         assert result["removed_stocks"] == 0
 
     @patch.object(JPXStockService, "fetch_jpx_stock_list")
-    def test_update_stock_master_fetch_error(self, mock_fetch):
+    def test_update_stock_master_fetch_error_with_download_error_raises_jpx_service_error(
+        self, mock_fetch
+    ):
         """銘柄マスタ更新のフェッチエラーテスト."""
         # フェッチエラーを発生させる
         mock_fetch.side_effect = JPXDownloadError("Download failed")
@@ -237,7 +251,9 @@ class TestJPXStockService:
         assert "銘柄マスタの更新に失敗しました" in str(exc_info.value)
 
     @patch("app.services.jpx.jpx_stock_service.get_db_session")
-    def test_get_stock_list_success(self, mock_get_db_session):
+    def test_get_stock_list_success_with_valid_data_returns_stock_list(
+        self, mock_get_db_session
+    ):
         """銘柄一覧取得の成功テスト."""
         # モックセッションを設定
         mock_session = MagicMock()
@@ -279,7 +295,9 @@ class TestJPXStockService:
         assert result["stocks"][1]["stock_code"] == "1332"
 
     @patch("app.services.jpx.jpx_stock_service.get_db_session")
-    def test_get_stock_list_with_filters(self, mock_get_db_session):
+    def test_get_stock_list_with_filters_with_filter_params_returns_filtered_list(
+        self, mock_get_db_session
+    ):
         """フィルタ付き銘柄一覧取得のテスト."""
         # モックセッションを設定
         mock_session = MagicMock()
@@ -306,7 +324,9 @@ class TestJPXStockService:
         mock_session.query.return_value.filter.assert_called()
 
     @patch("app.services.jpx.jpx_stock_service.get_db_session")
-    def test_get_stock_list_database_error(self, mock_get_db_session):
+    def test_get_stock_list_database_error_with_connection_error_raises_jpx_service_error(
+        self, mock_get_db_session
+    ):
         """銘柄一覧取得のデータベースエラーテスト."""
         # データベースエラーを発生させる
         mock_get_db_session.side_effect = Exception(

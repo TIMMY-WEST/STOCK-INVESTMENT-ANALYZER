@@ -21,21 +21,37 @@ from app.utils.timeframe_utils import (
 )
 
 
+@pytest.fixture
+def mock_yfinance_data():
+    """モックyfinanceデータ (モジュールスコープ)."""
+    data = {
+        "Open": [100.0, 101.0, 102.0],
+        "High": [105.0, 106.0, 107.0],
+        "Low": [99.0, 100.0, 101.0],
+        "Close": [103.0, 104.0, 105.0],
+        "Volume": [1000000, 1100000, 1200000],
+    }
+    index = pd.date_range("2024-01-01", periods=3, freq="D")
+    return pd.DataFrame(data, index=index)
+
+
 class TestTimeframeUtils:
     """時間軸ユーティリティのテスト."""
 
-    def test_validate_interval_valid(self):
+    def test_validate_interval_valid_with_valid_interval_returns_true(self):
         """有効な時間軸の検証."""
         assert validate_interval("1d") is True
         assert validate_interval("1h") is True
         assert validate_interval("1m") is True
 
-    def test_validate_interval_invalid(self):
+    def test_validate_interval_invalid_with_invalid_interval_returns_false(
+        self,
+    ):
         """無効な時間軸の検証."""
         assert validate_interval("invalid") is False
         assert validate_interval("") is False
 
-    def test_get_model_for_interval(self):
+    def test_get_model_for_interval_with_valid_interval_returns_model(self):
         """時間軸に対応するモデルの取得."""
         from app.models import Stocks1d, Stocks1h, Stocks1m
 
@@ -43,12 +59,14 @@ class TestTimeframeUtils:
         assert get_model_for_interval("1h") == Stocks1h
         assert get_model_for_interval("1m") == Stocks1m
 
-    def test_get_model_for_interval_invalid(self):
+    def test_get_model_for_interval_invalid_with_invalid_interval_raises_error(
+        self,
+    ):
         """無効な時間軸でエラー."""
         with pytest.raises(ValueError):
             get_model_for_interval("invalid")
 
-    def test_get_all_intervals(self):
+    def test_get_all_intervals_with_valid_config_returns_all_intervals(self):
         """全時間軸の取得."""
         intervals = get_all_intervals()
         assert "1m" in intervals
@@ -65,21 +83,8 @@ class TestStockDataFetcher:
         """フェッチャーインスタンス."""
         return StockDataFetcher()
 
-    @pytest.fixture
-    def mock_yfinance_data(self):
-        """モックyfinanceデータ."""
-        data = {
-            "Open": [100.0, 101.0, 102.0],
-            "High": [105.0, 106.0, 107.0],
-            "Low": [99.0, 100.0, 101.0],
-            "Close": [103.0, 104.0, 105.0],
-            "Volume": [1000000, 1100000, 1200000],
-        }
-        index = pd.date_range("2024-01-01", periods=3, freq="D")
-        return pd.DataFrame(data, index=index)
-
     @patch("app.services.stock_data.fetcher.yf.Ticker")
-    def test_fetch_stock_data_success(
+    def test_fetch_stock_data_success_with_valid_symbol_returns_data(
         self, mock_ticker, fetcher, mock_yfinance_data
     ):
         """データ取得成功."""
@@ -92,7 +97,9 @@ class TestStockDataFetcher:
         mock_ticker.return_value.history.assert_called_once()
 
     @patch("app.services.stock_data.fetcher.yf.Ticker")
-    def test_fetch_stock_data_empty(self, mock_ticker, fetcher):
+    def test_fetch_stock_data_empty_with_invalid_symbol_raises_error(
+        self, mock_ticker, fetcher
+    ):
         """空データの場合エラー."""
         mock_ticker.return_value.history.return_value = pd.DataFrame()
 
@@ -100,12 +107,16 @@ class TestStockDataFetcher:
             fetcher.fetch_stock_data("INVALID", "1d", period="1d")
 
     @patch("app.services.stock_data.fetcher.yf.Ticker")
-    def test_fetch_stock_data_invalid_interval(self, mock_ticker, fetcher):
+    def test_fetch_stock_data_invalid_interval_with_invalid_interval_raises_error(
+        self, mock_ticker, fetcher
+    ):
         """無効な時間軸でエラー."""
         with pytest.raises(StockDataFetchError):
             fetcher.fetch_stock_data("7203.T", "invalid")
 
-    def test_convert_to_dict_daily(self, fetcher, mock_yfinance_data):
+    def test_convert_to_dict_daily_with_valid_dataframe_returns_dict(
+        self, fetcher, mock_yfinance_data
+    ):
         """DataFrameから辞書への変換（日足）."""
         from app.services.stock_data.converter import StockDataConverter
 
@@ -118,7 +129,9 @@ class TestStockDataFetcher:
         assert "close" in records[0]
         assert records[0]["open"] == 100.0
 
-    def test_convert_to_dict_intraday(self, fetcher):
+    def test_convert_to_dict_intraday_with_valid_dataframe_returns_dict(
+        self, fetcher
+    ):
         """DataFrameから辞書への変換（分足）."""
         from app.services.stock_data.converter import StockDataConverter
 
@@ -170,13 +183,29 @@ class TestStockDataSaver:
             },
         ]
 
-    def test_save_stock_data_invalid_interval(self, saver, sample_data_list):
+    def test_save_stock_data_invalid_interval_with_invalid_interval_raises_error(
+        self, saver, sample_data_list
+    ):
         """無効な時間軸でエラー."""
         with pytest.raises(ValueError):
             saver.save_stock_data("7203.T", "invalid", sample_data_list)
 
     @patch("app.services.stock_data.saver.get_db_session")
-    def test_save_stock_data_success(
+    def test_stock_data_service_save_data_with_valid_data_returns_success(
+        self, mock_session, saver, sample_data_list
+    ):
+        """データ保存成功."""
+        mock_sess = MagicMock()
+        mock_session.return_value.__enter__.return_value = mock_sess
+
+        result = saver.save_stock_data("7203.T", "1d", sample_data_list)
+
+        assert result["symbol"] == "7203.T"
+        assert result["interval"] == "1d"
+        assert result["total"] == 2
+
+    @patch("app.services.stock_data.saver.get_db_session")
+    def test_stock_data_service_validation_with_invalid_data_raises_validation_error(
         self, mock_session, saver, sample_data_list
     ):
         """データ保存成功."""
@@ -202,7 +231,7 @@ class TestStockDataOrchestrator:
     @patch.object(StockDataConverter, "convert_to_dict")
     @patch.object(StockDataSaver, "save_stock_data")
     @patch.object(StockDataOrchestrator, "check_data_integrity")
-    def test_fetch_and_save_success(
+    def test_fetch_and_save_success_with_valid_data_returns_success(
         self, mock_integrity, mock_save, mock_convert, mock_fetch, orchestrator
     ):
         """取得・保存の統合処理成功."""
@@ -250,7 +279,9 @@ class TestStockDataOrchestrator:
         assert "save_result" in result
         assert "integrity_check" in result
 
-    def test_check_data_integrity(self, orchestrator):
+    def test_check_data_integrity_with_valid_data_returns_integrity_result(
+        self, orchestrator
+    ):
         """整合性チェック."""
         with patch.object(
             orchestrator.saver, "count_records", return_value=10
@@ -264,3 +295,49 @@ class TestStockDataOrchestrator:
             assert result["valid"] is True
             assert result["record_count"] == 10
             assert result["latest_date"] is not None
+
+    def test_stock_data_service_initialization_with_valid_config_returns_service_instance(
+        self,
+    ):
+        """有効な時間軸の検証."""
+        assert validate_interval("1d") is True
+        assert validate_interval("1h") is True
+        assert validate_interval("1m") is True
+
+    def test_stock_data_service_fetch_data_with_valid_symbol_returns_stock_data(
+        self, mock_yfinance_data
+    ):
+        """DataFrameから辞書への変換（日足）."""
+        from app.services.stock_data.converter import StockDataConverter
+
+        converter = StockDataConverter()
+        records = converter.convert_to_dict(mock_yfinance_data, "1d")
+
+        assert len(records) == 3
+        assert "date" in records[0]
+        assert "open" in records[0]
+        assert "close" in records[0]
+        assert records[0]["open"] == 100.0
+
+    def test_stock_data_service_fetch_data_with_invalid_symbol_raises_error(
+        self,
+    ):
+        """DataFrameから辞書への変換（分足）."""
+        from app.services.stock_data.converter import StockDataConverter
+
+        converter = StockDataConverter()
+        data = {
+            "Open": [100.0],
+            "High": [105.0],
+            "Low": [99.0],
+            "Close": [103.0],
+            "Volume": [1000000],
+        }
+        index = pd.date_range("2024-01-01 09:00", periods=1, freq="1min")
+        df = pd.DataFrame(data, index=index)
+
+        records = converter.convert_to_dict(df, "1m")
+
+        assert len(records) == 1
+        assert "datetime" in records[0]
+        assert isinstance(records[0]["datetime"], datetime)

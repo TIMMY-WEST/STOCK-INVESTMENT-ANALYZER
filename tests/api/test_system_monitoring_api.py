@@ -27,7 +27,9 @@ class TestDatabaseConnectionTest:
     """データベース接続テストのテストクラス."""
 
     @patch("app.api.system_monitoring.get_db_session")
-    def test_db_connection_success(self, mock_get_session, client):
+    def test_system_monitoring_db_connection_with_valid_session_returns_success(
+        self, mock_get_session, client
+    ):
         """正常系: データベース接続テスト成功."""
         # モックセッションの設定
         mock_session = MagicMock()
@@ -66,7 +68,9 @@ class TestDatabaseConnectionTest:
         assert "timestamp" in data["meta"]
 
     @patch("app.api.system_monitoring.get_db_session")
-    def test_db_connection_failure(self, mock_get_session, client):
+    def test_system_monitoring_db_connection_with_error_returns_internal_error(
+        self, mock_get_session, client
+    ):
         """異常系: データベース接続テスト失敗."""
         # エラーをスローするモックを設定
         mock_get_session.side_effect = Exception("接続エラー")
@@ -86,7 +90,9 @@ class TestAPIConnectionTest:
     """Yahoo Finance API接続テストのテストクラス."""
 
     @patch("app.api.system_monitoring.StockDataFetcher")
-    def test_api_connection_success(self, mock_fetcher_class, client):
+    def test_system_monitoring_api_connection_with_valid_symbol_returns_success(
+        self, mock_fetcher_class, client
+    ):
         """正常系: Yahoo Finance API接続テスト成功."""
         # モックの設定
         mock_fetcher = MagicMock()
@@ -111,7 +117,9 @@ class TestAPIConnectionTest:
         assert data["data"]["data_available"] is True
 
     @patch("app.api.system_monitoring.StockDataFetcher")
-    def test_api_connection_no_data(self, mock_fetcher_class, client):
+    def test_system_monitoring_api_connection_with_invalid_symbol_returns_not_found(
+        self, mock_fetcher_class, client
+    ):
         """異常系: データ取得失敗."""
         # モックの設定（データなし）
         mock_fetcher = MagicMock()
@@ -131,7 +139,9 @@ class TestAPIConnectionTest:
         assert "銘柄データを取得できませんでした" in data["error"]["message"]
 
     @patch("app.api.system_monitoring.StockDataFetcher")
-    def test_api_connection_failure(self, mock_fetcher_class, client):
+    def test_system_monitoring_api_connection_with_error_returns_internal_error(
+        self, mock_fetcher_class, client
+    ):
         """異常系: API接続エラー."""
         # エラーをスローするモックを設定
         mock_fetcher_class.side_effect = Exception("API接続エラー")
@@ -152,7 +162,7 @@ class TestHealthCheck:
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     @patch("app.api.system_monitoring.get_db_session")
-    def test_health_check_all_healthy(
+    def test_system_monitoring_health_check_with_all_services_healthy_returns_success(
         self, mock_get_session, mock_fetcher_class, client
     ):
         """正常系: 全てのサービスが正常."""
@@ -181,7 +191,7 @@ class TestHealthCheck:
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     @patch("app.api.system_monitoring.get_db_session")
-    def test_health_check_db_error(
+    def test_system_monitoring_health_check_with_db_error_returns_partial_failure(
         self, mock_get_session, mock_fetcher_class, client
     ):
         """異常系: データベースエラー."""
@@ -204,7 +214,7 @@ class TestHealthCheck:
 
     @patch("app.api.system_monitoring.StockDataFetcher")
     @patch("app.api.system_monitoring.get_db_session")
-    def test_health_check_api_warning(
+    def test_system_monitoring_health_check_with_api_warning_returns_degraded_status(
         self, mock_get_session, mock_fetcher_class, client
     ):
         """正常系: APIから警告（データなし）."""

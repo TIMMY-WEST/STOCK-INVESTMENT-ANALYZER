@@ -26,7 +26,9 @@ class TestES6Modules:
         """templatesディレクトリのパスを取得."""
         return Path(__file__).parent.parent.parent / "app" / "templates"
 
-    def test_app_js_exports(self, static_dir):
+    def test_app_js_exports_with_valid_module_returns_correct_exports(
+        self, static_dir
+    ):
         """app.jsが正しくエクスポートしているかテスト."""
         app_js_path = static_dir / "app.js"
         assert app_js_path.exists(), "app.jsファイルが存在しません"
@@ -35,17 +37,23 @@ class TestES6Modules:
             content = f.read()
 
         # AppStateクラスのエクスポートを確認
-        assert "export class AppState" in content, "AppStateクラスがエクスポートされていません"
+        assert (
+            "export class AppState" in content
+        ), "AppStateクラスがエクスポートされていません"
 
         # Utilsクラスのエクスポートを確認
-        assert "export class Utils" in content, "Utilsクラスがエクスポートされていません"
+        assert (
+            "export class Utils" in content
+        ), "Utilsクラスがエクスポートされていません"
 
         # UIComponentsクラスのエクスポートを確認
         assert (
             "export class UIComponents" in content
         ), "UIComponentsクラスがエクスポートされていません"
 
-    def test_script_js_imports(self, static_dir):
+    def test_script_js_imports_with_valid_modules_returns_correct_imports(
+        self, static_dir
+    ):
         """script.jsが正しくインポートしているかテスト."""
         script_js_path = static_dir / "script.js"
         assert script_js_path.exists(), "script.jsファイルが存在しません"
@@ -65,9 +73,13 @@ class TestES6Modules:
         ), "appStateManagerの使用が確認できません"
 
         # AppStateの直接定義がないことを確認（重複定義の回避）
-        assert "const AppState = {" not in content, "AppStateの重複定義が存在します"
+        assert (
+            "const AppState = {" not in content
+        ), "AppStateの重複定義が存在します"
 
-    def test_jpx_sequential_js_imports(self, static_dir):
+    def test_jpx_sequential_js_imports_with_valid_modules_returns_correct_imports(
+        self, static_dir
+    ):
         """jpx_sequential.jsが正しくインポートしているかテスト."""
         jpx_js_path = static_dir / "jpx_sequential.js"
         assert jpx_js_path.exists(), "jpx_sequential.jsファイルが存在しません"
@@ -81,7 +93,9 @@ class TestES6Modules:
             import_pattern, content
         ), "Utils, UIComponentsのインポートが見つかりません"
 
-    def test_index_html_module_scripts(self, templates_dir):
+    def test_index_html_module_scripts_with_valid_html_returns_correct_scripts(
+        self, templates_dir
+    ):
         """index.htmlでscriptタグにtype="module"が設定されているかテスト."""
         index_html_path = templates_dir / "index.html"
         assert index_html_path.exists(), "index.htmlファイルが存在しません"
@@ -91,7 +105,9 @@ class TestES6Modules:
 
         # app.jsのモジュール読み込みを確認
         app_js_pattern = r'<script\s+type="module"\s+src="[^"]*app\.js[^"]*">'
-        assert re.search(app_js_pattern, content), "app.jsがモジュールとして読み込まれていません"
+        assert re.search(
+            app_js_pattern, content
+        ), "app.jsがモジュールとして読み込まれていません"
 
         # script.jsのモジュール読み込みを確認
         script_js_pattern = (
@@ -109,7 +125,9 @@ class TestES6Modules:
             jpx_js_pattern, content
         ), "jpx_sequential.jsがモジュールとして読み込まれていません"
 
-    def test_no_duplicate_appstate_definitions(self, static_dir):
+    def test_no_duplicate_appstate_definitions_with_modules_returns_unique_definitions(
+        self, static_dir
+    ):
         """AppStateの重複定義がないことを確認."""
         script_js_path = static_dir / "script.js"
 
@@ -126,7 +144,9 @@ class TestES6Modules:
             len(appstate_definitions) <= 1
         ), f"AppStateの定義が複数見つかりました: {appstate_definitions}"
 
-    def test_appstate_usage_consistency(self, static_dir):
+    def test_appstate_usage_consistency_with_modules_returns_consistent_usage(
+        self, static_dir
+    ):
         """AppStateの使用が一貫しているかテスト（AppState.xxx → appState.xxx）."""
         script_js_path = static_dir / "script.js"
 
@@ -143,7 +163,9 @@ class TestES6Modules:
             len(incorrect_usage) == 0
         ), f"AppState.xxxの使用が見つかりました（appState.xxxに変更してください）: {incorrect_usage}"
 
-    def test_es6_module_syntax_validity(self, static_dir):
+    def test_es6_module_syntax_validity_with_files_returns_valid_syntax(
+        self, static_dir
+    ):
         """ES6モジュール構文の妥当性をテスト."""
         files_to_check = ["app.js", "script.js", "jpx_sequential.js"]
 
@@ -157,7 +179,11 @@ class TestES6Modules:
             # 基本的なES6構文チェック
             if filename == "app.js":
                 # exportが存在することを確認
-                assert "export" in content, f"{filename}にexport文が見つかりません"
+                assert (
+                    "export" in content
+                ), f"{filename}にexport文が見つかりません"
             else:
                 # importが存在することを確認
-                assert "import" in content, f"{filename}にimport文が見つかりません"
+                assert (
+                    "import" in content
+                ), f"{filename}にimport文が見つかりません"

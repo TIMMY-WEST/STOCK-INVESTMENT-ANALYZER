@@ -18,7 +18,7 @@ pytestmark = pytest.mark.integration
 class TestErrorHandling:
     """エラーハンドリングテストクラス."""
 
-    def test_fetch_data_invalid_symbol(self, client):
+    def test_fetch_data_with_invalid_symbol_returns_error(self, client):
         """存在しない銘柄コードでのエラーテスト."""
         # 存在しない銘柄コード（無効なフォーマット）でテスト
         invalid_symbols = [
@@ -49,7 +49,7 @@ class TestErrorHandling:
                 assert data["error"]["code"] == "INVALID_SYMBOL"
                 assert "銘柄コード" in data["error"]["message"]
 
-    def test_fetch_data_network_error(self, client):
+    def test_fetch_data_with_network_error_returns_error(self, client):
         """ネットワークエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでConnectionErrorをシミュレート
         with patch(
@@ -74,7 +74,7 @@ class TestErrorHandling:
             assert data["error"]["code"] == "EXTERNAL_API_ERROR"
             assert "データ取得に失敗" in data["error"]["message"]
 
-    def test_fetch_data_timeout_error(self, client):
+    def test_fetch_data_with_timeout_error_returns_error(self, client):
         """タイムアウトエラー時の動作確認テスト."""
         # StockDataFetcherのfetch_stock_dataメソッドでTimeoutErrorをシミュレート
         with patch(
@@ -96,7 +96,7 @@ class TestErrorHandling:
             assert data["status"] == "error"
             assert data["error"]["code"] == "EXTERNAL_API_ERROR"
 
-    def test_fetch_data_database_error(self, client):
+    def test_fetch_data_with_database_error_returns_error(self, client):
         """データベース接続エラー時の動作確認テスト."""
         # StockDataSaverのsave_stock_dataメソッドでDatabaseErrorをシミュレート
         import pandas as pd
@@ -140,7 +140,7 @@ class TestErrorHandling:
                 assert data["error"]["code"] == "EXTERNAL_API_ERROR"
                 assert "データ取得に失敗" in data["error"]["message"]
 
-    def test_get_stocks_invalid_date_format(self, client):
+    def test_get_stocks_with_invalid_date_format_returns_error(self, client):
         """不正な日付フォーマットでのバリデーションテスト."""
         # より明確に無効な日付のみテスト
         invalid_dates = [
@@ -162,7 +162,7 @@ class TestErrorHandling:
                 # 一部の日付は通る可能性があるため、200も許可
                 assert response.status_code == 200
 
-    def test_get_stocks_invalid_limit_values(self, client):
+    def test_get_stocks_with_invalid_limit_values_returns_error(self, client):
         """不正なlimit値でのバリデーションテスト."""
         invalid_limits = [0, -1, -100]
 
@@ -176,7 +176,7 @@ class TestErrorHandling:
             assert data["error"]["code"] == "VALIDATION_ERROR"
             assert "limit" in data["error"]["message"]
 
-    def test_get_stocks_invalid_offset_values(self, client):
+    def test_get_stocks_with_invalid_offset_values_returns_error(self, client):
         """不正なoffset値でのバリデーションテスト."""
         invalid_offsets = [-1, -100]
 

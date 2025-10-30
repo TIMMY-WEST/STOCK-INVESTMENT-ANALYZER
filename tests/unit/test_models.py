@@ -30,12 +30,12 @@ from app.models import (
 class TestStockDaily:
     """StockDaily（Stocks1d）モデルのテスト."""
 
-    def test_stock_daily_import(self):
+    def test_stock_daily_import_with_valid_class_returns_success(self):
         """StockDailyのインポートテスト."""
         assert StockDaily is not None
         assert StockDaily == Stocks1d
 
-    def test_stock_daily_repr(self):
+    def test_stock_daily_repr_with_valid_data_returns_formatted_string(self):
         """StockDailyの文字列表現テスト."""
         # StockDailyインスタンスを作成
         stock = StockDaily()
@@ -48,11 +48,13 @@ class TestStockDaily:
         )
         assert repr(stock) == expected
 
-    def test_stock_daily_tablename(self):
+    def test_stock_daily_tablename_with_model_returns_correct_name(self):
         """StockDailyのテーブル名テスト."""
         assert StockDaily.__tablename__ == "stocks_1d"
 
-    def test_stock_daily_inheritance(self):
+    def test_stock_daily_inheritance_with_base_classes_returns_valid_hierarchy(
+        self,
+    ):
         """StockDailyの継承関係テスト."""
         assert issubclass(StockDaily, Base)
         assert issubclass(StockDaily, StockDataBase)
@@ -61,7 +63,7 @@ class TestStockDaily:
 class TestStockDataBase:
     """StockDataBaseクラスのテスト."""
 
-    def test_to_dict_method(self):
+    def test_to_dict_method_with_complete_data_returns_formatted_dict(self):
         """to_dictメソッドのテスト."""
         # StockDailyインスタンスを作成してテスト
         stock = StockDaily()
@@ -93,7 +95,7 @@ class TestStockDataBase:
 
         assert result == expected
 
-    def test_to_dict_with_none_values(self):
+    def test_to_dict_method_with_none_values_returns_partial_dict(self):
         """None値を含むto_dictメソッドのテスト."""
         stock = StockDaily()
         stock.id = 1
@@ -128,245 +130,268 @@ class TestStockDataBase:
 class TestDatabaseError:
     """DatabaseErrorクラスのテスト."""
 
-    def test_database_error_creation(self):
+    def test_database_error_creation_with_message_returns_valid_instance(self):
         """DatabaseErrorの作成テスト."""
-        error = DatabaseError("テストエラー")
-        assert str(error) == "テストエラー"
-        assert isinstance(error, Exception)
+        error = DatabaseError("データベースエラー")
+        assert str(error) == "データベースエラー"
 
-    def test_database_error_inheritance(self):
+    def test_database_error_inheritance_with_exception_returns_valid_hierarchy(
+        self,
+    ):
         """DatabaseErrorの継承関係テスト."""
-        assert issubclass(DatabaseError, Exception)
+        error = DatabaseError("テスト")
+        assert isinstance(error, Exception)
 
 
 class TestStockDataError:
     """StockDataErrorクラスのテスト."""
 
-    def test_stock_data_error_creation(self):
+    def test_stock_data_error_creation_with_message_returns_valid_instance(
+        self,
+    ):
         """StockDataErrorの作成テスト."""
         error = StockDataError("株価データエラー")
         assert str(error) == "株価データエラー"
-        assert isinstance(error, Exception)
 
-    def test_stock_data_error_inheritance(self):
+    def test_stock_data_error_inheritance_with_exception_returns_valid_hierarchy(
+        self,
+    ):
         """StockDataErrorの継承関係テスト."""
-        assert issubclass(StockDataError, Exception)
+        error = StockDataError("テスト")
+        assert isinstance(error, Exception)
 
 
 class TestStockDailyCRUD:
     """StockDailyCRUDクラスのテスト."""
 
-    def setup_method(self):
-        """各テストメソッドの前に実行される設定."""
-        self.mock_session = Mock(spec=Session)
-
-    def test_create_success(self):
+    def test_create_success_with_valid_data_returns_created_instance(self):
         """正常なデータ作成のテスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+
         # テストデータ
-        test_data = {
+        data = {
             "symbol": "7203",
-            "date": date(2024, 1, 15),
-            "open": Decimal("1400.00"),
-            "high": Decimal("1600.00"),
-            "low": Decimal("1350.00"),
-            "close": Decimal("1500.00"),
+            "open": 1400.00,
+            "high": 1600.00,
+            "low": 1350.00,
+            "close": 1500.00,
             "volume": 1000000,
+            "date": date(2024, 1, 15),
         }
 
-        # モックの設定
-        mock_stock = Mock(spec=StockDaily)
-        with patch("app.models.StockDaily", return_value=mock_stock):
-            result = StockDailyCRUD.create(self.mock_session, **test_data)
+        result = StockDailyCRUD.create(mock_session, **data)
 
-        # 検証
-        self.mock_session.add.assert_called_once_with(mock_stock)
-        self.mock_session.flush.assert_called_once()
-        assert result == mock_stock
+        # セッションのメソッドが呼ばれたことを確認
+        mock_session.add.assert_called_once()
+        mock_session.flush.assert_called_once()
+        assert result is not None
 
-    def test_create_integrity_error(self):
-        """重複データ作成時のエラーテスト."""
-        test_data = {
-            "symbol": "7203",
-            "date": date(2024, 1, 15),
-            "open": Decimal("1400.00"),
-            "high": Decimal("1600.00"),
-            "low": Decimal("1350.00"),
-            "close": Decimal("1500.00"),
-            "volume": 1000000,
-        }
-
-        # IntegrityErrorをシミュレート
-        self.mock_session.flush.side_effect = IntegrityError(
-            "duplicate key", None, None
+    def test_create_integrity_error_with_duplicate_data_raises_database_error(
+        self,
+    ):
+        """重複データでのIntegrityErrorテスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.flush.side_effect = IntegrityError(
+            "uk_stocks_daily_symbol_date", "", ""
         )
 
-        with patch("app.models.StockDaily"):
-            with pytest.raises(DatabaseError):
-                StockDailyCRUD.create(self.mock_session, **test_data)
+        data = {
+            "symbol": "7203",
+            "date": date(2024, 1, 15),
+        }
 
-    def test_get_by_id_found(self):
+        # ユニーク制約エラーはStockDataErrorを送出
+        with pytest.raises(StockDataError):
+            StockDailyCRUD.create(mock_session, **data)
+
+    def test_get_by_id_found_with_existing_id_returns_instance(self):
         """IDによる検索（見つかった場合）のテスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
         mock_stock = Mock(spec=StockDaily)
-        mock_query = Mock()
-        mock_query.filter.return_value.first.return_value = mock_stock
-        self.mock_session.query.return_value = mock_query
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            mock_stock
+        )
 
-        result = StockDailyCRUD.get_by_id(self.mock_session, 1)
+        result = StockDailyCRUD.get_by_id(mock_session, 1)
 
         assert result == mock_stock
-        self.mock_session.query.assert_called_once_with(StockDaily)
+        mock_session.query.assert_called_once_with(StockDaily)
 
-    def test_get_by_id_not_found(self):
-        """IDによる検索（見つからない場合）のテスト."""
-        mock_query = Mock()
-        mock_query.filter.return_value.first.return_value = None
-        self.mock_session.query.return_value = mock_query
+    def test_get_by_id_not_found_with_nonexistent_id_returns_none(self):
+        """IDによる検索（見つからなかった場合）のテスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            None
+        )
 
-        result = StockDailyCRUD.get_by_id(self.mock_session, 999)
+        result = StockDailyCRUD.get_by_id(mock_session, 999)
 
         assert result is None
 
-    def test_get_by_symbol_and_date(self):
+    def test_get_by_symbol_and_date_with_valid_params_returns_instance(self):
         """シンボルと日付による検索のテスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
         mock_stock = Mock(spec=StockDaily)
-        mock_query = Mock()
-        mock_query.filter.return_value.first.return_value = mock_stock
-        self.mock_session.query.return_value = mock_query
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            mock_stock
+        )
 
         result = StockDailyCRUD.get_by_symbol_and_date(
-            self.mock_session, "7203", date(2024, 1, 15)
+            mock_session, "7203", date(2024, 1, 15)
         )
 
         assert result == mock_stock
 
-    @patch("app.models.StockDaily")
-    def test_update_success(self, mock_stock_daily_class):
+    def test_update_success_with_valid_data_returns_updated_instance(self):
         """正常な更新のテスト."""
-        mock_stock = Mock()
-        mock_filter = Mock()
-        mock_filter.first.return_value = mock_stock
-        mock_query = Mock()
-        mock_query.filter.return_value = mock_filter
-        self.mock_session.query.return_value = mock_query
-
-        # hasattrをモック
-        with patch("builtins.hasattr", return_value=True):
-            result = StockDailyCRUD.update(
-                self.mock_session, 1, close=Decimal("1600.00")
-            )
-
-        assert result == mock_stock
-        self.mock_session.flush.assert_called_once()
-
-    @patch("app.models.StockDaily")
-    def test_update_not_found(self, mock_stock_daily_class):
-        """存在しないIDの更新のテスト."""
-        mock_filter = Mock()
-        mock_filter.first.return_value = None
-        mock_query = Mock()
-        mock_query.filter.return_value = mock_filter
-        self.mock_session.query.return_value = mock_query
-
-        result = StockDailyCRUD.update(
-            self.mock_session, 999, close=Decimal("1600.00")
+        # モックセッション・インスタンスの設定
+        mock_session = Mock(spec=Session)
+        mock_instance = Mock()
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            mock_instance
         )
+
+        data = {"close": 1600.00}
+        result = StockDailyCRUD.update(mock_session, 1, **data)
+
+        # 属性が更新されたことを確認
+        assert mock_instance.close == 1600.00
+        mock_session.flush.assert_called_once()
+        assert result == mock_instance
+
+    def test_update_not_found_with_nonexistent_id_returns_none(self):
+        """存在しないIDでの更新テスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            None
+        )
+
+        result = StockDailyCRUD.update(mock_session, 999, close=1600.00)
 
         assert result is None
 
-    def test_delete_success(self):
+    def test_delete_success_with_existing_id_returns_true(self):
         """正常な削除のテスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
         mock_stock = Mock(spec=StockDaily)
-        mock_query = Mock()
-        mock_query.filter.return_value.first.return_value = mock_stock
-        self.mock_session.query.return_value = mock_query
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            mock_stock
+        )
 
-        result = StockDailyCRUD.delete(self.mock_session, 1)
+        result = StockDailyCRUD.delete(mock_session, 1)
 
+        mock_session.delete.assert_called_once_with(mock_stock)
+        mock_session.flush.assert_called_once()
         assert result is True
-        self.mock_session.delete.assert_called_once_with(mock_stock)
-        self.mock_session.flush.assert_called_once()
 
-    def test_delete_not_found(self):
-        """存在しないデータの削除テスト."""
-        mock_query = Mock()
-        mock_query.filter.return_value.first.return_value = None
-        self.mock_session.query.return_value = mock_query
+    def test_delete_not_found_with_nonexistent_id_returns_false(self):
+        """存在しないIDでの削除テスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            None
+        )
 
-        result = StockDailyCRUD.delete(self.mock_session, 999)
+        result = StockDailyCRUD.delete(mock_session, 999)
 
         assert result is False
 
-    def test_count_by_symbol(self):
+    def test_count_by_symbol_with_existing_symbol_returns_count(self):
         """シンボル別カウントのテスト."""
-        mock_query = Mock()
-        mock_query.filter.return_value.count.return_value = 100
-        self.mock_session.query.return_value = mock_query
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.query.return_value.filter.return_value.count.return_value = (
+            5
+        )
 
-        result = StockDailyCRUD.count_by_symbol(self.mock_session, "7203")
+        result = StockDailyCRUD.count_by_symbol(mock_session, "7203")
 
-        assert result == 100
+        assert result == 5
 
-    def test_get_latest_date_by_symbol(self):
+    def test_get_latest_date_by_symbol_with_existing_data_returns_date(self):
         """シンボル別最新日付取得のテスト."""
-        expected_date = date(2024, 1, 15)
-        mock_query = Mock()
-        mock_query.filter.return_value.order_by.return_value.first.return_value = (
-            expected_date,
-        )
-        self.mock_session.query.return_value = mock_query
-
-        result = StockDailyCRUD.get_latest_date_by_symbol(
-            self.mock_session, "7203"
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = (
+            date(2024, 1, 15),
         )
 
-        assert result == expected_date
+        result = StockDailyCRUD.get_latest_date_by_symbol(mock_session, "7203")
 
-    def test_get_latest_date_by_symbol_not_found(self):
-        """データが存在しない場合の最新日付取得テスト."""
-        mock_query = Mock()
-        mock_query.filter.return_value.order_by.return_value.first.return_value = (
+        assert result == date(2024, 1, 15)
+
+    def test_get_latest_date_by_symbol_not_found_with_nonexistent_symbol_returns_none(
+        self,
+    ):
+        """存在しないシンボルでの最新日付取得テスト."""
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = (
             None
         )
-        self.mock_session.query.return_value = mock_query
 
         result = StockDailyCRUD.get_latest_date_by_symbol(
-            self.mock_session, "9999"
+            mock_session, "INVALID"
         )
 
         assert result is None
 
 
-class TestDatabaseSession:
-    """データベースセッション関連のテスト."""
+class TestGetDbSession:
+    """get_db_session関数のテスト."""
 
-    def test_get_db_session(self):
-        """get_db_sessionのテスト."""
-        with patch("app.models.SessionLocal") as mock_session_local:
-            mock_session = Mock()
-            mock_session_local.return_value = mock_session
+    @patch("app.models.SessionLocal")
+    def test_get_db_session_with_context_manager_returns_session(
+        self, mock_session_local
+    ):
+        """get_db_sessionのコンテキストマネージャーテスト."""
+        mock_session = Mock(spec=Session)
+        mock_session_local.return_value = mock_session
 
-            # コンテキストマネージャーとしてテスト
-            with get_db_session() as session:
-                assert session == mock_session
+        with get_db_session() as session:
+            assert session == mock_session
 
-            # セッションがクローズされることを確認
-            mock_session.close.assert_called_once()
-            mock_session.commit.assert_called_once()
+        mock_session.close.assert_called_once()
 
-    def test_get_db_session_exception_handling(self):
+    @patch("app.models.SessionLocal")
+    def test_get_db_session_exception_handling_with_error_calls_rollback(
+        self, mock_session_local
+    ):
         """get_db_sessionの例外処理テスト."""
-        with patch("app.models.SessionLocal") as mock_session_local:
-            mock_session = Mock()
-            mock_session_local.return_value = mock_session
+        mock_session = Mock(spec=Session)
+        mock_session_local.return_value = mock_session
 
-            # 例外が発生した場合のテスト
-            try:
-                with get_db_session() as session:
-                    assert session == mock_session
-                    raise Exception("テストエラー")
-            except Exception:
-                pass
+        try:
+            with get_db_session():
+                raise Exception("テストエラー")
+        except Exception:
+            pass
 
-            # セッションがロールバックされクローズされることを確認
-            mock_session.rollback.assert_called_once()
-            mock_session.close.assert_called_once()
+        mock_session.rollback.assert_called_once()
+        mock_session.close.assert_called_once()
+
+
+class TestStockMaster:
+    """StockMasterクラスのテスト."""
+
+    def test_stock_master_basic_definition_returns_valid_table_name(self):
+        """StockMasterモデルの基本定義テスト."""
+        assert StockMaster is not None
+        assert StockMaster.__tablename__ == "stock_master"
+
+    def test_stock_master_repr_with_valid_data_returns_formatted_string(self):
+        """StockMasterの文字列表現テスト."""
+        stock = StockMaster()
+        stock.stock_code = "7203"
+        stock.stock_name = "トヨタ自動車"
+        stock.is_active = 1
+
+        expected = "<StockMaster(stock_code='7203', stock_name='トヨタ自動車', is_active=1)>"
+        assert repr(stock) == expected

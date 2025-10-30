@@ -17,7 +17,9 @@ from app.models import SessionLocal, engine, get_db_session
 class TestDatabaseConnectionPool(unittest.TestCase):
     """データベース接続プールのテストクラス."""
 
-    def test_engine_has_pool_configuration(self):
+    def test_engine_has_pool_configuration_with_settings_returns_configured_pool(
+        self,
+    ):
         """エンジンにコネクションプール設定があることを確認."""
         # エンジンのプール設定を確認
         pool = engine.pool
@@ -29,17 +31,19 @@ class TestDatabaseConnectionPool(unittest.TestCase):
         # max_overflowの確認（20に設定されているはず）
         self.assertEqual(pool._max_overflow, 20)
 
-    def test_engine_has_pool_pre_ping(self):
+    def test_engine_has_pool_pre_ping_with_setting_returns_enabled(self):
         """pool_pre_pingが有効であることを確認."""
         # pool_pre_pingは接続使用前にpingを実行
         self.assertTrue(engine.pool._pre_ping)
 
-    def test_engine_has_pool_recycle(self):
+    def test_engine_has_pool_recycle_with_setting_returns_configured_time(
+        self,
+    ):
         """pool_recycleが設定されていることを確認."""
         # pool_recycleは3600秒（1時間）に設定
         self.assertEqual(engine.pool._recycle, 3600)
 
-    def test_engine_pool_timeout(self):
+    def test_engine_pool_timeout_with_setting_returns_configured_timeout(self):
         """pool_timeoutが設定されていることを確認."""
         # pool_timeoutは30秒に設定
         self.assertEqual(engine.pool._timeout, 30)
@@ -48,7 +52,7 @@ class TestDatabaseConnectionPool(unittest.TestCase):
 class TestSessionManagement(unittest.TestCase):
     """セッション管理のテストクラス."""
 
-    def test_get_db_session_context_manager(self):
+    def test_get_db_session_context_manager_with_usage_returns_session(self):
         """get_db_sessionがコンテキストマネージャーとして機能することを確認."""
         with get_db_session() as db_session:
             self.assertIsNotNone(db_session)
@@ -56,7 +60,9 @@ class TestSessionManagement(unittest.TestCase):
             self.assertTrue(db_session.is_active)
 
     @patch("app.models.SessionLocal")
-    def test_session_commit_on_success(self, mock_session_local):
+    def test_session_commit_on_success_with_normal_operation_returns_committed(
+        self, mock_session_local
+    ):
         """正常終了時にセッションがコミットされることを確認."""
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
@@ -71,7 +77,9 @@ class TestSessionManagement(unittest.TestCase):
         mock_session.close.assert_called_once()
 
     @patch("app.models.SessionLocal")
-    def test_session_rollback_on_exception(self, mock_session_local):
+    def test_session_rollback_on_exception_with_error_returns_rolled_back(
+        self, mock_session_local
+    ):
         """例外発生時にセッションがロールバックされることを確認."""
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
@@ -127,7 +135,9 @@ class TestConnectionLeakPrevention(unittest.TestCase):
         # チェックアウトされた接続数が0であることを確認
         self.assertEqual(pool.checkedout(), 0)
 
-    def test_session_exception_does_not_leak_connection(self):
+    def test_session_exception_does_not_leak_connection_with_error_returns_clean_state(
+        self,
+    ):
         """例外発生時も接続リークが発生しないことを確認."""
         initial_checkedout = engine.pool.checkedout()
 
@@ -146,7 +156,9 @@ class TestConnectionResilience(unittest.TestCase):
     """接続の回復力テストクラス."""
 
     @patch("app.models.engine.pool.connect")
-    def test_pool_pre_ping_detects_stale_connections(self, mock_connect):
+    def test_pool_pre_ping_detects_stale_connections_with_invalid_connection_returns_new_connection(
+        self, mock_connect
+    ):
         """pool_pre_pingが古い接続を検出できることを確認."""
         # 最初の接続は失敗、2回目は成功するようモック
         mock_connect.side_effect = [
