@@ -164,14 +164,10 @@ class TestStockDataError:
 class TestStockDailyCRUD:
     """StockDailyCRUDクラスのテスト."""
 
-    @patch("app.models.get_db_session")
-    def test_create_success_with_valid_data_returns_created_instance(
-        self, mock_get_db_session
-    ):
+    def test_create_success_with_valid_data_returns_created_instance(self):
         """正常なデータ作成のテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
         # テストデータ
         data = {
@@ -184,37 +180,33 @@ class TestStockDailyCRUD:
             "date": date(2024, 1, 15),
         }
 
-        result = StockDailyCRUD.create(data)
+        result = StockDailyCRUD.create(mock_session, **data)
 
         # セッションのメソッドが呼ばれたことを確認
         mock_session.add.assert_called_once()
-        mock_session.commit.assert_called_once()
+        mock_session.flush.assert_called_once()
         assert result is not None
 
-    @patch("app.models.get_db_session")
     def test_create_integrity_error_with_duplicate_data_raises_database_error(
-        self, mock_get_db_session
+        self,
     ):
         """重複データでのIntegrityErrorテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
-        mock_session.commit.side_effect = IntegrityError("", "", "")
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
+        mock_session.flush.side_effect = IntegrityError(
+            "uk_stocks_daily_symbol_date", "", ""
+        )
 
         data = {
             "symbol": "7203",
             "date": date(2024, 1, 15),
         }
 
-        with pytest.raises(DatabaseError):
-            StockDailyCRUD.create(data)
+        # ユニーク制約エラーはStockDataErrorを送出
+        with pytest.raises(StockDataError):
+            StockDailyCRUD.create(mock_session, **data)
 
-        mock_session.rollback.assert_called_once()
-
-    @patch("app.models.get_db_session")
-    def test_get_by_id_found_with_existing_id_returns_instance(
-        self, mock_get_db_session
-    ):
+    def test_get_by_id_found_with_existing_id_returns_instance(self):
         """IDによる検索（見つかった場合）のテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
@@ -222,33 +214,25 @@ class TestStockDailyCRUD:
         mock_session.query.return_value.filter.return_value.first.return_value = (
             mock_stock
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        result = StockDailyCRUD.get_by_id(1)
+        result = StockDailyCRUD.get_by_id(mock_session, 1)
 
         assert result == mock_stock
         mock_session.query.assert_called_once_with(StockDaily)
 
-    @patch("app.models.get_db_session")
-    def test_get_by_id_not_found_with_nonexistent_id_returns_none(
-        self, mock_get_db_session
-    ):
+    def test_get_by_id_not_found_with_nonexistent_id_returns_none(self):
         """IDによる検索（見つからなかった場合）のテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
         mock_session.query.return_value.filter.return_value.first.return_value = (
             None
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        result = StockDailyCRUD.get_by_id(999)
+        result = StockDailyCRUD.get_by_id(mock_session, 999)
 
         assert result is None
 
-    @patch("app.models.get_db_session")
-    def test_get_by_symbol_and_date_with_valid_params_returns_instance(
-        self, mock_get_db_session
-    ):
+    def test_get_by_symbol_and_date_with_valid_params_returns_instance(self):
         """シンボルと日付による検索のテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
@@ -256,50 +240,43 @@ class TestStockDailyCRUD:
         mock_session.query.return_value.filter.return_value.first.return_value = (
             mock_stock
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
         result = StockDailyCRUD.get_by_symbol_and_date(
-            "7203", date(2024, 1, 15)
+            mock_session, "7203", date(2024, 1, 15)
         )
 
         assert result == mock_stock
 
-    @patch("app.models.StockDaily")
-    def test_update_success_with_valid_data_returns_updated_instance(
-        self, mock_stock_daily_class
-    ):
+    def test_update_success_with_valid_data_returns_updated_instance(self):
         """正常な更新のテスト."""
-        # モックインスタンスの設定
+        # モックセッション・インスタンスの設定
+        mock_session = Mock(spec=Session)
         mock_instance = Mock()
-        mock_stock_daily_class.query.filter_by.return_value.first.return_value = (
+        mock_session.query.return_value.filter.return_value.first.return_value = (
             mock_instance
         )
 
         data = {"close": 1600.00}
-        result = StockDailyCRUD.update(1, data)
+        result = StockDailyCRUD.update(mock_session, 1, **data)
 
         # 属性が更新されたことを確認
         assert mock_instance.close == 1600.00
+        mock_session.flush.assert_called_once()
         assert result == mock_instance
 
-    @patch("app.models.StockDaily")
-    def test_update_not_found_with_nonexistent_id_returns_none(
-        self, mock_stock_daily_class
-    ):
+    def test_update_not_found_with_nonexistent_id_returns_none(self):
         """存在しないIDでの更新テスト."""
-        # モックの設定
-        mock_stock_daily_class.query.filter_by.return_value.first.return_value = (
+        # モックセッションの設定
+        mock_session = Mock(spec=Session)
+        mock_session.query.return_value.filter.return_value.first.return_value = (
             None
         )
 
-        result = StockDailyCRUD.update(999, {"close": 1600.00})
+        result = StockDailyCRUD.update(mock_session, 999, close=1600.00)
 
         assert result is None
 
-    @patch("app.models.get_db_session")
-    def test_delete_success_with_existing_id_returns_true(
-        self, mock_get_db_session
-    ):
+    def test_delete_success_with_existing_id_returns_true(self):
         """正常な削除のテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
@@ -307,65 +284,51 @@ class TestStockDailyCRUD:
         mock_session.query.return_value.filter.return_value.first.return_value = (
             mock_stock
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        result = StockDailyCRUD.delete(1)
+        result = StockDailyCRUD.delete(mock_session, 1)
 
         mock_session.delete.assert_called_once_with(mock_stock)
-        mock_session.commit.assert_called_once()
+        mock_session.flush.assert_called_once()
         assert result is True
 
-    @patch("app.models.get_db_session")
-    def test_delete_not_found_with_nonexistent_id_returns_false(
-        self, mock_get_db_session
-    ):
+    def test_delete_not_found_with_nonexistent_id_returns_false(self):
         """存在しないIDでの削除テスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
         mock_session.query.return_value.filter.return_value.first.return_value = (
             None
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        result = StockDailyCRUD.delete(999)
+        result = StockDailyCRUD.delete(mock_session, 999)
 
         assert result is False
 
-    @patch("app.models.get_db_session")
-    def test_count_by_symbol_with_existing_symbol_returns_count(
-        self, mock_get_db_session
-    ):
+    def test_count_by_symbol_with_existing_symbol_returns_count(self):
         """シンボル別カウントのテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
         mock_session.query.return_value.filter.return_value.count.return_value = (
             5
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        result = StockDailyCRUD.count_by_symbol("7203")
+        result = StockDailyCRUD.count_by_symbol(mock_session, "7203")
 
         assert result == 5
 
-    @patch("app.models.get_db_session")
-    def test_get_latest_date_by_symbol_with_existing_data_returns_date(
-        self, mock_get_db_session
-    ):
+    def test_get_latest_date_by_symbol_with_existing_data_returns_date(self):
         """シンボル別最新日付取得のテスト."""
         # モックセッションの設定
         mock_session = Mock(spec=Session)
         mock_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = (
             date(2024, 1, 15),
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        result = StockDailyCRUD.get_latest_date_by_symbol("7203")
+        result = StockDailyCRUD.get_latest_date_by_symbol(mock_session, "7203")
 
         assert result == date(2024, 1, 15)
 
-    @patch("app.models.get_db_session")
     def test_get_latest_date_by_symbol_not_found_with_nonexistent_symbol_returns_none(
-        self, mock_get_db_session
+        self,
     ):
         """存在しないシンボルでの最新日付取得テスト."""
         # モックセッションの設定
@@ -373,9 +336,10 @@ class TestStockDailyCRUD:
         mock_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = (
             None
         )
-        mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        result = StockDailyCRUD.get_latest_date_by_symbol("INVALID")
+        result = StockDailyCRUD.get_latest_date_by_symbol(
+            mock_session, "INVALID"
+        )
 
         assert result is None
 
@@ -417,52 +381,17 @@ class TestGetDbSession:
 class TestStockMaster:
     """StockMasterクラスのテスト."""
 
-    def test_stock_master_model_creation_with_valid_data_returns_model_instance(
-        self,
-    ):
-        """StockMasterモデルの作成テスト."""
+    def test_stock_master_basic_definition_returns_valid_table_name(self):
+        """StockMasterモデルの基本定義テスト."""
         assert StockMaster is not None
-        assert StockMaster == Stocks1d
+        assert StockMaster.__tablename__ == "stock_master"
 
-    def test_stock_master_model_validation_with_invalid_data_raises_validation_error(
-        self,
-    ):
-        """StockMasterモデルの検証テスト."""
-        # StockMasterインスタンスを作成
+    def test_stock_master_repr_with_valid_data_returns_formatted_string(self):
+        """StockMasterの文字列表現テスト."""
         stock = StockMaster()
-        stock.symbol = "7203"
-        stock.date = date(2024, 1, 15)
-        stock.close = Decimal("1500.00")
+        stock.stock_code = "7203"
+        stock.stock_name = "トヨタ自動車"
+        stock.is_active = 1
 
-        expected = (
-            "<Stocks1d(symbol='7203', date='2024-01-15', close=1500.00)>"
-        )
-        assert repr(stock) == expected
-
-    def test_stock_master_model_relationships_with_valid_data_returns_correct_associations(
-        self,
-    ):
-        """StockMasterのテーブル名テスト."""
-        assert StockMaster.__tablename__ == "stocks_1d"
-
-    def test_stock_master_model_creation_with_valid_data_returns_model_instance(
-        self,
-    ):
-        """StockMasterモデルの作成テスト."""
-        assert StockMaster is not None
-        assert StockMaster == Stocks1d
-
-    def test_stock_master_model_validation_with_invalid_data_raises_validation_error(
-        self,
-    ):
-        """StockMasterモデルの検証テスト."""
-        # StockMasterインスタンスを作成
-        stock = StockMaster()
-        stock.symbol = "7203"
-        stock.date = date(2024, 1, 15)
-        stock.close = Decimal("1500.00")
-
-        expected = (
-            "<Stocks1d(symbol='7203', date='2024-01-15', close=1500.00)>"
-        )
+        expected = "<StockMaster(stock_code='7203', stock_name='トヨタ自動車', is_active=1)>"
         assert repr(stock) == expected

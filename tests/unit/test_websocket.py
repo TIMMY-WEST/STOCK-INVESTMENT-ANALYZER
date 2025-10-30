@@ -28,7 +28,7 @@ def socketio_client(app_instance):
 
 
 def test_websocket_connection_with_valid_client_returns_successful_connection(
-    self, client
+    socketio_client,
 ):
     """WebSocket接続のテスト."""
     # 接続確認
@@ -36,7 +36,7 @@ def test_websocket_connection_with_valid_client_returns_successful_connection(
 
 
 def test_websocket_disconnection_with_active_connection_returns_clean_disconnect(
-    self, client
+    socketio_client,
 ):
     """WebSocket切断のテスト."""
     # 接続確認

@@ -140,7 +140,7 @@ class TestFrontendUI:
     """フロントエンドUIのテストクラス."""
 
     def test_frontend_page_load_with_valid_url_returns_successful_response(
-        self,
+        self, driver, test_server
     ):
         """ページが正常に読み込まれることを確認."""
         driver.get(f"http://localhost:{test_server.port}")

@@ -21,6 +21,20 @@ from app.utils.timeframe_utils import (
 )
 
 
+@pytest.fixture
+def mock_yfinance_data():
+    """モックyfinanceデータ (モジュールスコープ)."""
+    data = {
+        "Open": [100.0, 101.0, 102.0],
+        "High": [105.0, 106.0, 107.0],
+        "Low": [99.0, 100.0, 101.0],
+        "Close": [103.0, 104.0, 105.0],
+        "Volume": [1000000, 1100000, 1200000],
+    }
+    index = pd.date_range("2024-01-01", periods=3, freq="D")
+    return pd.DataFrame(data, index=index)
+
+
 class TestTimeframeUtils:
     """時間軸ユーティリティのテスト."""
 
@@ -68,19 +82,6 @@ class TestStockDataFetcher:
     def fetcher(self):
         """フェッチャーインスタンス."""
         return StockDataFetcher()
-
-    @pytest.fixture
-    def mock_yfinance_data(self):
-        """モックyfinanceデータ."""
-        data = {
-            "Open": [100.0, 101.0, 102.0],
-            "High": [105.0, 106.0, 107.0],
-            "Low": [99.0, 100.0, 101.0],
-            "Close": [103.0, 104.0, 105.0],
-            "Volume": [1000000, 1100000, 1200000],
-        }
-        index = pd.date_range("2024-01-01", periods=3, freq="D")
-        return pd.DataFrame(data, index=index)
 
     @patch("app.services.stock_data.fetcher.yf.Ticker")
     def test_fetch_stock_data_success_with_valid_symbol_returns_data(
