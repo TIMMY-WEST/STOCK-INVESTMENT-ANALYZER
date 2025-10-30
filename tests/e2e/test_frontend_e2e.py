@@ -153,7 +153,9 @@ class TestFrontendUI:
         assert driver.find_element(By.ID, "load-data-btn")
         assert driver.find_element(By.ID, "data-table")
 
-    def test_pagination_display_initial_state(self, driver, test_server):
+    def test_frontend_pagination_display_with_initial_state_shows_correct_format(
+        self, driver, test_server
+    ):
         """初期状態でのページネーション表示を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
@@ -172,7 +174,9 @@ class TestFrontendUI:
             # NaN表示がないことを確認
             assert "NaN" not in initial_text
 
-    def test_data_loading_pagination_display(self, driver, test_server):
+    def test_frontend_data_loading_pagination_display_with_loaded_data_shows_no_nan(
+        self, driver, test_server
+    ):
         """データ読み込み後のページネーション表示を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
@@ -237,7 +241,9 @@ class TestFrontendUI:
                 "NaN" not in text
             ), f"データ読み込み中にNaN表示が発生しました: {text}"
 
-    def test_pagination_buttons_state(self, driver, test_server):
+    def test_frontend_pagination_buttons_state_with_data_load_shows_correct_visibility(
+        self, driver, test_server
+    ):
         """ページネーションボタンの状態を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
@@ -271,7 +277,9 @@ class TestFrontendUI:
             # 初期状態では前へボタンが無効になっている可能性がある
             # （データ量によって変わるため、存在確認のみ）
 
-    def test_table_display_after_load(self, driver, test_server):
+    def test_frontend_table_display_after_load_with_data_shows_appropriate_content(
+        self, driver, test_server
+    ):
         """データ読み込み後のテーブル表示を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 
@@ -319,7 +327,9 @@ class TestFrontendUI:
                 ]
             ), f"予期しないテーブル状態: {table_text}"
 
-    def test_ui_elements_visibility(self, driver, test_server):
+    def test_frontend_ui_elements_visibility_with_page_load_shows_all_components(
+        self, driver, test_server
+    ):
         """UI要素の可視性を確認."""
         driver.get(f"http://localhost:{test_server.port}")
 

@@ -33,7 +33,9 @@ class TestStockDataConverter:
             index=pd.date_range("2024-01-01", periods=2),
         )
 
-    def test_convert_to_dict(self, converter, sample_dataframe):
+    def test_converter_convert_to_dict_with_sample_dataframe_returns_list(
+        self, converter, sample_dataframe
+    ):
         """DataFrameから辞書リストへの変換テスト."""
         result = converter.convert_to_dict(sample_dataframe, "1d")
 
@@ -49,7 +51,9 @@ class TestStockDataConverter:
         assert "volume" in first_record
         assert "date" in first_record  # 1dの場合はdateフィールド
 
-    def test_convert_to_dict_empty(self, converter):
+    def test_converter_convert_to_dict_with_empty_dataframe_returns_empty_list(
+        self, converter
+    ):
         """空のDataFrameの変換テスト."""
         empty_df = pd.DataFrame()
         result = converter.convert_to_dict(empty_df, "1d")
@@ -57,7 +61,9 @@ class TestStockDataConverter:
         assert isinstance(result, list)
         assert len(result) == 0
 
-    def test_extract_price_data(self, converter, sample_dataframe):
+    def test_converter_extract_price_data_with_sample_dataframe_returns_dict(
+        self, converter, sample_dataframe
+    ):
         """価格データ抽出のテスト."""
         result = converter.extract_price_data(sample_dataframe)
 
@@ -68,7 +74,9 @@ class TestStockDataConverter:
         assert "date_range" in result
         assert result["record_count"] == 2
 
-    def test_extract_price_data_single_row(self, converter):
+    def test_converter_extract_price_data_with_single_row_returns_correct_values(
+        self, converter
+    ):
         """単一行のDataFrameでの価格データ抽出テスト."""
         single_df = pd.DataFrame(
             {
@@ -86,21 +94,27 @@ class TestStockDataConverter:
         assert result["record_count"] == 1
         assert "latest_date" in result
 
-    def test_get_latest_data_date(self, converter, sample_dataframe):
+    def test_converter_get_latest_data_date_with_sample_dataframe_returns_datetime(
+        self, converter, sample_dataframe
+    ):
         """最新データ日時取得のテスト."""
         result = converter.get_latest_data_date(sample_dataframe)
 
         assert isinstance(result, datetime)
         assert result.date() == date(2024, 1, 2)
 
-    def test_get_latest_data_date_empty(self, converter):
+    def test_converter_get_latest_data_date_with_empty_dataframe_raises_error(
+        self, converter
+    ):
         """空のDataFrameでの最新データ日時取得テスト."""
         empty_df = pd.DataFrame()
 
         with pytest.raises(StockDataConversionError):
             converter.get_latest_data_date(empty_df)
 
-    def test_split_multi_symbol_result(self, converter):
+    def test_converter_split_multi_symbol_result_with_multi_index_returns_dict(
+        self, converter
+    ):
         """複数銘柄データの分割テスト."""
         # マルチレベルカラムのDataFrameを作成
         symbols = ["AAPL", "GOOGL"]
@@ -116,7 +130,9 @@ class TestStockDataConverter:
         assert isinstance(result["AAPL"], pd.DataFrame)
         assert isinstance(result["GOOGL"], pd.DataFrame)
 
-    def test_format_summary_data(self, converter):
+    def test_converter_format_summary_data_with_results_returns_formatted_dict(
+        self, converter
+    ):
         """サマリーデータフォーマットのテスト."""
         results = {
             "success": True,
@@ -133,7 +149,9 @@ class TestStockDataConverter:
         assert summary["interval"] == "1d"
         assert "timestamp" in summary
 
-    def test_create_record_from_row(self, converter):
+    def test_converter_create_record_from_row_with_series_returns_record_dict(
+        self, converter
+    ):
         """行からレコード作成のテスト."""
         row = pd.Series(
             {

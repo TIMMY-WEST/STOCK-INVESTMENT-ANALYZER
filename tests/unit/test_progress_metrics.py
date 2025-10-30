@@ -13,7 +13,9 @@ from app.services.bulk.bulk_service import ProgressTracker
 class TestProgressTracker:
     """進捗トラッカーのテスト."""
 
-    def test_initialization(self):
+    def test_progress_tracker_initialization_with_total_count_sets_initial_values(
+        self,
+    ):
         """初期化のテスト."""
         tracker = ProgressTracker(total=100)
 
@@ -24,7 +26,7 @@ class TestProgressTracker:
         assert tracker.current_symbol is None
         assert len(tracker.error_details) == 0
 
-    def test_update_success(self):
+    def test_progress_tracker_update_with_success_increments_counters(self):
         """成功時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
@@ -45,7 +47,7 @@ class TestProgressTracker:
         assert sum(tracker.records_fetched_list) == 50
         assert sum(tracker.records_saved_list) == 50
 
-    def test_update_failed(self):
+    def test_progress_tracker_update_with_failure_records_error_details(self):
         """失敗時の更新テスト."""
         tracker = ProgressTracker(total=10)
 
@@ -61,7 +63,9 @@ class TestProgressTracker:
         assert tracker.error_details[0]["symbol"] == "9999.T"
         assert "Connection timeout" in tracker.error_details[0]["error"]
 
-    def test_get_progress(self):
+    def test_progress_tracker_get_progress_with_multiple_updates_returns_metrics(
+        self,
+    ):
         """進捗情報取得のテスト."""
         tracker = ProgressTracker(total=10)
 
