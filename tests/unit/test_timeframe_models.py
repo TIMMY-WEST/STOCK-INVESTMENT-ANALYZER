@@ -256,7 +256,9 @@ class TestTimeframeModels:
 class TestConstraints:
     """制約のテストクラス."""
 
-    def test_unique_constraint_datetime(self, session):
+    def test_timeframe_unique_constraint_datetime_with_duplicate_entries_returns_integrity_error(
+        self, session
+    ):
         """datetime系テーブルのユニーク制約テスト."""
         # 同じsymbolとdatetimeのデータを2回挿入
         stock1 = Stocks1m(
@@ -286,7 +288,9 @@ class TestConstraints:
         with pytest.raises(IntegrityError):
             session.commit()
 
-    def test_unique_constraint_date(self, session):
+    def test_timeframe_unique_constraint_date_with_duplicate_entries_returns_integrity_error(
+        self, session
+    ):
         """date系テーブルのユニーク制約テスト."""
         # 同じsymbolとdateのデータを2回挿入
         stock1 = Stocks1d(
@@ -334,7 +338,9 @@ class TestConstraints:
             session.add(stock)
             session.commit()
 
-    def test_volume_check_constraint(self, session):
+    def test_timeframe_volume_check_constraint_with_negative_value_returns_integrity_error(
+        self, session
+    ):
         """ボリュームチェック制約のテスト."""
         # 負のボリュームでテスト
         with pytest.raises(IntegrityError):
@@ -412,7 +418,9 @@ class TestToDict:
 class TestPerformance:
     """パフォーマンステストクラス."""
 
-    def test_bulk_insert_performance(self, session):
+    def test_timeframe_bulk_insert_performance_with_large_dataset_returns_acceptable_timing(
+        self, session
+    ):
         """大量データ挿入のパフォーマンステスト."""
         import time
 

@@ -154,7 +154,9 @@ class TestBulkDataJobsAPI:
         assert "error" in data
         assert "message" in data
 
-    def test_stop_job_success(self, client, mocker):
+    def test_bulk_data_api_stop_job_success_with_running_job_returns_stopped_status(
+        self, client, mocker
+    ):
         """POST /api/bulk-data/jobs/{job_id}/stop - ジョブ停止成功."""
         # JOBS辞書に直接ジョブを追加
         from app.api.bulk_data import JOBS
@@ -188,7 +190,9 @@ class TestBulkDataJobsAPI:
         # テスト後にクリーンアップ
         JOBS.pop("test-job-456", None)
 
-    def test_stop_job_not_found(self, client, mocker):
+    def test_bulk_data_api_stop_job_not_found_with_invalid_job_id_returns_not_found_error(
+        self, client, mocker
+    ):
         """POST /api/bulk-data/jobs/{job_id}/stop - 存在しないジョブの停止."""
         mocker.patch("app.api.bulk_data.stop_job", return_value=None)
 
@@ -299,7 +303,9 @@ class TestBulkDataAPIErrorHandling:
 
         assert "error" in data or data.get("status") == "error"
 
-    def test_invalid_interval(self, client):
+    def test_bulk_data_api_invalid_interval_with_invalid_parameter_returns_error_response(
+        self, client
+    ):
         """POST /api/bulk-data/jobs - 無効な時間間隔."""
         response = client.post(
             "/api/bulk-data/jobs",
@@ -311,7 +317,9 @@ class TestBulkDataAPIErrorHandling:
         # 無効な間隔は拒否またはデフォルト値が使用される
         assert response.status_code in [200, 202, 400, 422]
 
-    def test_empty_symbols_array(self, client):
+    def test_bulk_data_api_empty_symbols_array_with_no_symbols_returns_error_response(
+        self, client
+    ):
         """POST /api/bulk-data/jobs - 空のシンボル配列."""
         response = client.post(
             "/api/bulk-data/jobs",

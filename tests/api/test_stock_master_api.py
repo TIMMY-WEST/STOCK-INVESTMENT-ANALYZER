@@ -26,7 +26,9 @@ class TestStockMasterAPI:
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.JPXStockService")
-    def test_update_stock_master_success(self, mock_service_class):
+    def test_stock_master_update_with_valid_request_returns_success(
+        self, mock_service_class
+    ):
         """銘柄マスタ更新APIの成功テスト."""
         # モックサービスを設定
         mock_service = Mock()
@@ -66,7 +68,9 @@ class TestStockMasterAPI:
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.JPXStockService")
-    def test_update_stock_master_scheduled(self, mock_service_class):
+    def test_stock_master_update_with_scheduled_type_returns_success(
+        self, mock_service_class
+    ):
         """銘柄マスタ更新API（スケジュール実行）のテスト."""
         # モックサービスを設定
         mock_service = Mock()
@@ -102,7 +106,9 @@ class TestStockMasterAPI:
         )
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
-    def test_update_stock_master_invalid_update_type(self):
+    def test_stock_master_update_with_invalid_update_type_returns_bad_request(
+        self,
+    ):
         """銘柄マスタ更新APIの無効な更新タイプテスト."""
         # リクエストデータ
         data = {"update_type": "invalid"}
@@ -124,7 +130,9 @@ class TestStockMasterAPI:
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.JPXStockService")
-    def test_update_stock_master_service_error(self, mock_service_class):
+    def test_stock_master_update_with_service_error_returns_internal_error(
+        self, mock_service_class
+    ):
         """銘柄マスタ更新APIのサービスエラーテスト."""
         # モックサービスでエラーを発生させる
         mock_service = Mock()
@@ -151,7 +159,7 @@ class TestStockMasterAPI:
         assert response_data["error"]["code"] == "JPX_DOWNLOAD_ERROR"
         assert "ダウンロードに失敗しました" in response_data["message"]
 
-    def test_update_stock_master_no_api_key(self):
+    def test_stock_master_update_with_missing_api_key_returns_success(self):
         """銘柄マスタ更新APIの認証エラーテスト."""
         # APIキーなしでリクエスト
         data = {"update_type": "manual"}
@@ -168,7 +176,9 @@ class TestStockMasterAPI:
         assert response_data["status"] == "success"
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
-    def test_update_stock_master_invalid_api_key(self):
+    def test_stock_master_update_with_invalid_api_key_returns_unauthorized(
+        self,
+    ):
         """銘柄マスタ更新APIの無効なAPIキーテスト."""
         # 無効なAPIキーでリクエスト
         headers = {"X-API-Key": "invalid_key"}
@@ -189,7 +199,9 @@ class TestStockMasterAPI:
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.JPXStockService")
-    def test_get_stock_master_list_success(self, mock_service_class):
+    def test_stock_master_list_with_valid_request_returns_success(
+        self, mock_service_class
+    ):
         """銘柄一覧取得APIの成功テスト."""
         # モックサービスを設定
         mock_service = Mock()
@@ -234,7 +246,9 @@ class TestStockMasterAPI:
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.JPXStockService")
-    def test_get_stock_master_list_with_filters(self, mock_service_class):
+    def test_stock_master_list_with_filters_returns_filtered_results(
+        self, mock_service_class
+    ):
         """フィルタ付き銘柄一覧取得APIのテスト."""
         # モックサービスを設定
         mock_service = Mock()
@@ -269,7 +283,7 @@ class TestStockMasterAPI:
         )
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
-    def test_get_stock_master_list_invalid_limit(self):
+    def test_stock_master_list_with_invalid_limit_returns_bad_request(self):
         """銘柄一覧取得APIの無効なlimitパラメータテスト."""
         # 無効なlimitでAPIを呼び出し
         response = self.client.get(
@@ -284,7 +298,9 @@ class TestStockMasterAPI:
         assert "limitとoffsetは数値である必要があります" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
-    def test_get_stock_master_list_limit_out_of_range(self):
+    def test_stock_master_list_with_limit_out_of_range_returns_bad_request(
+        self,
+    ):
         """銘柄一覧取得APIのlimit範囲外テスト."""
         # 範囲外のlimitでAPIを呼び出し
         response = self.client.get(
@@ -299,7 +315,9 @@ class TestStockMasterAPI:
         assert "limitは1から1000の間である必要があります" in response_data["message"]
 
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
-    def test_get_stock_master_list_invalid_is_active(self):
+    def test_stock_master_list_with_invalid_is_active_returns_bad_request(
+        self,
+    ):
         """銘柄一覧取得APIの無効なis_activeパラメータテスト."""
         # 無効なis_activeでAPIを呼び出し
         response = self.client.get(
@@ -316,7 +334,9 @@ class TestStockMasterAPI:
     @pytest.mark.skip(reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み")
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.get_db_session")
-    def test_get_stock_master_status_success(self, mock_get_db_session):
+    def test_stock_master_status_with_valid_request_returns_success(
+        self, mock_get_db_session
+    ):
         """銘柄マスタ状態取得APIの成功テスト."""
         # モックセッションを設定
         mock_session = Mock()
@@ -381,7 +401,7 @@ class TestStockMasterAPI:
     @pytest.mark.skip(reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み")
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.get_db_session")
-    def test_get_stock_master_status_no_update_history(
+    def test_stock_master_status_with_no_update_history_returns_null_last_update(
         self, mock_get_db_session
     ):
         """銘柄マスタ状態取得API（更新履歴なし）のテスト."""

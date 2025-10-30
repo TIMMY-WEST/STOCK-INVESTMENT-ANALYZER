@@ -25,7 +25,9 @@ def setup_env(monkeypatch):
 class TestBulkDataAPI:
     """Bulk Data APIのRESTfulエンドポイントテスト."""
 
-    def test_jobs_endpoint_structure(self, client):
+    def test_bulk_data_jobs_with_valid_request_returns_proper_structure(
+        self, client
+    ):
         """POST /api/bulk-data/jobs エンドポイントの構造テスト."""
         response = client.post(
             "/api/bulk-data/jobs",
@@ -42,8 +44,10 @@ class TestBulkDataAPI:
                 data.get("success") is True
             )
 
-    def test_job_status_endpoint_structure(self, client):
-        """GET /api/bulk-data/jobs/<job_id> エンドポイントの構造テスト."""
+    def test_bulk_data_job_status_with_job_id_returns_proper_structure(
+        self, client
+    ):
+        """GET /api/bulk-data/jobs/{job_id} エンドポイントの構造テスト."""
         response = client.get(
             "/api/bulk-data/jobs/test-job-id",
             headers={"X-API-KEY": "test-key"},
@@ -68,8 +72,10 @@ class TestBulkDataAPI:
                 assert isinstance(data["error"], str)
                 assert "message" in data
 
-    def test_job_stop_endpoint_structure(self, client):
-        """POST /api/bulk-data/jobs/<job_id>/stop エンドポイントの構造テスト."""
+    def test_bulk_data_job_stop_with_job_id_returns_proper_structure(
+        self, client
+    ):
+        """POST /api/bulk-data/jobs/{job_id}/stop エンドポイントの構造テスト."""
         response = client.post(
             "/api/bulk-data/jobs/test-job-id/stop",
             headers={"X-API-KEY": "test-key"},
@@ -93,7 +99,9 @@ class TestBulkDataAPI:
                 assert isinstance(data["error"], str)
                 assert "message" in data
 
-    def test_jpx_symbols_endpoint_structure(self, client):
+    def test_bulk_data_jpx_symbols_with_request_returns_proper_structure(
+        self, client
+    ):
         """GET /api/bulk-data/jpx-sequential/symbols エンドポイントの構造テスト."""
         response = client.get(
             "/api/bulk-data/jpx-sequential/symbols",
@@ -108,7 +116,9 @@ class TestBulkDataAPI:
                 data.get("success") is True
             )
 
-    def test_jpx_jobs_endpoint_structure(self, client):
+    def test_bulk_data_jpx_jobs_with_valid_request_returns_proper_structure(
+        self, client
+    ):
         """POST /api/bulk-data/jpx-sequential/jobs エンドポイントの構造テスト."""
         response = client.post(
             "/api/bulk-data/jpx-sequential/jobs",
@@ -129,7 +139,9 @@ class TestBulkDataAPI:
 class TestStockMasterAPI:
     """Stock Master APIのRESTfulエンドポイントテスト."""
 
-    def test_stock_master_update_endpoint(self, client):
+    def test_stock_master_update_with_api_key_returns_proper_structure(
+        self, client
+    ):
         """POST /api/stock-master/ エンドポイントの構造テスト."""
         response = client.post(
             "/api/stock-master/", headers={"X-API-KEY": "test-key"}
@@ -145,7 +157,9 @@ class TestStockMasterAPI:
         else:
             assert "message" in data
 
-    def test_stock_master_list_endpoint(self, client):
+    def test_stock_master_list_with_api_key_returns_proper_structure(
+        self, client
+    ):
         """GET /api/stock-master/ エンドポイントの構造テスト."""
         response = client.get(
             "/api/stock-master/", headers={"X-API-KEY": "test-key"}
@@ -156,7 +170,9 @@ class TestStockMasterAPI:
             data = response.get_json()
             assert "data" in data or "message" in data
 
-    def test_stock_master_status_endpoint(self, client):
+    def test_stock_master_status_with_api_key_returns_proper_structure(
+        self, client
+    ):
         """GET /api/stock-master/status エンドポイントの構造テスト."""
         response = client.get(
             "/api/stock-master/status", headers={"X-API-KEY": "test-key"}
@@ -171,7 +187,9 @@ class TestStockMasterAPI:
 class TestSystemMonitoringAPI:
     """System Monitoring APIのRESTfulエンドポイントテスト."""
 
-    def test_database_connection_endpoint(self, client):
+    def test_system_database_connection_with_request_returns_proper_structure(
+        self, client
+    ):
         """GET /api/system/database/connection エンドポイントの構造テスト."""
         response = client.get("/api/system/database/connection")
         assert response.status_code in [200, 500]
@@ -179,7 +197,9 @@ class TestSystemMonitoringAPI:
         data = response.get_json()
         assert data["status"] == "success" or data["status"] == "error"
 
-    def test_external_api_connection_endpoint(self, client):
+    def test_system_external_api_connection_with_request_returns_proper_structure(
+        self, client
+    ):
         """GET /api/system/external-api/connection エンドポイントの構造テスト."""
         response = client.get("/api/system/external-api/connection")
         assert response.status_code in [200, 500]
@@ -187,7 +207,7 @@ class TestSystemMonitoringAPI:
         data = response.get_json()
         assert data["status"] == "success" or data["status"] == "error"
 
-    def test_health_endpoint(self, client):
+    def test_system_health_with_request_returns_proper_structure(self, client):
         """GET /api/system/health エンドポイントの構造テスト."""
         response = client.get("/api/system/health")
         assert response.status_code in [200, 500]
@@ -203,7 +223,9 @@ class TestSystemMonitoringAPI:
 class TestMainStocksAPI:
     """Main Stocks APIのRESTfulエンドポイントテスト."""
 
-    def test_stocks_data_endpoint(self, client):
+    def test_stocks_data_with_valid_request_returns_proper_structure(
+        self, client
+    ):
         """POST /api/stocks/data エンドポイントの構造テスト."""
         response = client.post(
             "/api/stocks/data",
@@ -216,7 +238,9 @@ class TestMainStocksAPI:
         assert "status" in data
         assert "message" in data
 
-    def test_stocks_test_endpoint(self, client):
+    def test_stocks_test_with_valid_request_returns_proper_structure(
+        self, client
+    ):
         """POST /api/stocks/test エンドポイントの構造テスト."""
         response = client.post(
             "/api/stocks/test",
@@ -247,7 +271,9 @@ class TestMainStocksAPI:
 class TestRESTfulCompliance:
     """RESTful設計原則の準拠テスト."""
 
-    def test_http_methods_compliance(self, client):
+    def test_restful_http_methods_with_endpoints_returns_proper_compliance(
+        self, client
+    ):
         """HTTPメソッドの適切な使用テスト."""
         # GET メソッドでデータ取得
         get_endpoints = [
@@ -282,7 +308,9 @@ class TestRESTfulCompliance:
             # POST メソッドが許可されていることを確認
             assert response.status_code != 405
 
-    def test_url_structure_compliance(self, client):
+    def test_restful_url_structure_with_patterns_returns_proper_compliance(
+        self, client
+    ):
         """Test RESTful URL pattern compliance."""
         # リソース指向のURL構造をテスト
         resource_patterns = [
@@ -298,7 +326,9 @@ class TestRESTfulCompliance:
             assert not pattern.endswith("/test")  # 動詞の使用を避ける
             assert not pattern.endswith("/get")  # 動詞の使用を避ける
 
-    def test_status_codes_compliance(self, client):
+    def test_restful_status_codes_with_requests_returns_proper_compliance(
+        self, client
+    ):
         """適切なHTTPステータスコードの使用テスト."""
         # 200 OK - 成功時のGETリクエスト
         response = client.get("/api/system/health")

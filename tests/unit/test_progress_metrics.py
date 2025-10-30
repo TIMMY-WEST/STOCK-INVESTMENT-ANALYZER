@@ -103,7 +103,9 @@ class TestProgressTracker:
         assert progress["performance"]["total_records_fetched"] == 250
         assert progress["performance"]["total_records_saved"] == 225
 
-    def test_metrics_calculation(self):
+    def test_progress_tracker_metrics_calculation_with_mixed_results_returns_accurate_statistics(
+        self,
+    ):
         """メトリクス計算のテスト."""
         tracker = ProgressTracker(total=20)
 
@@ -143,7 +145,9 @@ class TestProgressTracker:
         )  # 15 * 50
         assert progress["performance"]["total_records_saved"] == 720  # 15 * 48
 
-    def test_get_summary(self):
+    def test_progress_tracker_get_summary_with_completed_tasks_returns_comprehensive_summary(
+        self,
+    ):
         """サマリー取得のテスト."""
         tracker = ProgressTracker(total=5)
 
@@ -166,7 +170,9 @@ class TestProgressTracker:
         assert "throughput" in summary
         assert "performance" in summary
 
-    def test_empty_metrics(self):
+    def test_progress_tracker_empty_metrics_with_no_processed_items_returns_zero_values(
+        self,
+    ):
         """空のメトリクスのテスト."""
         tracker = ProgressTracker(total=10)
 
@@ -179,7 +185,9 @@ class TestProgressTracker:
         assert progress["performance"]["total_records_fetched"] == 0
         assert progress["performance"]["total_records_saved"] == 0
 
-    def test_eta_calculation(self):
+    def test_progress_tracker_eta_calculation_with_partial_completion_returns_estimated_time(
+        self,
+    ):
         """ETA計算のテスト."""
         tracker = ProgressTracker(total=10)
 

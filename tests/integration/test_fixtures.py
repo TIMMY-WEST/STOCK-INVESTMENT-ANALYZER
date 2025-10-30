@@ -173,11 +173,15 @@ class TestMockHelpers:
 class TestFlaskFixtures:
     """Flask関連フィクスチャのテスト."""
 
-    def test_app_fixture_exists(self, app):
+    def test_fixtures_app_fixture_exists_with_flask_app_returns_valid_instance(
+        self, app
+    ):
         """appフィクスチャが存在することを確認."""
         assert app is not None
 
-    def test_app_testing_mode(self, app):
+    def test_fixtures_app_testing_mode_with_flask_app_returns_testing_enabled(
+        self, app
+    ):
         """appがテストモードであることを確認."""
         assert app.config["TESTING"] is True
 

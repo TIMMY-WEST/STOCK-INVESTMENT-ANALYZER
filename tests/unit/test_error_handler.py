@@ -199,7 +199,9 @@ class TestErrorHandler:
         assert report["statistics"]["temporary_errors"] == 2
         assert report["statistics"]["permanent_errors"] == 1
 
-    def test_clear_error_records(self, error_handler):
+    def test_error_handler_clear_error_records_with_existing_records_returns_empty_state(
+        self, error_handler
+    ):
         """エラー記録がクリアされる."""
         error_handler.handle_error(
             Timeout("timeout"), "7203.T", {"retry_count": 0}

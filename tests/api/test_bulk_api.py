@@ -13,7 +13,7 @@ def setup_env(monkeypatch):
     monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "1")
 
 
-def test_start_requires_api_key():
+def test_bulk_data_start_with_missing_api_key_returns_unauthorized():
     client = flask_app.test_client()
     resp = client.post("/api/bulk-data/jobs", json={"symbols": ["7203.T"]})
     assert resp.status_code == 401
@@ -21,7 +21,7 @@ def test_start_requires_api_key():
     assert body["error"] == "UNAUTHORIZED"
 
 
-def test_bulk_data_start_endpoint_structure():
+def test_bulk_data_start_with_valid_request_returns_job_structure():
     """バルクデータ開始エンドポイントの基本構造テスト."""
     client = flask_app.test_client()
     resp = client.post(
@@ -35,7 +35,7 @@ def test_bulk_data_start_endpoint_structure():
     assert "job_id" in body
 
 
-def test_rate_limit_exceeded():
+def test_bulk_data_start_with_rate_limit_exceeded_returns_too_many_requests():
     client = flask_app.test_client()
     # 1回目は許可
     resp1 = client.post(
@@ -54,7 +54,7 @@ def test_rate_limit_exceeded():
     assert resp2.status_code in (429, 202)
 
 
-def test_status_not_found():
+def test_bulk_data_status_with_unknown_job_id_returns_not_found():
     client = flask_app.test_client()
     resp = client.get(
         "/api/bulk-data/jobs/unknown", headers={"X-API-KEY": "test-key"}
@@ -64,7 +64,7 @@ def test_status_not_found():
     assert body["error"] == "NOT_FOUND"
 
 
-def test_status_running_after_start():
+def test_bulk_data_status_with_recent_job_returns_running_status():
     client = flask_app.test_client()
     resp = client.post(
         "/api/bulk-data/jobs",

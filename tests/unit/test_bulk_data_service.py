@@ -18,7 +18,9 @@ from app.services.stock_data.saver import StockDataSaveError
 class TestProgressTracker:
     """ProgressTrackerクラスのテスト."""
 
-    def test_init(self):
+    def test_progress_tracker_init_with_valid_total_returns_initialized_tracker(
+        self,
+    ):
         """初期化のテスト."""
         tracker = ProgressTracker(total=100)
 
@@ -72,9 +74,7 @@ class TestProgressTracker:
         assert progress["successful"] == 50
         assert progress["failed"] == 0
         assert progress["progress_percentage"] == 50.0
-        assert (
-            progress["stocks_per_second"] >= 0
-        )  # 高速実行時は0になる可能性がある
+        assert progress["stocks_per_second"] >= 0  # 高速実行時は0になる可能性がある
         assert "estimated_completion" in progress
 
     def test_get_summary_with_valid_tracker_returns_summary_data(self):
@@ -203,9 +203,7 @@ class TestBulkDataService:
         assert result["success"] is False
         assert result["error"] == "永続的なエラー"
         assert result["attempts"] == 2  # retry_count=2なので2回試行
-        assert (
-            service.fetcher.fetch_stock_data.call_count == 2
-        )  # 実際の呼び出し回数は2回
+        assert service.fetcher.fetch_stock_data.call_count == 2  # 実際の呼び出し回数は2回
 
     def test_fetch_multiple_stocks_with_valid_symbols_returns_summary(
         self, service
