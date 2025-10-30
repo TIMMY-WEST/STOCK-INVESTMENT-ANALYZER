@@ -10,6 +10,7 @@ from typing import Optional
 import pandas as pd
 import yfinance as yf
 
+from app.exceptions import StockDataFetchError as _StockDataFetchError
 from app.services.stock_data.validator import StockDataValidator
 
 
@@ -20,11 +21,8 @@ logger = logging.getLogger(__name__)
 # 参考: https://github.com/ranaroussi/yfinance/issues/2557
 _yfinance_lock = threading.Lock()
 
-
-class StockDataFetchError(Exception):
-    """株価データ取得エラー."""
-
-    pass
+# テスト互換性のため、fetcherモジュールからも同名を公開
+StockDataFetchError = _StockDataFetchError
 
 
 class StockDataFetcher:
@@ -66,7 +64,9 @@ class StockDataFetcher:
         except Exception as e:
             raise StockDataFetchError(str(e)) from e
 
-        self.logger.info(f"株価データ取得開始: {formatted_symbol} ({interval})")
+        self.logger.info(
+            f"株価データ取得開始: {formatted_symbol} ({interval})"
+        )
 
         try:
             # データ取得
@@ -75,7 +75,9 @@ class StockDataFetcher:
             # データの検証（バリデーターを使用）
             self.validator.validate_dataframe_structure(df, formatted_symbol)
 
-            self.logger.info(f"株価データ取得完了: {formatted_symbol} - {len(df)}件")
+            self.logger.info(
+                f"株価データ取得完了: {formatted_symbol} - {len(df)}件"
+            )
 
             return df
 
