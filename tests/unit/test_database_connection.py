@@ -21,31 +21,53 @@ class TestDatabaseConnectionPool(unittest.TestCase):
         self,
     ):
         """エンジンにコネクションプール設定があることを確認."""
+        # Arrange (準備)
         # エンジンのプール設定を確認
         pool = engine.pool
-        self.assertIsNotNone(pool)
 
+        # Act (実行)
+        # 設定値の取得は準備フェーズで完了
+
+        # Assert (検証)
+        self.assertIsNotNone(pool)
         # pool_sizeの確認（10に設定されているはず）
         self.assertEqual(pool.size(), 10)
-
         # max_overflowの確認（20に設定されているはず）
         self.assertEqual(pool._max_overflow, 20)
 
     def test_engine_has_pool_pre_ping_with_setting_returns_enabled(self):
         """pool_pre_pingが有効であることを確認."""
+        # Arrange (準備)
         # pool_pre_pingは接続使用前にpingを実行
+
+        # Act (実行)
+        # 設定値の取得は準備フェーズで完了
+
+        # Assert (検証)
         self.assertTrue(engine.pool._pre_ping)
 
     def test_engine_has_pool_recycle_with_setting_returns_configured_time(
         self,
     ):
         """pool_recycleが設定されていることを確認."""
+        # Arrange (準備)
         # pool_recycleは3600秒（1時間）に設定
+
+        # Act (実行)
+        # 設定値の取得は準備フェーズで完了
+
+        # Assert (検証)
         self.assertEqual(engine.pool._recycle, 3600)
 
     def test_engine_pool_timeout_with_setting_returns_configured_timeout(self):
         """pool_timeoutが設定されていることを確認."""
+        # Arrange (準備)
         # pool_timeoutは30秒に設定
+
+        # Act (実行)
+        # 設定値の取得は準備フェーズで完了
+
+        # Assert (検証)
         self.assertEqual(engine.pool._timeout, 30)
 
 
@@ -54,7 +76,12 @@ class TestSessionManagement(unittest.TestCase):
 
     def test_get_db_session_context_manager_with_usage_returns_session(self):
         """get_db_sessionがコンテキストマネージャーとして機能することを確認."""
+        # Arrange (準備)
+        # セットアップ不要
+
+        # Act (実行)
         with get_db_session() as db_session:
+            # Assert (検証)
             self.assertIsNotNone(db_session)
             # セッションが有効であることを確認
             self.assertTrue(db_session.is_active)
@@ -64,13 +91,16 @@ class TestSessionManagement(unittest.TestCase):
         self, mock_session_local
     ):
         """正常終了時にセッションがコミットされることを確認."""
+        # Arrange (準備)
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
 
+        # Act (実行)
         with get_db_session():
             # 正常に処理が完了
             pass
 
+        # Assert (検証)
         # commitが呼ばれたことを確認
         mock_session.commit.assert_called_once()
         # closeが呼ばれたことを確認
@@ -81,14 +111,17 @@ class TestSessionManagement(unittest.TestCase):
         self, mock_session_local
     ):
         """例外発生時にセッションがロールバックされることを確認."""
+        # Arrange (準備)
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
 
+        # Act (実行)
         with pytest.raises(ValueError):
             with get_db_session():
                 # 例外を発生させる
                 raise ValueError("Test exception")
 
+        # Assert (検証)
         # rollbackが呼ばれたことを確認
         mock_session.rollback.assert_called_once()
         # closeが呼ばれたことを確認

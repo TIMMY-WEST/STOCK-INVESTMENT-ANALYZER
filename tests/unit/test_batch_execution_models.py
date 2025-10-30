@@ -39,6 +39,13 @@ class TestBatchExecutionModel:
         self, sample_batch_execution
     ):
         """BatchExecutionインスタンスの作成テスト."""
+        # Arrange (準備)
+        # sample_batch_executionはfixtureで準備済み
+
+        # Act (実行)
+        # インスタンス作成はfixtureで実行済み
+
+        # Assert (検証)
         assert sample_batch_execution.batch_type == "all_stocks"
         assert sample_batch_execution.status == "running"
         assert sample_batch_execution.total_stocks == 100
@@ -50,15 +57,26 @@ class TestBatchExecutionModel:
         self, sample_batch_execution
     ):
         """BatchExecutionの__repr__メソッドテスト."""
+        # Arrange (準備)
         expected = "<BatchExecution(id=None, batch_type='all_stocks', status='running')>"
-        assert repr(sample_batch_execution) == expected
+
+        # Act (実行)
+        result = repr(sample_batch_execution)
+
+        # Assert (検証)
+        assert result == expected
 
     def test_batch_execution_model_to_dict_with_valid_instance_returns_dictionary(
         self, sample_batch_execution
     ):
         """BatchExecutionのto_dictメソッドテスト."""
+        # Arrange (準備)
+        # sample_batch_executionはfixtureで準備済み
+
+        # Act (実行)
         result = sample_batch_execution.to_dict()
 
+        # Assert (検証)
         assert result["batch_type"] == "all_stocks"
         assert result["status"] == "running"
         assert result["total_stocks"] == 100
@@ -75,6 +93,7 @@ class TestBatchExecutionModel:
         self,
     ):
         """進捗率計算のテスト."""
+        # Arrange (準備)
         # 正常ケース
         batch = BatchExecution(
             batch_type="test",
@@ -82,8 +101,6 @@ class TestBatchExecutionModel:
             total_stocks=100,
             processed_stocks=25,
         )
-        assert batch.progress_percentage == 25.0
-
         # 0除算回避テスト
         batch_zero = BatchExecution(
             batch_type="test",
@@ -91,8 +108,6 @@ class TestBatchExecutionModel:
             total_stocks=0,
             processed_stocks=0,
         )
-        assert batch_zero.progress_percentage == 0.0
-
         # 100%完了テスト
         batch_complete = BatchExecution(
             batch_type="test",
@@ -100,18 +115,29 @@ class TestBatchExecutionModel:
             total_stocks=50,
             processed_stocks=50,
         )
-        assert batch_complete.progress_percentage == 100.0
+
+        # Act (実行)
+        result_normal = batch.progress_percentage
+        result_zero = batch_zero.progress_percentage
+        result_complete = batch_complete.progress_percentage
+
+        # Assert (検証)
+        assert result_normal == 25.0
+        assert result_zero == 0.0
+        assert result_complete == 100.0
 
     def test_batch_execution_model_duration_seconds_with_valid_timestamps_returns_correct_duration(
         self,
     ):
         """実行時間計算のテスト."""
+        # Arrange (準備)
         now = datetime.now(timezone.utc)
-
-        # start_timeがNoneの場合
         batch = BatchExecution(
             batch_type="test", status="running", total_stocks=100
         )
+
+        # Act (実行) & Assert (検証)
+        # start_timeがNoneの場合
         assert batch.duration_seconds is None
 
         # start_timeのみ設定（実行中）
@@ -142,6 +168,13 @@ class TestBatchExecutionDetailModel:
         self, sample_batch_execution_detail
     ):
         """BatchExecutionDetailインスタンスの作成テスト."""
+        # Arrange (準備)
+        # sample_batch_execution_detailはfixtureで準備済み
+
+        # Act (実行)
+        # インスタンス作成はfixtureで実行済み
+
+        # Assert (検証)
         assert sample_batch_execution_detail.batch_execution_id == 1
         assert sample_batch_execution_detail.stock_code == "7203"
         assert sample_batch_execution_detail.status == "completed"

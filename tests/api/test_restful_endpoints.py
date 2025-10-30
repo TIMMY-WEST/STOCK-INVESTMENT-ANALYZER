@@ -29,17 +29,23 @@ class TestBulkDataAPI:
         self, client
     ):
         """POST /api/bulk-data/jobs エンドポイントの構造テスト."""
+        # Arrange (準備)
+        payload = {"symbols": ["7203.T"], "interval": "1d"}
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
         response = client.post(
             "/api/bulk-data/jobs",
-            json={"symbols": ["7203.T"], "interval": "1d"},
-            headers={"X-API-KEY": "test-key"},
+            json=payload,
+            headers=headers,
         )
+
+        # Assert (検証)
         assert response.status_code in [202, 400, 401]
 
         if response.status_code == 202:
             data = response.get_json()
             assert "job_id" in data
-            # 新実装では status="accepted" または success=True を許容
             assert (data.get("status") in ["success", "accepted"]) or (
                 data.get("success") is True
             )
@@ -48,14 +54,20 @@ class TestBulkDataAPI:
         self, client
     ):
         """GET /api/bulk-data/jobs/{job_id} エンドポイントの構造テスト."""
+        # Arrange (準備)
+        job_id = "test-job-id"
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
         response = client.get(
-            "/api/bulk-data/jobs/test-job-id",
-            headers={"X-API-KEY": "test-key"},
+            f"/api/bulk-data/jobs/{job_id}",
+            headers=headers,
         )
+
+        # Assert (検証)
         assert response.status_code in [200, 404, 401]
 
         data = response.get_json()
-        # 新実装では success や job を返すため柔軟にチェック
         assert (
             ("status" in data)
             or ("success" in data)
@@ -64,7 +76,6 @@ class TestBulkDataAPI:
         )
         if response.status_code in [404, 401]:
             assert "error" in data
-            # error がオブジェクトまたは文字列の両方を許容
             if isinstance(data["error"], dict):
                 assert "code" in data["error"]
                 assert "message" in data["error"]
@@ -76,14 +87,20 @@ class TestBulkDataAPI:
         self, client
     ):
         """POST /api/bulk-data/jobs/{job_id}/stop エンドポイントの構造テスト."""
+        # Arrange (準備)
+        job_id = "test-job-id"
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
         response = client.post(
-            "/api/bulk-data/jobs/test-job-id/stop",
-            headers={"X-API-KEY": "test-key"},
+            f"/api/bulk-data/jobs/{job_id}/stop",
+            headers=headers,
         )
+
+        # Assert (検証)
         assert response.status_code in [200, 404, 401]
 
         data = response.get_json()
-        # 新実装では success や message を返すため柔軟にチェック
         assert (
             ("status" in data)
             or ("success" in data)
@@ -103,15 +120,20 @@ class TestBulkDataAPI:
         self, client
     ):
         """GET /api/bulk-data/jpx-sequential/symbols エンドポイントの構造テスト."""
+        # Arrange (準備)
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
         response = client.get(
             "/api/bulk-data/jpx-sequential/symbols",
-            headers={"X-API-KEY": "test-key"},
+            headers=headers,
         )
+
+        # Assert (検証)
         assert response.status_code in [200, 401]
 
         if response.status_code == 200:
             data = response.get_json()
-            # success(bool) も許容
             assert (data.get("status") == "success") or (
                 data.get("success") is True
             )
@@ -120,11 +142,18 @@ class TestBulkDataAPI:
         self, client
     ):
         """POST /api/bulk-data/jpx-sequential/jobs エンドポイントの構造テスト."""
+        # Arrange (準備)
+        payload = {"symbols": ["7203.T"]}
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
         response = client.post(
             "/api/bulk-data/jpx-sequential/jobs",
-            json={"symbols": ["7203.T"]},
-            headers={"X-API-KEY": "test-key"},
+            json=payload,
+            headers=headers,
         )
+
+        # Assert (検証)
         assert response.status_code in [202, 400, 401]
 
         if response.status_code == 202:
@@ -143,9 +172,13 @@ class TestStockMasterAPI:
         self, client
     ):
         """POST /api/stock-master/ エンドポイントの構造テスト."""
-        response = client.post(
-            "/api/stock-master/", headers={"X-API-KEY": "test-key"}
-        )
+        # Arrange (準備)
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
+        response = client.post("/api/stock-master/", headers=headers)
+
+        # Assert (検証)
         assert response.status_code in [200, 202, 401, 500]
 
         data = response.get_json()
@@ -161,9 +194,13 @@ class TestStockMasterAPI:
         self, client
     ):
         """GET /api/stock-master/ エンドポイントの構造テスト."""
-        response = client.get(
-            "/api/stock-master/", headers={"X-API-KEY": "test-key"}
-        )
+        # Arrange (準備)
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
+        response = client.get("/api/stock-master/", headers=headers)
+
+        # Assert (検証)
         assert response.status_code in [200, 401]
 
         if response.status_code == 200:
@@ -174,9 +211,13 @@ class TestStockMasterAPI:
         self, client
     ):
         """GET /api/stock-master/status エンドポイントの構造テスト."""
-        response = client.get(
-            "/api/stock-master/status", headers={"X-API-KEY": "test-key"}
-        )
+        # Arrange (準備)
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行)
+        response = client.get("/api/stock-master/status", headers=headers)
+
+        # Assert (検証)
         assert response.status_code in [200, 401]
 
         if response.status_code == 200:
@@ -191,7 +232,13 @@ class TestSystemMonitoringAPI:
         self, client
     ):
         """GET /api/system/database/connection エンドポイントの構造テスト."""
-        response = client.get("/api/system/database/connection")
+        # Arrange (準備)
+        endpoint = "/api/system/database/connection"
+
+        # Act (実行)
+        response = client.get(endpoint)
+
+        # Assert (検証)
         assert response.status_code in [200, 500]
 
         data = response.get_json()
@@ -201,7 +248,13 @@ class TestSystemMonitoringAPI:
         self, client
     ):
         """GET /api/system/external-api/connection エンドポイントの構造テスト."""
-        response = client.get("/api/system/external-api/connection")
+        # Arrange (準備)
+        endpoint = "/api/system/external-api/connection"
+
+        # Act (実行)
+        response = client.get(endpoint)
+
+        # Assert (検証)
         assert response.status_code in [200, 500]
 
         data = response.get_json()
@@ -209,7 +262,13 @@ class TestSystemMonitoringAPI:
 
     def test_system_health_with_request_returns_proper_structure(self, client):
         """GET /api/system/health エンドポイントの構造テスト."""
-        response = client.get("/api/system/health")
+        # Arrange (準備)
+        endpoint = "/api/system/health"
+
+        # Act (実行)
+        response = client.get(endpoint)
+
+        # Assert (検証)
         assert response.status_code in [200, 500]
 
         data = response.get_json()
@@ -227,11 +286,17 @@ class TestMainStocksAPI:
         self, client
     ):
         """POST /api/stocks/data エンドポイントの構造テスト."""
+        # Arrange (準備)
+        payload = {"symbol": "7203.T", "period": "1mo"}
+
+        # Act (実行)
         response = client.post(
             "/api/stocks/data",
-            json={"symbol": "7203.T", "period": "1mo"},
+            json=payload,
             content_type="application/json",
         )
+
+        # Assert (検証)
         assert response.status_code in [200, 400, 502]
 
         data = response.get_json()
@@ -242,18 +307,22 @@ class TestMainStocksAPI:
         self, client
     ):
         """POST /api/stocks/test エンドポイントの構造テスト."""
+        # Arrange (準備)
+        payload = {"symbol": "TEST"}
+
+        # Act (実行)
         response = client.post(
             "/api/stocks/test",
-            json={"symbol": "TEST"},
+            json=payload,
             content_type="application/json",
         )
-        # 作成時は201も許容
+
+        # Assert (検証)
         assert response.status_code in [200, 201, 400, 500]
 
         data = response.get_json()
         if response.status_code in [400, 500]:
             assert "error" in data
-            # error がオブジェクトまたは文字列の両方を許容
             if isinstance(data["error"], dict):
                 assert "code" in data["error"]
                 assert "message" in data["error"]
@@ -275,7 +344,7 @@ class TestRESTfulCompliance:
         self, client
     ):
         """HTTPメソッドの適切な使用テスト."""
-        # GET メソッドでデータ取得
+        # Arrange (準備)
         get_endpoints = [
             "/api/bulk-data/jobs/test-id",
             "/api/bulk-data/jpx-sequential/symbols",
@@ -286,12 +355,6 @@ class TestRESTfulCompliance:
             "/api/system/health",
         ]
 
-        for endpoint in get_endpoints:
-            response = client.get(endpoint, headers={"X-API-KEY": "test-key"})
-            # GET メソッドが許可されていることを確認
-            assert response.status_code != 405
-
-        # POST メソッドでリソース作成/操作
         post_endpoints = [
             ("/api/bulk-data/jobs", {"symbols": ["7203.T"]}),
             ("/api/bulk-data/jobs/test-id/stop", {}),
@@ -301,47 +364,54 @@ class TestRESTfulCompliance:
             ("/api/stocks/test", {"symbol": "TEST"}),
         ]
 
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行) & Assert (検証)
+        for endpoint in get_endpoints:
+            response = client.get(endpoint, headers=headers)
+            assert response.status_code != 405
+
         for endpoint, payload in post_endpoints:
-            response = client.post(
-                endpoint, json=payload, headers={"X-API-KEY": "test-key"}
-            )
-            # POST メソッドが許可されていることを確認
+            response = client.post(endpoint, json=payload, headers=headers)
             assert response.status_code != 405
 
     def test_restful_url_structure_with_patterns_returns_proper_compliance(
         self, client
     ):
         """Test RESTful URL pattern compliance."""
-        # リソース指向のURL構造をテスト
+        # Arrange (準備)
         resource_patterns = [
-            "/api/bulk-data/jobs",  # ジョブリソース
-            "/api/stock-master/",  # 銘柄マスタリソース
-            "/api/stocks/data",  # 株価データリソース
-            "/api/system/health",  # システムヘルスリソース
+            "/api/bulk-data/jobs",
+            "/api/stock-master/",
+            "/api/stocks/data",
+            "/api/system/health",
         ]
 
+        # Act (実行) & Assert (検証)
         for pattern in resource_patterns:
-            # URLパターンが適切な構造を持つことを確認
             assert "/api/" in pattern
-            assert not pattern.endswith("/test")  # 動詞の使用を避ける
-            assert not pattern.endswith("/get")  # 動詞の使用を避ける
+            assert not pattern.endswith("/test")
+            assert not pattern.endswith("/get")
 
     def test_restful_status_codes_with_requests_returns_proper_compliance(
         self, client
     ):
         """適切なHTTPステータスコードの使用テスト."""
-        # 200 OK - 成功時のGETリクエスト
+        # Arrange (準備)
+        headers = {"X-API-KEY": "test-key"}
+
+        # Act (実行) & Assert (検証) - 200 OK
         response = client.get("/api/system/health")
         if response.status_code == 200:
             data = response.get_json()
             assert "data" in data
             assert "overall_status" in data["data"]
 
-        # 202 Accepted - 非同期処理の開始
+        # Act (実行) & Assert (検証) - 202 Accepted
         response = client.post(
             "/api/bulk-data/jobs",
             json={"symbols": ["7203.T"]},
-            headers={"X-API-KEY": "test-key"},
+            headers=headers,
         )
         if response.status_code == 202:
             data = response.get_json()
@@ -351,10 +421,10 @@ class TestRESTfulCompliance:
                 or (data.get("success") is True)
             )
 
-        # 404 Not Found - 存在しないリソース
+        # Act (実行) & Assert (検証) - 404 Not Found
         response = client.get(
             "/api/bulk-data/jobs/nonexistent-job-id",
-            headers={"X-API-KEY": "test-key"},
+            headers=headers,
         )
         if response.status_code == 404:
             data = response.get_json()
@@ -366,7 +436,7 @@ class TestRESTfulCompliance:
                 assert isinstance(data["error"], str)
                 assert "message" in data
 
-        # 401 Unauthorized - 認証エラー
+        # Act (実行) & Assert (検証) - 401 Unauthorized
         response = client.post(
             "/api/bulk-data/jobs", json={"symbols": ["7203.T"]}
         )

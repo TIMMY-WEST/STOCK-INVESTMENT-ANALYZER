@@ -31,37 +31,31 @@ class TestDatabaseConnectionTest:
         self, mock_get_session, client
     ):
         """正常系: データベース接続テスト成功."""
-        # モックセッションの設定
+        # Arrange (準備)
         mock_session = MagicMock()
-
-        # execute()を複数回呼び出すため、side_effectを適切に設定
-        mock_result1 = MagicMock()  # SELECT 1の結果
-        mock_result2 = MagicMock()  # current_database()の結果
+        mock_result1 = MagicMock()
+        mock_result2 = MagicMock()
         mock_result2.scalar.return_value = "test_db"
-        mock_result3 = MagicMock()  # 接続数の結果
+        mock_result3 = MagicMock()
         mock_result3.scalar.return_value = 3
-        mock_result4 = MagicMock()  # テーブル存在確認の結果
+        mock_result4 = MagicMock()
         mock_result4.scalar.return_value = True
-
         mock_session.execute.side_effect = [
             mock_result1,
             mock_result2,
             mock_result3,
             mock_result4,
         ]
-
-        # コンテキストマネージャーとしてモックセッションを返す
         mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = False
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get("/api/system/database/connection")
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 200
         data = response.get_json()
         assert data["status"] == "success"
-        # 新形式ではmeta内に移動
         assert "response_time_ms" in data["meta"]
         assert data["message"] == "データベース接続正常"
         assert "data" in data
@@ -72,13 +66,13 @@ class TestDatabaseConnectionTest:
         self, mock_get_session, client
     ):
         """異常系: データベース接続テスト失敗."""
-        # エラーをスローするモックを設定
+        # Arrange (準備)
         mock_get_session.side_effect = Exception("接続エラー")
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get("/api/system/database/connection")
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 500
         data = response.get_json()
         assert data["status"] == "error"
@@ -94,24 +88,23 @@ class TestAPIConnectionTest:
         self, mock_fetcher_class, client
     ):
         """正常系: Yahoo Finance API接続テスト成功."""
-        # モックの設定
+        # Arrange (準備)
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_stock_data.return_value = [
             {"date": "2024-01-15", "close": 2500}
         ]
         mock_fetcher_class.return_value = mock_fetcher
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get(
             "/api/system/external-api/connection?symbol=7203.T"
         )
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 200
         data = response.get_json()
         assert data["status"] == "success"
         assert data["message"] == "Yahoo Finance API接続正常"
-        # 新形式ではdataフィールド内に移動（スネークケース）
         assert data["data"]["symbol"] == "7203.T"
         assert data["data"]["data_points"] > 0
         assert data["data"]["data_available"] is True
@@ -121,17 +114,17 @@ class TestAPIConnectionTest:
         self, mock_fetcher_class, client
     ):
         """異常系: データ取得失敗."""
-        # モックの設定（データなし）
+        # Arrange (準備)
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_stock_data.return_value = []
         mock_fetcher_class.return_value = mock_fetcher
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get(
             "/api/system/external-api/connection?symbol=INVALID.T"
         )
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 404
         data = response.get_json()
         assert data["status"] == "error"
@@ -143,13 +136,13 @@ class TestAPIConnectionTest:
         self, mock_fetcher_class, client
     ):
         """異常系: API接続エラー."""
-        # エラーをスローするモックを設定
+        # Arrange (準備)
         mock_fetcher_class.side_effect = Exception("API接続エラー")
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get("/api/system/external-api/connection")
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 500
         data = response.get_json()
         assert data["status"] == "error"
@@ -166,20 +159,18 @@ class TestHealthCheck:
         self, mock_get_session, mock_fetcher_class, client
     ):
         """正常系: 全てのサービスが正常."""
-        # データベースモック（コンテキストマネージャー対応）
+        # Arrange (準備)
         mock_session = MagicMock()
         mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = False
-
-        # APIモック
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_stock_data.return_value = [{"date": "2024-01-15"}]
         mock_fetcher_class.return_value = mock_fetcher
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get("/api/system/health")
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 200
         data = response.get_json()
         assert data["data"]["overall_status"] == "healthy"
@@ -195,18 +186,16 @@ class TestHealthCheck:
         self, mock_get_session, mock_fetcher_class, client
     ):
         """異常系: データベースエラー."""
-        # データベースエラー
+        # Arrange (準備)
         mock_get_session.side_effect = Exception("DB接続エラー")
-
-        # APIモック
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_stock_data.return_value = [{"date": "2024-01-15"}]
         mock_fetcher_class.return_value = mock_fetcher
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get("/api/system/health")
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 200
         data = response.get_json()
         assert data["data"]["overall_status"] == "error"
@@ -218,20 +207,18 @@ class TestHealthCheck:
         self, mock_get_session, mock_fetcher_class, client
     ):
         """正常系: APIから警告（データなし）."""
-        # データベースモック（コンテキストマネージャー対応）
+        # Arrange (準備)
         mock_session = MagicMock()
         mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = False
-
-        # APIモック（データなし）
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_stock_data.return_value = []
         mock_fetcher_class.return_value = mock_fetcher
 
-        # APIリクエスト
+        # Act (実行)
         response = client.get("/api/system/health")
 
-        # アサーション
+        # Assert (検証)
         assert response.status_code == 200
         data = response.get_json()
         assert data["data"]["overall_status"] == "degraded"

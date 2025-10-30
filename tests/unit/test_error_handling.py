@@ -20,6 +20,7 @@ class TestErrorHandling:
 
     def test_fetch_data_with_invalid_symbol_returns_error(self, client):
         """存在しない銘柄コードでのエラーテスト."""
+        # Arrange (準備)
         # 存在しない銘柄コード（無効なフォーマット）でテスト
         invalid_symbols = [
             "INVALID.T",  # 存在しない銘柄
@@ -36,12 +37,14 @@ class TestErrorHandling:
                 # 空のDataFrameを返すようにモック設定
                 mock_ticker.return_value.history.return_value.empty = True
 
+                # Act (実行)
                 response = client.post(
                     "/api/stocks/data",
                     data=json.dumps({"symbol": symbol, "period": "1mo"}),
                     content_type="application/json",
                 )
 
+                # Assert (検証)
                 # レスポンス検証
                 assert response.status_code == 400
                 data = json.loads(response.data)
@@ -51,6 +54,7 @@ class TestErrorHandling:
 
     def test_fetch_data_with_network_error_returns_error(self, client):
         """ネットワークエラー時の動作確認テスト."""
+        # Arrange (準備)
         # StockDataFetcherのfetch_stock_dataメソッドでConnectionErrorをシミュレート
         with patch(
             "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
@@ -59,6 +63,7 @@ class TestErrorHandling:
                 "Network connection failed"
             )
 
+            # Act (実行)
             response = client.post(
                 "/api/stocks/data",
                 data=json.dumps(
@@ -67,6 +72,7 @@ class TestErrorHandling:
                 content_type="application/json",
             )
 
+            # Assert (検証)
             # レスポンス検証
             assert response.status_code == 502
             data = json.loads(response.data)
@@ -76,12 +82,14 @@ class TestErrorHandling:
 
     def test_fetch_data_with_timeout_error_returns_error(self, client):
         """タイムアウトエラー時の動作確認テスト."""
+        # Arrange (準備)
         # StockDataFetcherのfetch_stock_dataメソッドでTimeoutErrorをシミュレート
         with patch(
             "app.services.stock_data.fetcher.StockDataFetcher.fetch_stock_data"
         ) as mock_fetch:
             mock_fetch.side_effect = TimeoutError("Request timeout")
 
+            # Act (実行)
             response = client.post(
                 "/api/stocks/data",
                 data=json.dumps(
@@ -90,6 +98,7 @@ class TestErrorHandling:
                 content_type="application/json",
             )
 
+            # Assert (検証)
             # レスポンス検証
             assert response.status_code == 502
             data = json.loads(response.data)
@@ -98,6 +107,7 @@ class TestErrorHandling:
 
     def test_fetch_data_with_database_error_returns_error(self, client):
         """データベース接続エラー時の動作確認テスト."""
+        # Arrange (準備)
         # StockDataSaverのsave_stock_dataメソッドでDatabaseErrorをシミュレート
         import pandas as pd
 
@@ -124,6 +134,7 @@ class TestErrorHandling:
                     "Database connection failed"
                 )
 
+                # Act (実行)
                 response = client.post(
                     "/api/stocks/data",
                     data=json.dumps(
@@ -132,6 +143,7 @@ class TestErrorHandling:
                     content_type="application/json",
                 )
 
+                # Assert (検証)
                 # レスポンス検証
                 # DatabaseErrorはExceptionとして捕捉され、502エラーが返される
                 assert response.status_code == 502
@@ -142,6 +154,7 @@ class TestErrorHandling:
 
     def test_get_stocks_with_invalid_date_format_returns_error(self, client):
         """不正な日付フォーマットでのバリデーションテスト."""
+        # Arrange (準備)
         # より明確に無効な日付のみテスト
         invalid_dates = [
             "invalid-date",  # 無効なフォーマット
@@ -150,8 +163,10 @@ class TestErrorHandling:
         ]
 
         for invalid_date in invalid_dates:
+            # Act (実行)
             response = client.get(f"/api/stocks?start_date={invalid_date}")
 
+            # Assert (検証)
             # レスポンス検証 - 400または200を許可（実装により異なる）
             if response.status_code == 400:
                 data = json.loads(response.data)
@@ -164,11 +179,14 @@ class TestErrorHandling:
 
     def test_get_stocks_with_invalid_limit_values_returns_error(self, client):
         """不正なlimit値でのバリデーションテスト."""
+        # Arrange (準備)
         invalid_limits = [0, -1, -100]
 
         for limit in invalid_limits:
+            # Act (実行)
             response = client.get(f"/api/stocks?limit={limit}")
 
+            # Assert (検証)
             # レスポンス検証
             assert response.status_code == 400
             data = json.loads(response.data)
