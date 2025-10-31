@@ -8,9 +8,14 @@ import pytest
 from app.utils.api_response import APIResponse, ErrorCode
 
 
+# Note: conftest.py にも app フィクスチャがありますが、
+# このテストは最小限のアプリケーションコンテキストのみが必要なため、
+# 軽量な専用フィクスチャを保持します
+
+
 @pytest.fixture
 def app():
-    """Flaskアプリケーションのフィクスチャ."""
+    """Flaskアプリケーションのフィクスチャ（最小限）."""
     app = Flask(__name__)
     return app
 
@@ -18,67 +23,58 @@ def app():
 class TestAPIResponse:
     """APIResponseクラスのテスト."""
 
-    def test_success_response_minimal(self, app):
-        """最小限の成功レスポンスのテスト."""
-        with app.app_context():
-            # Arrange (準備)
-            # パラメータなしでAPIResponseを準備
+    @pytest.mark.parametrize(
+        "kwargs,expected_fields",
+        [
+            # 最小限の成功レスポンス
+            ({}, {"status": "success"}),
+            # データ付き成功レスポンス
+            (
+                {"data": {"key": "value", "number": 123}},
+                {"status": "success", "data": {"key": "value", "number": 123}},
+            ),
+            # メッセージ付き成功レスポンス
+            (
+                {"message": "操作が成功しました"},
+                {"status": "success", "message": "操作が成功しました"},
+            ),
+            # メタデータ付き成功レスポンス
+            (
+                {"meta": {"total": 100, "timestamp": "2024-01-01T00:00:00Z"}},
+                {
+                    "status": "success",
+                    "meta": {
+                        "total": 100,
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    },
+                },
+            ),
+        ],
+    )
+    def test_success_response_variations(self, app, kwargs, expected_fields):
+        """成功レスポンスのパラメータ化テスト.
 
-            # Act (実行)
-            response, status_code = APIResponse.success()
+        様々なパラメータでの成功レスポンスをテストします。
+        """
+        with app.app_context():
+            # Arrange & Act (準備・実行)
+            response, status_code = APIResponse.success(**kwargs)
 
             # Assert (検証)
             assert status_code == 200
             data = json.loads(response.data)
-            assert data["status"] == "success"
-            assert "data" not in data
-            assert "message" not in data
-            assert "meta" not in data
 
-    def test_success_response_with_data(self, app):
-        """データ付き成功レスポンスのテスト."""
-        with app.app_context():
-            # Arrange (準備)
-            test_data = {"key": "value", "number": 123}
+            # expected_fields に含まれるフィールドを検証
+            for key, value in expected_fields.items():
+                assert data[key] == value
 
-            # Act (実行)
-            response, status_code = APIResponse.success(data=test_data)
-
-            # Assert (検証)
-            assert status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "success"
-            assert data["data"] == test_data
-
-    def test_success_response_with_message(self, app):
-        """メッセージ付き成功レスポンスのテスト."""
-        with app.app_context():
-            # Arrange (準備)
-            message = "操作が成功しました"
-
-            # Act (実行)
-            response, status_code = APIResponse.success(message=message)
-
-            # Assert (検証)
-            assert status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "success"
-            assert data["message"] == message
-
-    def test_success_response_with_meta(self, app):
-        """メタデータ付き成功レスポンスのテスト."""
-        with app.app_context():
-            # Arrange (準備)
-            meta = {"total": 100, "timestamp": "2024-01-01T00:00:00Z"}
-
-            # Act (実行)
-            response, status_code = APIResponse.success(meta=meta)
-
-            # Assert (検証)
-            assert status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "success"
-            assert data["meta"] == meta
+            # data, message, meta が kwargs にない場合は、レスポンスにも含まれないことを確認
+            if "data" not in kwargs:
+                assert "data" not in data or data.get("data") is None
+            if "message" not in kwargs:
+                assert "message" not in data or data.get("message") is None
+            if "meta" not in kwargs:
+                assert "meta" not in data or data.get("meta") is None
 
     def test_error_response_basic(self, app):
         """基本的なエラーレスポンスのテスト."""

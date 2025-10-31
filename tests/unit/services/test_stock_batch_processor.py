@@ -21,7 +21,11 @@ class TestStockBatchProcessor:
 
     @pytest.fixture
     def sample_dataframe(self):
-        """サンプルDataFrame."""
+        """サンプルDataFrame.
+
+        Note: conftest.py にも sample_dataframe がありますが、
+        このテストでは複数行のデータが必要なため、専用フィクスチャを使用します。
+        """
         return pd.DataFrame(
             {
                 "Open": [100.0, 103.0],

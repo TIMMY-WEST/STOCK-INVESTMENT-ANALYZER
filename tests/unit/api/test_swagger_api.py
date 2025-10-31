@@ -282,9 +282,14 @@ class TestSwaggerAPI:
                         )
 
 
+# Note: app と client フィクスチャは tests/conftest.py で定義されています
+# ただし、このテストは swagger_bp のみを登録する独自のアプリが必要なため、
+# 専用フィクスチャを保持します
+
+
 @pytest.fixture
 def app():
-    """テスト用Flaskアプリケーションの作成."""
+    """テスト用Flaskアプリケーションの作成（Swagger専用）."""
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.register_blueprint(swagger_bp)
@@ -293,5 +298,5 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """テスト用クライアントの作成."""
+    """テスト用クライアントの作成（Swagger専用アプリ用）."""
     return app.test_client()

@@ -14,9 +14,13 @@ import pytest
 from app.app import app as flask_app
 
 
+# Note: client フィクスチャは tests/conftest.py で定義されています
+# ただし、統合テストでは flask_app の設定が必要なため、専用フィクスチャを保持します
+
+
 @pytest.fixture
 def client():
-    """テスト用のFlaskクライアント."""
+    """テスト用のFlaskクライアント（統合テスト専用）."""
     flask_app.config["TESTING"] = True
     with flask_app.test_client() as client:
         yield client
