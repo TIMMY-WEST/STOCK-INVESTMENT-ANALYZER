@@ -101,6 +101,10 @@ class TestStocksDailyRemoval(unittest.TestCase):
 
     def test_stocks_1d_table_exists(self):
         """stocks_1d テーブルが存在することを確認."""
+        # Arrange (準備)
+        # データベース接続を使用
+
+        # Act (実行)
         with self.engine.connect() as conn:
             result = conn.execute(
                 text(
@@ -112,88 +116,114 @@ class TestStocksDailyRemoval(unittest.TestCase):
                 )
             )
             table_count = result.scalar()
-            self.assertEqual(table_count, 1, "stocks_1d テーブルが存在しません")
+
+        # Assert (検証)
+        self.assertEqual(table_count, 1, "stocks_1d テーブルが存在しません")
 
     def test_stock_daily_alias_works(self):
         """Verify that StockDaily エイリアスが正常に動作することを確認."""
-        # StockDaily が Stocks1d のエイリアスであることを確認
-        self.assertEqual(
-            StockDaily,
-            Stocks1d,
+        # Arrange (準備)
+        # テストデータを使用
+
+        # Act & Assert (実行と検証)
+        alias_check = StockDaily == Stocks1d
+        self.assertTrue(
+            alias_check,
             "StockDaily は Stocks1d のエイリアスである必要があります",
         )
 
-        # StockDaily を使用してデータ作成
         with get_db_session() as session:
             stock_data = StockDailyCRUD.create(session, **self.test_data)
+
+            # Assert (検証)
             self.assertIsNotNone(stock_data, "StockDaily を使用したデータ作成に失敗しました")
             self.assertEqual(stock_data.symbol, self.test_data["symbol"])
 
     def test_stocks_1d_crud_operations(self):
         """stocks_1d テーブルに対するCRUD操作が正常に動作することを確認."""
-        # テスト用データ（異なるシンボルを使用）
+        # Arrange (準備)
         test_data = self.test_data.copy()
         test_data["symbol"] = "CRUD.T"
 
         with get_db_session() as session:
-            # Create
+            # Act (実行) - Create
             created_stock = StockDailyCRUD.create(session, **test_data)
+
+            # Assert (検証) - Create
             self.assertIsNotNone(created_stock)
             self.assertEqual(created_stock.symbol, test_data["symbol"])
 
-            # Read by ID
+            # Act (実行) - Read by ID
             retrieved_stock = StockDailyCRUD.get_by_id(
                 session, created_stock.id
             )
+
+            # Assert (検証) - Read by ID
             self.assertIsNotNone(retrieved_stock)
             self.assertEqual(retrieved_stock.symbol, test_data["symbol"])
 
-            # Read by symbol and date
+            # Act (実行) - Read by symbol and date
             retrieved_by_date = StockDailyCRUD.get_by_symbol_and_date(
                 session, test_data["symbol"], test_data["date"]
             )
+
+            # Assert (検証) - Read by symbol and date
             self.assertIsNotNone(retrieved_by_date)
             self.assertEqual(retrieved_by_date.id, created_stock.id)
 
-            # Update
+            # Act (実行) - Update
             updated_stock = StockDailyCRUD.update(
                 session, created_stock.id, close=Decimal("1080.00")
             )
+
+            # Assert (検証) - Update
             self.assertIsNotNone(updated_stock)
             self.assertEqual(updated_stock.close, Decimal("1080.00"))
 
-            # Delete
+            # Act (実行) - Delete
             delete_result = StockDailyCRUD.delete(session, created_stock.id)
+
+            # Assert (検証) - Delete
             self.assertTrue(delete_result)
 
-            # Verify deletion
+            # Act (実行) - Verify deletion
             deleted_stock = StockDailyCRUD.get_by_id(session, created_stock.id)
+
+            # Assert (検証) - Verify deletion
             self.assertIsNone(deleted_stock)
 
     @unittest.skip("制約テストは一時的にスキップ")
     def test_stocks_1d_constraints(self):
         """stocks_1d テーブルの制約が正常に動作することを確認."""
-        # テスト用データ（異なるシンボルを使用）
+        # Arrange (準備)
         test_data = self.test_data.copy()
         test_data["symbol"] = "CONSTRAINT.T"
 
-        # 正常なデータの作成
         with get_db_session() as session:
+            # Act (実行) - 正常なデータの作成
             stock_data = StockDailyCRUD.create(session, **test_data)
+
+            # Assert (検証) - 正常なデータの作成
             self.assertIsNotNone(stock_data)
 
-            # 同じセッション内で重複データの作成を試行（UniqueConstraint のテスト）
+            # Act & Assert (実行と検証) - 重複データの作成を試行
             try:
                 StockDailyCRUD.create(session, **test_data)
                 self.fail("重複データの作成が成功してしまいました")
             except (DatabaseError, StockDataError, SQLAlchemyError):
-                # 期待される例外が発生した場合は成功
                 pass
 
     def test_stocks_1d_indexes(self):
         """stocks_1d テーブルのインデックスが存在することを確認."""
+        # Arrange (準備)
+        expected_indexes = [
+            "idx_stocks_1d_date",
+            "idx_stocks_1d_symbol",
+            "idx_stocks_1d_symbol_date_desc",
+        ]
+
+        # Act (実行)
         with self.engine.connect() as conn:
-            # インデックスの存在確認
             result = conn.execute(
                 text(
                     """
@@ -206,23 +236,21 @@ class TestStocksDailyRemoval(unittest.TestCase):
             )
             indexes = [row[0] for row in result]
 
-            expected_indexes = [
-                "idx_stocks_1d_date",
-                "idx_stocks_1d_symbol",
-                "idx_stocks_1d_symbol_date_desc",
-            ]
-
-            for expected_index in expected_indexes:
-                self.assertIn(
-                    expected_index,
-                    indexes,
-                    f"インデックス {expected_index} が存在しません",
-                )
+        # Assert (検証)
+        for expected_index in expected_indexes:
+            self.assertIn(
+                expected_index,
+                indexes,
+                f"インデックス {expected_index} が存在しません",
+            )
 
     def test_data_migration_validation(self):
         """データ移行の検証（stocks_daily が存在する場合）."""
+        # Arrange (準備)
+        # データベース接続を使用
+
+        # Act (実行)
         with self.engine.connect() as conn:
-            # stocks_daily テーブルの存在確認
             result = conn.execute(
                 text(
                     """
@@ -234,8 +262,8 @@ class TestStocksDailyRemoval(unittest.TestCase):
             )
             stocks_daily_exists = result.scalar() > 0
 
+            # Assert (検証)
             if stocks_daily_exists:
-                # stocks_daily と stocks_1d のレコード数比較
                 stocks_daily_count = conn.execute(
                     text("SELECT COUNT(*) FROM stocks_daily")
                 ).scalar()
@@ -249,7 +277,6 @@ class TestStocksDailyRemoval(unittest.TestCase):
                     "stocks_1d のレコード数が stocks_daily より少ないです",
                 )
 
-                # データの整合性確認（サンプルチェック）
                 if stocks_daily_count > 0:
                     sample_data = conn.execute(
                         text(
@@ -272,7 +299,6 @@ class TestStocksDailyRemoval(unittest.TestCase):
                             volume_val,
                         ) = row
 
-                        # stocks_1d に対応するデータが存在するかチェック
                         stocks_1d_data = conn.execute(
                             text(
                                 """
@@ -306,6 +332,7 @@ class TestStocksDailyRemoval(unittest.TestCase):
 
     def test_bulk_operations(self):
         """一括操作が正常に動作することを確認."""
+        # Arrange (準備)
         test_data_list = [
             {
                 "symbol": "BULK1.T",
@@ -328,20 +355,20 @@ class TestStocksDailyRemoval(unittest.TestCase):
         ]
 
         try:
+            # Act (実行)
             with get_db_session() as session:
-                # 一括作成
                 created_stocks = StockDailyCRUD.bulk_create(
                     session, test_data_list
                 )
+
+                # Assert (検証)
                 self.assertEqual(len(created_stocks), 2)
 
-                # 作成されたデータの確認
                 for i, stock in enumerate(created_stocks):
                     self.assertEqual(stock.symbol, test_data_list[i]["symbol"])
                     self.assertEqual(stock.date, test_data_list[i]["date"])
 
         finally:
-            # クリーンアップ
             with get_db_session() as session:
                 for test_data in test_data_list:
                     session.query(Stocks1d).filter(
@@ -351,44 +378,52 @@ class TestStocksDailyRemoval(unittest.TestCase):
 
     def test_count_operations(self):
         """カウント操作が正常に動作することを確認."""
-        # テスト用データ（異なるシンボルを使用）
+        # Arrange (準備)
         test_data = self.test_data.copy()
         test_data["symbol"] = "COUNT.T"
 
         with get_db_session() as session:
-            # テストデータ作成
+            # Act (実行) - テストデータ作成
             _ = StockDailyCRUD.create(session, **test_data)
 
-            # 全件数取得
+            # Act (実行) - 全件数取得
             total_count = StockDailyCRUD.count_all(session)
+
+            # Assert (検証) - 全件数取得
             self.assertGreater(total_count, 0)
 
-            # 銘柄別件数取得
+            # Act (実行) - 銘柄別件数取得
             symbol_count = StockDailyCRUD.count_by_symbol(
                 session, test_data["symbol"]
             )
+
+            # Assert (検証) - 銘柄別件数取得
             self.assertEqual(symbol_count, 1)
 
-            # フィルタ条件での件数取得
+            # Act (実行) - フィルタ条件での件数取得
             filtered_count = StockDailyCRUD.count_with_filters(
                 session, symbol=test_data["symbol"]
             )
+
+            # Assert (検証) - フィルタ条件での件数取得
             self.assertEqual(filtered_count, 1)
 
     def test_latest_date_retrieval(self):
         """最新日付取得が正常に動作することを確認."""
-        # テスト用データ（異なるシンボルを使用）
+        # Arrange (準備)
         test_data = self.test_data.copy()
         test_data["symbol"] = "LATEST.T"
 
         with get_db_session() as session:
-            # テストデータ作成
+            # Act (実行) - テストデータ作成
             _ = StockDailyCRUD.create(session, **test_data)
 
-            # 最新日付取得
+            # Act (実行) - 最新日付取得
             latest_date = StockDailyCRUD.get_latest_date_by_symbol(
                 session, test_data["symbol"]
             )
+
+            # Assert (検証)
             self.assertEqual(latest_date, test_data["date"])
 
 
@@ -397,15 +432,22 @@ class TestDatabaseConnection(unittest.TestCase):
 
     def test_database_connection(self):
         """データベース接続が正常に動作することを確認."""
+        # Arrange (準備)
+        # データベースセッションを使用
+
+        # Act (実行)
         try:
             with get_db_session() as session:
                 result = session.execute(text("SELECT 1")).scalar()
-                self.assertEqual(result, 1)
+
+            # Assert (検証)
+            self.assertEqual(result, 1)
         except Exception as e:
             self.fail(f"データベース接続に失敗しました: {str(e)}")
 
     def test_required_tables_exist(self):
         """必要なテーブルが存在することを確認."""
+        # Arrange (準備)
         required_tables = [
             "stocks_1d",
             "stocks_1m",
@@ -417,6 +459,7 @@ class TestDatabaseConnection(unittest.TestCase):
             "stocks_1mo",
         ]
 
+        # Act (実行) & Assert (検証)
         with get_db_session() as session:
             for table_name in required_tables:
                 result = session.execute(

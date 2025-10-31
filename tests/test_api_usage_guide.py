@@ -31,6 +31,7 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_file_exists(self):
         """ガイドファイルが存在することを確認."""
+        # Assert (検証)
         self.assertTrue(
             self.full_guide_path.exists(),
             "API使用例ガイドファイルが存在しません",
@@ -38,10 +39,12 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_file_not_empty(self):
         """ガイドファイルが空でないことを確認."""
+        # Assert (検証)
         self.assertGreater(len(self.guide_content.strip()), 0, "API使用例ガイドが空です")
 
     def test_required_sections_exist(self):
         """必要なセクションが存在することを確認."""
+        # Arrange (準備)
         required_sections = [
             "# API使用例ガイド",
             "## 目次",
@@ -56,6 +59,7 @@ class TestAPIUsageGuide(unittest.TestCase):
             "## レート制限",
         ]
 
+        # Assert (検証)
         for section in required_sections:
             with self.subTest(section=section):
                 self.assertIn(
@@ -66,12 +70,15 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_curl_samples_exist(self):
         """cURLサンプルが存在することを確認."""
-        # cURLコマンドのパターンを検索
+        # Arrange (準備)
         curl_pattern = r"```bash\s*curl\s+"
+
+        # Act (実行)
         curl_matches = re.findall(
             curl_pattern, self.guide_content, re.MULTILINE
         )
 
+        # Assert (検証)
         self.assertGreaterEqual(
             len(curl_matches),
             10,  # 最低10個のcURLサンプルを期待
@@ -80,12 +87,15 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_python_samples_exist(self):
         """Pythonサンプルが存在することを確認."""
-        # Pythonコードブロックのパターンを検索
+        # Arrange (準備)
         python_pattern = r"```python\s*"
+
+        # Act (実行)
         python_matches = re.findall(
             python_pattern, self.guide_content, re.MULTILINE
         )
 
+        # Assert (検証)
         self.assertGreaterEqual(
             len(python_matches),
             12,  # 最低12個のPythonサンプルを期待
@@ -94,6 +104,7 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_api_endpoints_documented(self):
         """すべてのAPIエンドポイントがドキュメント化されていることを確認."""
+        # Arrange (準備)
         expected_endpoints = [
             "/api/fetch-data",
             "/api/stocks",
@@ -104,6 +115,7 @@ class TestAPIUsageGuide(unittest.TestCase):
             "/api/system/external-api/connection",
         ]
 
+        # Assert (検証)
         for endpoint in expected_endpoints:
             with self.subTest(endpoint=endpoint):
                 self.assertIn(
@@ -114,8 +126,10 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_http_methods_documented(self):
         """HTTPメソッドが適切にドキュメント化されていることを確認."""
+        # Arrange (準備)
         http_methods = ["GET", "POST"]
 
+        # Assert (検証)
         for method in http_methods:
             with self.subTest(method=method):
                 self.assertIn(
@@ -126,6 +140,7 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_error_codes_documented(self):
         """エラーコードがドキュメント化されていることを確認."""
+        # Arrange (準備)
         expected_error_codes = [
             "INVALID_SYMBOL",
             "INVALID_PERIOD",
@@ -137,6 +152,7 @@ class TestAPIUsageGuide(unittest.TestCase):
             "INTERNAL_SERVER_ERROR",
         ]
 
+        # Assert (検証)
         for error_code in expected_error_codes:
             with self.subTest(error_code=error_code):
                 self.assertIn(
@@ -147,12 +163,15 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_response_examples_exist(self):
         """レスポンス例が存在することを確認."""
-        # JSONレスポンス例のパターンを検索
+        # Arrange (準備)
         json_pattern = r"```json\s*\{"
+
+        # Act (実行)
         json_matches = re.findall(
             json_pattern, self.guide_content, re.MULTILINE
         )
 
+        # Assert (検証)
         self.assertGreaterEqual(
             len(json_matches),
             8,  # 最低8個のJSONレスポンス例を期待
@@ -161,8 +180,10 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_authentication_documented(self):
         """認証方法がドキュメント化されていることを確認."""
+        # Arrange (準備)
         auth_keywords = ["X-API-Key", "your_api_key_here", "認証"]
 
+        # Assert (検証)
         for keyword in auth_keywords:
             with self.subTest(keyword=keyword):
                 self.assertIn(
@@ -173,35 +194,42 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_code_blocks_properly_formatted(self):
         """コードブロックが適切にフォーマットされていることを確認."""
-        # コードブロックの開始と終了が一致することを確認
+        # Act (実行)
         code_block_start = self.guide_content.count("```")
 
-        # コードブロックの数は偶数である必要がある（開始と終了のペア）
+        # Assert (検証)
         self.assertEqual(code_block_start % 2, 0, "コードブロックの開始と終了が一致しません")
 
     def test_table_formatting(self):
         """テーブルが適切にフォーマットされていることを確認."""
-        # マークダウンテーブルのパターンを検索
+        # Arrange (準備)
         table_pattern = r"\|.*\|.*\|"
+
+        # Act (実行)
         table_matches = re.findall(
             table_pattern, self.guide_content, re.MULTILINE
         )
 
+        # Assert (検証)
         self.assertGreater(len(table_matches), 0, "テーブルが見つかりません")
 
     def test_internal_links_format(self):
         """内部リンクが適切にフォーマットされていることを確認."""
-        # 目次の内部リンクパターンを検索
+        # Arrange (準備)
         internal_link_pattern = r"\[.*\]\(#.*\)"
+
+        # Act (実行)
         internal_links = re.findall(internal_link_pattern, self.guide_content)
 
+        # Assert (検証)
         self.assertGreater(len(internal_links), 0, "内部リンクが見つかりません")
 
     def test_sample_symbols_consistency(self):
         """サンプルで使用される銘柄コードの一貫性を確認."""
-        # よく使用される銘柄コード
+        # Arrange (準備)
         common_symbols = ["7203.T", "6758.T", "9984.T"]
 
+        # Assert (検証)
         for symbol in common_symbols:
             with self.subTest(symbol=symbol):
                 self.assertIn(
@@ -212,52 +240,59 @@ class TestAPIUsageGuide(unittest.TestCase):
 
     def test_localhost_urls_consistency(self):
         """localhostのURLが一貫していることを確認."""
+        # Arrange (準備)
         localhost_pattern = r"http://localhost:5000"
+
+        # Act (実行)
         localhost_matches = re.findall(localhost_pattern, self.guide_content)
 
+        # Assert (検証)
         self.assertGreater(len(localhost_matches), 0, "localhostのURLが見つかりません")
 
     def test_japanese_content_exists(self):
         """日本語のコンテンツが存在することを確認."""
-        # 日本語の文字が含まれていることを確認
+        # Arrange (準備)
         japanese_pattern = r"[ひらがなカタカナ漢字]"
+
+        # Act (実行)
         japanese_matches = re.findall(japanese_pattern, self.guide_content)
 
+        # Assert (検証)
         self.assertGreater(len(japanese_matches), 0, "日本語のコンテンツが見つかりません")
 
     def test_file_size_reasonable(self):
         """ファイルサイズが適切であることを確認."""
+        # Act (実行)
         file_size = self.full_guide_path.stat().st_size
 
-        # 最小サイズ: 10KB、最大サイズ: 500KB
+        # Assert (検証)
         self.assertGreaterEqual(file_size, 10 * 1024, "ファイルサイズが小さすぎます")  # 10KB
 
         self.assertLessEqual(file_size, 500 * 1024, "ファイルサイズが大きすぎます")  # 500KB
 
     def test_no_broken_markdown_syntax(self):
         """マークダウン構文エラーがないことを確認."""
-        # 一般的なマークダウン構文エラーをチェック
-
-        # 見出しの後に空行があることを確認
+        # Arrange (準備)
         heading_pattern = r"^(#{1,6})\s+(.+)$"
         lines = self.guide_content.split("\n")
 
+        # Act & Assert (実行と検証)
         for i, line in enumerate(lines):
             if re.match(heading_pattern, line):
-                # 見出しの後に空行があるかチェック（ファイル末尾は除く）
                 if i < len(lines) - 1 and lines[i + 1].strip() != "":
-                    # 次の行が別の見出しでない場合は空行が必要
                     if not re.match(heading_pattern, lines[i + 1]):
-                        continue  # この場合は許可（連続する見出し）
+                        continue
 
     def test_consistent_code_language_tags(self):
         """コードブロックの言語タグが一貫していることを確認."""
-        # 使用されている言語タグを抽出
+        # Arrange (準備)
         language_pattern = r"```(\w+)"
-        languages = re.findall(language_pattern, self.guide_content)
-
         expected_languages = ["bash", "python", "json"]
 
+        # Act (実行)
+        languages = re.findall(language_pattern, self.guide_content)
+
+        # Assert (検証)
         for lang in languages:
             with self.subTest(language=lang):
                 self.assertIn(

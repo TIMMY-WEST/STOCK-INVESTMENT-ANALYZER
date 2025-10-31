@@ -67,14 +67,24 @@ class TestStockMasterTableStructure:
 
     def test_stock_master_table_exists(self, engine):
         """stock_master テーブルが存在することを確認."""
+        # Arrange (準備)
         inspector = inspect(engine)
+
+        # Act (実行)
         tables = inspector.get_table_names()
+
+        # Assert (検証)
         assert "stock_master" in tables, "stock_master テーブルが存在しません"
 
     def test_stock_master_updates_table_exists(self, engine):
         """stock_master_updates テーブルが存在することを確認."""
+        # Arrange (準備)
         inspector = inspect(engine)
+
+        # Act (実行)
         tables = inspector.get_table_names()
+
+        # Assert (検証)
         assert (
             "stock_master_updates" in tables
         ), "stock_master_updates テーブルが存在しません"
@@ -83,11 +93,8 @@ class TestStockMasterTableStructure:
         self, engine
     ):
         """stock_master テーブルのカラムを検証."""
+        # Arrange (準備)
         inspector = inspect(engine)
-        columns = {
-            col["name"]: col for col in inspector.get_columns("stock_master")
-        }
-
         expected_columns = [
             "id",
             "stock_code",
@@ -105,27 +112,34 @@ class TestStockMasterTableStructure:
             "updated_at",
         ]
 
-        for col_name in expected_columns:
-            assert col_name in columns, f"カラム {col_name} が存在しません"
-
-        # stock_code のユニーク制約を確認
+        # Act (実行)
+        columns = {
+            col["name"]: col for col in inspector.get_columns("stock_master")
+        }
         unique_constraints = inspector.get_unique_constraints("stock_master")
         stock_code_unique = any(
             "stock_code" in uc["column_names"] for uc in unique_constraints
         )
+
+        # Assert (検証)
+        for col_name in expected_columns:
+            assert col_name in columns, f"カラム {col_name} が存在しません"
         assert stock_code_unique, "stock_code にユニーク制約が設定されていません"
 
     def test_stock_master_indexes_with_database_schema_returns_expected_indexes(
         self, engine
     ):
         """stock_master テーブルのインデックスを検証."""
+        # Arrange (準備)
         inspector = inspect(engine)
+        expected_indexes = ["idx_stock_master_code", "idx_stock_master_active"]
+
+        # Act (実行)
         indexes = {
             idx["name"]: idx for idx in inspector.get_indexes("stock_master")
         }
 
-        expected_indexes = ["idx_stock_master_code", "idx_stock_master_active"]
-
+        # Assert (検証)
         for idx_name in expected_indexes:
             assert idx_name in indexes, f"インデックス {idx_name} が存在しません"
 
@@ -137,6 +151,7 @@ class TestStockMasterCRUD:
         self, session, clean_stock_master_tables
     ):
         """銘柄マスタの作成テスト."""
+        # Arrange (準備)
         stock = StockMaster(
             stock_code="7203",
             stock_name="トヨタ自動車",
@@ -145,10 +160,12 @@ class TestStockMasterCRUD:
             sector_code_33="5050",
             is_active=1,
         )
+
+        # Act (実行)
         session.add(stock)
         session.commit()
 
-        # 作成確認
+        # Assert (検証)
         result = (
             session.query(StockMaster).filter_by(stock_code="7203").first()
         )
@@ -162,16 +179,18 @@ class TestStockMasterCRUD:
         self, session, clean_stock_master_tables
     ):
         """銘柄コードのユニーク制約テスト."""
+        # Arrange (準備)
         stock1 = StockMaster(
             stock_code="7203", stock_name="トヨタ自動車", is_active=1
         )
+        stock2 = StockMaster(stock_code="7203", stock_name="重複銘柄", is_active=1)
+
+        # Act (実行)
         session.add(stock1)
         session.commit()
-
-        # 同じ銘柄コードで2つ目を作成（エラーが発生するはず）
-        stock2 = StockMaster(stock_code="7203", stock_name="重複銘柄", is_active=1)
         session.add(stock2)
 
+        # Assert (検証)
         with pytest.raises(IntegrityError):
             session.commit()
 
@@ -181,18 +200,19 @@ class TestStockMasterCRUD:
         self, session, clean_stock_master_tables
     ):
         """銘柄マスタの更新テスト."""
+        # Arrange (準備)
         stock = StockMaster(
             stock_code="7203", stock_name="トヨタ自動車", is_active=1
         )
         session.add(stock)
         session.commit()
 
-        # 更新
+        # Act (実行)
         stock.stock_name = "トヨタ自動車株式会社"
         stock.market_category = "プライム"
         session.commit()
 
-        # 更新確認
+        # Assert (検証)
         result = (
             session.query(StockMaster).filter_by(stock_code="7203").first()
         )
@@ -203,17 +223,18 @@ class TestStockMasterCRUD:
         self, session, clean_stock_master_tables
     ):
         """銘柄の無効化テスト."""
+        # Arrange (準備)
         stock = StockMaster(
             stock_code="7203", stock_name="トヨタ自動車", is_active=1
         )
         session.add(stock)
         session.commit()
 
-        # 無効化
+        # Act (実行)
         stock.is_active = 0
         session.commit()
 
-        # 確認
+        # Assert (検証)
         result = (
             session.query(StockMaster).filter_by(stock_code="7203").first()
         )
@@ -223,6 +244,7 @@ class TestStockMasterCRUD:
         self, session, clean_stock_master_tables
     ):
         """to_dict メソッドのテスト."""
+        # Arrange (準備)
         stock = StockMaster(
             stock_code="7203",
             stock_name="トヨタ自動車",
@@ -234,13 +256,15 @@ class TestStockMasterCRUD:
         session.add(stock)
         session.commit()
 
+        # Act (実行)
         stock_dict = stock.to_dict()
 
+        # Assert (検証)
         assert stock_dict["stock_code"] == "7203"
         assert stock_dict["stock_name"] == "トヨタ自動車"
         assert stock_dict["market_category"] == "プライム（内国株式）"
         assert stock_dict["sector_name_33"] == "輸送用機器"
-        assert stock_dict["is_active"] is True  # Integer から Boolean に変換
+        assert stock_dict["is_active"] is True
         assert "created_at" in stock_dict
         assert "updated_at" in stock_dict
 
@@ -252,6 +276,7 @@ class TestStockMasterUpdateCRUD:
         self, session, clean_stock_master_tables
     ):
         """更新履歴レコードの作成テスト."""
+        # Arrange (準備)
         update_record = StockMasterUpdate(
             update_type="manual",
             total_stocks=3800,
@@ -260,10 +285,12 @@ class TestStockMasterUpdateCRUD:
             removed_stocks=5,
             status="success",
         )
+
+        # Act (実行)
         session.add(update_record)
         session.commit()
 
-        # 確認
+        # Assert (検証)
         result = session.query(StockMasterUpdate).first()
         assert result is not None
         assert result.update_type == "manual"
@@ -277,22 +304,26 @@ class TestStockMasterUpdateCRUD:
         self, session, clean_stock_master_tables
     ):
         """失敗した更新履歴レコードのテスト."""
+        # Arrange (準備)
         update_record = StockMasterUpdate(
             update_type="scheduled",
             total_stocks=0,
             status="failed",
             error_message="接続エラー: タイムアウト",
         )
+
+        # Act (実行)
         session.add(update_record)
         session.commit()
 
-        # 確認
+        # Assert (検証)
         result = session.query(StockMasterUpdate).first()
         assert result.status == "failed"
         assert result.error_message == "接続エラー: タイムアウト"
 
     def test_update_record_to_dict(self, session, clean_stock_master_tables):
         """更新履歴レコードの to_dict メソッドテスト."""
+        # Arrange (準備)
         update_record = StockMasterUpdate(
             update_type="manual",
             total_stocks=3800,
@@ -304,8 +335,10 @@ class TestStockMasterUpdateCRUD:
         session.add(update_record)
         session.commit()
 
+        # Act (実行)
         record_dict = update_record.to_dict()
 
+        # Assert (検証)
         assert record_dict["update_type"] == "manual"
         assert record_dict["total_stocks"] == 3800
         assert record_dict["added_stocks"] == 15
@@ -318,6 +351,7 @@ class TestStockMasterIntegration:
 
     def test_bulk_insert_and_query(self, session, clean_stock_master_tables):
         """一括登録とクエリのテスト."""
+        # Arrange (準備)
         stocks = [
             StockMaster(
                 stock_code="7203",
@@ -351,21 +385,18 @@ class TestStockMasterIntegration:
             ),
         ]
 
+        # Act (実行)
         session.add_all(stocks)
         session.commit()
-
-        # 全銘柄数確認
         total_count = session.query(StockMaster).count()
-        assert total_count == 5
-
-        # 有効な銘柄のみ取得
         active_stocks = session.query(StockMaster).filter_by(is_active=1).all()
-        assert len(active_stocks) == 4
-
-        # 無効な銘柄のみ取得
         inactive_stocks = (
             session.query(StockMaster).filter_by(is_active=0).all()
         )
+
+        # Assert (検証)
+        assert total_count == 5
+        assert len(active_stocks) == 4
         assert len(inactive_stocks) == 1
         assert inactive_stocks[0].stock_code == "9999"
 
