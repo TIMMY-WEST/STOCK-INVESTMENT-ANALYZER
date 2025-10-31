@@ -16,7 +16,7 @@ class TestAPIUsageGuide(unittest.TestCase):
     def setUp(self):
         """テストの初期化."""
         self.guide_path = Path("docs/api/api_usage_guide.md")
-        self.project_root = Path(__file__).parent.parent
+        self.project_root = Path(__file__).parent.parent.parent
         self.full_guide_path = self.project_root / self.guide_path
 
         # ガイドファイルの存在確認

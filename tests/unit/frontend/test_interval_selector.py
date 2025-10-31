@@ -32,6 +32,7 @@ class TestIntervalSelectorUI:
             os.path.dirname(__file__),
             "..",
             "..",
+            "..",
             "app",
             "templates",
             "index.html",
@@ -79,6 +80,7 @@ class TestIntervalSelectorUI:
             os.path.dirname(__file__),
             "..",
             "..",
+            "..",
             "app",
             "templates",
             "index.html",
@@ -122,7 +124,13 @@ class TestIntervalSelectorUI:
         """足選択セレクターのバリデーションテスト（無効な値でバリデーションした場合、エラー状態を返す）."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
@@ -144,7 +152,13 @@ class TestIntervalSelectorUI:
         """足選択セレクターのイベントハンドリングテスト（変更イベントでコールバック実行を返す）."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
@@ -164,7 +178,13 @@ class TestIntervalSelectorUI:
         """足選択セレクターのCSSスタイル確認テスト."""
         # Arrange (準備)
         css_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "style.css",
         )
         interval_css_classes = [".interval-selector", ".interval-error"]
 
@@ -181,7 +201,13 @@ class TestIntervalSelectorUI:
         """足選択関連のJavaScript関数確認テスト."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
         required_functions = [
             "initIntervalSelector",
@@ -207,7 +233,13 @@ class TestIntervalSelectorUI:
         """足選択バリデーションロジックのテスト."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
@@ -322,10 +354,22 @@ class TestIntervalSelectorIntegration:
         """フロントエンドとバックエンドの統合確認テスト."""
         # Arrange (準備)
         app_js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "app.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "app.js",
         )
         script_js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
@@ -350,7 +394,7 @@ class TestIntervalSelectorIntegration:
         """バックエンドの足パラメータ処理確認テスト."""
         # Arrange (準備)
         app_py_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "app.py"
+            os.path.dirname(__file__), "..", "..", "..", "app", "app.py"
         )
 
         # Act (実行)
@@ -377,7 +421,13 @@ class TestIntervalSelectorErrorHandling:
         """足選択エラー表示のテスト."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
@@ -397,7 +447,13 @@ class TestIntervalSelectorErrorHandling:
         """足選択エラークリア機能のテスト."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
