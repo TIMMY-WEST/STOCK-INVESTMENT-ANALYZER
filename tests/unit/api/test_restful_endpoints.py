@@ -4,16 +4,6 @@ import json
 
 import pytest
 
-from app.app import app as flask_app
-
-
-@pytest.fixture
-def client():
-    """テスト用のFlaskクライアント."""
-    flask_app.config["TESTING"] = True
-    with flask_app.test_client() as client:
-        yield client
-
 
 @pytest.fixture(autouse=True)
 def setup_env(monkeypatch):
