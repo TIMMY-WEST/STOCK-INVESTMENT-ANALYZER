@@ -182,12 +182,12 @@ def openapi_spec():
             or "test" in current_app.name
             or current_app.config.get("TESTING")
         ):
-            # テスト環境の場合 - tests/api/openapi.yamlを使用
+            # テスト環境の場合 - tests/unit/api/openapi.yamlを使用
             project_root = os.path.dirname(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             )
             spec_file_path = os.path.join(
-                project_root, "tests", "api", "openapi.yaml"
+                project_root, "tests", "unit", "api", "openapi.yaml"
             )
         else:
             # 本番環境の場合
