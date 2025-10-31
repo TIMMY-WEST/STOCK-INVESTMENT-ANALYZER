@@ -65,14 +65,17 @@ class TestE2ESimple:
 
     def test_static_file_access(self, driver):
         """静的ファイルへのアクセステスト."""
+        # Arrange (準備)
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
         )
         file_url = f"file:///{html_path.replace(os.sep, '/')}"
 
+        # Act (実行)
         driver.get(file_url)
 
+        # Assert (検証)
         # ページタイトルを確認
         assert "株式投資分析ツール" in driver.title
 
@@ -91,6 +94,7 @@ class TestE2ESimple:
 
     def test_form_elements_interaction(self, driver):
         """フォーム要素の操作テスト."""
+        # Arrange (準備)
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -99,24 +103,31 @@ class TestE2ESimple:
 
         driver.get(file_url)
 
-        # 銘柄コード入力
+        # Act (実行) - 銘柄コード入力
         symbol_input = driver.find_element(By.ID, "symbol")
         symbol_input.clear()
         symbol_input.send_keys("AAPL")
+
+        # Assert (検証)
         assert symbol_input.get_attribute("value") == "AAPL"
 
-        # 期間選択
+        # Act (実行) - 期間選択
         period_select = Select(driver.find_element(By.ID, "period"))
         period_select.select_by_value("1mo")
         selected_option = period_select.first_selected_option
+
+        # Assert (検証)
         assert selected_option.get_attribute("value") == "1mo"
 
-        # リセットボタンのクリック（JavaScriptが動作しないため、要素の存在のみ確認）
+        # Act (実行) - リセットボタンのクリック（JavaScriptが動作しないため、要素の存在のみ確認）
         reset_btn = driver.find_element(By.ID, "reset-btn")
+
+        # Assert (検証)
         assert reset_btn.is_enabled()
 
     def test_responsive_design_elements(self, driver):
         """レスポンシブデザイン要素のテスト."""
+        # Arrange (準備)
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -125,21 +136,28 @@ class TestE2ESimple:
 
         driver.get(file_url)
 
-        # デスクトップサイズ
+        # Act (実行) - デスクトップサイズ
         driver.set_window_size(1920, 1080)
         container = driver.find_element(By.CLASS_NAME, "container")
+
+        # Assert (検証)
         assert container.is_displayed()
 
-        # タブレットサイズ
+        # Act (実行) - タブレットサイズ
         driver.set_window_size(768, 1024)
+
+        # Assert (検証)
         assert container.is_displayed()
 
-        # モバイルサイズ
+        # Act (実行) - モバイルサイズ
         driver.set_window_size(375, 667)
+
+        # Assert (検証)
         assert container.is_displayed()
 
     def test_accessibility_features(self, driver):
         """アクセシビリティ機能のテスト."""
+        # Arrange (準備)
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -148,22 +166,33 @@ class TestE2ESimple:
 
         driver.get(file_url)
 
-        # ラベルとフォーム要素の関連付けを確認
+        # Act (実行) - ラベルとフォーム要素の関連付けを確認
         symbol_label = driver.find_element(By.XPATH, "//label[@for='symbol']")
+
+        # Assert (検証)
         assert symbol_label is not None
 
+        # Act (実行)
         period_label = driver.find_element(By.XPATH, "//label[@for='period']")
+
+        # Assert (検証)
         assert period_label is not None
 
-        # ボタンのaria-labelやtitle属性を確認
+        # Act (実行) - ボタンのaria-labelやtitle属性を確認
         fetch_btn = driver.find_element(By.ID, "fetch-btn")
+
+        # Assert (検証)
         assert fetch_btn.get_attribute("type") == "button"
 
+        # Act (実行)
         reset_btn = driver.find_element(By.ID, "reset-btn")
+
+        # Assert (検証)
         assert reset_btn.get_attribute("type") == "button"
 
     def test_css_and_styling(self, driver):
         """CSSとスタイリングのテスト."""
+        # Arrange (準備)
         # HTMLファイルに直接アクセス
         html_path = os.path.join(
             os.path.dirname(__file__), "..", "app", "templates", "index.html"
@@ -172,17 +201,23 @@ class TestE2ESimple:
 
         driver.get(file_url)
 
-        # Bootstrap CSSが適用されているかを確認
+        # Act (実行) - Bootstrap CSSが適用されているかを確認
         container = driver.find_element(By.CLASS_NAME, "container")
         container_class = container.get_attribute("class")
+
+        # Assert (検証)
         assert "container" in container_class
 
-        # フォーム要素のクラスを確認
+        # Act (実行) - フォーム要素のクラスを確認
         symbol_input = driver.find_element(By.ID, "symbol")
         input_class = symbol_input.get_attribute("class")
+
+        # Assert (検証)
         assert "form-control" in input_class
 
-        # ボタンのクラスを確認
+        # Act (実行) - ボタンのクラスを確認
         fetch_btn = driver.find_element(By.ID, "fetch-btn")
         btn_class = fetch_btn.get_attribute("class")
+
+        # Assert (検証)
         assert "btn" in btn_class

@@ -390,16 +390,17 @@ def create_state_manager_test_html():
 
 def test_create_state_manager_test_file_with_valid_config_returns_test_file():
     """状態管理テストファイルの作成をテスト."""
+    # Arrange (準備)
     test_html = create_state_manager_test_html()
-
-    # HTMLファイルとして保存
     test_file_path = (
         Path(__file__).parent.parent / "test_state_manager_unit.html"
     )
 
+    # Act (実行)
     with open(test_file_path, "w", encoding="utf-8") as f:
         f.write(test_html)
 
+    # Assert (検証)
     assert test_file_path.exists(), "テストファイルが作成されませんでした"
     print(f"状態管理テストファイルを作成しました: {test_file_path}")
 

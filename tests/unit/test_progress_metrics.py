@@ -17,8 +17,13 @@ class TestProgressTracker:
         self,
     ):
         """初期化のテスト."""
+        # Arrange (準備)
+        # テストデータとして total=100 を使用
+
+        # Act (実行)
         tracker = ProgressTracker(total=100)
 
+        # Assert (検証)
         assert tracker.total == 100
         assert tracker.processed == 0
         assert tracker.successful == 0
@@ -28,8 +33,10 @@ class TestProgressTracker:
 
     def test_progress_tracker_update_with_success_increments_counters(self):
         """成功時の更新テスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
+        # Act (実行)
         tracker.update(
             symbol="7203.T",
             success=True,
@@ -38,6 +45,7 @@ class TestProgressTracker:
             records_saved=50,
         )
 
+        # Assert (検証)
         assert tracker.processed == 1
         assert tracker.successful == 1
         assert tracker.failed == 0
@@ -49,12 +57,15 @@ class TestProgressTracker:
 
     def test_progress_tracker_update_with_failure_records_error_details(self):
         """失敗時の更新テスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
+        # Act (実行)
         tracker.update(
             symbol="9999.T", success=False, error_message="Connection timeout"
         )
 
+        # Assert (検証)
         assert tracker.processed == 1
         assert tracker.successful == 0
         assert tracker.failed == 1
@@ -67,8 +78,10 @@ class TestProgressTracker:
         self,
     ):
         """進捗情報取得のテスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
+        # Act (実行)
         # 複数の銘柄を処理
         for i in range(5):
             tracker.update(
@@ -83,6 +96,7 @@ class TestProgressTracker:
 
         progress = tracker.get_progress()
 
+        # Assert (検証)
         assert progress["total"] == 10
         assert progress["processed"] == 5
         assert progress["successful"] == 5
@@ -107,8 +121,10 @@ class TestProgressTracker:
         self,
     ):
         """メトリクス計算のテスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=20)
 
+        # Act (実行)
         # 成功: 15件、失敗: 5件
         for i in range(15):
             tracker.update(
@@ -126,6 +142,7 @@ class TestProgressTracker:
 
         progress = tracker.get_progress()
 
+        # Assert (検証)
         # 成功率の確認
         assert progress["performance"]["success_rate"] == 75.0  # 15/20 = 75%
 
@@ -149,8 +166,10 @@ class TestProgressTracker:
         self,
     ):
         """サマリー取得のテスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=5)
 
+        # Act (実行)
         for i in range(5):
             tracker.update(
                 symbol=f"stock{i}.T",
@@ -162,6 +181,7 @@ class TestProgressTracker:
 
         summary = tracker.get_summary()
 
+        # Assert (検証)
         assert summary["status"] == "completed"
         assert summary["total"] == 5
         assert summary["processed"] == 5
@@ -174,10 +194,13 @@ class TestProgressTracker:
         self,
     ):
         """空のメトリクスのテスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
+        # Act (実行)
         progress = tracker.get_progress()
 
+        # Assert (検証)
         # 処理が0件の場合でもエラーにならないこと
         assert progress["throughput"]["stocks_per_minute"] == 0
         assert progress["performance"]["success_rate"] == 0
@@ -189,8 +212,10 @@ class TestProgressTracker:
         self,
     ):
         """ETA計算のテスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
+        # Act (実行)
         # 5件処理
         for i in range(5):
             tracker.update(
@@ -205,6 +230,7 @@ class TestProgressTracker:
 
         progress = tracker.get_progress()
 
+        # Assert (検証)
         # ETAが計算されていることを確認
         assert progress["estimated_completion"] is not None
 

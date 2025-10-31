@@ -26,12 +26,10 @@ class TestStockDataAPIIntegration:
         self, api_service
     ):
         """有効な銘柄コードでの株価データ取得成功テスト."""
+        # Arrange (準備)
         with patch.object(yf, "Ticker") as mock_ticker_class:
-            # モックティッカーを設定
             mock_ticker = Mock()
             mock_ticker_class.return_value = mock_ticker
-
-            # モックデータを設定
             mock_data = pd.DataFrame(
                 {
                     "Open": [100.0],
@@ -43,10 +41,10 @@ class TestStockDataAPIIntegration:
             )
             mock_ticker.history.return_value = mock_data
 
-            # テスト実行
+            # Act (実行)
             result = api_service.fetch_stock_data("7203")
 
-            # 結果検証
+            # Assert (検証)
             assert result is not None
             assert isinstance(result, pd.DataFrame)
             assert len(result) > 0
@@ -56,16 +54,14 @@ class TestStockDataAPIIntegration:
         self, api_service
     ):
         """無効な銘柄コードでの例外発生テスト."""
+        # Arrange (準備)
         with patch.object(yf, "Ticker") as mock_ticker_class:
-            # モックティッカーを設定
             mock_ticker = Mock()
             mock_ticker_class.return_value = mock_ticker
-
-            # 空のデータを返すモックを設定
             mock_data = pd.DataFrame()
             mock_ticker.history.return_value = mock_data
 
-            # 例外が発生することを確認
+            # Act & Assert (実行と検証)
             with pytest.raises(StockDataFetchError):
                 api_service.fetch_stock_data("INVALID")
 
@@ -73,10 +69,10 @@ class TestStockDataAPIIntegration:
         self, api_service
     ):
         """ネットワークエラー時の例外発生テスト."""
+        # Arrange (準備)
         with patch.object(yf, "Ticker") as mock_ticker_class:
-            # ネットワークエラーをシミュレート
             mock_ticker_class.side_effect = Exception("Network error")
 
-            # 例外が発生することを確認
+            # Act & Assert (実行と検証)
             with pytest.raises(StockDataFetchError):
                 api_service.fetch_stock_data("7203")

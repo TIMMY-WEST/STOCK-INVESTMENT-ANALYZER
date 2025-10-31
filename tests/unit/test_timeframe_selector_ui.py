@@ -23,6 +23,7 @@ class TestTimeframeSelectorUI:
         self,
     ):
         """HTMLテンプレートの構造確認テスト."""
+        # Arrange (準備)
         template_path = os.path.join(
             os.path.dirname(__file__),
             "..",
@@ -32,11 +33,13 @@ class TestTimeframeSelectorUI:
             "index.html",
         )
 
+        # Act (実行)
         with open(template_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
         soup = BeautifulSoup(html_content, "html.parser")
 
+        # Assert (検証)
         # 期間選択セレクターの存在確認
         period_select = soup.find("select", {"id": "period"})
         assert period_select is not None, "期間選択セレクターが見つかりません"
@@ -47,26 +50,18 @@ class TestTimeframeSelectorUI:
 
         # 必須項目インジケーターの確認
         required_indicator = soup.find("span", class_="required-indicator")
-        assert (
-            required_indicator is not None
-        ), "必須項目インジケーターが見つかりません"
+        assert required_indicator is not None, "必須項目インジケーターが見つかりません"
 
         # 時間軸インジケーターの確認
         timeframe_indicator = soup.find("div", {"id": "timeframe-indicator"})
-        assert (
-            timeframe_indicator is not None
-        ), "時間軸インジケーターが見つかりません"
+        assert timeframe_indicator is not None, "時間軸インジケーターが見つかりません"
 
     def test_css_styles_exist_with_valid_css_returns_required_styles(self):
         """CSSスタイルの存在確認テスト."""
+        # Arrange (準備)
         css_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
         )
-
-        with open(css_path, "r", encoding="utf-8") as f:
-            css_content = f.read()
-
-        # 重要なCSSクラスの存在確認
         required_classes = [
             ".required-indicator",
             ".timeframe-selector-container",
@@ -77,10 +72,14 @@ class TestTimeframeSelectorUI:
             ".is-valid",
         ]
 
+        # Act (実行)
+        with open(css_path, "r", encoding="utf-8") as f:
+            css_content = f.read()
+
+        # Assert (検証)
+        # 重要なCSSクラスの存在確認
         for css_class in required_classes:
-            assert (
-                css_class in css_content
-            ), f"CSSクラス {css_class} が見つかりません"
+            assert css_class in css_content, f"CSSクラス {css_class} が見つかりません"
 
         # レスポンシブデザインの確認
         assert (
@@ -94,14 +93,10 @@ class TestTimeframeSelectorUI:
         self,
     ):
         """JavaScript関数の存在確認テスト."""
+        # Arrange (準備)
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
-
-        with open(js_path, "r", encoding="utf-8") as f:
-            js_content = f.read()
-
-        # 重要なJavaScript関数の存在確認
         required_functions = [
             "initTimeframeSelector",
             "handleTimeframeChange",
@@ -113,6 +108,12 @@ class TestTimeframeSelectorUI:
             "clearTimeframeError",
         ]
 
+        # Act (実行)
+        with open(js_path, "r", encoding="utf-8") as f:
+            js_content = f.read()
+
+        # Assert (検証)
+        # 重要なJavaScript関数の存在確認
         for function_name in required_functions:
             pattern = rf"function\s+{function_name}\s*\(|{function_name}\s*[:=]\s*function"
             assert re.search(
@@ -123,13 +124,16 @@ class TestTimeframeSelectorUI:
         self,
     ):
         """時間軸設定の構造確認テスト."""
+        # Arrange (準備)
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
+        # Act (実行)
         with open(js_path, "r", encoding="utf-8") as f:
             js_content = f.read()
 
+        # Assert (検証)
         # getTimeframeConfig関数の内容確認
         assert "short-term" in js_content, "短期間設定が見つかりません"
         assert "medium-term" in js_content, "中期間設定が見つかりません"
@@ -140,6 +144,7 @@ class TestTimeframeSelectorUI:
         self,
     ):
         """アクセシビリティ属性の確認テスト."""
+        # Arrange (準備)
         template_path = os.path.join(
             os.path.dirname(__file__),
             "..",
@@ -149,11 +154,13 @@ class TestTimeframeSelectorUI:
             "index.html",
         )
 
+        # Act (実行)
         with open(template_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
         soup = BeautifulSoup(html_content, "html.parser")
 
+        # Assert (検証)
         # 期間選択セレクターのアクセシビリティ属性確認
         period_select = soup.find("select", {"id": "period"})
         assert (
@@ -165,22 +172,23 @@ class TestTimeframeSelectorUI:
 
     def test_form_validation_integration(self):
         """フォームバリデーション統合の確認テスト."""
+        # Arrange (準備)
         js_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
         )
 
+        # Act (実行)
         with open(js_path, "r", encoding="utf-8") as f:
             js_content = f.read()
 
+        # Assert (検証)
         # validateForm関数に時間軸バリデーションが統合されているか確認
         assert (
             "validateTimeframeSelection" in js_content
         ), "時間軸バリデーションが統合されていません"
 
         # initApp関数に初期化が含まれているか確認
-        assert (
-            "initTimeframeSelector" in js_content
-        ), "時間軸セレクター初期化が含まれていません"
+        assert "initTimeframeSelector" in js_content, "時間軸セレクター初期化が含まれていません"
 
 
 class TestTimeframeSelectorConfiguration:
@@ -188,6 +196,7 @@ class TestTimeframeSelectorConfiguration:
 
     def test_timeframe_options_completeness(self):
         """時間軸オプションの完全性テスト."""
+        # Arrange (準備)
         template_path = os.path.join(
             os.path.dirname(__file__),
             "..",
@@ -197,12 +206,14 @@ class TestTimeframeSelectorConfiguration:
             "index.html",
         )
 
+        # Act (実行)
         with open(template_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
         soup = BeautifulSoup(html_content, "html.parser")
         period_select = soup.find("select", {"id": "period"})
 
+        # Assert (検証)
         # 各optgroupに適切なオプションが含まれているか確認
         optgroups = period_select.find_all("optgroup")
 
@@ -214,19 +225,18 @@ class TestTimeframeSelectorConfiguration:
 
             # 各オプションにvalue属性があることを確認
             for option in options:
-                assert (
-                    option.get("value") is not None
-                ), "オプションにvalue属性がありません"
-                assert (
-                    option.get_text().strip() != ""
-                ), "オプションにテキストがありません"
+                assert option.get("value") is not None, "オプションにvalue属性がありません"
+                assert option.get_text().strip() != "", "オプションにテキストがありません"
 
     def test_css_responsive_design(self):
         """CSSレスポンシブデザインのテスト."""
+        # Arrange (準備)
         css_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
         )
+        media_query_pattern = r"@media\s*\([^)]*max-width[^)]*\)\s*\{[^}]*\}"
 
+        # Act (実行)
         with open(css_path, "r", encoding="utf-8") as f:
             css_content = f.read()
 
@@ -234,12 +244,10 @@ class TestTimeframeSelectorConfiguration:
         _ = ["font-size", "padding", "margin", "width"]
 
         # メディアクエリ内でモバイル用スタイルが定義されているか確認
-        media_query_pattern = r"@media\s*\([^)]*max-width[^)]*\)\s*\{[^}]*\}"
         media_queries = re.findall(media_query_pattern, css_content, re.DOTALL)
 
-        assert (
-            len(media_queries) >= 2
-        ), "十分なメディアクエリが定義されていません"
+        # Assert (検証)
+        assert len(media_queries) >= 2, "十分なメディアクエリが定義されていません"
 
 
 if __name__ == "__main__":

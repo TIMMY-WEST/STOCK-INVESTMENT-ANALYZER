@@ -17,8 +17,13 @@ class TestFrontendErrorDisplay:
 
     def test_index_page_load_with_valid_request_returns_success(self, client):
         """メインページが正常に読み込まれることを確認."""
+        # Arrange (準備)
+        # clientフィクスチャを使用
+
+        # Act (実行)
         response = client.get("/")
 
+        # Assert (検証)
         assert response.status_code == 200
         assert b"<!DOCTYPE html>" in response.data
         assert "株価データ管理システム".encode("utf-8") in response.data
@@ -27,18 +32,20 @@ class TestFrontendErrorDisplay:
         self, client
     ):
         """エラーメッセージフォーマットの一貫性テスト."""
+        # Arrange (準備)
         # 無効な銘柄コードでテスト
         with patch("app.services.stock_data.fetcher.yf.Ticker") as mock_ticker:
             mock_ticker.return_value.history.return_value.empty = True
 
+            # Act (実行)
             response = client.post(
                 "/api/stocks/data",
                 data=json.dumps({"symbol": "INVALID.T", "period": "1mo"}),
                 content_type="application/json",
             )
-
             data = json.loads(response.data)
 
+            # Assert (検証)
             # エラーレスポンスの必須フィールドを確認
             assert "status" in data
             assert data["status"] == "error"
@@ -54,6 +61,7 @@ class TestFrontendErrorDisplay:
         self, client
     ):
         """ユーザーフレンドリーなエラーメッセージテスト."""
+        # Arrange (準備)
         test_cases = [
             {
                 "name": "無効な銘柄コード",
@@ -74,6 +82,7 @@ class TestFrontendErrorDisplay:
             },
         ]
 
+        # Act (実行) & Assert (検証)
         for case in test_cases:
             if case.get("method") == "GET":
                 response = client.get(case["url"])
@@ -101,15 +110,16 @@ class TestFrontendErrorDisplay:
         self, client
     ):
         """エラーコードカバレッジテスト."""
+        # Arrange (準備)
         _ = [
             "INVALID_SYMBOL",
             "VALIDATION_ERROR",
             "DATA_FETCH_ERROR",
             "EXTERNAL_API_ERROR",
         ]
-
         tested_error_codes = set()
 
+        # Act (実行)
         # INVALID_SYMBOL - Issue #68の実装により、StockDataFetcherを通じてエラーが返される
         with patch("app.services.stock_data.fetcher.yf.Ticker") as mock_ticker:
             mock_ticker.return_value.history.return_value.empty = True
@@ -144,6 +154,7 @@ class TestFrontendErrorDisplay:
             data = json.loads(response.data)
             tested_error_codes.add(data.get("error", {}).get("code"))
 
+        # Assert (検証)
         # 全ての重要なエラーコードがテストされていることを確認
         # DATABASE_ERRORは実際のDBエラーを起こしにくいため、基本的なエラーコードのみチェック
         basic_error_codes = [
@@ -160,9 +171,12 @@ class TestFrontendErrorDisplay:
         self, client
     ):
         """エラーメッセージ長制限テスト."""
+        # Arrange (準備)
+        long_error_message = "A" * 1000  # 1000文字のエラーメッセージ
+
+        # Act (実行)
         # 長大なエラーメッセージが発生する場合の処理
         with patch("yfinance.Ticker") as mock_ticker:
-            long_error_message = "A" * 1000  # 1000文字のエラーメッセージ
             mock_ticker.side_effect = Exception(long_error_message)
 
             response = client.post(
@@ -174,6 +188,7 @@ class TestFrontendErrorDisplay:
             data = json.loads(response.data)
             message = data.get("error", {}).get("message", "")
 
+            # Assert (検証)
             # エラーメッセージが適切な長さに制限されているかチェック
             # 実装によっては長いメッセージが返る場合があるため、より現実的な制限を設定
             assert len(message) < 2000, "エラーメッセージが長すぎます"
@@ -182,8 +197,10 @@ class TestFrontendErrorDisplay:
         self, client
     ):
         """エラー時のAPIレスポンス時間テスト."""
+        # Arrange (準備)
         import time
 
+        # Act (実行)
         # エラーケースでも適切な時間内にレスポンスが返ることを確認
         start_time = time.time()
 
@@ -192,23 +209,25 @@ class TestFrontendErrorDisplay:
         end_time = time.time()
         response_time = end_time - start_time
 
+        # Assert (検証)
         # 3秒以内にレスポンスが返ることを確認
-        assert (
-            response_time < 3.0
-        ), f"エラーレスポンス時間が長すぎます: {response_time}秒"
+        assert response_time < 3.0, f"エラーレスポンス時間が長すぎます: {response_time}秒"
         assert response.status_code == 400
 
     def test_concurrent_error_handling_with_multiple_requests_returns_stable_responses(
         self, client
     ):
         """並行エラーハンドリングテスト."""
-        # 複数の不正リクエストを同時に送信
+        # Arrange (準備)
         responses = []
 
+        # Act (実行)
+        # 複数の不正リクエストを同時に送信
         for i in range(5):
             response = client.get(f"/api/stocks?limit=-{i + 1}")
             responses.append(response)
 
+        # Assert (検証)
         # 全てのレスポンスが適切にエラーを返すことを確認
         for response in responses:
             assert response.status_code == 400

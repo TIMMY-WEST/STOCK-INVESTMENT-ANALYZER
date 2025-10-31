@@ -37,27 +37,34 @@ class TestStockDataConverter:
         self, converter, sample_dataframe
     ):
         """DataFrameから辞書リストへの変換テスト."""
+        # Arrange (準備)
+        # converterとsample_dataframeフィクスチャを使用
+
+        # Act (実行)
         result = converter.convert_to_dict(sample_dataframe, "1d")
 
+        # Assert (検証)
         assert isinstance(result, list)
         assert len(result) == 2
-
-        # 最初のレコードをチェック
         first_record = result[0]
         assert "open" in first_record
         assert "high" in first_record
         assert "low" in first_record
         assert "close" in first_record
         assert "volume" in first_record
-        assert "date" in first_record  # 1dの場合はdateフィールド
+        assert "date" in first_record
 
     def test_converter_convert_to_dict_with_empty_dataframe_returns_empty_list(
         self, converter
     ):
         """空のDataFrameの変換テスト."""
+        # Arrange (準備)
         empty_df = pd.DataFrame()
+
+        # Act (実行)
         result = converter.convert_to_dict(empty_df, "1d")
 
+        # Assert (検証)
         assert isinstance(result, list)
         assert len(result) == 0
 
@@ -65,8 +72,13 @@ class TestStockDataConverter:
         self, converter, sample_dataframe
     ):
         """価格データ抽出のテスト."""
+        # Arrange (準備)
+        # converterとsample_dataframeフィクスチャを使用
+
+        # Act (実行)
         result = converter.extract_price_data(sample_dataframe)
 
+        # Assert (検証)
         assert isinstance(result, dict)
         assert "latest_close" in result
         assert "latest_date" in result
@@ -78,6 +90,7 @@ class TestStockDataConverter:
         self, converter
     ):
         """単一行のDataFrameでの価格データ抽出テスト."""
+        # Arrange (準備)
         single_df = pd.DataFrame(
             {
                 "Open": [100.0],
@@ -89,7 +102,10 @@ class TestStockDataConverter:
             index=pd.date_range("2024-01-01", periods=1),
         )
 
+        # Act (実行)
         result = converter.extract_price_data(single_df)
+
+        # Assert (検証)
         assert result["latest_close"] == 103.0
         assert result["record_count"] == 1
         assert "latest_date" in result
@@ -98,8 +114,13 @@ class TestStockDataConverter:
         self, converter, sample_dataframe
     ):
         """最新データ日時取得のテスト."""
+        # Arrange (準備)
+        # converterとsample_dataframeフィクスチャを使用
+
+        # Act (実行)
         result = converter.get_latest_data_date(sample_dataframe)
 
+        # Assert (検証)
         assert isinstance(result, datetime)
         assert result.date() == date(2024, 1, 2)
 
@@ -107,8 +128,10 @@ class TestStockDataConverter:
         self, converter
     ):
         """空のDataFrameでの最新データ日時取得テスト."""
+        # Arrange (準備)
         empty_df = pd.DataFrame()
 
+        # Act & Assert (実行と検証)
         with pytest.raises(StockDataConversionError):
             converter.get_latest_data_date(empty_df)
 
@@ -116,14 +139,16 @@ class TestStockDataConverter:
         self, converter
     ):
         """複数銘柄データの分割テスト."""
-        # マルチレベルカラムのDataFrameを作成
+        # Arrange (準備)
         symbols = ["AAPL", "GOOGL"]
         columns = pd.MultiIndex.from_product([["Open", "Close"], symbols])
         data = [[100, 150, 200, 250], [101, 151, 201, 251]]
         multi_df = pd.DataFrame(data, columns=columns)
 
+        # Act (実行)
         result = converter.split_multi_symbol_result(multi_df, symbols)
 
+        # Assert (検証)
         assert len(result) == 2
         assert "AAPL" in result
         assert "GOOGL" in result
@@ -134,6 +159,7 @@ class TestStockDataConverter:
         self, converter
     ):
         """サマリーデータフォーマットのテスト."""
+        # Arrange (準備)
         results = {
             "success": True,
             "record_count": 100,
@@ -141,8 +167,10 @@ class TestStockDataConverter:
             "error": None,
         }
 
+        # Act (実行)
         summary = converter.format_summary_data(results, "7203.T", "1d")
 
+        # Assert (検証)
         assert summary["success"] is True
         assert summary["record_count"] == 100
         assert summary["symbol"] == "7203.T"
@@ -153,6 +181,7 @@ class TestStockDataConverter:
         self, converter
     ):
         """行からレコード作成のテスト."""
+        # Arrange (準備)
         row = pd.Series(
             {
                 "Open": 100.0,
@@ -164,10 +193,12 @@ class TestStockDataConverter:
             name=datetime(2024, 1, 1),
         )
 
+        # Act (実行)
         record = converter._create_record_from_row(
             datetime(2024, 1, 1), row, "1d"
         )
 
+        # Assert (検証)
         assert record["open"] == 100.0
         assert record["high"] == 110.0
         assert record["low"] == 95.0

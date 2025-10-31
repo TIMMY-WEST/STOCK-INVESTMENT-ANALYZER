@@ -17,12 +17,15 @@ class TestSwaggerAPI:
 
     def test_swagger_ui_page_with_request_returns_html_content(self, client):
         """Swagger UIページのテスト."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/")
 
+        # Assert (検証)
         assert response.status_code == 200
         assert response.content_type.startswith("text/html")
 
-        # HTMLコンテンツの基本的な検証
         html_content = response.get_data(as_text=True)
         assert "swagger-ui" in html_content
         assert "Stock Investment Analyzer API Documentation" in html_content
@@ -32,22 +35,23 @@ class TestSwaggerAPI:
         self, client
     ):
         """OpenAPI仕様書JSONエンドポイントのテスト."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/openapi.json")
 
+        # Assert (検証)
         assert response.status_code == 200
         assert response.content_type == "application/json"
 
-        # JSONの妥当性検証
         openapi_spec = response.get_json()
         assert openapi_spec is not None
 
-        # OpenAPI仕様書の基本構造検証
         assert "openapi" in openapi_spec
         assert "info" in openapi_spec
         assert "paths" in openapi_spec
         assert "components" in openapi_spec
 
-        # バージョン情報の検証
         assert openapi_spec["openapi"] == "3.0.3"
         assert openapi_spec["info"]["title"] == "Stock Investment Analyzer API"
         assert openapi_spec["info"]["version"] == "1.0.0"
@@ -56,16 +60,18 @@ class TestSwaggerAPI:
         self, client
     ):
         """OpenAPI仕様書YAMLエンドポイントのテスト."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/openapi.yaml")
 
+        # Assert (検証)
         assert response.status_code == 200
         assert response.content_type == "application/x-yaml"
 
-        # YAMLの妥当性検証
         yaml_content = response.get_data(as_text=True)
         openapi_spec = yaml.safe_load(yaml_content)
 
-        # OpenAPI仕様書の基本構造検証
         assert "openapi" in openapi_spec
         assert "info" in openapi_spec
         assert "paths" in openapi_spec
@@ -75,12 +81,15 @@ class TestSwaggerAPI:
         self, client
     ):
         """ReDocページのテスト."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/redoc/")
 
+        # Assert (検証)
         assert response.status_code == 200
         assert response.content_type.startswith("text/html")
 
-        # HTMLコンテンツの基本的な検証
         html_content = response.get_data(as_text=True)
         assert "redoc" in html_content
         assert (
@@ -93,8 +102,12 @@ class TestSwaggerAPI:
         self, client
     ):
         """ドキュメントサービスヘルスチェックエンドポイントのテスト."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/health")
 
+        # Assert (検証)
         assert response.status_code == 200
         assert response.content_type == "application/json"
 
@@ -107,29 +120,27 @@ class TestSwaggerAPI:
         self, client
     ):
         """OpenAPI仕様書の内容詳細検証."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
 
-        # サーバー情報の検証
+        # Assert (検証)
         assert "servers" in openapi_spec
         assert len(openapi_spec["servers"]) > 0
 
-        # パス情報の検証（主要なエンドポイントが含まれているか）
         paths = openapi_spec["paths"]
 
-        # 株価データAPI
         assert "/api/stocks" in paths
         assert "/api/stocks/{stock_id}" in paths
         assert "/api/fetch-data" in paths
 
-        # バルクデータAPI
         assert "/api/bulk-data/jobs" in paths
         assert "/api/bulk-data/jobs/{job_id}" in paths
 
-        # 銘柄マスターAPI
         assert "/api/stock-master/stocks" in paths
 
-        # システム監視API
         assert "/api/system/health-check" in paths
         assert "/api/system/database/connection" in paths
 
@@ -137,16 +148,18 @@ class TestSwaggerAPI:
         self, client
     ):
         """OpenAPI仕様書のコンポーネント検証."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
 
+        # Assert (検証)
         components = openapi_spec["components"]
 
-        # スキーマの検証
         assert "schemas" in components
         schemas = components["schemas"]
 
-        # 主要なスキーマが定義されているか
         assert "StockData" in schemas
         assert "StockMaster" in schemas
         assert "BulkJobStatus" in schemas
@@ -154,11 +167,9 @@ class TestSwaggerAPI:
         assert "ErrorResponse" in schemas
         assert "PaginatedResponse" in schemas
 
-        # レスポンスの検証
         assert "responses" in components
         responses = components["responses"]
 
-        # 共通レスポンスが定義されているか
         assert "Success" in responses
         assert "BadRequest" in responses
         assert "NotFound" in responses
@@ -168,46 +179,58 @@ class TestSwaggerAPI:
         self, app
     ):
         """Swagger UIブループリントの登録確認."""
-        # ブループリントが正しく登録されているか確認
+        # Arrange (準備)
+
+        # Act (実行)
         blueprint_names = [bp.name for bp in app.blueprints.values()]
+
+        # Assert (検証)
         assert "swagger" in blueprint_names
 
     def test_swagger_error_handling_with_nonexistent_endpoint_returns_not_found(
         self, client
     ):
         """Swagger UIのエラーハンドリングテスト."""
-        # 存在しないエンドポイントへのアクセス
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/nonexistent")
+
+        # Assert (検証)
         assert response.status_code == 404
 
     def test_swagger_openapi_spec_security_with_definitions_returns_proper_schemes(
         self, client
     ):
         """OpenAPI仕様書のセキュリティ定義検証."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
 
-        # セキュリティスキームが定義されているか（将来の拡張のため）
+        # Assert (検証)
         if (
             "components" in openapi_spec
             and "securitySchemes" in openapi_spec["components"]
         ):
             security_schemes = openapi_spec["components"]["securitySchemes"]
-            # 現在は認証なしだが、将来的にAPIキーやJWTが追加される可能性
             assert isinstance(security_schemes, dict)
 
     def test_swagger_openapi_spec_tags_with_validation_returns_proper_tags(
         self, client
     ):
         """OpenAPI仕様書のタグ検証."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
 
-        # タグが定義されているか
+        # Assert (検証)
         assert "tags" in openapi_spec
         tags = openapi_spec["tags"]
 
-        # 主要なタグが定義されているか
         tag_names = [tag["name"] for tag in tags]
         assert "株価データ" in tag_names
         assert "バルクデータ" in tag_names
@@ -218,30 +241,31 @@ class TestSwaggerAPI:
         self, client
     ):
         """レスポンスのContent-Typeヘッダー検証."""
-        # Swagger UIページ
-        response = client.get("/api/docs/")
-        assert "text/html" in response.content_type
+        # Arrange (準備)
 
-        # OpenAPI JSON
-        response = client.get("/api/docs/openapi.json")
-        assert response.content_type == "application/json"
+        # Act (実行)
+        response_swagger = client.get("/api/docs/")
+        response_json = client.get("/api/docs/openapi.json")
+        response_yaml = client.get("/api/docs/openapi.yaml")
+        response_redoc = client.get("/api/docs/redoc")
 
-        # OpenAPI YAML
-        response = client.get("/api/docs/openapi.yaml")
-        assert response.content_type == "application/x-yaml"
-
-        # ReDoc
-        response = client.get("/api/docs/redoc")
-        assert "text/html" in response.content_type
+        # Assert (検証)
+        assert "text/html" in response_swagger.content_type
+        assert response_json.content_type == "application/json"
+        assert response_yaml.content_type == "application/x-yaml"
+        assert "text/html" in response_redoc.content_type
 
     def test_swagger_openapi_spec_examples_with_validation_returns_proper_samples(
         self, client
     ):
         """OpenAPI仕様書のサンプルデータ検証."""
+        # Arrange (準備)
+
+        # Act (実行)
         response = client.get("/api/docs/openapi.json")
         openapi_spec = response.get_json()
 
-        # レスポンスにサンプルデータが含まれているか確認
+        # Assert (検証)
         if (
             "components" in openapi_spec
             and "responses" in openapi_spec["components"]
@@ -253,7 +277,6 @@ class TestSwaggerAPI:
                     for _content_type, content_def in response_def[
                         "content"
                     ].items():
-                        # サンプルまたはスキーマが定義されているか
                         assert (
                             "example" in content_def or "schema" in content_def
                         )

@@ -111,13 +111,25 @@ class TestResetDbShell:
 
     def test_script_exists(self):
         """スクリプトファイルが存在することを確認."""
+        # Arrange (準備)
         script_path = PROJECT_ROOT / "scripts" / "setup" / "reset_db.sh"
-        assert script_path.exists(), "reset_db.sh script not found"
+
+        # Act (実行)
+        exists = script_path.exists()
+
+        # Assert (検証)
+        assert exists, "reset_db.sh script not found"
 
     def test_script_is_executable(self):
         """スクリプトが実行可能であることを確認."""
+        # Arrange (準備)
         script_path = PROJECT_ROOT / "scripts" / "setup" / "reset_db.sh"
-        assert os.access(script_path, os.X_OK), "reset_db.sh is not executable"
+
+        # Act (実行)
+        is_executable = os.access(script_path, os.X_OK)
+
+        # Assert (検証)
+        assert is_executable, "reset_db.sh is not executable"
 
     @pytest.mark.slow
     def test_script_runs_successfully(self):
@@ -126,8 +138,9 @@ class TestResetDbShell:
         注意: このテストは実際にデータベースをリセットするため、
         テスト環境でのみ実行してください。
         """
-        # スクリプトを実行（非対話モード - 自動的に全て yes と仮定）
-        # 本番では実行しないようにスキップマーカーを使用
+        # Arrange (準備)
+        # Act (実行)
+        # Assert (検証)
         pytest.skip("Skipping actual database reset in automated tests")
 
 
@@ -139,8 +152,14 @@ class TestResetDbBatch:
 
     def test_script_exists(self):
         """スクリプトファイルが存在することを確認."""
+        # Arrange (準備)
         script_path = PROJECT_ROOT / "scripts" / "setup" / "reset_db.bat"
-        assert script_path.exists(), "reset_db.bat script not found"
+
+        # Act (実行)
+        exists = script_path.exists()
+
+        # Assert (検証)
+        assert exists, "reset_db.bat script not found"
 
     @pytest.mark.slow
     def test_script_runs_successfully(self):
@@ -149,8 +168,9 @@ class TestResetDbBatch:
         注意: このテストは実際にデータベースをリセットするため、
         テスト環境でのみ実行してください。
         """
-        # スクリプトを実行（非対話モード - 自動的に全て yes と仮定）
-        # 本番では実行しないようにスキップマーカーを使用
+        # Arrange (準備)
+        # Act (実行)
+        # Assert (検証)
         pytest.skip("Skipping actual database reset in automated tests")
 
 
@@ -159,22 +179,31 @@ class TestDatabaseStructure:
 
     def test_database_exists(self):
         """データベースが存在することを確認."""
+        # Arrange (準備)
         dbname = DB_CONFIG["database"]
-        assert check_database_exists(
-            dbname
-        ), f"Database {dbname} does not exist"
+
+        # Act (実行)
+        exists = check_database_exists(dbname)
+
+        # Assert (検証)
+        assert exists, f"Database {dbname} does not exist"
 
     def test_tables_created(self):
         """必要なテーブルが作成されていることを確認."""
-        table_count = count_tables()
-        # 8テーブル（株価データ）+ 2テーブル（銘柄マスタ）+ 2テーブル（バッチ実行）= 12テーブル
+        # Arrange (準備)
         expected_min_tables = 12
+
+        # Act (実行)
+        table_count = count_tables()
+
+        # Assert (検証)
         assert (
             table_count >= expected_min_tables
         ), f"Expected at least {expected_min_tables} tables, found {table_count}"
 
     def test_required_tables_exist(self):
         """主要テーブルが存在することを確認."""
+        # Arrange (準備)
         required_tables = [
             "stocks_1m",
             "stocks_5m",
@@ -189,10 +218,11 @@ class TestDatabaseStructure:
             "batch_executions",
             "batch_execution_details",
         ]
-
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # Act (実行)
+        # Assert (検証)
         for table_name in required_tables:
             cursor.execute(
                 """
@@ -212,8 +242,11 @@ class TestDatabaseStructure:
 
     def test_sample_data_inserted(self):
         """サンプルデータが投入されていることを確認."""
+        # Arrange (準備)
+        # Act (実行)
         sample_count = count_sample_data()
-        # サンプルデータは最低1件以上あることを期待
+
+        # Assert (検証)
         assert sample_count > 0, "No sample data found in stocks_1d table"
 
 
@@ -222,11 +255,15 @@ class TestDatabaseConnection:
 
     def test_connection_successful(self):
         """データベースに接続できることを確認."""
+        # Arrange (準備)
+        # Act (実行)
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT 1")
             result = cursor.fetchone()
+
+            # Assert (検証)
             assert result[0] == 1, "Connection test query failed"
             cursor.close()
             conn.close()
@@ -235,10 +272,12 @@ class TestDatabaseConnection:
 
     def test_user_has_permissions(self):
         """ユーザーに必要な権限があることを確認."""
+        # Arrange (準備)
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # テーブル作成権限の確認
+        # Act (実行)
+        # Assert (検証)
         try:
             cursor.execute(
                 "CREATE TABLE IF NOT EXISTS test_permissions (id SERIAL PRIMARY KEY)"
@@ -266,11 +305,14 @@ class TestResetScriptIntegration:
         注意: このテストは実際にデータベースをリセットするため、
         開発環境でのみ実行してください。
         """
-        # 本番環境では絶対に実行しない
-        if os.getenv("FLASK_ENV") == "production":
+        # Arrange (準備)
+        flask_env = os.getenv("FLASK_ENV")
+
+        # Act (実行)
+        # Assert (検証)
+        if flask_env == "production":
             pytest.skip("Skipping destructive test in production")
 
-        # 実際のリセット処理はスキップ（手動テスト用）
         pytest.skip("Manual test only - requires user confirmation")
 
 

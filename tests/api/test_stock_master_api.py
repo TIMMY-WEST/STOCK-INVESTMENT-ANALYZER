@@ -30,7 +30,7 @@ class TestStockMasterAPI:
         self, mock_service_class
     ):
         """銘柄マスタ更新APIの成功テスト."""
-        # モックサービスを設定
+        # Arrange (準備)
         mock_service = Mock()
         mock_service.update_stock_master.return_value = {
             "update_type": "manual",
@@ -41,11 +41,9 @@ class TestStockMasterAPI:
             "status": "success",
         }
         mock_service_class.return_value = mock_service
-
-        # リクエストデータ
         data = {"update_type": "manual"}
 
-        # APIを呼び出し
+        # Act (実行)
         response = self.client.post(
             "/api/stock-master/",
             data=json.dumps(data),
@@ -53,15 +51,13 @@ class TestStockMasterAPI:
             headers=self.headers,
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 200
         response_data = json.loads(response.data)
         assert response_data["status"] == "success"
         assert response_data["message"] == "銘柄マスタの更新が完了しました"
         assert response_data["data"]["total_stocks"] == 3800
         assert response_data["data"]["added_stocks"] == 50
-
-        # サービスメソッドが正しく呼ばれたことを確認
         mock_service.update_stock_master.assert_called_once_with(
             update_type="manual"
         )
@@ -72,7 +68,7 @@ class TestStockMasterAPI:
         self, mock_service_class
     ):
         """銘柄マスタ更新API（スケジュール実行）のテスト."""
-        # モックサービスを設定
+        # Arrange (準備)
         mock_service = Mock()
         mock_service.update_stock_master.return_value = {
             "update_type": "scheduled",
@@ -83,11 +79,9 @@ class TestStockMasterAPI:
             "status": "success",
         }
         mock_service_class.return_value = mock_service
-
-        # リクエストデータ
         data = {"update_type": "scheduled"}
 
-        # APIを呼び出し
+        # Act (実行)
         response = self.client.post(
             "/api/stock-master/",
             data=json.dumps(data),
@@ -95,12 +89,10 @@ class TestStockMasterAPI:
             headers=self.headers,
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 200
         response_data = json.loads(response.data)
         assert response_data["data"]["update_type"] == "scheduled"
-
-        # サービスメソッドが正しく呼ばれたことを確認
         mock_service.update_stock_master.assert_called_once_with(
             update_type="scheduled"
         )
@@ -110,10 +102,10 @@ class TestStockMasterAPI:
         self,
     ):
         """銘柄マスタ更新APIの無効な更新タイプテスト."""
-        # リクエストデータ
+        # Arrange (準備)
         data = {"update_type": "invalid"}
 
-        # APIを呼び出し
+        # Act (実行)
         response = self.client.post(
             "/api/stock-master/",
             data=json.dumps(data),
@@ -121,7 +113,7 @@ class TestStockMasterAPI:
             headers=self.headers,
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
@@ -134,17 +126,15 @@ class TestStockMasterAPI:
         self, mock_service_class
     ):
         """銘柄マスタ更新APIのサービスエラーテスト."""
-        # モックサービスでエラーを発生させる
+        # Arrange (準備)
         mock_service = Mock()
         mock_service.update_stock_master.side_effect = JPXStockServiceError(
             "ダウンロードに失敗しました"
         )
         mock_service_class.return_value = mock_service
-
-        # リクエストデータ
         data = {"update_type": "manual"}
 
-        # APIを呼び出し
+        # Act (実行)
         response = self.client.post(
             "/api/stock-master/",
             data=json.dumps(data),
@@ -152,7 +142,7 @@ class TestStockMasterAPI:
             headers=self.headers,
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 500
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
@@ -161,16 +151,17 @@ class TestStockMasterAPI:
 
     def test_stock_master_update_with_missing_api_key_returns_success(self):
         """銘柄マスタ更新APIの認証エラーテスト."""
-        # APIキーなしでリクエスト
+        # Arrange (準備)
         data = {"update_type": "manual"}
 
+        # Act (実行)
         response = self.client.post(
             "/api/stock-master/",
             data=json.dumps(data),
             content_type="application/json",
         )
 
-        # 検証（API_KEYが設定されていない場合は認証をスキップして正常処理）
+        # Assert (検証)
         assert response.status_code == 200
         response_data = json.loads(response.data)
         assert response_data["status"] == "success"
@@ -180,10 +171,11 @@ class TestStockMasterAPI:
         self,
     ):
         """銘柄マスタ更新APIの無効なAPIキーテスト."""
-        # 無効なAPIキーでリクエスト
+        # Arrange (準備)
         headers = {"X-API-Key": "invalid_key"}
         data = {"update_type": "manual"}
 
+        # Act (実行)
         response = self.client.post(
             "/api/stock-master/",
             data=json.dumps(data),
@@ -191,7 +183,7 @@ class TestStockMasterAPI:
             headers=headers,
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 401
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
@@ -203,7 +195,7 @@ class TestStockMasterAPI:
         self, mock_service_class
     ):
         """銘柄一覧取得APIの成功テスト."""
-        # モックサービスを設定
+        # Arrange (準備)
         mock_service = Mock()
         mock_service.get_stock_list.return_value = {
             "total": 2,
@@ -226,20 +218,17 @@ class TestStockMasterAPI:
         }
         mock_service_class.return_value = mock_service
 
-        # APIを呼び出し
+        # Act (実行)
         response = self.client.get("/api/stock-master/", headers=self.headers)
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 200
         response_data = json.loads(response.data)
         assert response_data["status"] == "success"
         assert response_data["message"] == "銘柄一覧を取得しました"
-        # dataは直接リスト、paginationはmeta内
         assert response_data["meta"]["pagination"]["total"] == 2
         assert len(response_data["data"]) == 2
         assert response_data["data"][0]["stock_code"] == "1301"
-
-        # サービスメソッドが正しく呼ばれたことを確認
         mock_service.get_stock_list.assert_called_once_with(
             is_active=True, market_category=None, limit=100, offset=0
         )
@@ -250,7 +239,7 @@ class TestStockMasterAPI:
         self, mock_service_class
     ):
         """フィルタ付き銘柄一覧取得APIのテスト."""
-        # モックサービスを設定
+        # Arrange (準備)
         mock_service = Mock()
         mock_service.get_stock_list.return_value = {
             "total": 1,
@@ -266,18 +255,16 @@ class TestStockMasterAPI:
         }
         mock_service_class.return_value = mock_service
 
-        # クエリパラメータ付きでAPIを呼び出し
+        # Act (実行)
         response = self.client.get(
             "/api/stock-master/?is_active=false&market_category=プライム&limit=50&offset=10",
             headers=self.headers,
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 200
         response_data = json.loads(response.data)
         assert response_data["status"] == "success"
-
-        # サービスメソッドが正しいパラメータで呼ばれたことを確認
         mock_service.get_stock_list.assert_called_once_with(
             is_active=False, market_category="プライム", limit=50, offset=10
         )
@@ -285,12 +272,15 @@ class TestStockMasterAPI:
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     def test_stock_master_list_with_invalid_limit_returns_bad_request(self):
         """銘柄一覧取得APIの無効なlimitパラメータテスト."""
-        # 無効なlimitでAPIを呼び出し
+        # Arrange (準備)
+        # (準備処理なし)
+
+        # Act (実行)
         response = self.client.get(
             "/api/stock-master/?limit=invalid", headers=self.headers
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
@@ -302,12 +292,15 @@ class TestStockMasterAPI:
         self,
     ):
         """銘柄一覧取得APIのlimit範囲外テスト."""
-        # 範囲外のlimitでAPIを呼び出し
+        # Arrange (準備)
+        # (準備処理なし)
+
+        # Act (実行)
         response = self.client.get(
             "/api/stock-master/?limit=2000", headers=self.headers
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
@@ -319,12 +312,15 @@ class TestStockMasterAPI:
         self,
     ):
         """銘柄一覧取得APIの無効なis_activeパラメータテスト."""
-        # 無効なis_activeでAPIを呼び出し
+        # Arrange (準備)
+        # (準備処理なし)
+
+        # Act (実行)
         response = self.client.get(
             "/api/stock-master/?is_active=invalid", headers=self.headers
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 400
         response_data = json.loads(response.data)
         assert response_data["status"] == "error"
@@ -338,11 +334,10 @@ class TestStockMasterAPI:
         self, mock_get_db_session
     ):
         """銘柄マスタ状態取得APIの成功テスト."""
-        # モックセッションを設定
+        # Arrange (準備)
         mock_session = Mock()
         mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        # モック更新履歴を設定
         mock_update = Mock()
         mock_update.to_dict.return_value = {
             "id": 123,
@@ -356,7 +351,6 @@ class TestStockMasterAPI:
             "completed_at": "2024-12-01T10:05:00Z",
         }
 
-        # クエリの戻り値を設定
         query_call_count = 0
 
         def query_side_effect(*args):
@@ -365,17 +359,14 @@ class TestStockMasterAPI:
 
             mock_query = Mock()
             if query_call_count == 1:
-                # 最初の呼び出し: total_stocks
                 mock_query.count.return_value = 3800
                 return mock_query
             elif query_call_count == 2:
-                # 2回目の呼び出し: active_stocks
                 mock_filter_query = Mock()
                 mock_filter_query.count.return_value = 3790
                 mock_query.filter.return_value = mock_filter_query
                 return mock_query
             else:
-                # 3回目の呼び出し: last_update
                 mock_order_query = Mock()
                 mock_order_query.first.return_value = mock_update
                 mock_query.order_by.return_value = mock_order_query
@@ -383,12 +374,12 @@ class TestStockMasterAPI:
 
         mock_session.query.side_effect = query_side_effect
 
-        # APIを呼び出し
+        # Act (実行)
         response = self.client.get(
             "/api/stock-master/status", headers=self.headers
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 200
         response_data = json.loads(response.data)
         assert response_data["status"] == "success"
@@ -405,11 +396,10 @@ class TestStockMasterAPI:
         self, mock_get_db_session
     ):
         """銘柄マスタ状態取得API（更新履歴なし）のテスト."""
-        # モックセッションを設定
+        # Arrange (準備)
         mock_session = Mock()
         mock_get_db_session.return_value.__enter__.return_value = mock_session
 
-        # クエリの戻り値を設定
         query_call_count = 0
 
         def query_side_effect(*args):
@@ -418,17 +408,14 @@ class TestStockMasterAPI:
 
             mock_query = Mock()
             if query_call_count == 1:
-                # 最初の呼び出し: total_stocks
                 mock_query.count.return_value = 0
                 return mock_query
             elif query_call_count == 2:
-                # 2回目の呼び出し: active_stocks
                 mock_filter_query = Mock()
                 mock_filter_query.count.return_value = 0
                 mock_query.filter.return_value = mock_filter_query
                 return mock_query
             else:
-                # 3回目の呼び出し: last_update（更新履歴なし）
                 mock_order_query = Mock()
                 mock_order_query.first.return_value = None
                 mock_query.order_by.return_value = mock_order_query
@@ -436,12 +423,12 @@ class TestStockMasterAPI:
 
         mock_session.query.side_effect = query_side_effect
 
-        # APIを呼び出し
+        # Act (実行)
         response = self.client.get(
             "/api/stock-master/status", headers=self.headers
         )
 
-        # 検証
+        # Assert (検証)
         assert response.status_code == 200
         response_data = json.loads(response.data)
         assert response_data["status"] == "success"

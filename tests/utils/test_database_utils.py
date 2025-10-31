@@ -12,17 +12,17 @@ class TestExecuteWithSession:
 
     def test_with_provided_session_with_valid_session_returns_success(self):
         """セッションが提供された場合のテスト."""
-        # Arrange
+        # Arrange (準備)
         mock_session = MagicMock()
         expected_result = {"id": 1, "name": "test"}
 
         def operation(s):
             return expected_result
 
-        # Act
+        # Act (実行)
         result = execute_with_session(operation, mock_session)
 
-        # Assert
+        # Assert (検証)
         assert result == expected_result
 
     @patch("app.utils.database_utils.get_db_session")
@@ -30,7 +30,7 @@ class TestExecuteWithSession:
         self, mock_get_db_session
     ):
         """セッションが提供されない場合のテスト."""
-        # Arrange
+        # Arrange (準備)
         mock_session = MagicMock()
         mock_get_db_session.return_value.__enter__.return_value = mock_session
         expected_result = {"id": 2, "name": "test2"}
@@ -38,10 +38,10 @@ class TestExecuteWithSession:
         def operation(s):
             return expected_result
 
-        # Act
+        # Act (実行)
         result = execute_with_session(operation, None)
 
-        # Assert
+        # Assert (検証)
         assert result == expected_result
         mock_get_db_session.assert_called_once()
 
@@ -49,7 +49,7 @@ class TestExecuteWithSession:
         self,
     ):
         """データベース変更を伴う操作のテスト."""
-        # Arrange
+        # Arrange (準備)
         mock_session = MagicMock()
 
         def operation(s):
@@ -57,10 +57,10 @@ class TestExecuteWithSession:
             s.flush()
             return True
 
-        # Act
+        # Act (実行)
         result = execute_with_session(operation, mock_session)
 
-        # Assert
+        # Assert (検証)
         assert result is True
         mock_session.add.assert_called_once()
         mock_session.flush.assert_called_once()
@@ -71,33 +71,33 @@ class TestToDictIfExists:
 
     def test_with_existing_object_with_valid_object_returns_dict(self):
         """オブジェクトが存在する場合のテスト."""
-        # Arrange
+        # Arrange (準備)
         mock_obj = MagicMock()
         expected_dict = {"id": 1, "name": "test"}
         mock_obj.to_dict.return_value = expected_dict
 
-        # Act
+        # Act (実行)
         result = to_dict_if_exists(mock_obj)
 
-        # Assert
+        # Assert (検証)
         assert result == expected_dict
         mock_obj.to_dict.assert_called_once()
 
     def test_with_none_object_with_none_input_returns_none(self):
         """オブジェクトがNoneの場合のテスト."""
-        # Act
+        # Act (実行)
         result = to_dict_if_exists(None)
 
-        # Assert
+        # Assert (検証)
         assert result is None
 
     def test_with_object_without_to_dict_method_with_invalid_object_returns_none(
         self,
     ):
         """to_dictメソッドを持たないオブジェクトのテスト."""
-        # Arrange
+        # Arrange (準備)
         obj = object()
 
-        # Act & Assert
+        # Act & Assert (実行と検証)
         with pytest.raises(AttributeError):
             to_dict_if_exists(obj)

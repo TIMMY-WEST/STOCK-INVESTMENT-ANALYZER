@@ -38,79 +38,116 @@ class TestErrorHandler:
         self, error_handler
     ):
         """タイムアウトエラーを一時的エラーとして分類."""
+        # Arrange (準備)
         error = Timeout("Request timed out")
+
+        # Act (実行)
         error_type = error_handler.classify_error(error)
+
+        # Assert (検証)
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_connection_error_with_connection_exception_returns_temporary(
         self, error_handler
     ):
         """接続エラーを一時的エラーとして分類."""
+        # Arrange (準備)
         error = ConnectionError("Failed to connect")
+
+        # Act (実行)
         error_type = error_handler.classify_error(error)
+
+        # Assert (検証)
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_429_with_rate_limit_returns_temporary(
         self, error_handler
     ):
         """429エラー（Rate Limit）を一時的エラーとして分類."""
+        # Arrange (準備)
         # HTTPErrorのモック作成
         response_mock = Mock()
         response_mock.status_code = 429
         error = HTTPError()
         error.response = response_mock
 
+        # Act (実行)
         error_type = error_handler.classify_error(error)
+
+        # Assert (検証)
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_503_with_service_unavailable_returns_temporary(
         self, error_handler
     ):
         """503エラー（Service Unavailable）を一時的エラーとして分類."""
+        # Arrange (準備)
         response_mock = Mock()
         response_mock.status_code = 503
         error = HTTPError()
         error.response = response_mock
 
+        # Act (実行)
         error_type = error_handler.classify_error(error)
+
+        # Assert (検証)
         assert error_type == ErrorType.TEMPORARY
 
     def test_classify_404_with_not_found_returns_permanent(
         self, error_handler
     ):
         """404エラーを永続的エラーとして分類."""
+        # Arrange (準備)
         response_mock = Mock()
         response_mock.status_code = 404
         error = HTTPError()
         error.response = response_mock
 
+        # Act (実行)
         error_type = error_handler.classify_error(error)
+
+        # Assert (検証)
         assert error_type == ErrorType.PERMANENT
 
     def test_classify_value_error_as_permanent(self, error_handler):
         """ValueErrorを永続的エラーとして分類."""
+        # Arrange (準備)
         error = ValueError("Invalid data format")
+
+        # Act (実行)
         error_type = error_handler.classify_error(error)
+
+        # Assert (検証)
         assert error_type == ErrorType.PERMANENT
 
     # ===== エラー処理テスト =====
 
     def test_handle_temporary_error_returns_retry(self, error_handler):
         """一時的エラーの場合、RETRYアクションを返す."""
+        # Arrange (準備)
         error = Timeout("Request timed out")
+
+        # Act (実行)
         action = error_handler.handle_error(
             error, "7203.T", {"retry_count": 0}
         )
+
+        # Assert (検証)
         assert action == ErrorAction.RETRY
 
     def test_handle_temporary_error_max_retries_returns_skip(
         self, error_handler
     ):
         """最大リトライ回数到達時、SKIPアクションを返す."""
+        # Arrange (準備)
         error = Timeout("Request timed out")
+
+        # Act (実行)
         action = error_handler.handle_error(
             error, "7203.T", {"retry_count": 3}
         )
+
+        # Assert (検証)
         assert action == ErrorAction.SKIP
 
     def test_handle_permanent_error_returns_skip(self, error_handler):

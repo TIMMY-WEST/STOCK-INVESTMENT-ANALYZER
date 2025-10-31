@@ -90,7 +90,7 @@ class TestTimeframeModels:
         self, session
     ):
         """1分足モデルのテスト."""
-        # テストデータ作成
+        # Arrange (準備)
         stock_data = Stocks1m(
             symbol="AAPL",
             datetime=datetime(2024, 1, 1, 9, 30, 0),
@@ -101,12 +101,12 @@ class TestTimeframeModels:
             volume=1000000,
         )
 
-        # データ挿入
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
-        # データ取得確認
         retrieved = session.query(Stocks1m).filter_by(symbol="AAPL").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "AAPL"
         assert retrieved.close == Decimal("150.75")
@@ -114,6 +114,7 @@ class TestTimeframeModels:
 
     def test_stocks_5m_model(self, session):
         """5分足モデルのテスト."""
+        # Arrange (準備)
         stock_data = Stocks5m(
             symbol="GOOGL",
             datetime=datetime(2024, 1, 1, 9, 35, 0),
@@ -124,16 +125,19 @@ class TestTimeframeModels:
             volume=500000,
         )
 
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
         retrieved = session.query(Stocks5m).filter_by(symbol="GOOGL").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "GOOGL"
         assert retrieved.close == Decimal("2805.50")
 
     def test_stocks_15m_model(self, session):
         """15分足モデルのテスト."""
+        # Arrange (準備)
         stock_data = Stocks15m(
             symbol="MSFT",
             datetime=datetime(2024, 1, 1, 9, 45, 0),
@@ -144,16 +148,19 @@ class TestTimeframeModels:
             volume=750000,
         )
 
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
         retrieved = session.query(Stocks15m).filter_by(symbol="MSFT").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "MSFT"
         assert retrieved.close == Decimal("381.25")
 
     def test_stocks_30m_model(self, session):
         """30分足モデルのテスト."""
+        # Arrange (準備)
         stock_data = Stocks30m(
             symbol="TSLA",
             datetime=datetime(2024, 1, 1, 10, 0, 0),
@@ -164,16 +171,19 @@ class TestTimeframeModels:
             volume=2000000,
         )
 
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
         retrieved = session.query(Stocks30m).filter_by(symbol="TSLA").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "TSLA"
         assert retrieved.close == Decimal("252.75")
 
     def test_stocks_1h_model(self, session):
         """1時間足モデルのテスト."""
+        # Arrange (準備)
         stock_data = Stocks1h(
             symbol="NVDA",
             datetime=datetime(2024, 1, 1, 10, 0, 0),
@@ -184,16 +194,19 @@ class TestTimeframeModels:
             volume=1500000,
         )
 
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
         retrieved = session.query(Stocks1h).filter_by(symbol="NVDA").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "NVDA"
         assert retrieved.close == Decimal("505.25")
 
     def test_stocks_1d_model(self, session):
         """日足モデルのテスト."""
+        # Arrange (準備)
         stock_data = Stocks1d(
             symbol="AMZN",
             date=date(2024, 1, 1),
@@ -204,16 +217,19 @@ class TestTimeframeModels:
             volume=5000000,
         )
 
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
         retrieved = session.query(Stocks1d).filter_by(symbol="AMZN").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "AMZN"
         assert retrieved.close == Decimal("3225.75")
 
     def test_stocks_1wk_model(self, session):
         """週足モデルのテスト."""
+        # Arrange (準備)
         stock_data = Stocks1wk(
             symbol="META",
             date=date(2024, 1, 1),
@@ -224,16 +240,19 @@ class TestTimeframeModels:
             volume=10000000,
         )
 
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
         retrieved = session.query(Stocks1wk).filter_by(symbol="META").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "META"
         assert retrieved.close == Decimal("360.50")
 
     def test_stocks_1mo_model(self, session):
         """月足モデルのテスト."""
+        # Arrange (準備)
         stock_data = Stocks1mo(
             symbol="NFLX",
             date=date(2024, 1, 1),
@@ -244,10 +263,12 @@ class TestTimeframeModels:
             volume=20000000,
         )
 
+        # Act (実行)
         session.add(stock_data)
         session.commit()
-
         retrieved = session.query(Stocks1mo).filter_by(symbol="NFLX").first()
+
+        # Assert (検証)
         assert retrieved is not None
         assert retrieved.symbol == "NFLX"
         assert retrieved.close == Decimal("470.25")

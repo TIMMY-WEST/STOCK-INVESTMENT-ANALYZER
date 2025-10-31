@@ -22,6 +22,7 @@ class TestStructuredFormatter:
 
     def test_basic_format_with_valid_data_returns_formatted_output(self):
         """基本的なフォーマットのテスト."""
+        # Arrange (準備)
         formatter = StructuredFormatter()
         record = logging.LogRecord(
             name="test",
@@ -33,9 +34,11 @@ class TestStructuredFormatter:
             exc_info=None,
         )
 
+        # Act (実行)
         result = formatter.format(record)
         data = json.loads(result)
 
+        # Assert (検証)
         assert "timestamp" in data
         assert data["level"] == "INFO"
         assert data["logger"] == "test"
@@ -43,6 +46,7 @@ class TestStructuredFormatter:
 
     def test_batch_fields_with_valid_data_returns_batch_fields(self):
         """バッチフィールドのテスト."""
+        # Arrange (準備)
         formatter = StructuredFormatter()
         record = logging.LogRecord(
             name="test",
@@ -61,9 +65,11 @@ class TestStructuredFormatter:
         record.duration_ms = 1500
         record.records_count = 50
 
+        # Act (実行)
         result = formatter.format(record)
         data = json.loads(result)
 
+        # Assert (検証)
         assert data["batch_id"] == "batch-123"
         assert data["worker_id"] == 1
         assert data["stock_code"] == "7203.T"
@@ -80,11 +86,12 @@ class TestBatchLoggerAdapter:
         self, caplog
     ):
         """成功時のバッチアクションログのテスト."""
+        # Arrange (準備)
         logger = logging.getLogger("test_batch")
         logger.setLevel(logging.INFO)
-
         adapter = BatchLoggerAdapter(logger, {"batch_id": "test-batch"})
 
+        # Act (実行)
         with caplog.at_level(logging.INFO):
             adapter.log_batch_action(
                 action="data_fetch",
@@ -94,6 +101,7 @@ class TestBatchLoggerAdapter:
                 records_count=50,
             )
 
+        # Assert (検証)
         assert len(caplog.records) == 1
         assert "data_fetch" in caplog.text
         assert "7203.T" in caplog.text
@@ -102,11 +110,12 @@ class TestBatchLoggerAdapter:
         self, caplog
     ):
         """失敗時のバッチアクションログのテスト."""
+        # Arrange (準備)
         logger = logging.getLogger("test_batch_failed")
         logger.setLevel(logging.ERROR)
-
         adapter = BatchLoggerAdapter(logger, {"batch_id": "test-batch"})
 
+        # Act (実行)
         with caplog.at_level(logging.ERROR):
             adapter.log_batch_action(
                 action="data_fetch",
@@ -115,6 +124,7 @@ class TestBatchLoggerAdapter:
                 error_message="Connection timeout",
             )
 
+        # Assert (検証)
         assert len(caplog.records) == 1
         assert "failed" in caplog.text or "Connection timeout" in caplog.text
 
@@ -122,11 +132,12 @@ class TestBatchLoggerAdapter:
         self, caplog
     ):
         """リトライ時のバッチアクションログのテスト."""
+        # Arrange (準備)
         logger = logging.getLogger("test_batch_retry")
         logger.setLevel(logging.WARNING)
-
         adapter = BatchLoggerAdapter(logger, {"batch_id": "test-batch"})
 
+        # Act (実行)
         with caplog.at_level(logging.WARNING):
             adapter.log_batch_action(
                 action="data_fetch",
@@ -135,6 +146,7 @@ class TestBatchLoggerAdapter:
                 retry_count=1,
             )
 
+        # Assert (検証)
         assert len(caplog.records) == 1
         assert "retry" in caplog.text.lower() or "Retry" in caplog.text
 
@@ -146,53 +158,58 @@ class TestLoggingSetup:
         self, tmp_path
     ):
         """ログ設定のテスト."""
+        # Arrange (準備)
         log_dir = tmp_path / "logs"
 
+        # Act (実行)
         logger = setup_structured_logging(
             log_dir=str(log_dir),
             log_level=logging.INFO,
             enable_console=False,
             enable_file=True,
         )
+        logger.info("Test log message")
 
+        # Assert (検証)
         assert logger is not None
         assert logger.level == logging.INFO
         assert log_dir.exists()
-
-        # ログファイルが作成されることを確認
-        logger.info("Test log message")
         log_file = log_dir / "batch_bulk.log"
         assert log_file.exists()
 
     def test_get_batch_logger_with_valid_config_returns_logger_instance(self):
         """バッチロガー取得のテスト."""
+        # Arrange (準備)
+        # 必要なパラメータを準備
+
+        # Act (実行)
         adapter = get_batch_logger(batch_id="test-123", worker_id=1)
 
+        # Assert (検証)
         assert isinstance(adapter, BatchLoggerAdapter)
         assert adapter.extra["batch_id"] == "test-123"
-        assert (
-            adapter.extra["worker_id"] == "1"
-        )  # worker_idは文字列に変換される
+        assert adapter.extra["worker_id"] == "1"
 
     def test_structured_logger_initialization_with_valid_config_returns_logger_instance(
         self, tmp_path
     ):
         """構造化ログオブジェクトのテスト."""
+        # Arrange (準備)
         log_dir = tmp_path / "logs"
 
+        # Act (実行)
         logger = setup_structured_logging(
             log_dir=str(log_dir),
             log_level=logging.INFO,
             enable_console=False,
             enable_file=True,
         )
+        logger.info("Test log message")
 
+        # Assert (検証)
         assert logger is not None
         assert logger.level == logging.INFO
         assert log_dir.exists()
-
-        # ログファイルが作成されることを確認
-        logger.info("Test log message")
         log_file = log_dir / "batch_bulk.log"
         assert log_file.exists()
 
@@ -200,8 +217,8 @@ class TestLoggingSetup:
         self, tmp_path
     ):
         """構造化ログ出力のテスト."""
+        # Arrange (準備)
         log_dir = tmp_path / "logs"
-
         logger = setup_structured_logging(
             log_dir=str(log_dir),
             log_level=logging.INFO,
@@ -209,12 +226,13 @@ class TestLoggingSetup:
             enable_file=True,
         )
 
+        # Act (実行)
+        logger.info("Test log message")
+
+        # Assert (検証)
         assert logger is not None
         assert logger.level == logging.INFO
         assert log_dir.exists()
-
-        # ログファイルが作成されることを確認
-        logger.info("Test log message")
         log_file = log_dir / "batch_bulk.log"
         assert log_file.exists()
 
@@ -222,8 +240,8 @@ class TestLoggingSetup:
         self, tmp_path
     ):
         """構造化ログ出力のテスト."""
+        # Arrange (準備)
         log_dir = tmp_path / "logs"
-
         logger = setup_structured_logging(
             log_dir=str(log_dir),
             log_level=logging.INFO,
@@ -231,12 +249,13 @@ class TestLoggingSetup:
             enable_file=True,
         )
 
+        # Act (実行)
+        logger.info("Test log message")
+
+        # Assert (検証)
         assert logger is not None
         assert logger.level == logging.INFO
         assert log_dir.exists()
-
-        # ログファイルが作成されることを確認
-        logger.info("Test log message")
         log_file = log_dir / "batch_bulk.log"
         assert log_file.exists()
 
@@ -244,8 +263,8 @@ class TestLoggingSetup:
         self, tmp_path
     ):
         """構造化ログ出力のテスト."""
+        # Arrange (準備)
         log_dir = tmp_path / "logs"
-
         logger = setup_structured_logging(
             log_dir=str(log_dir),
             log_level=logging.INFO,
@@ -253,12 +272,13 @@ class TestLoggingSetup:
             enable_file=True,
         )
 
+        # Act (実行)
+        logger.info("Test log message")
+
+        # Assert (検証)
         assert logger is not None
         assert logger.level == logging.INFO
         assert log_dir.exists()
-
-        # ログファイルが作成されることを確認
-        logger.info("Test log message")
         log_file = log_dir / "batch_bulk.log"
         assert log_file.exists()
 
@@ -266,8 +286,8 @@ class TestLoggingSetup:
         self, tmp_path
     ):
         """構造化ログ出力のテスト."""
+        # Arrange (準備)
         log_dir = tmp_path / "logs"
-
         logger = setup_structured_logging(
             log_dir=str(log_dir),
             log_level=logging.INFO,
@@ -275,11 +295,12 @@ class TestLoggingSetup:
             enable_file=True,
         )
 
+        # Act (実行)
+        logger.info("Test log message")
+
+        # Assert (検証)
         assert logger is not None
         assert logger.level == logging.INFO
         assert log_dir.exists()
-
-        # ログファイルが作成されることを確認
-        logger.info("Test log message")
         log_file = log_dir / "batch_bulk.log"
         assert log_file.exists()

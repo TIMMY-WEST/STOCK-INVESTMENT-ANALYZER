@@ -22,8 +22,13 @@ class TestProgressTracker:
         self,
     ):
         """初期化のテスト."""
+        # Arrange (準備)
+        # (初期化自体がテスト対象のため、準備なし)
+
+        # Act (実行)
         tracker = ProgressTracker(total=100)
 
+        # Assert (検証)
         assert tracker.total == 100
         assert tracker.processed == 0
         assert tracker.successful == 0
@@ -34,10 +39,13 @@ class TestProgressTracker:
 
     def test_update_success_with_valid_symbol_returns_updated_tracker(self):
         """成功時の更新テスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
+        # Act (実行)
         tracker.update(symbol="7203.T", success=True)
 
+        # Assert (検証)
         assert tracker.processed == 1
         assert tracker.successful == 1
         assert tracker.failed == 0
@@ -46,12 +54,15 @@ class TestProgressTracker:
 
     def test_update_failure_with_invalid_symbol_returns_error_tracker(self):
         """失敗時の更新テスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
+        # Act (実行)
         tracker.update(
             symbol="INVALID.T", success=False, error_message="データ取得エラー"
         )
 
+        # Assert (検証)
         assert tracker.processed == 1
         assert tracker.successful == 0
         assert tracker.failed == 1
@@ -62,13 +73,16 @@ class TestProgressTracker:
 
     def test_get_progress_with_valid_tracker_returns_progress_data(self):
         """進捗情報取得のテスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=100)
 
         for i in range(50):
             tracker.update(symbol=f"{i}.T", success=True)
 
+        # Act (実行)
         progress = tracker.get_progress()
 
+        # Assert (検証)
         assert progress["total"] == 100
         assert progress["processed"] == 50
         assert progress["successful"] == 50
@@ -79,6 +93,7 @@ class TestProgressTracker:
 
     def test_get_summary_with_valid_tracker_returns_summary_data(self):
         """サマリー取得のテスト."""
+        # Arrange (準備)
         tracker = ProgressTracker(total=10)
 
         for i in range(8):
@@ -89,8 +104,10 @@ class TestProgressTracker:
                 symbol=f"ERR{i}.T", success=False, error_message=f"エラー{i}"
             )
 
+        # Act (実行)
         summary = tracker.get_summary()
 
+        # Assert (検証)
         assert summary["total"] == 10
         assert summary["processed"] == 10
         assert summary["successful"] == 8
@@ -122,6 +139,13 @@ class TestBulkDataService:
 
     def test_init_with_valid_service_returns_service_instance(self, service):
         """初期化のテスト."""
+        # Arrange (準備)
+        # (fixtureによるserviceインスタンス作成)
+
+        # Act (実行)
+        # (初期化自体がテスト対象のため、実行なし)
+
+        # Assert (検証)
         assert service.max_workers == 2
         assert service.retry_count == 2
         assert service.fetcher is not None
@@ -131,7 +155,7 @@ class TestBulkDataService:
         self, service
     ):
         """単一銘柄取得成功のテスト."""
-        # モックの設定
+        # Arrange (準備)
         mock_df = pd.DataFrame(
             {
                 "Open": [100.0],
@@ -148,10 +172,10 @@ class TestBulkDataService:
             return_value={"saved": 1, "skipped": 0}
         )
 
-        # テスト実行
+        # Act (実行)
         result = service.fetch_single_stock(symbol="7203.T", interval="1d")
 
-        # 検証
+        # Assert (検証)
         assert result["success"] is True
         assert result["symbol"] == "7203.T"
         assert result["records_fetched"] == 1

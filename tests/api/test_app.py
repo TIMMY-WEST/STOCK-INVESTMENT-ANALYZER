@@ -8,21 +8,31 @@ pytestmark = pytest.mark.unit
 
 def test_index_route_with_get_request_returns_success_response(client):
     """トップページのテスト."""
-    response = client.get("/")
+    # Arrange (準備)
+    endpoint = "/"
+
+    # Act (実行)
+    response = client.get(endpoint)
+
+    # Assert (検証)
     assert response.status_code == 200
     assert "株価データ管理システム".encode("utf-8") in response.data
 
 
 def test_fetch_data_api_with_basic_request_returns_valid_structure(client):
     """API基本構造のテスト（実際のAPIアクセス無し）."""
-    # API エンドポイントの存在確認
+    # Arrange (準備)
+    endpoint = "/api/stocks/data"
+    payload = {"symbol": "TEST", "period": "1mo"}
+
+    # Act (実行)
     response = client.post(
-        "/api/stocks/data",
-        data=json.dumps({"symbol": "TEST", "period": "1mo"}),
+        endpoint,
+        data=json.dumps(payload),
         content_type="application/json",
     )
 
-    # レスポンスの基本構造確認
+    # Assert (検証)
     assert response.status_code in [
         200,
         400,
@@ -31,20 +41,23 @@ def test_fetch_data_api_with_basic_request_returns_valid_structure(client):
 
     data = json.loads(response.data)
     assert "status" in data
-    # messageはトップレベルに常に存在（成功時もエラー時も）
     assert "message" in data
 
 
 def test_fetch_data_api_with_max_period_returns_valid_structure(client):
     """maxオプション使用時のAPI基本構造テスト（Issue #45対応）."""
-    # maxオプションでのAPI エンドポイントの存在確認
+    # Arrange (準備)
+    endpoint = "/api/stocks/data"
+    payload = {"symbol": "TEST", "period": "max"}
+
+    # Act (実行)
     response = client.post(
-        "/api/stocks/data",
-        data=json.dumps({"symbol": "TEST", "period": "max"}),
+        endpoint,
+        data=json.dumps(payload),
         content_type="application/json",
     )
 
-    # レスポンスの基本構造確認
+    # Assert (検証)
     assert response.status_code in [
         200,
         400,
@@ -53,21 +66,18 @@ def test_fetch_data_api_with_max_period_returns_valid_structure(client):
 
     data = json.loads(response.data)
     assert "status" in data
-    # messageはトップレベルに常に存在（成功時もエラー時も）
     assert "message" in data
 
-    # maxオプションが正しく処理されることを確認（エラーでも構造は保持される）
     if response.status_code == 200 and data.get("status") == "success":
-        # 成功時のデータ構造確認
         assert "data" in data
     elif data.get("status") == "error":
-        # エラー時でも適切なエラーメッセージが返されることを確認
         assert "error" in data or "message" in data
 
 
 def test_fetch_data_api_with_max_period_parameter_passes_validation(client):
     """maxオプションのパラメータバリデーションテスト（Issue #45対応）."""
-    # 正しいmaxオプションの形式
+    # Arrange (準備)
+    endpoint = "/api/stocks/data"
     valid_payloads = [
         {"symbol": "AAPL", "period": "max"},
         {"symbol": "7203.T", "period": "max"},
@@ -75,20 +85,19 @@ def test_fetch_data_api_with_max_period_parameter_passes_validation(client):
     ]
 
     for payload in valid_payloads:
+        # Act (実行)
         response = client.post(
-            "/api/stocks/data",
+            endpoint,
             data=json.dumps(payload),
             content_type="application/json",
         )
 
-        # maxオプションが受け入れられることを確認
+        # Assert (検証)
         assert response.status_code in [200, 400, 502]
 
         data = json.loads(response.data)
         assert "status" in data
 
-        # maxオプションが無効なパラメータとして拒否されないことを確認
         if response.status_code == 400:
-            # バリデーションエラーの場合、periodが原因でないことを確認
             error_message = data.get("message", "").lower()
             assert "period" not in error_message or "max" not in error_message
