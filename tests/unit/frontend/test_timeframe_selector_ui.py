@@ -28,6 +28,7 @@ class TestTimeframeSelectorUI:
             os.path.dirname(__file__),
             "..",
             "..",
+            "..",
             "app",
             "templates",
             "index.html",
@@ -60,7 +61,13 @@ class TestTimeframeSelectorUI:
         """CSSスタイルの存在確認テスト."""
         # Arrange (準備)
         css_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "style.css",
         )
         required_classes = [
             ".required-indicator",
@@ -95,7 +102,13 @@ class TestTimeframeSelectorUI:
         """JavaScript関数の存在確認テスト."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
         required_functions = [
             "initTimeframeSelector",
@@ -126,7 +139,13 @@ class TestTimeframeSelectorUI:
         """時間軸設定の構造確認テスト."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
@@ -147,6 +166,7 @@ class TestTimeframeSelectorUI:
         # Arrange (準備)
         template_path = os.path.join(
             os.path.dirname(__file__),
+            "..",
             "..",
             "..",
             "app",
@@ -174,7 +194,13 @@ class TestTimeframeSelectorUI:
         """フォームバリデーション統合の確認テスト."""
         # Arrange (準備)
         js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "script.js"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "script.js",
         )
 
         # Act (実行)
@@ -199,6 +225,7 @@ class TestTimeframeSelectorConfiguration:
         # Arrange (準備)
         template_path = os.path.join(
             os.path.dirname(__file__),
+            "..",
             "..",
             "..",
             "app",
@@ -232,7 +259,13 @@ class TestTimeframeSelectorConfiguration:
         """CSSレスポンシブデザインのテスト."""
         # Arrange (準備)
         css_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "app", "static", "style.css"
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "app",
+            "static",
+            "style.css",
         )
         media_query_pattern = r"@media\s*\([^)]*max-width[^)]*\)\s*\{[^}]*\}"
 

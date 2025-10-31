@@ -19,12 +19,12 @@ class TestES6Modules:
     @pytest.fixture
     def static_dir(self):
         """staticディレクトリのパスを取得."""
-        return Path(__file__).parent.parent.parent / "app" / "static"
+        return Path(__file__).parent.parent.parent.parent / "app" / "static"
 
     @pytest.fixture
     def templates_dir(self):
         """templatesディレクトリのパスを取得."""
-        return Path(__file__).parent.parent.parent / "app" / "templates"
+        return Path(__file__).parent.parent.parent.parent / "app" / "templates"
 
     def test_app_js_exports_with_valid_module_returns_correct_exports(
         self, static_dir
