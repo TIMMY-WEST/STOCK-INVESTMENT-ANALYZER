@@ -1,0 +1,205 @@
+"""StockBatchProcessorのテスト."""
+
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+import pytest
+
+from app.services.bulk.stock_batch_processor import (
+    StockBatchProcessingError,
+    StockBatchProcessor,
+)
+
+
+pytestmark = pytest.mark.unit
+
+
+class TestStockBatchProcessor:
+    """StockBatchProcessorのテスト."""
+
+    @pytest.fixture
+    def processor(self):
+        """プロセッサーインスタンス."""
+        return StockBatchProcessor()
+
+    @pytest.fixture
+    def sample_dataframe(self):
+        """サンプルDataFrame.
+
+        Note: conftest.py にも sample_dataframe がありますが、
+        このテストでは複数行のデータが必要なため、専用フィクスチャを使用します。
+        """
+        return pd.DataFrame(
+            {
+                "Open": [100.0, 103.0],
+                "High": [105.0, 108.0],
+                "Low": [99.0, 102.0],
+                "Close": [103.0, 106.0],
+                "Volume": [1000000, 1100000],
+            },
+            index=pd.date_range("2024-01-01", periods=2),
+        )
+
+    @patch(
+        "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
+    )
+    def test_fetch_multiple_timeframes_with_valid_data_returns_success(
+        self, mock_fetch, processor, sample_dataframe
+    ):
+        """複数時間軸データ取得成功のテスト."""
+        # Arrange (準備)
+        mock_fetch.return_value = sample_dataframe
+
+        # Act (実行)
+        result = processor.fetch_multiple_timeframes("7203.T", ["1d", "1wk"])
+
+        # Assert (検証)
+        assert len(result) == 2
+        assert "1d" in result
+        assert "1wk" in result
+        assert result["1d"]["success"] is True
+        assert result["1wk"]["success"] is True
+        assert mock_fetch.call_count == 2
+
+    @patch(
+        "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
+    )
+    def test_fetch_multiple_timeframes_with_partial_failure_returns_partial_success(
+        self, mock_fetch, processor, sample_dataframe
+    ):
+        """複数時間軸データ取得部分失敗のテスト."""
+        # Arrange (準備)
+        mock_fetch.side_effect = [sample_dataframe, Exception("API Error")]
+
+        # Act (実行)
+        result = processor.fetch_multiple_timeframes("7203.T", ["1d", "1wk"])
+
+        # Assert (検証)
+        assert len(result) == 2
+        assert "1d" in result
+        assert "1wk" in result
+        assert result["1d"]["success"] is True
+        assert result["1wk"]["success"] is False
+
+    @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
+    def test_fetch_batch_stock_data_with_valid_symbols_returns_success(
+        self, mock_tickers, processor
+    ):
+        """複数銘柄一括取得成功のテスト."""
+        # Arrange (準備)
+        symbols = ["AAPL", "GOOGL"]
+        dates = pd.date_range("2024-01-01", periods=2)
+        multi_df = pd.DataFrame(
+            {
+                ("AAPL", "Open"): [150.0, 152.0],
+                ("AAPL", "Close"): [155.0, 157.0],
+                ("GOOGL", "Open"): [2800.0, 2820.0],
+                ("GOOGL", "Close"): [2850.0, 2870.0],
+            },
+            index=dates,
+        )
+        mock_tickers_instance = MagicMock()
+        mock_tickers_instance.history.return_value = multi_df
+        mock_tickers.return_value = mock_tickers_instance
+
+        # Act (実行)
+        result = processor.fetch_batch_stock_data(symbols, "1d")
+
+        # Assert (検証)
+        assert len(result) == 2
+        assert "AAPL" in result
+        assert "GOOGL" in result
+
+    def test_fetch_batch_stock_data_with_invalid_symbols_returns_error(
+        self, processor
+    ):
+        """無効な銘柄コードでの一括取得テスト."""
+        # Arrange (準備)
+        invalid_symbols = ["", "INVALID", None]
+
+        # Act (実行)
+        result = processor.fetch_batch_stock_data(invalid_symbols, "1d")
+
+        # Assert (検証)
+        assert isinstance(result, dict)
+        for symbol in ["", "INVALID"]:
+            if symbol in result:
+                assert result[symbol]["success"] is False
+                assert "error" in result[symbol]
+
+    @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
+    def test_download_batch_from_yahoo_with_valid_symbols_returns_success(
+        self, mock_tickers, processor, sample_dataframe
+    ):
+        """Yahoo Financeからの一括ダウンロード成功テスト."""
+        # Arrange (準備)
+        mock_tickers_instance = MagicMock()
+        mock_tickers_instance.history.return_value = sample_dataframe
+        mock_tickers.return_value = mock_tickers_instance
+
+        # Act (実行)
+        result = processor._download_batch_from_yahoo(["7203.T", "AAPL"], "1d")
+
+        # Assert (検証)
+        assert result is not None
+        mock_tickers.assert_called_once_with("7203.T AAPL")
+        mock_tickers_instance.history.assert_called_once()
+
+    @patch("app.services.bulk.stock_batch_processor.yf.Tickers")
+    def test_download_batch_from_yahoo_with_failure_returns_error(
+        self, mock_tickers, processor
+    ):
+        """Yahoo Financeからの一括ダウンロード失敗テスト."""
+        # Arrange (準備)
+        mock_tickers.side_effect = Exception("API Error")
+
+        # Act & Assert (実行と検証)
+        with pytest.raises(Exception, match="API Error"):
+            processor._download_batch_from_yahoo(["7203.T", "AAPL"], "1d")
+
+    def test_fetch_multiple_timeframes_with_invalid_symbol_returns_error(
+        self, processor
+    ):
+        """無効な銘柄コードでの複数時間軸取得テスト."""
+        # Arrange (準備)
+        # processorフィクスチャを使用
+
+        # Act (実行)
+        result = processor.fetch_multiple_timeframes("", ["1d", "1wk"])
+
+        # Assert (検証)
+        assert len(result) == 2
+        assert "1d" in result
+        assert "1wk" in result
+        assert result["1d"]["success"] is False
+        assert result["1wk"]["success"] is False
+
+    def test_fetch_multiple_timeframes_with_invalid_intervals_returns_error(
+        self, processor
+    ):
+        """無効な時間軸での複数時間軸取得テスト."""
+        # Arrange (準備)
+        # processorフィクスチャを使用
+
+        # Act & Assert (実行と検証)
+        with pytest.raises(StockBatchProcessingError):
+            processor.fetch_multiple_timeframes(
+                "7203.T", ["invalid", "also_invalid"]
+            )
+
+    @patch(
+        "app.services.bulk.stock_batch_processor.StockDataFetcher.fetch_stock_data"
+    )
+    def test_fetch_multiple_timeframes_empty_data(self, mock_fetch, processor):
+        """空データでの複数時間軸取得テスト."""
+        # Arrange (準備)
+        mock_fetch.return_value = pd.DataFrame()
+
+        # Act (実行)
+        result = processor.fetch_multiple_timeframes("7203.T", ["1d"])
+
+        # Assert (検証)
+        assert len(result) == 1
+        assert "1d" in result
+        assert result["1d"]["success"] is True
+        assert result["1d"]["record_count"] == 0

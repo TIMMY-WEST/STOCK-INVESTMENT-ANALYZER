@@ -1459,7 +1459,7 @@ function handlePageNavigation(direction) {
 const SystemStatus = {
   checkDatabaseConnection: async function() {
     try {
-      const response = await fetch('/api/system/connection-test', {
+      const response = await fetch('/api/system/db-connection-test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -1475,7 +1475,7 @@ const SystemStatus = {
 
   checkApiConnection: async function() {
     try {
-      const response = await fetch('/api/system/api-test', {
+      const response = await fetch('/api/system/api-connection-test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol: '7203.T' })

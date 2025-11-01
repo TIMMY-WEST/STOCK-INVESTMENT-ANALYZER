@@ -23,16 +23,31 @@
 
 ```
 tests/
-├── README.md                           # テスト実行ガイド
-├── conftest.py                         # pytest設定とフィクスチャ
-├── test_app.py                         # メインアプリケーションテスト
-├── test_models.py                      # データモデルテスト
-├── api/                                # API関連テスト
-│   └── test_bulk_api.py               # 一括データ取得APIテスト
-├── docs/                               # ドキュメント関連テスト
-├── e2e/                                # エンドツーエンドテスト
-├── integration/                        # 統合テスト
-└── unit/                               # ユニットテスト
+├── api/
+│   ├── test_app.py
+│   ├── test_bulk_api.py
+│   ├── test_restful_endpoints.py
+│   ├── test_stock_master_api.py
+│   ├── test_swagger_api.py
+│   └── test_system_monitoring_api.py
+├── unit/
+│   ├── test_data_fetcher.py
+│   ├── test_stock_analyzer.py
+│   └── test_timeframe_selector_ui.py
+├── integration/
+│   ├── test_api_versioning.py
+│   ├── test_bulk_data_api_integration.py
+│   ├── test_fixtures.py
+│   ├── test_reset_db.py
+│   ├── test_setup_scripts.py
+│   ├── test_state_integration.html
+│   ├── test_stock_data_api_integration.py
+│   ├── test_stock_master_system_api_integration.py
+│   ├── test_stocks_daily_removal.py
+│   └── test_swagger_integration.py
+├── conftest.py
+├── pytest.ini
+└── test_error_handler.py
 ```
 
 ## 主要テストファイル詳細
@@ -61,10 +76,45 @@ tests/
   - `test_status_running_after_start` - 実行状態管理テスト
 - **カバレッジ：** 100%
 
-#### `test_stock_master_api.py`
-- **目的：** 株式マスターAPIテスト
+#### `api/test_stock_master_api.py`
+- **目的：** JPX銘柄マスタAPIのテスト
+- **主要テストケース：**
+  - `test_update_stock_master_success` - 銘柄マスタ更新成功テスト
+  - `test_update_stock_master_scheduled` - スケジュール実行テスト
 - **カバレッジ：** 70%
 - **未カバー領域：** 330-387, 399-441, 445行
+
+#### `api/test_system_monitoring_api.py`
+- **目的：** システム監視APIのテスト
+- **主要テストケース：**
+  - `test_db_connection_success` - データベース接続成功テスト
+  - `test_db_connection_failure` - データベース接続失敗テスト
+  - `test_api_connection_success` - Yahoo Finance API接続テスト
+
+#### `api/test_swagger_api.py`
+- **目的：** Swagger UIとOpenAPI仕様書の提供機能テスト
+- **主要テストケース：**
+  - `test_swagger_ui_page` - Swagger UIページ表示テスト
+  - `test_openapi_json_endpoint` - OpenAPI JSON仕様書テスト
+  - `test_openapi_yaml_endpoint` - OpenAPI YAML仕様書テスト
+  - `test_redoc_page` - ReDoc表示テスト
+  - `test_docs_health_endpoint` - ドキュメントヘルスチェック
+
+#### `api/test_app.py`
+- **目的：** メインアプリケーションAPIの基本機能テスト
+- **主要テストケース：**
+  - `test_index_route_with_get_request_returns_success_response` - トップページテスト
+  - `test_fetch_data_api_with_basic_request_returns_valid_structure` - 基本API構造テスト
+  - `test_fetch_data_api_with_max_period_returns_valid_structure` - 最大期間データ取得テスト
+  - `test_fetch_data_api_with_max_period_parameter_passes_validation` - パラメータ検証テスト
+
+#### `api/test_restful_endpoints.py`
+- **目的：** RESTful APIエンドポイントのテスト
+- **主要テストケース：**
+  - `test_get_stocks_endpoint_returns_valid_response` - 株式一覧取得テスト
+  - `test_post_stocks_endpoint_creates_new_stock` - 新規株式作成テスト
+  - `test_put_stocks_endpoint_updates_existing_stock` - 株式情報更新テスト
+  - `test_delete_stocks_endpoint_removes_stock` - 株式削除テスト
 
 ### 3. サービス層テスト
 
@@ -81,17 +131,91 @@ tests/
 - **目的：** JPX株式サービステスト
 - **カバレッジ：** 99%
 
-### 4. エラーハンドリングテスト
+### 4. ユニットテスト
+
+#### `unit/test_data_fetcher.py`
+- **目的：** データ取得機能のユニットテスト
+- **カバレッジ：** 85%
+- **未カバー領域：** 45-52, 78-85行
+
+#### `unit/test_stock_analyzer.py`
+- **目的：** 株式分析機能のユニットテスト
+- **カバレッジ：** 90%
+
+#### `unit/test_timeframe_selector_ui.py`
+- **目的：** 時間軸選択UIコンポーネントのユニットテスト
+- **主要テストケース：**
+  - `test_html_template_structure_with_valid_template_returns_valid_structure` - HTMLテンプレート構造確認
+  - `test_css_styles_exist_with_valid_css_returns_required_styles` - CSSスタイル存在確認
+  - `test_javascript_functions_exist_with_valid_js_returns_required_functions` - JavaScript関数存在確認
+- **テスト対象：** HTML構造、CSSスタイル、JavaScript構文の基本機能
+
+### 5. エラーハンドリングテスト
 
 #### `test_error_handler.py`
 - **目的：** エラーハンドリング機能のテスト
-- **カバレッジ：** 100%
-
-#### `test_error_handling.py`
-- **目的：** アプリケーション全体のエラー処理テスト
 - **カバレッジ：** 96%
 
-### 5. フロントエンド関連テスト
+### 6. 統合・E2Eテスト
+
+#### `integration/test_api_versioning.py`
+- **目的：** APIバージョニング機能の統合テスト
+- **主要テストケース：**
+  - `test_backward_compatibility_bulk_api` - バルクAPI後方互換性テスト
+  - `test_backward_compatibility_stock_master_api` - 株式マスターAPI後方互換性テスト
+  - `test_backward_compatibility_system_api` - システムAPI後方互換性テスト
+  - `test_version_parsing_in_request` - リクエスト内バージョン解析テスト
+  - `test_default_version_for_non_versioned_request` - 非バージョン指定リクエストのデフォルト処理テスト
+
+#### `integration/test_fixtures.py`
+- **目的：** テストフィクスチャの統合テスト
+- **主要テストケース：**
+  - `test_mock_db_session_basic` - モックデータベースセッション基本テスト
+  - `test_test_db_session_context` - テストデータベースセッションコンテキストテスト
+  - `test_sample_stock_data_structure` - サンプル株式データ構造テスト
+  - `test_sample_dataframe_structure` - サンプルデータフレーム構造テスト
+- **テスト対象：** `conftest.py`で定義された共通フィクスチャの動作検証
+
+#### `integration/test_stock_data_api_integration.py`
+- **目的：** 株価データAPI統合テスト
+- **主要テストケース：**
+  - `test_fetch_stock_data_with_valid_symbol_returns_success_response` - 有効銘柄コードでの株価データ取得テスト
+  - `test_fetch_stock_data_with_invalid_symbol_raises_exception` - 無効銘柄コードでの例外発生テスト
+  - `test_fetch_stock_data_with_network_error_raises_exception` - ネットワークエラー時の例外発生テスト
+- **テスト対象：** `StockDataFetcher`クラスの基本機能とエラーハンドリング
+
+#### `integration/test_bulk_data_api_integration.py`
+- **目的：** バルクデータ処理API統合テスト
+- **主要テストケース：**
+  - `test_create_bulk_job_success` - バルクジョブ作成成功テスト
+  - `test_create_bulk_job_missing_params` - 必須パラメータ不足テスト
+  - `test_create_bulk_job_unauthorized` - 認証エラーテスト
+  - `test_create_bulk_job_invalid_api_key` - 無効APIキーテスト
+- **テスト対象：** バルクデータ処理関連APIエンドポイント
+
+#### `integration/test_swagger_integration.py`
+- **目的：** Swagger UIとOpenAPI仕様書の統合テスト
+- **主要テストケース：**
+  - `test_swagger_ui_integration_with_main_app` - メインアプリケーションとのSwagger UI統合テスト
+  - `test_openapi_spec_reflects_actual_endpoints` - OpenAPI仕様書の実際エンドポイント反映テスト
+  - `test_openapi_spec_server_urls_dynamic_setting` - OpenAPI仕様書サーバーURL動的設定テスト
+  - `test_swagger_ui_with_different_environments` - 異なる環境でのSwagger UI動作テスト
+
+#### `integration/test_state_integration.html`
+- **目的：** 状態管理システムの統合テスト用HTMLファイル
+- **テスト要素：**
+  - ページネーション機能
+  - ソート機能
+  - データ状態更新ボタンと表示領域
+  - テスト結果表示用要素
+
+#### その他の統合テストファイル
+- `test_reset_db.py` - データベースリセット機能テスト
+- `test_setup_scripts.py` - セットアップスクリプトテスト
+- `test_stock_master_system_api_integration.py` - 株式マスターシステムAPI統合テスト
+- `test_stocks_daily_removal.py` - 日次株式データ削除機能テスト
+
+### 7. フロントエンド関連テスト
 
 #### `test_frontend_e2e.py`
 - **目的：** フロントエンドのE2Eテスト
@@ -182,6 +306,26 @@ pytest -m "not slow" -v
 
 # 外部依存なしテスト
 pytest -m "not external" -v
+```
+
+## モジュールレベルマーカーについて
+
+このリポジトリでは、テストファイル単位でのマーカー指定（モジュールレベルの `pytestmark`）を順次導入しています。
+これにより同一ファイル内の全テストをまとめて選択・除外できます。主に次のマーカーを標準化しています:
+
+- `unit` — ユニットテスト
+- `integration` — 統合テスト
+- `e2e` — E2Eテスト
+- `slow` — 実行時間の長いテスト
+- `docs` — ドキュメント品質チェック用テスト（`tests/docs/`）
+
+注意: 新しく追加した `docs` マーカーなどは `pytest.ini` の `markers` セクションに登録済みです。
+そのため `--strict-markers` を有効にしていても収集エラーになりません。
+
+例: docs テストのみを実行する
+
+```bash
+pytest -m docs
 ```
 
 ## 改善が必要な領域

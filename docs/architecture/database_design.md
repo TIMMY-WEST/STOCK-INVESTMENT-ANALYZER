@@ -1332,9 +1332,9 @@ CREATE TABLE stocks_monthly (
 - **週足・月足**: 現在の設計パターンで対応可能
 
 #### API設計への影響
-- **エンドポイント**: `/api/stocks/daily`, `/api/stocks/minute` など
-- **パラメータ**: interval 指定の追加
-- **レスポンス**: 時間軸に応じたフォーマット
+- **エンドポイント**: `GET /api/stocks`（クエリパラメータ対応）
+- **パラメータ**: `symbol`, `interval`（例: `1m`, `5m`, `15m`, `30m`, `1h`, `1d`, `1wk`, `1mo`）, `limit`, `from`, `to`
+- **レスポンス**: 時間軸に応じたフォーマット（例: 分足は `datetime`、日足以上は `date`）
 
 ---
 

@@ -2,10 +2,78 @@
  * JPX全銘柄8種類順次自動取得機能のJavaScript
  */
 
-// グローバル変数
-let jpxSeqJobId = null;
-let jpxSeqCheckInterval = null;
-let jpxSeqIntervalResults = [];
+// ES6モジュールインポート
+import { Utils, UIComponents } from './app.js';
+import { StateManager } from './state-manager.js';
+
+// JPX順次取得専用の状態管理
+class JpxSequentialStateManager extends StateManager {
+    constructor() {
+        super('jpx_sequential', {
+            'job.id': null,
+            'job.checkInterval': null,
+            'job.intervalResults': []
+        });
+    }
+
+    // ジョブ関連のヘルパーメソッド
+    setJobId(jobId) {
+        this.set('job.id', jobId);
+    }
+
+    getJobId() {
+        return this.get('job.id');
+    }
+
+    setCheckInterval(interval) {
+        this.set('job.checkInterval', interval);
+    }
+
+    getCheckInterval() {
+        return this.get('job.checkInterval');
+    }
+
+    addIntervalResult(result) {
+        const results = this.get('job.intervalResults', []);
+        results.push(result);
+        this.set('job.intervalResults', results, false); // 大量データは永続化しない
+    }
+
+    clearIntervalResults() {
+        this.set('job.intervalResults', []);
+    }
+
+    clearJob() {
+        this.set('job.id', null);
+        this.set('job.checkInterval', null);
+        this.clearIntervalResults();
+    }
+}
+
+// インスタンス作成
+const jpxSequentialState = new JpxSequentialStateManager();
+
+// 後方互換性のためのレガシーオブジェクト
+const JpxSequentialState = {
+    get jobId() {
+        return jpxSequentialState.getJobId();
+    },
+    set jobId(value) {
+        jpxSequentialState.setJobId(value);
+    },
+    get checkInterval() {
+        return jpxSequentialState.getCheckInterval();
+    },
+    set checkInterval(value) {
+        jpxSequentialState.setCheckInterval(value);
+    },
+    get intervalResults() {
+        return jpxSequentialState.get('job.intervalResults', []);
+    },
+    set intervalResults(value) {
+        jpxSequentialState.set('job.intervalResults', value, false);
+    }
+};
 
 // ページ読み込み時の初期化
 document.addEventListener('DOMContentLoaded', function() {
@@ -56,7 +124,7 @@ async function handleJpxSequentialStart() {
         // 1. JPX銘柄一覧を取得
         console.log('[JPX Sequential] 銘柄一覧取得開始');
         const symbolsResponse = await fetch(
-            `/api/bulk/jpx-sequential/get-symbols?limit=${limit}${marketCategory ? '&market_category=' + encodeURIComponent(marketCategory) : ''}`
+            `/api/bulk-data/jpx-sequential/symbols?limit=${limit}${marketCategory ? '&market_category=' + encodeURIComponent(marketCategory) : ''}`
         );
 
         if (!symbolsResponse.ok) {
@@ -87,7 +155,7 @@ async function handleJpxSequentialStart() {
 
         // 2. 順次取得ジョブを開始
         console.log('[JPX Sequential] ジョブ開始リクエスト送信');
-        const startResponse = await fetch('/api/bulk/jpx-sequential/start', {
+        const startResponse = await fetch('/api/bulk-data/jpx-sequential/jobs', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -105,8 +173,8 @@ async function handleJpxSequentialStart() {
             throw new Error(startData.message || 'ジョブの開始に失敗しました');
         }
 
-        jpxSeqJobId = startData.job_id;
-        console.log(`[JPX Sequential] ジョブ開始成功: ${jpxSeqJobId}`);
+        JpxSequentialState.jobId = startData.job_id;
+        console.log(`[JPX Sequential] ジョブ開始成功: ${JpxSequentialState.jobId}`);
 
         // 結果セクション表示
         const intervalsSection = document.getElementById('jpx-seq-intervals-section');
@@ -132,12 +200,12 @@ async function handleJpxSequentialStart() {
 async function handleJpxSequentialStop() {
     console.log('[JPX Sequential] 停止ボタンがクリックされました');
 
-    if (!jpxSeqJobId) {
+    if (!JpxSequentialState.jobId) {
         return;
     }
 
     try {
-        const response = await fetch(`/api/bulk/stop/${jpxSeqJobId}`, {
+        const response = await fetch(`/api/bulk-data/jobs/${JpxSequentialState.jobId}/stop`, {
             method: 'POST'
         });
 
@@ -160,7 +228,7 @@ function startJpxSequentialMonitoring() {
     checkJpxSequentialStatus();
 
     // 5秒ごとにステータスをチェック
-    jpxSeqCheckInterval = setInterval(checkJpxSequentialStatus, 5000);
+    JpxSequentialState.checkInterval = setInterval(checkJpxSequentialStatus, 5000);
 }
 
 /**
@@ -169,9 +237,9 @@ function startJpxSequentialMonitoring() {
 function stopJpxSequentialMonitoring() {
     console.log('[JPX Sequential] 進捗監視停止');
 
-    if (jpxSeqCheckInterval) {
-        clearInterval(jpxSeqCheckInterval);
-        jpxSeqCheckInterval = null;
+    if (JpxSequentialState.checkInterval) {
+        clearInterval(JpxSequentialState.checkInterval);
+        JpxSequentialState.checkInterval = null;
     }
 
     // ボタン状態を元に戻す
@@ -186,12 +254,12 @@ function stopJpxSequentialMonitoring() {
  * ジョブステータスをチェック
  */
 async function checkJpxSequentialStatus() {
-    if (!jpxSeqJobId) {
+    if (!JpxSequentialState.jobId) {
         return;
     }
 
     try {
-        const response = await fetch(`/api/bulk/status/${jpxSeqJobId}`);
+        const response = await fetch(`/api/bulk-data/jobs/${JpxSequentialState.jobId}`);
 
         if (!response.ok) {
             throw new Error(`ステータス取得エラー: ${response.status}`);
@@ -250,15 +318,15 @@ function displayJpxSequentialIntervalResults(results) {
     const container = document.getElementById('jpx-seq-intervals-container');
 
     // コンテナをクリア（初回のみ）
-    if (jpxSeqIntervalResults.length === 0) {
+    if (JpxSequentialState.intervalResults.length === 0) {
         container.innerHTML = '';
     }
 
     // 新しい結果のみ表示
-    const newResults = results.slice(jpxSeqIntervalResults.length);
+    const newResults = results.slice(JpxSequentialState.intervalResults.length);
 
     newResults.forEach((result, index) => {
-        const actualIndex = jpxSeqIntervalResults.length + index + 1;
+        const actualIndex = JpxSequentialState.intervalResults.length + index + 1;
 
         const resultCard = document.createElement('div');
         resultCard.className = 'interval-result-card mb-3';
@@ -310,7 +378,7 @@ function displayJpxSequentialIntervalResults(results) {
     });
 
     // 処理済みの結果を記録
-    jpxSeqIntervalResults = results;
+    JpxSequentialState.intervalResults = results;
 }
 
 /**
@@ -384,8 +452,14 @@ function showJpxSequentialError(errorMessage) {
  * UIをリセット
  */
 function resetJpxSequentialUI() {
-    // 結果をクリア
-    jpxSeqIntervalResults = [];
+    console.log('[JPX Sequential] UI状態をリセット');
+
+    // 状態をリセット
+    JpxSequentialState.jobId = null;
+    JpxSequentialState.intervalResults = [];
+
+    // 監視を停止
+    stopJpxSequentialMonitoring();
 
     // ステータスセクションを非表示
     document.getElementById('jpx-seq-status-section').style.display = 'none';
@@ -424,8 +498,11 @@ async function handleJpxStockMasterUpdate() {
     statusDiv.style.display = 'block';
     statusText.textContent = 'JPX公式サイトから銘柄一覧をダウンロードしています...';
 
+    // ローディング表示
+    Utils.showLoading(statusDiv);
+
     try {
-        const response = await fetch('/api/stock-master/update', {
+        const response = await fetch('/api/stock-master/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -459,6 +536,7 @@ async function handleJpxStockMasterUpdate() {
             </div>
         `;
 
+        UIComponents.showSuccess(`銘柄マスタ更新完了: ${result.total_stocks}銘柄`);
         console.log('[JPX Master Update] 更新成功:', result);
 
         // 5秒後にメッセージを非表示
@@ -481,6 +559,7 @@ async function handleJpxStockMasterUpdate() {
                 しばらく待ってから再度お試しください。
             </div>
         `;
+        UIComponents.showError(`エラー: ${error.message}`);
     } finally {
         // ボタンを有効化
         updateBtn.disabled = false;

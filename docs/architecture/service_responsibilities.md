@@ -14,6 +14,21 @@
 
 本ドキュメントは、`app/services/` 配下の全サービスクラスの責任範囲を明確化し、重複機能や不要コードを特定することで、システムのメンテナンス性と拡張性を向上させることを目的としています。
 
+【ディレクトリ再編成方針】
+- services を機能単位のモジュールに分割し、クラスの増加に伴う見通しを改善します。
+- 新構成: `stock_data/`, `bulk/`, `jpx/`, `batch/`, `common/`
+- 旧→新の代表的な対応:
+  - `stock_data_fetcher.py` → `stock_data/fetcher.py`
+  - `stock_data_saver.py` → `stock_data/saver.py`
+  - `stock_data_converter.py` → `stock_data/converter.py`
+  - `stock_data_validator.py` → `stock_data/validator.py`
+  - `stock_data_orchestrator.py` → `stock_data/orchestrator.py`
+  - `stock_data_scheduler.py` → `stock_data/scheduler.py`
+  - `bulk_data_service.py` → `bulk/bulk_service.py`
+  - `jpx_stock_service.py` → `jpx/jpx_stock_service.py`
+  - `batch_service.py` → `batch/batch_service.py`
+  - `error_handler.py` → `common/error_handler.py`
+
 **ドキュメント作成日:** 2025-10-22
 **対象サービス数:** 8
 **分析対象ファイル:**

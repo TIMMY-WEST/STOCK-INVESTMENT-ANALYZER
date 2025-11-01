@@ -139,10 +139,17 @@ def driver():
 class TestFrontendUI:
     """フロントエンドUIのテストクラス."""
 
-    def test_page_load(self, driver, test_server):
+    def test_frontend_page_load_with_valid_url_returns_successful_response(
+        self, driver, test_server
+    ):
         """ページが正常に読み込まれることを確認."""
+        # Arrange (準備)
+        # driver と test_server フィクスチャで準備済み
+
+        # Act (実行)
         driver.get(f"http://localhost:{test_server.port}")
 
+        # Assert (検証)
         # ページタイトルを確認
         assert "株価データ管理システム" in driver.title
 
@@ -151,36 +158,46 @@ class TestFrontendUI:
         assert driver.find_element(By.ID, "load-data-btn")
         assert driver.find_element(By.ID, "data-table")
 
-    def test_pagination_display_initial_state(self, driver, test_server):
+    def test_frontend_pagination_display_with_initial_state_shows_correct_format(
+        self, driver, test_server
+    ):
         """初期状態でのページネーション表示を確認."""
+        # Arrange (準備)
         driver.get(f"http://localhost:{test_server.port}")
 
         # ページが完全に読み込まれるまで少し待機
         time.sleep(1)
 
-        # ページネーション要素を取得
+        # Act (実行) - ページネーション要素を取得
         pagination_text = driver.find_element(By.ID, "pagination-text")
 
         # 初期状態では空文字列または適切な表示がされる
         initial_text = pagination_text.text
 
+        # Assert (検証)
         # 空文字列でない場合は適切な形式であることを確認
         if initial_text.strip():
             assert "表示中:" in initial_text or "全" in initial_text
             # NaN表示がないことを確認
             assert "NaN" not in initial_text
 
-    def test_data_loading_pagination_display(self, driver, test_server):
+    def test_frontend_data_loading_pagination_display_with_loaded_data_shows_no_nan(
+        self, driver, test_server
+    ):
         """データ読み込み後のページネーション表示を確認."""
+        # Arrange (準備)
         driver.get(f"http://localhost:{test_server.port}")
 
         # データ読み込みボタンをクリック
         load_btn = driver.find_element(By.ID, "load-data-btn")
+
+        # Act (実行)
         load_btn.click()
 
         # データ読み込み完了まで待機
         wait = WebDriverWait(driver, 10)
 
+        # Assert (検証)
         try:
             # データ読み込み完了まで待機（読み込み中表示が消えるまで）
             wait.until(
@@ -193,9 +210,7 @@ class TestFrontendUI:
             text = pagination_text.text
 
             # NaN表示がないことを確認
-            assert (
-                "NaN" not in text
-            ), f"ページネーション表示にNaNが含まれています: {text}"
+            assert "NaN" not in text, f"ページネーション表示にNaNが含まれています: {text}"
 
             # 正しい形式で表示されていることを確認
             assert "表示中:" in text
@@ -213,9 +228,7 @@ class TestFrontendUI:
                 match = re.search(
                     r"表示中: ([\d,]+)-([\d,]+) / 全 ([\d,]+) 件", text
                 )
-                assert (
-                    match
-                ), f"ページネーション表示の形式が正しくありません: {text}"
+                assert match, f"ページネーション表示の形式が正しくありません: {text}"
 
                 # カンマを除去して数値に変換
                 start, end, total = [
@@ -231,16 +244,19 @@ class TestFrontendUI:
             # タイムアウトした場合でもページネーション表示をチェック
             pagination_text = driver.find_element(By.ID, "pagination-text")
             text = pagination_text.text
-            assert (
-                "NaN" not in text
-            ), f"データ読み込み中にNaN表示が発生しました: {text}"
+            assert "NaN" not in text, f"データ読み込み中にNaN表示が発生しました: {text}"
 
-    def test_pagination_buttons_state(self, driver, test_server):
+    def test_frontend_pagination_buttons_state_with_data_load_shows_correct_visibility(
+        self, driver, test_server
+    ):
         """ページネーションボタンの状態を確認."""
+        # Arrange (準備)
         driver.get(f"http://localhost:{test_server.port}")
 
         # データ読み込みボタンをクリック
         load_btn = driver.find_element(By.ID, "load-data-btn")
+
+        # Act (実行)
         load_btn.click()
 
         # データ読み込み完了まで待機
@@ -257,6 +273,7 @@ class TestFrontendUI:
         prev_btns = driver.find_elements(By.ID, "prev-page-btn")
         next_btns = driver.find_elements(By.ID, "next-page-btn")
 
+        # Assert (検証)
         # ボタンが存在する場合のみテスト
         if prev_btns and next_btns:
             prev_btn = prev_btns[0]
@@ -269,17 +286,23 @@ class TestFrontendUI:
             # 初期状態では前へボタンが無効になっている可能性がある
             # （データ量によって変わるため、存在確認のみ）
 
-    def test_table_display_after_load(self, driver, test_server):
+    def test_frontend_table_display_after_load_with_data_shows_appropriate_content(
+        self, driver, test_server
+    ):
         """データ読み込み後のテーブル表示を確認."""
+        # Arrange (準備)
         driver.get(f"http://localhost:{test_server.port}")
 
         # データ読み込みボタンをクリック
         load_btn = driver.find_element(By.ID, "load-data-btn")
+
+        # Act (実行)
         load_btn.click()
 
         # テーブルの状態変化を待機
         wait = WebDriverWait(driver, 10)
 
+        # Assert (検証)
         try:
             # データ読み込み完了まで待機（読み込み中表示が消えるまで）
             wait.until(
@@ -317,8 +340,11 @@ class TestFrontendUI:
                 ]
             ), f"予期しないテーブル状態: {table_text}"
 
-    def test_ui_elements_visibility(self, driver, test_server):
+    def test_frontend_ui_elements_visibility_with_page_load_shows_all_components(
+        self, driver, test_server
+    ):
         """UI要素の可視性を確認."""
+        # Arrange (準備)
         driver.get(f"http://localhost:{test_server.port}")
 
         # 主要なUI要素が表示されていることを確認
@@ -332,6 +358,7 @@ class TestFrontendUI:
             "next-page-btn",
         ]
 
+        # Act & Assert (実行と検証)
         for element_id in elements_to_check:
             element = driver.find_element(By.ID, element_id)
             # 要素が存在することを確認（表示/非表示は状況による）

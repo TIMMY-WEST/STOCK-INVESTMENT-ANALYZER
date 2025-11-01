@@ -1,5 +1,13 @@
-// 株価データ取得システム - JavaScript API連携機能
-// Issue #19: JavaScript実装とAPI連携機能
+/**
+ * 株価データ取得システム - JavaScript API連携機能
+ * ES6 Module版
+ */
+
+// 共通ユーティリティとサービスをインポート
+import { AppState, Utils, ApiService, UIComponents, FormValidator, INTERVAL_PERIOD_RULES, appStateManager } from './app.js';
+
+// アプリケーション状態管理インスタンス（新しいシステムを使用）
+const appState = appStateManager;
 
 // アプリケーション初期化
 document.addEventListener('DOMContentLoaded', function() {
@@ -58,7 +66,6 @@ async function handleFetchSubmit(event) {
 
     // バリデーション
     const errors = validateForm(formData);
-    console.log('[handleFetchSubmit] バリデーション結果:', errors);
     if (Object.keys(errors).length > 0) {
         console.log('[handleFetchSubmit] バリデーションエラー、hideLoading() 呼び出し');
         hideLoading(); // バリデーションエラー時にローディング状態を解除
@@ -72,8 +79,8 @@ async function handleFetchSubmit(event) {
     try {
         console.log('[handleFetchSubmit] APIリクエスト送信開始');
 
-        // POST /api/fetch-data への非同期リクエスト
-        const response = await fetch('/api/fetch-data', {
+        // POST /api/stocks/data への非同期リクエスト（エンドポイントを修正）
+        const response = await fetch('/api/stocks/data', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -90,15 +97,20 @@ async function handleFetchSubmit(event) {
         hideLoading();
         console.log('[handleFetchSubmit] hideLoading() 呼び出し完了');
 
-        if (result.success) {
+        // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+        const isSuccess = result.status === 'success' || result.success === true;
+
+        if (isSuccess) {
             console.log('[handleFetchSubmit] 成功: showSuccess() 呼び出し');
-            showSuccess('データを取得しました', result.data);
+            showSuccess(result.message || 'データを取得しました', result.data);
             console.log('[handleFetchSubmit] showSuccess() 完了');
             // データテーブル更新
             await loadStockData();
         } else {
             console.log('[handleFetchSubmit] 失敗: showError() 呼び出し');
-            showError(result.message || 'データ取得に失敗しました');
+            // エラーレスポンスの場合はerror.messageを使用
+            const errorMessage = result.error?.message || result.message || 'データ取得に失敗しました';
+            showError(errorMessage);
         }
 
     } catch (error) {
@@ -109,44 +121,21 @@ async function handleFetchSubmit(event) {
     }
 }
 
-// フォームバリデーション
+// フォームバリデーション（FormValidatorクラスを使用）
 function validateForm(formData) {
-    const errors = {};
+    const validator = new FormValidator();
 
-    const symbol = formData.get('symbol');
-    if (!symbol) {
-        errors.symbol = '銘柄コードは必須です';
-    } else if (!symbol.match(/^[0-9]{4}\.T$/)) {
-        errors.symbol = '正しい銘柄コード形式で入力してください（例: 7203.T）';
-    }
+    // FormDataをプレーンオブジェクトに変換
+    const data = {
+        symbol: formData.get('symbol'),
+        period: formData.get('period'),
+        interval: formData.get('interval')
+    };
 
-    // 時間軸選択のバリデーション
-    const period = formData.get('period');
-    if (!period || period.trim() === '') {
-        errors.period = '期間を選択してください';
-    } else {
-        const validPeriods = ['5d', '1wk', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
-        if (!validPeriods.includes(period)) {
-            errors.period = '無効な期間が選択されています';
-        }
-    }
+    const result = validator.validateStockForm(data);
 
-    // 足選択のバリデーション
-    const interval = formData.get('interval');
-    if (!interval || interval.trim() === '') {
-        errors.interval = '足を選択してください';
-    } else {
-        const validIntervals = [
-            '1m', '5m', '15m', '30m',
-            '1h',
-            '1d', '1wk', '1mo'
-        ];
-        if (!validIntervals.includes(interval)) {
-            errors.interval = '無効な足が選択されています';
-        }
-    }
-
-    return errors;
+    // バリデーション結果のerrorsオブジェクトのみを返す
+    return result.errors;
 }
 
 // バリデーションエラー表示
@@ -178,13 +167,13 @@ function showFieldError(fieldName, message) {
     const field = document.getElementById(fieldName);
     if (!field) return;
 
-    field.classList.add('form-control-error');
+    field.classList.add('form__control--error');
 
     // エラーメッセージ要素を作成または更新
-    let errorElement = field.parentNode.querySelector('.field-error');
+    let errorElement = field.parentNode.querySelector('.form__error');
     if (!errorElement) {
         errorElement = document.createElement('div');
-        errorElement.className = 'field-error';
+        errorElement.className = 'form__error';
         errorElement.style.color = '#dc3545';
         errorElement.style.fontSize = '0.875rem';
         errorElement.style.marginTop = '0.25rem';
@@ -197,12 +186,12 @@ function showFieldError(fieldName, message) {
 
 function clearFieldErrors() {
     // エラークラスを削除
-    document.querySelectorAll('.form-control-error').forEach(el => {
-        el.classList.remove('form-control-error');
+    document.querySelectorAll('.form__control--error').forEach(el => {
+        el.classList.remove('form__control--error');
     });
 
     // エラーメッセージを非表示
-    document.querySelectorAll('.field-error').forEach(el => {
+    document.querySelectorAll('.form__error').forEach(el => {
         el.style.display = 'none';
     });
 
@@ -221,160 +210,31 @@ function clearFieldErrors() {
     }
 }
 
-// ローディング状態管理
+// ローディング状態管理（Utilsクラスを使用）
 function showLoading() {
-    const fetchButton = document.getElementById('fetch-btn');
-    const buttonText = fetchButton.querySelector('.btn-text');
-    const spinner = document.getElementById('loading-spinner');
-    const resultContainer = document.getElementById('result-container');
-
-    if (fetchButton) {
-        fetchButton.disabled = true;
-    }
-
-    if (buttonText) {
-        buttonText.textContent = 'データ取得中...';
-    }
-
-    if (spinner) {
-        spinner.style.display = 'inline-block';
-    }
-
-    // ローディングメッセージを表示
-    if (resultContainer) {
-        resultContainer.innerHTML = `
-            <div class="alert alert-info">
-                <div class="alert-content">
-                    <span class="status-icon">📊</span>
-                    <div>
-                        <strong>データ取得中...</strong>
-                        <div style="margin-top: 8px;">Yahoo Finance APIからデータを取得し、データベースに保存しています。しばらくお待ちください...</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        // スクリーンリーダー向けに状態を通知
-        resultContainer.setAttribute('aria-busy', 'true');
-    }
+    Utils.showLoading();
 }
 
 function hideLoading() {
-    console.log('[hideLoading] 開始');
-    const fetchButton = document.getElementById('fetch-btn');
-    console.log('[hideLoading] fetchButton:', fetchButton);
-
-    if (!fetchButton) {
-        console.error('[hideLoading] エラー: fetchButton が見つかりません');
-        return;
-    }
-
-    const buttonText = fetchButton.querySelector('.btn-text');
-    const spinner = document.getElementById('loading-spinner');
-    const resultContainer = document.getElementById('result-container');
-    console.log('[hideLoading] 要素取得完了:', { buttonText, spinner, resultContainer });
-
-    if (fetchButton) {
-        fetchButton.disabled = false;
-        console.log('[hideLoading] ボタン有効化');
-    }
-
-    if (buttonText) {
-        buttonText.textContent = 'データ取得';
-        console.log('[hideLoading] ボタンテキスト変更');
-    }
-
-    if (spinner) {
-        spinner.style.display = 'none';
-        console.log('[hideLoading] スピナー非表示');
-    }
-
-    // ローディングメッセージをクリア
-    if (resultContainer) {
-        resultContainer.removeAttribute('aria-busy');
-        console.log('[hideLoading] aria-busy 削除');
-        // ローディングメッセージ（alert-info）のみをクリア
-        const loadingAlert = resultContainer.querySelector('.alert-info');
-        console.log('[hideLoading] loadingAlert:', loadingAlert);
-        if (loadingAlert) {
-            resultContainer.innerHTML = '';
-            console.log('[hideLoading] ローディングメッセージクリア');
-        }
-    }
-    console.log('[hideLoading] 完了');
+    Utils.hideLoading();
 }
 
-// ステータス表示関数
+// ステータス表示関数（UIComponentsクラスを使用）
 function showSuccess(message, data) {
     console.log('[showSuccess] 開始:', message, data);
-    const resultContainer = document.getElementById('result-container');
-    console.log('[showSuccess] resultContainer:', resultContainer);
-    if (!resultContainer) {
-        console.error('[showSuccess] エラー: resultContainer が見つかりません');
-        return;
+
+    // データが渡された場合は詳細表示、そうでなければシンプル表示
+    if (data && typeof data === 'object') {
+        UIComponents.showDetailedSuccessMessage(message, data);
+    } else {
+        UIComponents.showSuccessMessage(message);
     }
 
-    // スキップされたレコード数を計算
-    const skippedRecords = data.skipped_records || 0;
-    const downloadedCount = data.records_count || 0;
-    const savedCount = data.saved_records || 0;
-    console.log('[showSuccess] データ:', { skippedRecords, downloadedCount, savedCount });
-
-    console.log('[showSuccess] HTML 更新開始');
-    resultContainer.innerHTML = `
-        <div class="alert alert-success">
-            <div class="alert-title">✅ ${escapeHtml(message)}</div>
-            <div class="success-details">
-                <div><strong>銘柄:</strong> ${escapeHtml(data.symbol)}</div>
-                <div><strong>時間軸（足）:</strong> ${escapeHtml(data.interval || '1d')}</div>
-                <div class="data-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">📥 ダウンロード件数:</span>
-                        <span class="stat-value">${formatNumber(downloadedCount)} 件</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">💾 DB格納件数:</span>
-                        <span class="stat-value">${formatNumber(savedCount)} 件</span>
-                    </div>
-                    ${skippedRecords > 0 ? `
-                    <div class="stat-item">
-                        <span class="stat-label">⏭️ スキップ（重複）:</span>
-                        <span class="stat-value">${formatNumber(skippedRecords)} 件</span>
-                    </div>
-                    ` : ''}
-                </div>
-                <div><strong>取得期間:</strong> ${data.date_range.start} ～ ${data.date_range.end}</div>
-            </div>
-        </div>
-    `;
-    console.log('[showSuccess] HTML 更新完了');
-
-    // 10秒後に自動非表示（情報量が増えたため延長）
-    setTimeout(() => {
-        if (resultContainer.innerHTML.includes('alert-success')) {
-            resultContainer.innerHTML = '';
-            console.log('[showSuccess] 自動非表示実行');
-        }
-    }, 10000);
     console.log('[showSuccess] 完了');
 }
 
 function showError(message) {
-    const resultContainer = document.getElementById('result-container');
-    if (!resultContainer) return;
-
-    resultContainer.innerHTML = `
-        <div class="alert alert-error">
-            <div class="alert-title">❌ エラー</div>
-            <div>${escapeHtml(message)}</div>
-        </div>
-    `;
-
-    // 5秒後に自動非表示
-    setTimeout(() => {
-        if (resultContainer.innerHTML.includes('alert-error')) {
-            resultContainer.innerHTML = '';
-        }
-    }, 5000);
+    UIComponents.showErrorMessage(message);
 }
 
 // 株価データ読み込み (GET /api/stocks への非同期リクエスト)
@@ -387,9 +247,9 @@ async function loadStockData(page = null) {
 
         // ページが指定されている場合は使用、そうでなければ現在のページを使用
         if (page !== null) {
-            currentPage = page;
+            appState.set('pagination.currentPage', page);
         }
-        currentLimit = limit;
+        appState.set('pagination.currentLimit', limit);
 
         if (tableBody) {
             showLoadingInTable(tableBody);
@@ -397,8 +257,8 @@ async function loadStockData(page = null) {
 
         // URLパラメータ構築
         const params = new URLSearchParams({
-            limit: currentLimit,
-            offset: currentPage * currentLimit,
+            limit: appState.get('pagination.currentLimit'),
+            offset: appState.get('pagination.currentPage') * appState.get('pagination.currentLimit'),
             interval: intervalFilter
         });
 
@@ -407,17 +267,43 @@ async function loadStockData(page = null) {
         }
 
         const response = await fetch(`/api/stocks?${params.toString()}`);
-        const result = await response.json();
 
-        if (result.success) {
-            totalRecords = result.pagination.total;
+        // レスポンステキストを取得してJSONパースを安全に実行
+        const responseText = await response.text();
+        let result;
+
+        try {
+            result = JSON.parse(responseText);
+        } catch (jsonError) {
+            console.error('JSONパースエラー:', jsonError);
+            console.error('レスポンステキスト:', responseText.substring(0, 500) + '...');
+
+            // NaN値が含まれている場合の対処
+            if (responseText.includes('NaN')) {
+                console.warn('レスポンスにNaN値が含まれています。サーバー側の修正が必要です。');
+                throw new Error('サーバーから無効なデータが返されました。管理者にお問い合わせください。');
+            }
+
+            throw new Error('サーバーレスポンスの解析に失敗しました: ' + jsonError.message);
+        }
+
+        // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+        const isSuccess = result.status === 'success' || result.success === true;
+
+        if (isSuccess) {
+            // 新形式のpagination情報はmeta.paginationにある
+            const pagination = result.meta?.pagination || result.pagination;
+            if (pagination) {
+                appState.set('pagination.totalRecords', pagination.total);
+            }
             updateDataTable(result.data);
             updatePagination();
-            updateDataSummary(symbolFilter, result.data.length, totalRecords);
+            updateDataSummary(symbolFilter, result.data.length, appState.get('pagination.totalRecords'));
         } else {
             // エラーの場合もページネーションを更新（totalRecordsは0のまま）
             updatePagination();
-            showErrorInTable(tableBody, result.message || 'データの読み込みに失敗しました');
+            const errorMessage = result.error?.message || result.message || 'データの読み込みに失敗しました';
+            showErrorInTable(tableBody, errorMessage);
         }
 
     } catch (error) {
@@ -465,7 +351,7 @@ function updateDataTable(stockData) {
     if (!tableBody) return;
 
     // 現在のストックデータを保存（ソート機能で使用）
-    currentStockData = [...stockData];
+    appState.set('data.stockData', [...stockData], false); // 大量データは永続化しない
 
     if (stockData.length === 0) {
         tableBody.innerHTML = `
@@ -492,7 +378,7 @@ function updateDataTable(stockData) {
             <td data-label="終値" class="text-right">${formatCurrency(stock.close)}</td>
             <td data-label="出来高" class="text-right">${formatNumber(stock.volume)}</td>
             <td data-label="操作">
-                <button type="button" class="btn btn-danger btn-sm" onclick="deleteStock(${stock.id})">
+                <button type="button" class="btn btn--danger btn--sm" onclick="deleteStock(${stock.id})">
                     削除
                 </button>
             </td>
@@ -539,12 +425,16 @@ async function deleteStock(stockId) {
 
         const result = await response.json();
 
-        if (result.success) {
-            showSuccess('データを削除しました', { symbol: '', records_count: 0, saved_records: 0, date_range: { start: '', end: '' } });
+        // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+        const isSuccess = result.status === 'success' || result.success === true;
+
+        if (isSuccess) {
+            showSuccess(result.message || 'データを削除しました', result.data || { symbol: '', records_count: 0, saved_records: 0, date_range: { start: '', end: '' } });
             // テーブル再読み込み
             await loadStockData();
         } else {
-            showError(result.message || 'データの削除に失敗しました');
+            const errorMessage = result.error?.message || result.message || 'データの削除に失敗しました';
+            showError(errorMessage);
         }
 
     } catch (error) {
@@ -553,13 +443,11 @@ async function deleteStock(stockId) {
     }
 }
 
-// ユーティリティ関数
+// ユーティリティ関数（Utilsクラスを使用）
 
 // HTMLエスケープ
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return Utils.escapeHtml(text);
 }
 
 // 数値フォーマット
@@ -627,15 +515,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // グローバル関数として削除機能を公開
 window.deleteStock = deleteStock;
 
-// テーブルソート機能
-let currentStockData = [];
-let currentSortColumn = null;
-let currentSortDirection = 'asc';
-
-// ページネーション機能
-let currentPage = 0;
-let currentLimit = 25;
-let totalRecords = 0;
+// モジュール内状態管理はインポートしたappStateインスタンスを使用
 
 // テーブルソート機能初期化
 function initTableSorting() {
@@ -654,18 +534,19 @@ function initTableSorting() {
 
 // テーブルソート実行
 function sortTable(column) {
-    if (currentStockData.length === 0) return;
+    if (appState.get('data.stockData', []).length === 0) return;
 
     // ソート方向を決定
-    if (currentSortColumn === column) {
-        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    if (appState.get('sort.column') === column) {
+        const newDirection = appState.get('sort.direction') === 'asc' ? 'desc' : 'asc';
+        appState.set('sort.direction', newDirection);
     } else {
-        currentSortDirection = 'asc';
-        currentSortColumn = column;
+        appState.set('sort.direction', 'asc');
+        appState.set('sort.column', column);
     }
 
     // データをソート
-    const sortedData = [...currentStockData].sort((a, b) => {
+    const sortedData = [...appState.get('data.stockData', [])].sort((a, b) => {
         let aValue = a[column];
         let bValue = b[column];
 
@@ -686,17 +567,17 @@ function sortTable(column) {
         }
 
         if (aValue < bValue) {
-            return currentSortDirection === 'asc' ? -1 : 1;
+            return appState.get('sort.direction') === 'asc' ? -1 : 1;
         }
         if (aValue > bValue) {
-            return currentSortDirection === 'asc' ? 1 : -1;
+            return appState.get('sort.direction') === 'asc' ? 1 : -1;
         }
         return 0;
     });
 
     // ソートされたデータでテーブルを更新
     updateDataTable(sortedData);
-    updateSortIcons(column, currentSortDirection);
+    updateSortIcons(column, appState.get('sort.direction'));
 }
 
 // ソートアイコンを更新
@@ -724,17 +605,17 @@ function initPagination() {
 
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
-            if (currentPage > 0) {
-                loadStockData(currentPage - 1);
+            if (appState.get('pagination.currentPage') > 0) {
+                loadStockData(appState.get('pagination.currentPage') - 1);
             }
         });
     }
 
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
-            const totalPages = Math.ceil(totalRecords / currentLimit);
-            if (currentPage < totalPages - 1) {
-                loadStockData(currentPage + 1);
+            const totalPages = Math.ceil(appState.get('pagination.totalRecords') / appState.get('pagination.currentLimit'));
+            if (appState.get('pagination.currentPage') < totalPages - 1) {
+                loadStockData(appState.get('pagination.currentPage') + 1);
             }
         });
     }
@@ -750,9 +631,9 @@ function updatePagination() {
     if (!paginationContainer || !paginationText || !prevBtn || !nextBtn) return;
 
     // 変数の安全性チェック
-    const safeTotalRecords = isNaN(totalRecords) || totalRecords < 0 ? 0 : totalRecords;
-    const safeCurrentPage = isNaN(currentPage) || currentPage < 0 ? 0 : currentPage;
-    const safeCurrentLimit = isNaN(currentLimit) || currentLimit <= 0 ? 25 : currentLimit;
+    const safeTotalRecords = isNaN(appState.get('pagination.totalRecords')) || appState.get('pagination.totalRecords') < 0 ? 0 : appState.get('pagination.totalRecords');
+    const safeCurrentPage = isNaN(appState.get('pagination.currentPage')) || appState.get('pagination.currentPage') < 0 ? 0 : appState.get('pagination.currentPage');
+    const safeCurrentLimit = isNaN(appState.get('pagination.currentLimit')) || appState.get('pagination.currentLimit') <= 0 ? 25 : appState.get('pagination.currentLimit');
 
     // データが存在しない場合の処理
     if (safeTotalRecords === 0) {
@@ -773,11 +654,11 @@ function updatePagination() {
     paginationText.textContent = `表示中: ${startRecord}-${endRecord} / 全 ${safeTotalRecords} 件`;
 
     // ボタンの有効/無効を設定
-    prevBtn.disabled = currentPage === 0;
-    nextBtn.disabled = currentPage >= totalPages - 1;
+    prevBtn.disabled = appState.get('pagination.currentPage') === 0;
+    nextBtn.disabled = appState.get('pagination.currentPage') >= totalPages - 1;
 
     // ページネーションコンテナの表示/非表示
-    if (totalRecords > currentLimit) {
+    if (appState.get('pagination.totalRecords') > appState.get('pagination.currentLimit')) {
         paginationContainer.style.display = 'flex';
     } else {
         paginationContainer.style.display = 'none';
@@ -874,14 +755,14 @@ function validateTimeframeSelection(event) {
  */
 function updateTimeframeIndicator(selectedValue) {
     const indicator = document.getElementById('timeframe-indicator');
-    const indicatorText = indicator.querySelector('.indicator-text');
+    const indicatorText = indicator.querySelector('.form__indicator-text');
 
     if (!indicator || !indicatorText) {
         return;
     }
 
     // 既存のクラスをクリア
-    indicator.className = 'timeframe-indicator';
+    indicator.className = 'form__timeframe-indicator';
 
     // 期間に応じたメッセージとスタイルを設定
     const timeframeConfig = getTimeframeConfig(selectedValue);
@@ -1211,14 +1092,14 @@ function validateIntervalSelection(event) {
  */
 function updateIntervalIndicator(selectedValue) {
     const indicator = document.getElementById('interval-indicator');
-    const indicatorText = indicator.querySelector('.indicator-text');
+    const indicatorText = indicator.querySelector('.form__indicator-text');
 
     if (!indicator || !indicatorText) {
         return;
     }
 
     // 既存のクラスをクリア
-    indicator.className = 'interval-indicator';
+    indicator.className = 'form__interval-indicator';
 
     // 足に応じたメッセージとスタイルを設定
     const intervalConfig = getIntervalConfig(selectedValue);
@@ -1367,3 +1248,312 @@ function announceIntervalSelection(selectedValue) {
         }
     }, 1000);
 }
+
+// システム状態管理
+const SystemStatusManager = {
+    /**
+     * 初期化
+     */
+    init: function() {
+        const checkBtn = document.getElementById('system-check-btn');
+        if (checkBtn) {
+            checkBtn.addEventListener('click', this.runSystemCheck.bind(this));
+            console.log('[SystemStatusManager] システム状態確認ボタンのイベントリスナーを設定しました');
+        } else {
+            console.warn('[SystemStatusManager] system-check-btn要素が見つかりません');
+        }
+    },
+
+    /**
+     * システム状態チェックの実行
+     */
+    runSystemCheck: async function() {
+        const btn = document.getElementById('system-check-btn');
+        const resultsContainer = document.getElementById('monitoring-results');
+
+        if (!btn || !resultsContainer) {
+            console.error('[SystemStatusManager] 必要な要素が見つかりません');
+            return;
+        }
+
+        try {
+            console.log('[SystemStatusManager] システム状態チェック開始');
+
+            // ボタンを無効化し、テキストを変更
+            btn.disabled = true;
+            btn.textContent = 'チェック実行中...';
+
+            // 結果コンテナを表示
+            resultsContainer.style.display = 'block';
+
+            // 3つのテストを順次実行
+            await this.runDatabaseTest();
+            await this.runApiTest();
+            await this.runHealthCheck();
+
+            console.log('[SystemStatusManager] システム状態チェック完了');
+
+        } catch (error) {
+            console.error('[SystemStatusManager] システム状態チェック中にエラーが発生:', error);
+            this.showError('システム状態チェック中にエラーが発生しました: ' + error.message);
+        } finally {
+            // ボタンを元に戻す
+            btn.disabled = false;
+            btn.textContent = 'システム状態の確認';
+        }
+    },
+
+    /**
+     * データベース接続テスト
+     */
+    runDatabaseTest: async function() {
+        console.log('[SystemStatusManager] データベース接続テスト開始');
+
+        const statusElement = document.getElementById('db-test-status');
+        const detailsElement = document.getElementById('db-test-details');
+        const resultContainer = document.getElementById('db-test-result');
+
+        if (resultContainer) {
+            resultContainer.style.display = 'block';
+        }
+
+        if (statusElement) {
+            statusElement.textContent = 'テスト中...';
+            statusElement.className = 'status status--testing';
+        }
+
+        try {
+            const response = await fetch('/api/system/database/connection', {
+                method: 'GET'
+            });
+
+            const data = await response.json();
+            console.log('[SystemStatusManager] データベース接続テスト結果:', data);
+
+            // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+            const isSuccess = data.status === 'success' || data.success === true;
+
+            if (statusElement) {
+                if (isSuccess) {
+                    statusElement.textContent = '✅ 正常';
+                    statusElement.className = 'status status--success';
+                } else {
+                    statusElement.textContent = '❌ エラー';
+                    statusElement.className = 'status status--error';
+                }
+            }
+
+            if (detailsElement) {
+                const errorMessage = data.error?.message || data.message || 'なし';
+                detailsElement.innerHTML = `
+                    <div class="status__detail">
+                        <strong>結果:</strong> ${isSuccess ? '接続成功' : '接続失敗'}
+                    </div>
+                    <div class="status__detail">
+                        <strong>メッセージ:</strong> ${errorMessage}
+                    </div>
+                    <div class="status__detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('[SystemStatusManager] データベース接続テストエラー:', error);
+
+            if (statusElement) {
+                statusElement.textContent = '❌ エラー';
+                statusElement.className = 'status status--error';
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="status__detail status__detail--error">
+                        <strong>エラー:</strong> ${error.message}
+                    </div>
+                    <div class="status__detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return { success: false, message: error.message };
+        }
+    },
+
+    /**
+     * API接続テスト
+     */
+    runApiTest: async function() {
+        console.log('[SystemStatusManager] API接続テスト開始');
+
+        const statusElement = document.getElementById('api-test-status');
+        const detailsElement = document.getElementById('api-test-details');
+        const resultContainer = document.getElementById('api-test-result');
+
+        if (resultContainer) {
+            resultContainer.style.display = 'block';
+        }
+
+        if (statusElement) {
+            statusElement.textContent = 'テスト中...';
+            statusElement.className = 'status status--testing';
+        }
+
+        try {
+            const response = await fetch('/api/system/external-api/connection', {
+                method: 'GET'
+            });
+
+            const data = await response.json();
+            console.log('[SystemStatusManager] API接続テスト結果:', data);
+
+            // 新しいレスポンス形式（status: "success"）と旧形式（success: true）の両方をサポート
+            const isSuccess = data.status === 'success' || data.success === true;
+
+            if (statusElement) {
+                if (isSuccess) {
+                    statusElement.textContent = '✅ 正常';
+                    statusElement.className = 'status status--success';
+                } else {
+                    statusElement.textContent = '❌ エラー';
+                    statusElement.className = 'status status--error';
+                }
+            }
+
+            if (detailsElement) {
+                const errorMessage = data.error?.message || data.message || 'なし';
+                detailsElement.innerHTML = `
+                    <div class="status__detail">
+                        <strong>結果:</strong> ${isSuccess ? 'API接続成功' : 'API接続失敗'}
+                    </div>
+                    <div class="status__detail">
+                        <strong>メッセージ:</strong> ${errorMessage}
+                    </div>
+                    <div class="status__detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('[SystemStatusManager] API接続テストエラー:', error);
+
+            if (statusElement) {
+                statusElement.textContent = '❌ エラー';
+                statusElement.className = 'status status--error';
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="status__detail status__detail--error">
+                        <strong>エラー:</strong> ${error.message}
+                    </div>
+                    <div class="status__detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return { success: false, message: error.message };
+        }
+    },
+
+    /**
+     * ヘルスチェック
+     */
+    runHealthCheck: async function() {
+        console.log('[SystemStatusManager] ヘルスチェック開始');
+
+        const statusElement = document.getElementById('health-check-status');
+        const detailsElement = document.getElementById('health-check-details');
+        const resultContainer = document.getElementById('health-check-result');
+
+        if (resultContainer) {
+            resultContainer.style.display = 'block';
+        }
+
+        if (statusElement) {
+            statusElement.textContent = 'チェック中...';
+            statusElement.className = 'status status--testing';
+        }
+
+        try {
+            const response = await fetch('/api/system/health');
+            const data = await response.json();
+            console.log('[SystemStatusManager] ヘルスチェック結果:', data);
+
+            // 新しいレスポンス形式では、data.data.overall_statusにステータスがある
+            const overallStatus = data.data?.overall_status || data.status;
+            const isHealthy = overallStatus === 'healthy';
+
+            if (statusElement) {
+                if (isHealthy) {
+                    statusElement.textContent = '✅ 正常';
+                    statusElement.className = 'status status--success';
+                } else {
+                    statusElement.textContent = '❌ 異常';
+                    statusElement.className = 'status status--error';
+                }
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="status__detail">
+                        <strong>ステータス:</strong> ${overallStatus || '不明'}
+                    </div>
+                    <div class="status__detail">
+                        <strong>メッセージ:</strong> ${data.message || 'なし'}
+                    </div>
+                    <div class="status__detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('[SystemStatusManager] ヘルスチェックエラー:', error);
+
+            if (statusElement) {
+                statusElement.textContent = '❌ エラー';
+                statusElement.className = 'status status--error';
+            }
+
+            if (detailsElement) {
+                detailsElement.innerHTML = `
+                    <div class="status__detail status__detail--error">
+                        <strong>エラー:</strong> ${error.message}
+                    </div>
+                    <div class="status__detail">
+                        <strong>実行時刻:</strong> ${new Date().toLocaleString('ja-JP')}
+                    </div>
+                `;
+            }
+
+            return { success: false, message: error.message };
+        }
+    },
+
+    /**
+     * エラー表示
+     */
+    showError: function(message) {
+        const resultsContainer = document.getElementById('monitoring-results');
+        if (resultsContainer) {
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>エラー:</strong> ${message}
+                </div>
+            `;
+        }
+    }
+};
+
+// DOMContentLoadedイベントでSystemStatusManagerを初期化
+document.addEventListener('DOMContentLoaded', function() {
+    SystemStatusManager.init();
+});

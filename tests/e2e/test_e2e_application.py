@@ -33,7 +33,7 @@ class TestE2EApplication:
         sys.path.insert(0, app_dir)
 
         # Flaskアプリをインポート
-        from app import app
+        from app.app import app
 
         app.config["TESTING"] = True
 
@@ -114,10 +114,13 @@ class TestE2EApplication:
 
     def test_application_startup_and_homepage_load(self, app_server, driver):
         """アプリケーション起動とホームページ読み込みテスト."""
-        # ホームページにアクセス
+        # Arrange (準備)
+        # app_serverとdriverフィクスチャで準備済み
+
+        # Act (実行) - ホームページにアクセス
         driver.get(app_server)
 
-        # ページタイトルを確認
+        # Assert (検証) - ページタイトルを確認
         assert "株価データ管理システム" in driver.title
 
         # メインヘッダーの存在確認
@@ -132,35 +135,37 @@ class TestE2EApplication:
 
     def test_stock_data_fetch_form_interaction(self, app_server, driver):
         """株価データ取得フォームの操作テスト."""
+        # Arrange (準備)
         driver.get(app_server)
 
-        # フォーム要素の存在確認
+        # Act (実行) - フォーム要素の存在確認
         symbol_input = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "symbol"))
         )
         period_select = driver.find_element(By.ID, "period")
         _ = driver.find_element(By.ID, "fetch-btn")
 
-        # デフォルト値の確認
+        # Assert (検証) - デフォルト値の確認
         assert symbol_input.get_attribute("value") == "7203.T"
 
         # 期間選択の確認
         select = Select(period_select)
         assert select.first_selected_option.get_attribute("value") == "1mo"
 
-        # 銘柄コードを変更
+        # Act (実行) - 銘柄コードを変更
         symbol_input.clear()
         symbol_input.send_keys("6758.T")  # ソニーグループ
 
         # 期間を変更
         select.select_by_value("1wk")
 
-        # フォームの値が正しく設定されているか確認
+        # Assert (検証) - フォームの値が正しく設定されているか確認
         assert symbol_input.get_attribute("value") == "6758.T"
         assert select.first_selected_option.get_attribute("value") == "1wk"
 
     def test_stock_data_fetch_submission(self, app_server, driver):
         """株価データ取得の実行テスト."""
+        # Arrange (準備)
         driver.get(app_server)
 
         # フォーム要素を取得
@@ -173,7 +178,7 @@ class TestE2EApplication:
         symbol_input.clear()
         symbol_input.send_keys("7203.T")  # トヨタ自動車
 
-        # データ取得ボタンをクリック
+        # Act (実行) - データ取得ボタンをクリック
         fetch_button.click()
 
         # 結果コンテナの表示を待機
@@ -186,7 +191,7 @@ class TestE2EApplication:
             lambda d: result_container.text.strip() != ""
         )
 
-        # 結果の内容を確認
+        # Assert (検証) - 結果の内容を確認
         result_text = result_container.text
         assert result_text != ""
 
@@ -199,6 +204,7 @@ class TestE2EApplication:
 
     def test_invalid_stock_symbol_error_handling(self, app_server, driver):
         """無効な銘柄コードのエラーハンドリングテスト."""
+        # Arrange (準備)
         driver.get(app_server)
 
         # フォーム要素を取得
@@ -211,7 +217,7 @@ class TestE2EApplication:
         symbol_input.clear()
         symbol_input.send_keys("INVALID.T")
 
-        # データ取得ボタンをクリック
+        # Act (実行) - データ取得ボタンをクリック
         fetch_button.click()
 
         # エラーメッセージの表示を待機
@@ -224,7 +230,7 @@ class TestE2EApplication:
             lambda d: result_container.text.strip() != ""
         )
 
-        # エラーメッセージの確認
+        # Assert (検証) - エラーメッセージの確認
         result_text = result_container.text
         assert (
             "エラー" in result_text
@@ -234,6 +240,7 @@ class TestE2EApplication:
 
     def test_reset_button_functionality(self, app_server, driver):
         """リセットボタンの機能テスト."""
+        # Arrange (準備)
         driver.get(app_server)
 
         # フォーム要素を取得
@@ -250,86 +257,111 @@ class TestE2EApplication:
         select = Select(period_select)
         select.select_by_value("1y")
 
-        # 変更が反映されていることを確認
+        # Assert (検証) - 変更が反映されていることを確認
         assert symbol_input.get_attribute("value") == "6758.T"
         assert select.first_selected_option.get_attribute("value") == "1y"
 
-        # リセットボタンをクリック
+        # Act (実行) - リセットボタンをクリック
         reset_button.click()
 
-        # デフォルト値に戻っていることを確認
+        # Assert (検証) - デフォルト値に戻っていることを確認
         assert symbol_input.get_attribute("value") == "7203.T"
         assert select.first_selected_option.get_attribute("value") == "1mo"
 
     def test_navigation_links(self, app_server, driver):
         """ナビゲーションリンクのテスト."""
+        # Arrange (準備)
         driver.get(app_server)
 
-        # ナビゲーションリンクを取得
+        # Act (実行) - ナビゲーションリンクを取得
         nav_links = driver.find_elements(By.CLASS_NAME, "nav-link")
 
         # 各リンクが存在することを確認
         link_texts = [link.text for link in nav_links]
         expected_links = ["ホーム", "データ管理", "分析", "ヘルプ"]
 
+        # Assert (検証)
         for expected_link in expected_links:
             assert expected_link in link_texts
 
     def test_accessibility_features(self, app_server, driver):
         """アクセシビリティ機能のテスト."""
+        # Arrange (準備)
         driver.get(app_server)
 
-        # スキップリンクの存在確認
+        # Act (実行) - スキップリンクの存在確認
         skip_link = driver.find_element(By.CLASS_NAME, "skip-link")
+
+        # Assert (検証)
         assert "メインコンテンツへスキップ" in skip_link.text
 
-        # フォームラベルの関連付け確認
+        # Act (実行) - フォームラベルの関連付け確認
         _ = driver.find_element(By.ID, "symbol")
         symbol_label = driver.find_element(
             By.CSS_SELECTOR, "label[for='symbol']"
         )
+
+        # Assert (検証)
         assert symbol_label.text == "銘柄コード"
 
+        # Act (実行)
         _ = driver.find_element(By.ID, "period")
         period_label = driver.find_element(
             By.CSS_SELECTOR, "label[for='period']"
         )
+
+        # Assert (検証)
         assert period_label.text == "取得期間"
 
     def test_responsive_design_elements(self, app_server, driver):
         """レスポンシブデザイン要素のテスト."""
+        # Arrange (準備)
         driver.get(app_server)
 
-        # デスクトップサイズでの表示確認
+        # Act (実行) - デスクトップサイズでの表示確認
         driver.set_window_size(1920, 1080)
         container = driver.find_element(By.CLASS_NAME, "container")
+
+        # Assert (検証)
         assert container.is_displayed()
 
-        # モバイルサイズでの表示確認
+        # Act (実行) - モバイルサイズでの表示確認
         driver.set_window_size(375, 667)
         time.sleep(1)  # レイアウト調整を待機
+
+        # Assert (検証)
         assert container.is_displayed()
 
-        # タブレットサイズでの表示確認
+        # Act (実行) - タブレットサイズでの表示確認
         driver.set_window_size(768, 1024)
         time.sleep(1)  # レイアウト調整を待機
+
+        # Assert (検証)
         assert container.is_displayed()
 
     def test_database_connection_endpoint(self, app_server, driver):
         """データベース接続テストエンドポイントの確認."""
+        # Arrange (準備)
         # APIエンドポイントに直接アクセス
-        api_url = urljoin(app_server, "/api/test-connection")
+        api_url = urljoin(app_server, "/api/system/health-check")
 
         try:
+            # Act (実行)
             response = requests.get(api_url, timeout=10)
+
+            # Assert (検証)
             # レスポンスが返ってくることを確認（成功・失敗問わず）
             assert response.status_code in [200, 500]
 
             # JSONレスポンスの構造を確認
             data = response.json()
-            assert "success" in data
-            assert "message" in data
+            assert "status" in data
+            assert (
+                "services" in data
+                and "database" in data["services"]
+                and "message" in data["services"]["database"]
+            )
 
         except requests.exceptions.RequestException:
             # ネットワークエラーの場合はスキップ
-            pytest.skip("データベース接続テストをスキップしました")
+            pytest.skip("ヘルスチェックをスキップしました")

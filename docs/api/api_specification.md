@@ -26,8 +26,10 @@ related_docs:
       - [`POST /api/fetch-data`](#post-apifetch-data)
     - [2. 株価データ取得API](#2-株価データ取得api)
       - [`GET /api/stocks`](#get-apistocks)
-    - [3. プログレス取得API](#3-プログレス取得api)
-      - [`GET /api/progress`](#get-apiprogress)
+    - [3. システム監視API](#3-システム監視api)
+      - [`POST /api/system/db-connection-test`](#post-apisystemdb-connection-test)
+      - [`POST /api/system/api-connection-test`](#post-apisystemapi-connection-test)
+      - [`GET /api/system/health-check`](#get-apisystemhealth-check)
   - [エラーハンドリング](#エラーハンドリング)
     - [エラーコード一覧](#エラーコード一覧)
     - [共通エラーレスポンス形式](#共通エラーレスポンス形式)
@@ -57,6 +59,8 @@ related_docs:
 - **ベースURL**: `http://localhost:8000`
 - **Content-Type**: `application/json`
 - **認証**: なし（MVP段階）
+- **フロント→バック呼び出し**: フロントエンドはHTTP(S)で`/api/*`配下のエンドポイント（Blueprint: `app/api/*`）を呼び出します。`app/services/*`の直接呼び出しは行いません。
+- **互換パラメータ**: `GET /api/stocks`は`start_date`/`end_date`のエイリアスとして`from`/`to`を受け付けます（日付は`YYYY-MM-DD`）。同一項目で両方指定された場合は`from`/`to`が優先されます。
 
 ## APIエンドポイント一覧
 
@@ -206,6 +210,11 @@ Yahoo Financeから株価データを取得し、データベースに保存し�
 | `start_datetime` | string  | -    | 開始日時（分足・時間足のみ、ISO8601形式） | -          |
 | `end_datetime`   | string  | -    | 終了日時（分足・時間足のみ、ISO8601形式） | -          |
 
+**補足（互換パラメータ）**
+- `from`/`to`は`start_date`/`end_date`のエイリアスとしてサポートされます（`YYYY-MM-DD`）。
+- 両方が指定された場合、`from`/`to`が優先されます。
+- 分足・時間足（`interval`が`1m`〜`1h`）では`from`/`to`は使用せず、`start_datetime`/`end_datetime`を使用してください。
+
 **リクエスト例**
 
 ```
@@ -327,35 +336,19 @@ GET /api/stocks?symbol=7203.T&interval=1mo&start_date=2024-01-01&end_date=2024-1
 }
 ```
 
-### 3. プログレス取得API
+### 3. システム監視API
 
-#### `GET /api/progress`
+#### `POST /api/system/db-connection-test`
 
-データ取得処理の進行状況を取得します（将来の拡張用）。
+データベース接続の健全性を検証します。成功時は `success: true`、失敗時は `success: false` を返し、詳細に `host`、`database`、`tableExists`、`connectionCount` 等を含みます。
 
-**成功レスポンス (200)**
+#### `POST /api/system/api-connection-test`
 
-```json
-{
-  "success": true,
-  "data": {
-    "status": "idle",
-    "current_symbol": null,
-    "progress_percentage": 0,
-    "message": "待機中"
-  }
-}
-```
+Yahoo Finance API への接続を検証します。成功時は `success: true` と `dataPoints` を返し、データが取得できない場合は `404` を返します。
 
-**ステータス値**
+#### `GET /api/system/health-check`
 
-| ステータス   | 説明         |
-| ------------ | ------------ |
-| `idle`       | 待機中       |
-| `fetching`   | データ取得中 |
-| `processing` | データ処理中 |
-| `completed`  | 完了         |
-| `error`      | エラー       |
+DB と外部APIの総合状態を返します。レスポンスは `status: healthy|degraded|error` と各サービスの詳細を含みます。
 
 ## エラーハンドリング
 
@@ -453,7 +446,7 @@ GET /api/stocks?symbol=7203.T&interval=1mo&start_date=2024-01-01&end_date=2024-1
 
 ### 優先度: 中（動作確認後）
 
-- `GET /api/progress` - プログレス表示（特にmax期間取得時）
+- `GET /api/bulk/status/<job_id>` - バルク処理進捗表示（WebSocket通知も利用）
 - ページネーション機能の最適化
 - より詳細なエラーハンドリング
 - パフォーマンス監視機能
@@ -533,8 +526,9 @@ GET /api/batch/progress            - バッチ処理進捗
 
 #### システム監視API（マイルストーン3）
 ```
-GET /api/system/status             - システム状態確認
-POST /api/system/connection-test   - 接続テスト実行
+GET /api/system/health-check        - 統合ヘルスチェック
+POST /api/system/db-connection-test - DB接続テスト
+POST /api/system/api-connection-test - Yahoo Finance API接続テスト
 ```
 
 ---

@@ -9,6 +9,39 @@
 - tests/e2e/: E2Eテスト（ブラウザ操作）
 
 既存のテストは現在の場所に保持され、リファクタリングの安全網として機能します。
+
+## フィクスチャ分類
+
+### アプリケーション関連
+- app: Flaskアプリケーションインスタンス
+- client: Flaskテストクライアント
+
+### 環境設定
+- setup_test_env: テスト環境変数のセットアップ
+
+### データベース関連
+- mock_db_session: モックDBセッション（ユニットテスト用）
+- test_db_session: テストDBセッションコンテキストマネージャー（統合テスト用）
+
+### テストデータ
+- sample_stock_data: サンプル株価データ（辞書）
+- sample_stock_list: 複数銘柄のサンプルデータリスト
+- sample_dataframe: サンプル株価データのDataFrame
+
+### モックヘルパー
+- mock_yfinance_ticker: Yahoo Finance Tickerクラスのモック
+- mock_yfinance_download: Yahoo Finance download関数のモック
+
+## 個別テストファイルでのフィクスチャ定義について
+
+一部のテストファイルでは、テスト固有の要件により専用フィクスチャを定義しています。
+これらは以下の理由で conftest.py に統合されていません：
+
+1. テスト固有の設定が必要（例: 特定のBlueprint のみを登録）
+2. 異なるデータ構造が必要（例: 複数行のDataFrame）
+3. 統合テスト特有の設定が必要
+
+各テストファイルでコメントにより、その理由が説明されています。
 """
 
 import os
@@ -21,16 +54,12 @@ import pytest
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
-# appディレクトリもPythonパスに追加
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app"))
-)
 
 
 @pytest.fixture
 def app():
     """Flaskアプリケーションのテスト用フィクスチャ."""
-    from app import app
+    from app.app import app
 
     app.config["TESTING"] = True
     return app
@@ -45,6 +74,26 @@ def client(app):
 # ===== 共通フィクスチャエリア =====
 # 今後、テストレベル共通で使用するフィクスチャをここに追加します
 # 例: モックDB、テストデータ、共通セットアップ等
+
+
+# ===== 環境設定フィクスチャ =====
+@pytest.fixture
+def setup_test_env(monkeypatch):
+    """テスト環境変数のセットアップ.
+
+    API_KEYやRATE_LIMIT等の環境変数を設定します。
+    各テストで必要に応じてこのフィクスチャを使用できます。
+
+    Args:
+        monkeypatch: pytestのmonkeypatchフィクスチャ
+
+    Example:
+        def test_with_env(setup_test_env):
+            # 環境変数が設定された状態でテスト
+            pass
+    """
+    monkeypatch.setenv("API_KEY", "test-key")
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "10")
 
 
 # ===== データベース関連フィクスチャ =====

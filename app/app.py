@@ -7,14 +7,34 @@ including WebSocket support, database setup, and API blueprints.
 from datetime import date, datetime
 import os
 
-from api.bulk_data import bulk_api
-from api.stock_master import stock_master_api
-from api.system_monitoring import system_api
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request
+from flask import Blueprint, Flask, jsonify, render_template, request
 from flask_socketio import SocketIO
 
-from models import (
+from app.api.bulk_data import (
+    bulk_api,
+    get_job_status,
+    start_bulk_fetch,
+    stop_job,
+)
+from app.api.stock_master import (
+    get_stock_master_list,
+    stock_master_api,
+    update_stock_master,
+)
+from app.api.swagger import swagger_bp
+from app.api.system_monitoring import (
+    health_check,
+    system_api,
+    test_api_connection,
+    test_database_connection,
+)
+from app.middleware import APIVersioningMiddleware
+from app.middleware.versioning import (
+    create_versioned_blueprint_name,
+    create_versioned_url_prefix,
+)
+from app.models import (
     Base,
     DatabaseError,
     StockDailyCRUD,
@@ -22,8 +42,9 @@ from models import (
     engine,
     get_db_session,
 )
-from services.stock_data_orchestrator import StockDataOrchestrator
-from utils.timeframe_utils import (
+from app.services.stock_data.orchestrator import StockDataOrchestrator
+from app.utils.api_response import APIResponse, ErrorCode
+from app.utils.timeframe_utils import (
     get_model_for_interval,
     get_table_name,
     validate_interval,
@@ -39,13 +60,85 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 app.config["SOCKETIO"] = socketio
 
+# APIバージョニング設定
+app.config["API_DEFAULT_VERSION"] = "v1"
+app.config["API_SUPPORTED_VERSIONS"] = ["v1"]
+
+# APIバージョニングミドルウェア初期化
+versioning_middleware = APIVersioningMiddleware(app)
+
 # テーブル作成
 Base.metadata.create_all(bind=engine)
 
-# Blueprint登録
+# 既存Blueprint登録（後方互換性のため保持）
 app.register_blueprint(bulk_api)
 app.register_blueprint(stock_master_api)
 app.register_blueprint(system_api)
+
+# バージョン付きBlueprint登録（v1）
+# v1バージョンのBlueprint作成と登録
+bulk_api_v1 = Blueprint(
+    create_versioned_blueprint_name("bulk_api", "v1"),
+    __name__,
+    url_prefix=create_versioned_url_prefix("/api/bulk-data", "v1"),
+)
+
+stock_master_api_v1 = Blueprint(
+    create_versioned_blueprint_name("stock_master_api", "v1"),
+    __name__,
+    url_prefix=create_versioned_url_prefix("/api/stock-master", "v1"),
+)
+
+system_api_v1 = Blueprint(
+    create_versioned_blueprint_name("system_api", "v1"),
+    __name__,
+    url_prefix=create_versioned_url_prefix("/api/system", "v1"),
+)
+
+# v1 APIエンドポイントを既存のAPIエンドポイントと同じ実装で登録
+# bulk_data APIのv1エンドポイント
+bulk_api_v1.add_url_rule(
+    "/jobs", "start_bulk_fetch", start_bulk_fetch, methods=["POST"]
+)
+bulk_api_v1.add_url_rule(
+    "/jobs/<job_id>", "get_job_status", get_job_status, methods=["GET"]
+)
+bulk_api_v1.add_url_rule(
+    "/jobs/<job_id>/stop", "stop_job", stop_job, methods=["POST"]
+)
+
+# stock_master APIのv1エンドポイント
+stock_master_api_v1.add_url_rule(
+    "/", "update_stock_master", update_stock_master, methods=["POST"]
+)
+stock_master_api_v1.add_url_rule(
+    "/stocks", "get_stock_master_list", get_stock_master_list, methods=["GET"]
+)
+
+# system APIのv1エンドポイント
+system_api_v1.add_url_rule(
+    "/database/connection",
+    "test_database_connection",
+    test_database_connection,
+    methods=["GET"],
+)
+system_api_v1.add_url_rule(
+    "/external-api/connection",
+    "test_api_connection",
+    test_api_connection,
+    methods=["GET"],
+)
+system_api_v1.add_url_rule(
+    "/health-check", "health_check", health_check, methods=["GET"]
+)
+
+# バージョン付きBlueprint登録
+app.register_blueprint(bulk_api_v1)
+app.register_blueprint(stock_master_api_v1)
+app.register_blueprint(system_api_v1)
+
+# Swagger UIブループリント登録
+app.register_blueprint(swagger_bp)
 
 
 # WebSocketイベントハンドラ
@@ -77,37 +170,7 @@ def websocket_test():
     return render_template("websocket_test.html")
 
 
-@app.route("/api/test-connection", methods=["GET"])
-def test_connection():
-    """データベース接続テスト用エンドポイント."""
-    from sqlalchemy import text
-
-    try:
-        with get_db_session() as session:
-            session.execute(text("SELECT 1"))
-
-        return jsonify(
-            {
-                "success": True,
-                "message": "データベース接続が正常に動作しています",
-                "database": os.getenv("DB_NAME"),
-                "user": os.getenv("DB_USER"),
-            }
-        )
-    except Exception as e:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": "DATABASE_CONNECTION_ERROR",
-                    "message": f"データベース接続に失敗しました: {str(e)}",
-                }
-            ),
-            500,
-        )
-
-
-@app.route("/api/fetch-data", methods=["POST"])
+@app.route("/api/stocks/data", methods=["POST"])
 def fetch_data():
     """Fetch stock data for a given symbol and period.
 
@@ -137,15 +200,14 @@ def fetch_data():
             "3mo",
         ]
         if interval not in valid_intervals:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "INVALID_INTERVAL",
-                        "message": f"無効な足種別です。有効な値: {', '.join(valid_intervals)}",
-                    }
-                ),
-                400,
+            return APIResponse.error(
+                error_code=ErrorCode.INVALID_INTERVAL,
+                message=f"無効な足種別です。有効な値: {', '.join(valid_intervals)}",
+                details={
+                    "interval": interval,
+                    "valid_intervals": valid_intervals,
+                },
+                status_code=400,
             )
 
         # StockDataOrchestratorを使用してデータ取得・保存
@@ -157,28 +219,26 @@ def fetch_data():
         if result["success"]:
             save_result = result["save_result"]
 
-            return jsonify(
-                {
-                    "success": True,
-                    "message": "データを正常に取得し、データベースに保存しました",
-                    "data": {
-                        "symbol": symbol,
-                        "period": period,
-                        "interval": interval,
-                        "records_count": result["fetch_count"],
-                        "saved_records": save_result["saved"],
-                        "skipped_records": save_result.get("skipped", 0),
-                        "date_range": {
-                            "start": save_result.get("date_range", {}).get(
-                                "start", "N/A"
-                            ),
-                            "end": save_result.get("date_range", {}).get(
-                                "end", "N/A"
-                            ),
-                        },
-                        "table_name": get_table_name(interval),
+            return APIResponse.success(
+                data={
+                    "symbol": symbol,
+                    "period": period,
+                    "interval": interval,
+                    "records_count": result["fetch_count"],
+                    "saved_records": save_result["saved"],
+                    "skipped_records": save_result.get("skipped", 0),
+                    "date_range": {
+                        "start": save_result.get("date_range", {}).get(
+                            "start", "N/A"
+                        ),
+                        "end": save_result.get("date_range", {}).get(
+                            "end", "N/A"
+                        ),
                     },
-                }
+                },
+                message="データを正常に取得し、データベースに保存しました",
+                meta={"table_name": get_table_name(interval)},
+                status_code=200,
             )
         else:
             # エラーの詳細を分析して適切なエラーコードとステータスコードを返す
@@ -192,39 +252,31 @@ def fetch_data():
                 or "Invalid symbol" in error_message
                 or "無効な銘柄コード" in error_message
             ):
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": "INVALID_SYMBOL",
-                            "message": f"指定された銘柄コード '{symbol}' のデータが取得できません。銘柄コードを確認してください。",
-                        }
-                    ),
-                    400,
+                return APIResponse.error(
+                    error_code=ErrorCode.INVALID_SYMBOL,
+                    message=f"指定された銘柄コード '{symbol}' のデータが取得できません。銘柄コードを確認してください。",
+                    details={"symbol": symbol},
+                    status_code=400,
                 )
 
             # その他のデータ取得エラー
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "DATA_FETCH_ERROR",
-                        "message": f"データ取得に失敗しました: {error_message}",
-                    }
-                ),
-                500,
+            return APIResponse.error(
+                error_code=ErrorCode.DATA_FETCH_ERROR,
+                message=f"データ取得に失敗しました: {error_message}",
+                details={
+                    "symbol": symbol,
+                    "interval": interval,
+                    "period": period,
+                },
+                status_code=500,
             )
 
     except Exception as e:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": "EXTERNAL_API_ERROR",
-                    "message": f"データ取得に失敗しました: {str(e)}",
-                }
-            ),
-            502,
+        return APIResponse.error(
+            error_code=ErrorCode.EXTERNAL_API_ERROR,
+            message=f"データ取得に失敗しました: {str(e)}",
+            details={"symbol": symbol if "symbol" in locals() else None},
+            status_code=502,
         )
 
 
@@ -475,44 +527,61 @@ def get_stocks():
         interval = request.args.get("interval", "1d")
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
-        start_date = request.args.get("start_date")
-        end_date = request.args.get("end_date")
+        from_param = request.args.get("from")
+        to_param = request.args.get("to")
+        start_date_raw = (
+            from_param if from_param else request.args.get("start_date")
+        )
+        end_date_raw = to_param if to_param else request.args.get("end_date")
 
         # 時間軸のバリデーション
         if not validate_interval(interval):
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": "VALIDATION_ERROR",
-                        "message": f"無効な時間軸です: {interval}",
-                    }
-                ),
-                400,
+            return APIResponse.error(
+                error_code=ErrorCode.VALIDATION_ERROR,
+                message=f"無効な時間軸です: {interval}",
+                details={"interval": interval},
+                status_code=400,
             )
 
         # ページネーションパラメータのバリデーション
         valid, error_response = _validate_pagination_params(limit, offset)
         if not valid:
-            return jsonify(error_response), 400
+            return APIResponse.error(
+                error_code=ErrorCode.VALIDATION_ERROR,
+                message=error_response.get("message", "パラメータが無効です"),
+                details=error_response.get("details", {}),
+                status_code=400,
+            )
 
         # 日付のパース
         parsed_start_date = None
         parsed_end_date = None
 
-        if start_date:
+        if start_date_raw:
+            param_name = "from" if from_param else "start_date"
             valid, parsed_start_date, error_response = _parse_date_param(
-                start_date, "start_date"
+                start_date_raw, param_name
             )
             if not valid:
-                return jsonify(error_response), 400
+                return APIResponse.error(
+                    error_code=ErrorCode.VALIDATION_ERROR,
+                    message=error_response.get("message", "日付が無効です"),
+                    details=error_response.get("details", {}),
+                    status_code=400,
+                )
 
-        if end_date:
+        if end_date_raw:
+            param_name = "to" if to_param else "end_date"
             valid, parsed_end_date, error_response = _parse_date_param(
-                end_date, "end_date"
+                end_date_raw, param_name
             )
             if not valid:
-                return jsonify(error_response), 400
+                return APIResponse.error(
+                    error_code=ErrorCode.VALIDATION_ERROR,
+                    message=error_response.get("message", "日付が無効です"),
+                    details=error_response.get("details", {}),
+                    status_code=400,
+                )
 
         # 時間軸に応じたモデルクラスを取得
         model_class = get_model_for_interval(interval)
@@ -538,47 +607,28 @@ def get_stocks():
                 .all()
             )
 
-            # ページネーション情報
-            has_next = (offset + len(stocks)) < total_count
-
-            return jsonify(
-                {
-                    "success": True,
-                    "data": [stock.to_dict() for stock in stocks],
-                    "metadata": {
-                        "interval": interval,
-                        "table_name": get_table_name(interval),
-                    },
-                    "pagination": {
-                        "total": total_count,
-                        "limit": limit,
-                        "offset": offset,
-                        "has_next": has_next,
-                    },
-                }
+            return APIResponse.paginated(
+                data=[stock.to_dict() for stock in stocks],
+                total=total_count,
+                limit=limit,
+                offset=offset,
+                meta={
+                    "interval": interval,
+                    "table_name": get_table_name(interval),
+                },
             )
 
     except DatabaseError as e:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": "DATABASE_ERROR",
-                    "message": str(e),
-                }
-            ),
-            500,
+        return APIResponse.error(
+            error_code=ErrorCode.DATABASE_ERROR,
+            message=str(e),
+            status_code=500,
         )
     except Exception as e:
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": f"予期しないエラーが発生しました: {str(e)}",
-                }
-            ),
-            500,
+        return APIResponse.error(
+            error_code=ErrorCode.INTERNAL_SERVER_ERROR,
+            message=f"予期しないエラーが発生しました: {str(e)}",
+            status_code=500,
         )
 
 
@@ -711,7 +761,7 @@ def delete_stock(stock_id):
         )
 
 
-@app.route("/api/stocks/test-data", methods=["POST"])
+@app.route("/api/stocks/test", methods=["POST"])
 def create_test_data():
     """テスト用サンプルデータを作成."""
     try:
@@ -794,9 +844,14 @@ def create_test_data():
 
 
 if __name__ == "__main__":
+    port = int(os.getenv("FLASK_PORT", 8000))
+    host = os.getenv("FLASK_HOST", "127.0.0.1")
+    # 明示的にアクセス用アドレスを表示
+    print(f"http://{host}:{port}/")
+
     socketio.run(
         app,
         debug=os.getenv("FLASK_DEBUG", "False").lower() == "true",
-        port=int(os.getenv("FLASK_PORT", 8000)),
-        host="0.0.0.0",
+        port=port,
+        host=host,
     )

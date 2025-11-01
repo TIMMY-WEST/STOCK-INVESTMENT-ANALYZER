@@ -1,76 +1,61 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="株価データの取得・管理・分析を行うWebアプリケーション">
-    <meta name="theme-color" content="#007bff">
-    <meta name="format-detection" content="telephone=no">
-    <title>株価データ管理システム</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <!-- Skip to main content link for accessibility -->
-    <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
+{% extends "base.html" %}
 
-    <!-- Header and Navigation -->
-    <header class="header">
-        <div class="container">
-            <nav class="nav" role="navigation" aria-label="メインナビゲーション">
-                <a href="/" class="nav-brand">株価データ管理システム</a>
-                <ul class="nav-links">
-                    <li><a href="/" class="nav-link" aria-current="page">ホーム</a></li>
-                    <li><a href="#data-management" class="nav-link">データ管理</a></li>
-                    <li><a href="#analytics" class="nav-link">分析</a></li>
-                    <li><a href="#help" class="nav-link">ヘルプ</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+{% from 'partials/form_components.html' import interval_select, period_select, market_select, required_indicator, progress_bar, progress_stats %}
+{% from 'partials/alerts.html' import success_alert, error_alert, warning_alert, info_alert, result_display %}
+{% from 'partials/data_table.html' import data_table, pagination, data_controls %}
 
-    <!-- Main Content -->
-    <main id="main-content" class="main">
-        <div class="container">
-            <!-- Page Header -->
-            <section class="page-header">
-                <h1 class="page-title">株価データ管理システム</h1>
-                <p class="page-subtitle">Yahoo Finance APIから株価データを取得し、データベースに保存・管理できます</p>
-            </section>
+{% block title %}株価データ管理システム - メインダッシュボード{% endblock %}
+
+{% block extra_css %}
+<style>
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="layout__container">
+    <!-- Page Header -->
+    <div class="page__header">
+        <h1 class="page__title">株式投資分析システム</h1>
+        <p class="page__subtitle">JPX全銘柄データの取得・分析・可視化</p>
+    </div>
 
             <!-- Data Fetch Section -->
             <section id="data-fetch" class="card">
-                <header class="card-header">
-                    <h2 class="card-title">株価データ取得</h2>
+                <header class="card__header">
+                    <h2 class="card__title">株価データ取得</h2>
                 </header>
-                <div class="card-body">
-                    <form id="fetch-form" class="fetch-form" role="form" aria-labelledby="fetch-title">
-                        <div class="form-row">
-                            <div class="form-col">
-                                <label for="symbol" class="form-label">銘柄コード</label>
+                <div class="card__body">
+                    <form id="fetch-form" class="form" role="form" aria-labelledby="fetch-title">
+                        <div class="form__row">
+                            <div class="form__col">
+                                <label for="symbol" class="form__label">
+                                    銘柄コード <span class="form__required">*</span>
+                                </label>
                                 <input
                                     type="text"
                                     id="symbol"
                                     name="symbol"
-                                    class="form-control"
+                                    class="form__control"
                                     value="7203.T"
                                     placeholder="例: 7203.T"
                                     aria-describedby="symbol-help"
                                     required
                                 >
-                                <div id="symbol-help" class="form-text mt-1">
+                                <div id="symbol-help" class="form__text mt-1">
                                     <small>東証の場合は銘柄コードの後に「.T」を付けてください（例: 7203.T）</small>
                                 </div>
+                                <div class="form__error" id="symbol-error" role="alert" aria-live="polite"></div>
                             </div>
-                            <div class="form-col">
-                                <label for="period" class="form-label">
+                            <div class="form__col">
+                                <label for="period" class="form__label">
                                     取得期間
-                                    <span class="required-indicator" aria-label="必須項目">*</span>
+                                    <span class="form__required" aria-label="必須項目">*</span>
                                 </label>
-                                <div class="timeframe-selector-container">
+                                <div class="form__timeframe-container">
                                     <select
                                         id="period"
                                         name="period"
-                                        class="form-control timeframe-selector"
+                                        class="form__control form__timeframe-selector"
                                         aria-describedby="period-help period-error"
                                         aria-label="データ取得期間を選択"
                                         required
@@ -95,25 +80,25 @@
                                             <option value="max">最大期間（全期間）</option>
                                         </optgroup>
                                     </select>
-                                    <div class="timeframe-indicator" id="timeframe-indicator">
-                                        <span class="indicator-text">1ヶ月のデータを取得します</span>
+                                    <div class="form__timeframe-indicator" id="timeframe-indicator">
+                                        <span class="form__indicator-text">1ヶ月のデータを取得します</span>
                                     </div>
                                 </div>
-                                <div id="period-help" class="form-text mt-1">
+                                <div id="period-help" class="form__text mt-1">
                                     <small>取得するデータの期間を選択してください。期間が長いほど取得に時間がかかります。</small>
                                 </div>
-                                <div id="period-error" class="field-error" role="alert" aria-live="polite"></div>
+                                <div id="period-error" class="form__error" role="alert" aria-live="polite"></div>
                             </div>
-                            <div class="form-col">
-                                <label for="interval" class="form-label">
+                            <div class="form__col">
+                                <label for="interval" class="form__label">
                                     時間軸（足）
-                                    <span class="required-indicator" aria-label="必須項目">*</span>
+                                    <span class="form__required" aria-label="必須項目">*</span>
                                 </label>
-                                <div class="interval-selector-container">
+                                <div class="form__interval-container">
                                     <select
                                         id="interval"
                                         name="interval"
-                                        class="form-control interval-selector"
+                                        class="form__control form__interval-selector"
                                         aria-describedby="interval-help interval-error"
                                         aria-label="データ取得時間軸を選択"
                                         required
@@ -135,21 +120,21 @@
                                             <option value="1mo">月足</option>
                                         </optgroup>
                                     </select>
-                                    <div class="interval-indicator" id="interval-indicator">
-                                        <span class="indicator-text">1日足でデータを取得します</span>
+                                    <div class="form__interval-indicator" id="interval-indicator">
+                                        <span class="form__indicator-text">1日足でデータを取得します</span>
                                     </div>
                                 </div>
-                                <div id="interval-help" class="form-text mt-1">
+                                <div id="interval-help" class="form__text mt-1">
                                     <small>データの時間軸を選択してください。短い時間軸ほど詳細なデータが取得できますが、データ量が多くなります。</small>
                                 </div>
-                                <div id="interval-error" class="field-error" role="alert" aria-live="polite"></div>
+                                <div id="interval-error" class="form__error" role="alert" aria-live="polite"></div>
                             </div>
-                            <div class="form-col">
-                                <button type="submit" id="fetch-btn" class="btn btn-primary">
-                                    <span class="btn-text">データ取得</span>
-                                    <span class="loading" id="loading-spinner" style="display: none;" aria-hidden="true"></span>
+                            <div class="form__col">
+                                <button type="submit" id="fetch-btn" class="btn btn--primary">
+                                    <span class="btn__text">データ取得</span>
+                                    <span class="btn__loading" id="loading-spinner" style="display: none;" aria-hidden="true"></span>
                                 </button>
-                                <button type="button" id="reset-btn" class="btn btn-secondary mt-2">
+                                <button type="button" id="reset-btn" class="btn btn--secondary mt-2">
                                     リセット
                                 </button>
                             </div>
@@ -678,43 +663,36 @@
                         <div id="db-test-result" class="monitoring-test-result mb-3" style="display: none;">
                             <div class="test-header">
                                 <strong>📊 データベース接続テスト</strong>
-                                <span class="test-status" id="db-test-status"></span>
+                                <span class="status" id="db-test-status"></span>
                             </div>
-                            <div id="db-test-details" class="test-details mt-2"></div>
+                            <div id="db-test-details" class="status__details mt-2"></div>
                         </div>
 
                         <!-- API Connection Test Result -->
                         <div id="api-test-result" class="monitoring-test-result mb-3" style="display: none;">
                             <div class="test-header">
                                 <strong>🌐 Yahoo Finance API接続テスト</strong>
-                                <span class="test-status" id="api-test-status"></span>
+                                <span class="status" id="api-test-status"></span>
                             </div>
-                            <div id="api-test-details" class="test-details mt-2"></div>
+                            <div id="api-test-details" class="status__details mt-2"></div>
                         </div>
 
                         <!-- Health Check Result -->
                         <div id="health-check-result" class="monitoring-test-result mb-3" style="display: none;">
                             <div class="test-header">
                                 <strong>✅ 統合ヘルスチェック</strong>
-                                <span class="test-status" id="health-check-status"></span>
+                                <span class="status" id="health-check-status"></span>
                             </div>
-                            <div id="health-check-details" class="test-details mt-2"></div>
+                            <div id="health-check-details" class="status__details mt-2"></div>
                         </div>
                     </div>
                 </div>
             </section>
         </div>
-    </main>
+{% endblock %}
 
-    <!-- Footer -->
-    <footer class="footer mt-5" style="background-color: var(--light-gray); padding: 2rem 0; border-top: 1px solid var(--border-color);">
-        <div class="container text-center">
-            <p>&copy; 2024 株価データ管理システム. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
-    <script src="{{ url_for('static', filename='jpx_sequential.js') }}"></script>
-</body>
-</html>
+{% block extra_js %}
+<script type="module" src="{{ url_for('static', filename='app.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='script.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='jpx_sequential.js') }}"></script>
+{% endblock %}

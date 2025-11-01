@@ -86,13 +86,29 @@ class StockDataBase:
         Returns:
             Dict[str, Any]: モデルの辞書表現
         """
+
+        def safe_float_conversion(value):
+            """Decimal値を安全にfloatに変換し、NaN値をNoneに変換する."""
+            if value is None:
+                return None
+            try:
+                float_val = float(value)
+                # NaN値をチェックしてNoneに変換
+                import math
+
+                if math.isnan(float_val) or math.isinf(float_val):
+                    return None
+                return float_val
+            except (ValueError, TypeError, OverflowError):
+                return None
+
         result = {
             "id": self.id,
             "symbol": self.symbol,
-            "open": float(self.open) if self.open else None,
-            "high": float(self.high) if self.high else None,
-            "low": float(self.low) if self.low else None,
-            "close": float(self.close) if self.close else None,
+            "open": safe_float_conversion(self.open),
+            "high": safe_float_conversion(self.high),
+            "low": safe_float_conversion(self.low),
+            "close": safe_float_conversion(self.close),
             "volume": self.volume,
             "created_at": (
                 self.created_at.isoformat() if self.created_at else None
@@ -543,9 +559,7 @@ class StockMasterUpdate(Base):
     update_type: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'manual', 'scheduled'
-    total_stocks: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )  # 総銘柄数
+    total_stocks: Mapped[int] = mapped_column(Integer, nullable=False)  # 総銘柄数
     added_stocks: Mapped[Optional[int]] = mapped_column(
         Integer, default=0
     )  # 新規追加銘柄数
@@ -558,9 +572,7 @@ class StockMasterUpdate(Base):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'success', 'failed'
-    error_message: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # エラーメッセージ
+    error_message: Mapped[Optional[str]] = mapped_column(String)  # エラーメッセージ
     started_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -619,9 +631,7 @@ class BatchExecution(Base):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # 'running', 'completed', 'failed', 'paused'
-    total_stocks: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )  # 総銘柄数
+    total_stocks: Mapped[int] = mapped_column(Integer, nullable=False)  # 総銘柄数
     processed_stocks: Mapped[Optional[int]] = mapped_column(
         Integer, default=0
     )  # 処理済み銘柄数
@@ -637,9 +647,7 @@ class BatchExecution(Base):
     end_time: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True)
     )
-    error_message: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # エラーメッセージ
+    error_message: Mapped[Optional[str]] = mapped_column(String)  # エラーメッセージ
     created_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -735,9 +743,7 @@ class BatchExecutionDetail(Base):
     end_time: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True)
     )
-    error_message: Mapped[Optional[str]] = mapped_column(
-        String
-    )  # エラーメッセージ
+    error_message: Mapped[Optional[str]] = mapped_column(String)  # エラーメッセージ
     records_inserted: Mapped[Optional[int]] = mapped_column(
         Integer, default=0
     )  # 挿入されたレコード数
@@ -801,7 +807,21 @@ class BatchExecutionDetail(Base):
 
 # データベース設定
 DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-engine = create_engine(DATABASE_URL)
+
+# コネクションプール設定
+# - pool_size: 通常時に保持する接続数（デフォルト5→10に変更）
+# - max_overflow: pool_sizeを超えて作成可能な追加接続数
+# - pool_pre_ping: 接続を使用前にpingして有効性を確認（接続切れ防止）
+# - pool_recycle: 接続を再利用する最大秒数（-1=無制限、3600=1時間）
+# - pool_timeout: 接続取得時の最大待機秒数
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_timeout=30,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -1071,9 +1091,7 @@ class StockDailyCRUD:
             return stock_data
         except IntegrityError as e:
             if "uk_stocks_daily_symbol_date" in str(e):
-                raise StockDataError(
-                    "銘柄コードと日付の組み合わせが既に存在します"
-                )
+                raise StockDataError("銘柄コードと日付の組み合わせが既に存在します")
             raise DatabaseError(f"データベース制約違反: {str(e)}")
         except SQLAlchemyError as e:
             raise DatabaseError(f"データベースエラー: {str(e)}")

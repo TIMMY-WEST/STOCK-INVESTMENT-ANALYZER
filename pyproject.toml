@@ -175,8 +175,6 @@ plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 # プロジェクトルートとappディレクトリをmypy_pathに追加してインポートを解決
 # Note: Windowsでは;、Unix系では:を使用
-mypy_path = "app"
-namespace_packages = true
 explicit_package_bases = true
 
 # 除外ディレクトリ
