@@ -67,6 +67,9 @@ jobs:
           # テーブル作成スクリプト実行
           psql -h localhost -U stock_user -d stock_data_system -f scripts/database/schema/create_tables.sql
 
+          # サンプルデータ挿入
+          psql -h localhost -U stock_user -d stock_data_system -f scripts/database/seed/insert_sample_data.sql
+
           # スキーマ作成確認
           psql -h localhost -U stock_user -d stock_data_system -c "\dt"
 
