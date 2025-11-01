@@ -5,7 +5,7 @@
 - Source comments are in Japanese (repo policy).
 
 Flow:
-1) Run specified check (black/isort/flake8/mypy).
+1) Run specified check (black/isort/flake8/mypy/complexity/coverage).
 2) On failure, save status file and optionally auto-fix.
 3) After each check, print "Commit status after <check>: <SUCCESS/FAIL>".
 4) Return non-zero if the check fails.
@@ -148,6 +148,35 @@ def run_mypy(args: List[str], files: List[str], status: Dict[str, Any]) -> int:
     return rc
 
 
+def run_complexity(
+    args: List[str], files: List[str], status: Dict[str, Any]
+) -> int:
+    # 複雑度チェック（flake8のC901を使用）
+    cmd = [sys.executable, "-m", "flake8", *args, *files]
+    rc = run(cmd)
+    set_check_result(status, "complexity", rc == 0)
+    if rc != 0:
+        status["failed"] = True
+    save_status(status)
+    print_commit_status_after("complexity", status)
+    return rc
+
+
+def run_coverage(
+    args: List[str], files: List[str], status: Dict[str, Any]
+) -> int:
+    # カバレッジチェック（pytest-covを使用）
+    # filesは使用しない（全体のカバレッジをチェック）
+    cmd = [sys.executable, "-m", "pytest", *args, "--tb=short", "-q"]
+    rc = run(cmd)
+    set_check_result(status, "coverage", rc == 0)
+    if rc != 0:
+        status["failed"] = True
+    save_status(status)
+    print_commit_status_after("coverage", status)
+    return rc
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run check and print commit status"
@@ -155,7 +184,7 @@ def main() -> int:
     parser.add_argument(
         "--check",
         required=True,
-        choices=["black", "isort", "flake8", "mypy"],
+        choices=["black", "isort", "flake8", "mypy", "complexity", "coverage"],
         help="Which check to run",
     )
     # 追加の引数は未知のオプションも許容して取得する
@@ -187,6 +216,10 @@ def main() -> int:
     elif known_args.check == "mypy":
         # mypyにもファイル/ディレクトリを渡す
         return run_mypy(tool_args, files, status)
+    elif known_args.check == "complexity":
+        return run_complexity(tool_args, files, status)
+    elif known_args.check == "coverage":
+        return run_coverage(tool_args, files, status)
     else:
         print(f"Unsupported check: {known_args.check}")
         return 2

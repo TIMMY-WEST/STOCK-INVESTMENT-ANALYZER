@@ -76,6 +76,17 @@ repos:
           - '--max-line-length=79'
           - '--max-complexity=10'
 
+      - id: complexity-check
+        name: 複雑度チェック（McCabe）
+        entry: python scripts/hooks/run_check_with_status.py --check complexity
+        language: system
+        types: [python]
+        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/|\.serena/|\.claude/)
+        verbose: true
+        args:
+          - '--select=C901'
+          - '--max-complexity=10'
+
 
       - id: mypy-status
         name: mypyによる型チェック（サマリー収集）
@@ -88,6 +99,20 @@ repos:
           - --no-incremental
           - app
 
+      - id: coverage-check
+        name: コードカバレッジチェック（70%閾値）
+        entry: python scripts/hooks/run_check_with_status.py --check coverage
+        language: system
+        pass_filenames: false
+        verbose: true
+        args:
+          - '--cov=app'
+          - '--cov=models'
+          - '--cov=services'
+          - '--cov=utils'
+          - '--cov-fail-under=70'
+          - '-m'
+          - 'not e2e'
 
       - id: commit-status-summary
         name: コミット最終サマリー
