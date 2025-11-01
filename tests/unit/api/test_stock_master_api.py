@@ -10,6 +10,10 @@ from app.api.stock_master import stock_master_api
 from app.services.jpx.jpx_stock_service import JPXStockServiceError
 
 
+# module-level marker so pytest -m unit picks these up
+pytestmark = pytest.mark.unit
+
+
 class TestStockMasterAPI:
     """JPX銘柄マスタAPIのテストクラス."""
 
