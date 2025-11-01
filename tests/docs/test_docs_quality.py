@@ -9,6 +9,9 @@ import re
 import pytest
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestDocsQuality:
     """ドキュメント品質をテストするクラス."""
 

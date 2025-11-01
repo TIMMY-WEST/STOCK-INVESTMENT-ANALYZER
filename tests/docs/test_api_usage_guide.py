@@ -9,6 +9,11 @@ from pathlib import Path
 import re
 import unittest
 
+import pytest
+
+
+pytestmark = pytest.mark.unit
+
 
 class TestAPIUsageGuide(unittest.TestCase):
     """API使用例ガイドのテストクラス."""
