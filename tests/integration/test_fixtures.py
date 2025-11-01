@@ -8,6 +8,10 @@ import pandas as pd
 import pytest
 
 
+# module-level marker so pytest -m integration picks these up
+pytestmark = pytest.mark.integration
+
+
 class TestDatabaseFixtures:
     """データベース関連フィクスチャのテスト."""
 
