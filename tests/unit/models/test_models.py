@@ -27,6 +27,9 @@ from app.models import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestStockDaily:
     """StockDaily（Stocks1d）モデルのテスト."""
 

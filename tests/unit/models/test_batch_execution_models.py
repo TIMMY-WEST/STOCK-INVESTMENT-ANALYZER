@@ -20,6 +20,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "app"))
 from app.models import Base, BatchExecution, BatchExecutionDetail  # noqa: E402
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestBatchExecutionModel:
     """BatchExecutionモデルのテストクラス."""
 

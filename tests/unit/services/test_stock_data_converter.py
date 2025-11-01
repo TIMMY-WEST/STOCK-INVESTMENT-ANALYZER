@@ -11,6 +11,9 @@ from app.services.stock_data.converter import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestStockDataConverter:
     """StockDataConverterのテスト."""
 

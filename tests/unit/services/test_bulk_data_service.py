@@ -117,6 +117,9 @@ class TestProgressTracker:
         assert len(summary["error_details"]) == 2
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestBulkDataService:
     """BulkDataServiceクラスのテスト."""
 

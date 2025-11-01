@@ -37,6 +37,9 @@ from app.models import (  # noqa: E402
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 # テスト用データベース設定
 TEST_DATABASE_URL = "sqlite:///test_timeframe.db"
 
