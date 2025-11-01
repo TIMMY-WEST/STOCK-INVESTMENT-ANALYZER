@@ -99,21 +99,6 @@ repos:
           - --no-incremental
           - app
 
-      - id: coverage-check
-        name: コードカバレッジチェック（70%閾値）
-        entry: python scripts/hooks/run_check_with_status.py --check coverage
-        language: system
-        pass_filenames: false
-        verbose: true
-        args:
-          - '--cov=app'
-          - '--cov=models'
-          - '--cov=services'
-          - '--cov=utils'
-          - '--cov-fail-under=70'
-          - '-m'
-          - 'not e2e'
-
       - id: commit-status-summary
         name: コミット最終サマリー
         entry: python scripts/hooks/final_status_summary.py

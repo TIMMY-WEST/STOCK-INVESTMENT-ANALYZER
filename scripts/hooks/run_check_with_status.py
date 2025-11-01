@@ -162,21 +162,6 @@ def run_complexity(
     return rc
 
 
-def run_coverage(
-    args: List[str], files: List[str], status: Dict[str, Any]
-) -> int:
-    # カバレッジチェック（pytest-covを使用）
-    # filesは使用しない（全体のカバレッジをチェック）
-    cmd = [sys.executable, "-m", "pytest", *args, "--tb=short", "-q"]
-    rc = run(cmd)
-    set_check_result(status, "coverage", rc == 0)
-    if rc != 0:
-        status["failed"] = True
-    save_status(status)
-    print_commit_status_after("coverage", status)
-    return rc
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run check and print commit status"
@@ -184,7 +169,7 @@ def main() -> int:
     parser.add_argument(
         "--check",
         required=True,
-        choices=["black", "isort", "flake8", "mypy", "complexity", "coverage"],
+        choices=["black", "isort", "flake8", "mypy", "complexity"],
         help="Which check to run",
     )
     # 追加の引数は未知のオプションも許容して取得する
@@ -218,8 +203,6 @@ def main() -> int:
         return run_mypy(tool_args, files, status)
     elif known_args.check == "complexity":
         return run_complexity(tool_args, files, status)
-    elif known_args.check == "coverage":
-        return run_coverage(tool_args, files, status)
     else:
         print(f"Unsupported check: {known_args.check}")
         return 2

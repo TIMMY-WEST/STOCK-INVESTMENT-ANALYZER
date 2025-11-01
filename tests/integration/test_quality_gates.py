@@ -55,12 +55,6 @@ class TestQualityGateConfiguration:
             "--max-complexity=10" in content or "max-complexity" in content
         ), "pre-commit設定に複雑度閾値が設定されていません"
 
-        # カバレッジチェック
-        assert "coverage-check" in content, "pre-commit設定にカバレッジチェックが設定されていません"
-        assert (
-            "--cov-fail-under=70" in content
-        ), "pre-commit設定にカバレッジ閾値70%が設定されていません"
-
         # Lintチェック
         assert "flake8" in content, "pre-commit設定にFlake8チェックが設定されていません"
 
@@ -196,49 +190,32 @@ class TestPreCommitHookScript:
         ), "run_check_with_status.pyに複雑度チェックが含まれていません"
         assert "run_complexity" in content, "run_complexity関数が定義されていません"
 
-    def test_hook_script_supports_coverage_check(self):
-        """フックスクリプトがカバレッジチェックをサポートしている."""
-        # Arrange
-        script_path = Path("scripts/hooks/run_check_with_status.py")
-        content = script_path.read_text(encoding="utf-8")
-
-        # Act & Assert
-        assert (
-            "coverage" in content
-        ), "run_check_with_status.pyにカバレッジチェックが含まれていません"
-        assert "run_coverage" in content, "run_coverage関数が定義されていません"
-
 
 class TestCoverageConfiguration:
     """カバレッジ設定のテスト."""
 
-    def test_coverage_targets_configured(self):
-        """カバレッジ測定対象が設定されている."""
+    def test_coverage_threshold_in_pyproject(self):
+        """pyproject.tomlにカバレッジ閾値が設定されている."""
         # Arrange
         pyproject_path = Path("pyproject.toml")
         content = pyproject_path.read_text(encoding="utf-8")
 
         # Act & Assert
-        coverage_targets = ["--cov=app", "--cov=models", "--cov=services"]
+        assert (
+            "--cov-fail-under=70" in content
+        ), "pyproject.tomlにカバレッジ閾値70%が設定されていません"
 
-        for target in coverage_targets:
-            assert (
-                target in content
-            ), f"pyproject.tomlにカバレッジ対象{target}が設定されていません"
-
-    def test_coverage_report_formats_configured(self):
-        """カバレッジレポート形式が設定されている."""
+    def test_coverage_in_github_actions(self):
+        """Coverage check is configured in GitHub Actions workflow."""
         # Arrange
-        pyproject_path = Path("pyproject.toml")
-        content = pyproject_path.read_text(encoding="utf-8")
+        workflow_path = Path(".github/workflows/quality.yml")
+        content = workflow_path.read_text(encoding="utf-8")
 
         # Act & Assert
-        report_formats = [
-            "--cov-report=term-missing",
-            "--cov-report=html",
-        ]
-
-        for fmt in report_formats:
-            assert fmt in content, (
-                f"pyproject.tomlにカバレッジレポート形式{fmt}が" f"設定されていません"
-            )
+        assert "--cov=app" in content, "GitHub Actionsにカバレッジ測定対象が設定されていません"
+        assert (
+            "--cov-fail-under=70" in content
+        ), "GitHub Actionsにカバレッジ閾値70%が設定されていません"
+        assert (
+            "--cov-report=xml" in content or "--cov-report=term" in content
+        ), "GitHub Actionsにカバレッジレポート形式が設定されていません"
