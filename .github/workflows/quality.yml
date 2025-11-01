@@ -43,13 +43,8 @@ jobs:
           # Run all pre-commit hooks across repository (will fail the job on issues)
           pre-commit run --all-files
 
-      - name: Run security scan (bandit)
-        run: |
-          # Run bandit separately because it is not part of pre-commit config
-          bandit -r app -f json -o bandit.json
-
-      - name: Upload bandit report
-        uses: actions/upload-artifact@v4
-        with:
-          name: bandit-report
-          path: bandit.json
+      # Note: security scans (e.g., bandit) are intentionally NOT run here
+      # because this workflow is restricted to executing the same scripts
+      # that are executed by local `pre-commit` hooks. If you want to run
+      # additional security scans in CI, add them in a separate workflow
+      # or re-introduce them after discussing the CI policy.

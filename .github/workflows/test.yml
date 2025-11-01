@@ -3,10 +3,9 @@
 name: Python CI - Tests
 
 on:
-  push:
-    branches: ["**"]
-  pull_request:
-    branches: ["**"]
+  # Tests are NOT run automatically on push/PR per current request.
+  # To run tests in CI, trigger this workflow manually via workflow_dispatch.
+  workflow_dispatch: {}
 
 jobs:
   test:
