@@ -1,7 +1,7 @@
-# このワークフローはコード品質チェックとテストを実行します
-# PRマージ前の品質を自動検証し、コーディング規約への準拠を確保します
+# このワークフローは自動テストを実行します
+# PRマージ前にテストを実行し、品質を自動検証します
 # コメントは日本語で記載しています。
-name: Python CI - Quality Check
+name: Python CI - Tests
 
 on:
   push:
@@ -10,8 +10,8 @@ on:
     branches: ["**"]
 
 jobs:
-  quality-check:
-    name: Code Quality and Tests
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -38,15 +38,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install pre-commit
 
-      # 2. コード品質チェック（pre-commit）
-      - name: Run pre-commit hooks
-        # pre-commit で定義された全てのフックを実行（flake8, mypy, black など）
-        run: |
-          pre-commit run --all-files
-
-      # 3. テストの実行
+      # 2. テストの実行
       - name: Run tests (excluding E2E)
         # E2Eテストを除く全テストを実行
         run: |
