@@ -14,6 +14,22 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
 
+    # PostgreSQLサービスコンテナを追加
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: stock_user
+          POSTGRES_PASSWORD: stock_password
+          POSTGRES_DB: stock_data_system
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       # 1. テスト環境のセットアップ
       - name: Checkout repository
@@ -39,16 +55,31 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      # 2. テストの実行
-      - name: Run tests (excluding E2E)
-        # E2Eテストを除く全テストを実行
+      # 2. データベースのセットアップ
+      - name: Set up database schema
+        # PostgreSQLサービスコンテナにテーブルとスキーマを作成
         env:
-          # CI環境用のダミーデータベース接続情報（モックで使用）
+          PGPASSWORD: stock_password
+        run: |
+          # データベース接続確認
+          psql -h localhost -U stock_user -d stock_data_system -c "SELECT version();"
+
+          # テーブル作成スクリプト実行
+          psql -h localhost -U stock_user -d stock_data_system -f scripts/database/schema/create_tables.sql
+
+          # スキーマ作成確認
+          psql -h localhost -U stock_user -d stock_data_system -c "\dt"
+
+      # 3. テストの実行
+      - name: Run tests (excluding E2E)
+        # E2Eテストを除く全テストを実行（ユニット・統合テスト両方）
+        env:
+          # 実際のデータベース接続情報
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER: test
-          DB_PASSWORD: test
-          DB_NAME: test_db
+          DB_USER: stock_user
+          DB_PASSWORD: stock_password
+          DB_NAME: stock_data_system
         run: |
           pytest -m "not e2e" --verbosity=1 --maxfail=1 --cov=app --cov-report=xml
 
