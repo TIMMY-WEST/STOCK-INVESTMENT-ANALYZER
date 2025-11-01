@@ -12,6 +12,10 @@ import yaml
 from app.api.swagger import swagger_bp
 
 
+# module-level marker so pytest -m unit picks these up
+pytestmark = pytest.mark.unit
+
+
 class TestSwaggerAPI:
     """Swagger UI APIのテストクラス."""
 

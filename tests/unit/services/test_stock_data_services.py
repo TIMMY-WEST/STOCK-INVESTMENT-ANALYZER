@@ -21,6 +21,9 @@ from app.utils.timeframe_utils import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 @pytest.fixture
 def mock_yfinance_data():
     """モックyfinanceデータ (モジュールスコープ)."""

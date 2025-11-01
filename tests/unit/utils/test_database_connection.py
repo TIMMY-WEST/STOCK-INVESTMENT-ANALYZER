@@ -14,6 +14,9 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from app.models import SessionLocal, engine, get_db_session
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestDatabaseConnectionPool(unittest.TestCase):
     """データベース接続プールのテストクラス."""
 

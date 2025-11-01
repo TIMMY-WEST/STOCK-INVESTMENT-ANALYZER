@@ -11,6 +11,9 @@ from app.services.bulk.stock_batch_processor import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestStockBatchProcessor:
     """StockBatchProcessorのテスト."""
 

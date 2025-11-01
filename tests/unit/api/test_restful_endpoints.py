@@ -12,6 +12,10 @@ def setup_env(monkeypatch):
     monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "10")
 
 
+# module-level marker so pytest -m unit picks these up
+pytestmark = pytest.mark.unit
+
+
 class TestBulkDataAPI:
     """Bulk Data APIのRESTfulエンドポイントテスト."""
 

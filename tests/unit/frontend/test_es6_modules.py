@@ -13,6 +13,9 @@ import re
 import pytest
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestES6Modules:
     """ES6モジュール化のテストクラス."""
 

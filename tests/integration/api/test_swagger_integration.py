@@ -12,6 +12,9 @@ import requests
 from app.app import app as main_app
 
 
+pytestmark = pytest.mark.integration
+
+
 class TestSwaggerIntegration:
     """Swagger UI統合テストクラス."""
 

@@ -27,6 +27,8 @@ sys.path.insert(0, str(project_root / "app"))
 from app.models import Base, StockMaster, StockMasterUpdate  # noqa: E402
 
 
+pytestmark = pytest.mark.unit
+
 load_dotenv()
 
 # テスト用データベース接続

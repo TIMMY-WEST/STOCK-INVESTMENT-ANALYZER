@@ -15,6 +15,10 @@ import pytest  # noqa: E402
 import app as flask_app  # noqa: E402
 
 
+# module-level marker so pytest -m unit picks these up
+pytestmark = pytest.mark.unit
+
+
 @pytest.fixture
 def client():
     """テスト用のFlaskクライアントを作成."""

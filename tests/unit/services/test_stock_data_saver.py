@@ -9,6 +9,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.services.stock_data.saver import StockDataSaveError, StockDataSaver
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestStockDataSaver:
     """StockDataSaverクラスのテストスイート."""
 

@@ -13,6 +13,10 @@ from app.middleware.versioning import (
 )
 
 
+# module-level marker so pytest -m unit picks these up
+pytestmark = pytest.mark.unit
+
+
 class TestAPIVersioningMiddleware:
     """APIVersioningMiddlewareクラスのテスト."""
 

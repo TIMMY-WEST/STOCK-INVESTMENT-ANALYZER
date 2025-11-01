@@ -13,6 +13,10 @@ import sys
 import pytest
 
 
+# module-level marker so pytest -m integration picks these up
+pytestmark = pytest.mark.integration
+
+
 class TestSetupScripts:
     """セットアップスクリプトのテストクラス."""
 

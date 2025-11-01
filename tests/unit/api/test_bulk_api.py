@@ -7,6 +7,10 @@ import pytest
 from app.app import app as flask_app
 
 
+# module-level marker so pytest -m unit picks these up
+pytestmark = pytest.mark.unit
+
+
 @pytest.fixture(autouse=True)
 def setup_env(monkeypatch):
     monkeypatch.setenv("API_KEY", "test-key")

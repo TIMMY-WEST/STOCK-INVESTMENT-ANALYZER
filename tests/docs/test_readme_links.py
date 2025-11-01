@@ -10,7 +10,7 @@ import re
 import pytest
 
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.docs
 
 
 class TestReadmeImprovement:

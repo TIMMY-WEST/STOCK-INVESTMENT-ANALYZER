@@ -20,6 +20,9 @@ from app.exceptions import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestErrorCode:
     """ErrorCodeクラスのテスト."""
 

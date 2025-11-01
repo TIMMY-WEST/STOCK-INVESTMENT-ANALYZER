@@ -13,6 +13,10 @@ import psycopg2
 import pytest
 
 
+# module-level marker so pytest -m integration picks these up
+pytestmark = pytest.mark.integration
+
+
 # プロジェクトルートディレクトリを取得
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 

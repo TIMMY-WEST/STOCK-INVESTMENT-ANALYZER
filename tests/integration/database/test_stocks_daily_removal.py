@@ -16,6 +16,7 @@ import sys
 import unittest
 
 from dotenv import load_dotenv  # noqa: E402
+import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
@@ -41,6 +42,10 @@ from app.models import (  # noqa: E402
 
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+
+
+# module-level marker so pytest -m integration picks these up
+pytestmark = pytest.mark.integration
 
 
 class TestStocksDailyRemoval(unittest.TestCase):

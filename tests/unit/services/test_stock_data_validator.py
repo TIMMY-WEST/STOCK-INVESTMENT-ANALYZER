@@ -9,6 +9,9 @@ from app.services.stock_data.validator import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestStockDataValidator:
     """StockDataValidatorのテスト."""
 

@@ -7,6 +7,9 @@ import pytest
 from app.utils.database_utils import execute_with_session, to_dict_if_exists
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestExecuteWithSession:
     """execute_with_session関数のテスト."""
 

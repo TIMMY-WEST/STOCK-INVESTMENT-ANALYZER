@@ -16,6 +16,9 @@ from app.services.jpx.jpx_stock_service import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestJPXStockService:
     """JPXStockServiceのテストクラス."""
 
