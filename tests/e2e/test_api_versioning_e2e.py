@@ -10,6 +10,9 @@ import requests
 from app.app import app
 
 
+pytestmark = pytest.mark.e2e
+
+
 class TestAPIVersioningE2E:
     """APIバージョニングのエンドツーエンドテスト."""
 

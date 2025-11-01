@@ -10,6 +10,9 @@ import re
 import pytest
 
 
+pytestmark = pytest.mark.docs
+
+
 class TestReadmeImprovement:
     """README.mdの改善に関するテストクラス."""
 

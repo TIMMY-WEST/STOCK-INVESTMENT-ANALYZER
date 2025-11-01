@@ -9,6 +9,9 @@ import re
 import pytest
 
 
+pytestmark = pytest.mark.docs
+
+
 class TestDocsReadmeContent:
     """docs/README.mdの内容と構造をテストするクラス."""
 
