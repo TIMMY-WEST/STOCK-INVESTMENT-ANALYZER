@@ -7,6 +7,9 @@ from app.app import app
 from app.middleware.versioning import APIVersioningMiddleware
 
 
+pytestmark = pytest.mark.integration
+
+
 class TestAPIVersioningIntegration:
     """APIバージョニングの統合テスト."""
 

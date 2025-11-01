@@ -14,6 +14,9 @@ import pytest
 from app.app import app as flask_app
 
 
+pytestmark = pytest.mark.integration
+
+
 # Note: client フィクスチャは tests/conftest.py で定義されています
 # ただし、統合テストでは flask_app の設定が必要なため、専用フィクスチャを保持します
 

@@ -14,6 +14,9 @@ from app.exceptions import StockDataFetchError
 from app.services.stock_data.fetcher import StockDataFetcher
 
 
+pytestmark = pytest.mark.integration
+
+
 class TestStockDataAPIIntegration:
     """株価データAPI統合テストクラス."""
 
