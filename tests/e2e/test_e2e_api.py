@@ -9,7 +9,7 @@ import pytest
 import requests
 
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.e2e
 
 
 class TestAPIE2E:
