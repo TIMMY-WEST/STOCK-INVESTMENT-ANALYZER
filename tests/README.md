@@ -142,6 +142,39 @@ def test_user_flow():
 def test_long_running():
     """実行時間の長いテストの例"""
     assert True
+
+### モジュールレベルマーカー（ファイル単位）
+
+最近のリファクタリングにより、一部のテストファイルにはモジュール全体に対するマーカーを追加しています。
+これはファイル単位でマーカーを指定することで、同一ファイル内の全テストをまとめて選択／除外できる利点があります。
+
+例:
+
+```python
+# tests/docs/test_docs_quality.py
+import pytest
+
+pytestmark = pytest.mark.docs
+
+def test_document_has_title():
+    assert True
+```
+
+利用可能なモジュールレベルマーカー（プロジェクトで標準化されているもの）:
+
+- `unit` — ユニットテスト（`tests/unit/`）
+- `integration` — 統合テスト（`tests/integration/`）
+- `e2e` — E2Eテスト（`tests/e2e/`）
+- `slow` — 実行時間の長いテスト
+- `docs` — ドキュメント品質関連テスト（`tests/docs/`）
+
+これらのマーカーは `pytest.ini` に登録されており、`--strict-markers` オプション下でも問題なく利用できます。
+
+例: ファイル単位でマーカーを利用して docs テストだけを実行する
+
+```bash
+pytest -m docs
+```
 ```
 
 ### フィクスチャの利用
