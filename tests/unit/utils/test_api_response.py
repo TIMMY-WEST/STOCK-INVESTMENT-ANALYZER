@@ -11,6 +11,7 @@ from app.utils.api_response import APIResponse, ErrorCode
 # Note: conftest.py にも app フィクスチャがありますが、
 # このテストは最小限のアプリケーションコンテキストのみが必要なため、
 # 軽量な専用フィクスチャを保持します
+pytestmark = pytest.mark.unit
 
 
 @pytest.fixture

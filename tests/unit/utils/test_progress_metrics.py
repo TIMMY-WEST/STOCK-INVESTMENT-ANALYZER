@@ -10,6 +10,9 @@ import pytest
 from app.services.bulk.bulk_service import ProgressTracker
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestProgressTracker:
     """進捗トラッカーのテスト."""
 

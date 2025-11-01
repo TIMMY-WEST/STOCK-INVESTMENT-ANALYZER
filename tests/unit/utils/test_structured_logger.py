@@ -17,6 +17,9 @@ from app.utils.structured_logger import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestStructuredFormatter:
     """構造化ログフォーマッターのテスト."""
 

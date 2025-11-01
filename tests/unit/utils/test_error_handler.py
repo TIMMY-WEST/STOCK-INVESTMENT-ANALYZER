@@ -24,6 +24,9 @@ from app.services.common.error_handler import (
 )
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestErrorHandler:
     """ErrorHandlerクラスのテストケース."""
 
