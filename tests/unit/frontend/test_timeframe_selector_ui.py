@@ -16,6 +16,9 @@ from bs4 import BeautifulSoup
 import pytest
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestTimeframeSelectorUI:
     """時間軸選択UI機能のテストクラス."""
 

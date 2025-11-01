@@ -17,6 +17,9 @@ import sys
 from bs4 import BeautifulSoup
 import pytest
 
+
+pytestmark = pytest.mark.unit
+
 from app.app import app  # noqa: E402
 
 

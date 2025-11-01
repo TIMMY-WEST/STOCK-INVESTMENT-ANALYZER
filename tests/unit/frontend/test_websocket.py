@@ -4,6 +4,9 @@ from flask_socketio import SocketIOTestClient
 import pytest
 
 
+pytestmark = pytest.mark.unit
+
+
 @pytest.fixture
 def app_instance():
     """Flaskアプリインスタンスを作成."""

@@ -8,6 +8,11 @@ import os
 from pathlib import Path
 import tempfile
 
+import pytest
+
+
+pytestmark = pytest.mark.unit
+
 
 def create_state_manager_test_html():
     """状態管理システムのHTMLテストファイルを作成."""
