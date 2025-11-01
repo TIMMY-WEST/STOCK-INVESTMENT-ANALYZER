@@ -42,6 +42,13 @@ jobs:
       # 2. テストの実行
       - name: Run tests (excluding E2E)
         # E2Eテストを除く全テストを実行
+        env:
+          # CI環境用のダミーデータベース接続情報（モックで使用）
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USER: test
+          DATABASE_PASSWORD: test
+          DATABASE_NAME: test_db
         run: |
           pytest -m "not e2e" --verbosity=1 --maxfail=1 --cov=app --cov-report=xml
 
