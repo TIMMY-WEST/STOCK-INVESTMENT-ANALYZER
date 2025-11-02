@@ -6,6 +6,19 @@ related_docs:
   - ./git_workflow.md
   - ./github_workflow.md
   - ./testing_strategy.md
+deprecated: true
+deprecated_date: 2025-11-02
+replacement: ../guides/development-workflow.md
+---
+
+# ⚠️ このドキュメントは非推奨です
+
+**移行日**: 2025-11-02
+**理由**: 内容が統合ワークフローガイドに統合されました
+**移行先**: `docs/guides/development-workflow.md` (ブランチ保護設定セクション)
+
+このドキュメントは参照用として保管されていますが、最新情報は上記の移行先を参照してください。
+
 ---
 
 # GitHubブランチ保護ルール設定ガイド
@@ -55,10 +68,10 @@ related_docs:
 
 ### 1.2 対象ブランチ
 
-| ブランチ | 保護レベル | 説明 |
-|---------|----------|------|
-| `main` | **最高** | 本番デプロイ可能な安定版 |
-| `develop` | **中** | 統合開発ブランチ（将来的に使用する場合） |
+| ブランチ  | 保護レベル | 説明                                     |
+| --------- | ---------- | ---------------------------------------- |
+| `main`    | **最高**   | 本番デプロイ可能な安定版                 |
+| `develop` | **中**     | 統合開発ブランチ（将来的に使用する場合） |
 
 現在は **`main`ブランチのみ** を保護対象とします。
 
@@ -68,20 +81,20 @@ related_docs:
 
 以下の設定をGitHub Web UIまたはAPIで適用します：
 
-| 設定項目 | 設定値 | 理由 |
-|---------|-------|------|
-| **Require a pull request before merging** | ✅ 有効 | 直接プッシュを禁止し、レビュープロセスを必須化 |
-| **Require approvals** | ✅ 有効（最低1名） | コードレビューの徹底 |
-| **Dismiss stale pull request approvals when new commits are pushed** | ✅ 有効 | レビュー後の変更に対する再確認 |
-| **Require review from Code Owners** | ❌ 無効 | 現時点では不要（将来的に検討） |
-| **Require status checks to pass before merging** | ✅ 有効 | CI/CDの全チェック通過を必須化 |
-| **Require branches to be up to date before merging** | ✅ 有効 | 最新のmainに追従済みであることを保証 |
-| **Require conversation resolution before merging** | ✅ 有効 | レビューコメントの解決を必須化 |
-| **Require signed commits** | ❌ 無効 | 現時点では不要（GPG署名は任意） |
-| **Require linear history** | ❌ 無効 | Squash and Mergeで対応 |
-| **Include administrators** | ✅ 有効 | 管理者にも同じルールを適用 |
-| **Allow force pushes** | ❌ 無効 | 履歴の改変を禁止 |
-| **Allow deletions** | ❌ 無効 | mainブランチの削除を禁止 |
+| 設定項目                                                             | 設定値            | 理由                                           |
+| -------------------------------------------------------------------- | ----------------- | ---------------------------------------------- |
+| **Require a pull request before merging**                            | ✅ 有効            | 直接プッシュを禁止し、レビュープロセスを必須化 |
+| **Require approvals**                                                | ✅ 有効（最低1名） | コードレビューの徹底                           |
+| **Dismiss stale pull request approvals when new commits are pushed** | ✅ 有効            | レビュー後の変更に対する再確認                 |
+| **Require review from Code Owners**                                  | ❌ 無効            | 現時点では不要（将来的に検討）                 |
+| **Require status checks to pass before merging**                     | ✅ 有効            | CI/CDの全チェック通過を必須化                  |
+| **Require branches to be up to date before merging**                 | ✅ 有効            | 最新のmainに追従済みであることを保証           |
+| **Require conversation resolution before merging**                   | ✅ 有効            | レビューコメントの解決を必須化                 |
+| **Require signed commits**                                           | ❌ 無効            | 現時点では不要（GPG署名は任意）                |
+| **Require linear history**                                           | ❌ 無効            | Squash and Mergeで対応                         |
+| **Include administrators**                                           | ✅ 有効            | 管理者にも同じルールを適用                     |
+| **Allow force pushes**                                               | ❌ 無効            | 履歴の改変を禁止                               |
+| **Allow deletions**                                                  | ❌ 無効            | mainブランチの削除を禁止                       |
 
 ### 2.2 設定項目の詳細
 
@@ -255,13 +268,13 @@ gh api repos/TIMMY-WEST/STOCK-INVESTMENT-ANALYZER/branches/main/protection
 
 ブランチ保護ルールで必須とするCI/CDチェック:
 
-| チェック項目 | ツール | 目的 | 失敗時の影響 |
-|------------|-------|------|------------|
-| **Linting** | Ruff | コードスタイルの統一 | マージブロック |
-| **Type Check** | mypy | 型安全性の保証 | マージブロック |
-| **Unit Tests** | pytest | 機能の正常動作確認 | マージブロック |
-| **Integration Tests** | pytest | システム統合確認 | マージブロック |
-| **Build** | Python build | ビルド可能性の確認 | マージブロック |
+| チェック項目          | ツール       | 目的                 | 失敗時の影響   |
+| --------------------- | ------------ | -------------------- | -------------- |
+| **Linting**           | Ruff         | コードスタイルの統一 | マージブロック |
+| **Type Check**        | mypy         | 型安全性の保証       | マージブロック |
+| **Unit Tests**        | pytest       | 機能の正常動作確認   | マージブロック |
+| **Integration Tests** | pytest       | システム統合確認     | マージブロック |
+| **Build**             | Python build | ビルド可能性の確認   | マージブロック |
 
 ### 4.2 GitHub Actions ワークフロー
 

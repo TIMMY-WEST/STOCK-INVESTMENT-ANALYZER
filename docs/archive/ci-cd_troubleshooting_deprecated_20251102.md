@@ -1,14 +1,29 @@
 ---
 category: ci-cd
-ai_context: high
+ai_context: archived
 last_updated: 2025-11-02
+deprecated_date: 2025-11-02
+status: DEPRECATED
+replacement_doc: ../ci-cd/pipeline-config.md
 related_docs:
   - pipeline_overview.md
   - ../development/pre_commit_setup.md
   - ../development/testing_guide.md
 ---
 
-# CI/CD トラブルシューティングガイド
+# ⚠️ 非推奨: このドキュメントは統合されました
+
+**このドキュメントは 2025年11月2日 に非推奨となりました。**
+
+代わりに以下の統合ドキュメントを参照してください:
+- **[CI/CDパイプライン設定ガイド (v2.0.0)](../ci-cd/pipeline-config.md)** ← CI/CD設定とトラブルシューティング
+- **[トラブルシューティングガイド (v2.0.0)](../guides/troubleshooting.md)** ← 全般的な問題解決
+
+このファイルの内容は上記の統合ドキュメントに含まれています。
+
+---
+
+# CI/CD トラブルシューティングガイド (ARCHIVED)
 
 ## 📋 目次
 
@@ -149,13 +164,13 @@ app/example.py:20:1: F401 'os' imported but unused
 
 **よくあるエラーコードと解決策**:
 
-| エラーコード | 内容 | 解決策 |
-|-------------|------|--------|
-| E302 | 関数定義前の空行不足 | 関数定義の前に2行空ける |
-| E501 | 行が長すぎる | 行を79文字以内に分割 |
-| F401 | 未使用のインポート | 不要なインポート文を削除 |
-| E722 | bare except | `except Exception as e:` に変更 |
-| W293 | 空白行に空白文字 | 空白行から空白文字を削除 |
+| エラーコード | 内容                 | 解決策                          |
+| ------------ | -------------------- | ------------------------------- |
+| E302         | 関数定義前の空行不足 | 関数定義の前に2行空ける         |
+| E501         | 行が長すぎる         | 行を79文字以内に分割            |
+| F401         | 未使用のインポート   | 不要なインポート文を削除        |
+| E722         | bare except          | `except Exception as e:` に変更 |
+| W293         | 空白行に空白文字     | 空白行から空白文字を削除        |
 
 **解決策**:
 

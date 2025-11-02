@@ -3,7 +3,7 @@ category: monitoring
 ai_context: medium
 last_updated: 2025-10-19
 related_docs:
-  - architecture/database_design.md
+  - ../architecture/database_design.md
   - bulk-data-fetch.md
   - jpx-sequential-fetch.md
 implementation_status: ✅ 実装完了
@@ -165,13 +165,13 @@ ETAは以下の方法で計算されます:
 
 ### 監視対象
 
-| 監視項目 | 重要度 | 説明 |
-|----------|--------|------|
-| **データベース接続** | 高 | PostgreSQL接続状態 |
-| **Yahoo Finance API** | 高 | 外部API接続状態 |
-| **システム稼働状況** | 中 | 全体的なシステム健全性 |
-| **メモリ使用量** | 低 | アプリケーションリソース監視（将来実装） |
-| **ディスク容量** | 低 | ストレージ監視（将来実装） |
+| 監視項目              | 重要度 | 説明                                     |
+| --------------------- | ------ | ---------------------------------------- |
+| **データベース接続**  | 高     | PostgreSQL接続状態                       |
+| **Yahoo Finance API** | 高     | 外部API接続状態                          |
+| **システム稼働状況**  | 中     | 全体的なシステム健全性                   |
+| **メモリ使用量**      | 低     | アプリケーションリソース監視（将来実装） |
+| **ディスク容量**      | 低     | ストレージ監視（将来実装）               |
 
 ### 状態レベル定義
 

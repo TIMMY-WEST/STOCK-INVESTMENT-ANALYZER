@@ -1,14 +1,28 @@
 ---
 category: ci-cd
-ai_context: high
+ai_context: archived
 last_updated: 2025-11-02
+deprecated_date: 2025-11-02
+status: DEPRECATED
+replacement_doc: ../ci-cd/pipeline-config.md
 related_docs:
   - troubleshooting.md
   - ../development/pre_commit_setup.md
   - ../development/testing_guide.md
 ---
 
-# CI/CDパイプライン概要
+# ⚠️ 非推奨: このドキュメントは統合されました
+
+**このドキュメントは 2025年11月2日 に非推奨となりました。**
+
+代わりに以下の統合ドキュメントを参照してください:
+- **[CI/CDパイプライン設定ガイド (v2.0.0)](../ci-cd/pipeline-config.md)** ← こちらを使用
+
+このファイルは `pipeline_overview.md` と `troubleshooting.md` を統合した最新バージョンです。
+
+---
+
+# CI/CDパイプライン概要 (ARCHIVED)
 
 ## 📋 目次
 
@@ -36,10 +50,10 @@ related_docs:
 
 ### CI/CDツールの構成
 
-| ツール | 用途 | 実行タイミング |
-|--------|------|----------------|
+| ツール           | 用途                         | 実行タイミング        |
+| ---------------- | ---------------------------- | --------------------- |
 | Pre-commit Hooks | コミット前のローカルチェック | コミット時 (ローカル) |
-| GitHub Actions | 統合テストと品質ゲート | Push/PR時 (リモート) |
+| GitHub Actions   | 統合テストと品質ゲート       | Push/PR時 (リモート)  |
 
 ## CI/CDパイプラインの全体像
 
@@ -108,30 +122,30 @@ related_docs:
 
 ##### 1.1 基本チェック (`pre-commit-hooks`)
 
-| チェック項目 | 内容 | 修正 |
-|-------------|------|------|
-| end-of-file-fixer | ファイル末尾の空行を統一 | 自動 |
-| trailing-whitespace | 行末の空白を削除 | 自動 |
-| check-merge-conflict | マージコンフリクトマーカーの検出 | 手動 |
-| check-yaml/json/toml | 各種設定ファイルの構文チェック | 手動 |
+| チェック項目            | 内容                                  | 修正 |
+| ----------------------- | ------------------------------------- | ---- |
+| end-of-file-fixer       | ファイル末尾の空行を統一              | 自動 |
+| trailing-whitespace     | 行末の空白を削除                      | 自動 |
+| check-merge-conflict    | マージコンフリクトマーカーの検出      | 手動 |
+| check-yaml/json/toml    | 各種設定ファイルの構文チェック        | 手動 |
 | check-added-large-files | 大きなファイル(500KB以上)の追加を防止 | 手動 |
-| check-ast | Python構文チェック | 手動 |
-| debug-statements | デバッグ文(pdb等)の検出 | 手動 |
+| check-ast               | Python構文チェック                    | 手動 |
+| debug-statements        | デバッグ文(pdb等)の検出               | 手動 |
 
 ##### 1.2 コードフォーマット
 
-| ツール | 内容 | 設定 |
-|--------|------|------|
-| Black | PEP 8準拠の自動フォーマット | 行の長さ: 79文字 |
-| isort | インポート文の自動整理 | Blackと互換設定 |
+| ツール | 内容                        | 設定             |
+| ------ | --------------------------- | ---------------- |
+| Black  | PEP 8準拠の自動フォーマット | 行の長さ: 79文字 |
+| isort  | インポート文の自動整理      | Blackと互換設定  |
 
 ##### 1.3 静的解析
 
-| ツール | 内容 | 設定 |
-|--------|------|------|
-| flake8 | コーディング規約チェック | 最大行長: 79、最大複雑度: 10 |
-| 複雑度チェック | McCabe複雑度チェック | 最大複雑度: 10 |
-| mypy | 型ヒントチェック | pyproject.toml設定に従う |
+| ツール         | 内容                     | 設定                         |
+| -------------- | ------------------------ | ---------------------------- |
+| flake8         | コーディング規約チェック | 最大行長: 79、最大複雑度: 10 |
+| 複雑度チェック | McCabe複雑度チェック     | 最大複雑度: 10               |
+| mypy           | 型ヒントチェック         | pyproject.toml設定に従う     |
 
 ##### 1.4 サマリー表示
 
@@ -170,12 +184,12 @@ on:
 
 ###### ステップ1: 環境セットアップ
 
-| ステップ名 | 内容 | 使用アクション |
-|-----------|------|---------------|
-| Checkout repository | リポジトリのチェックアウト | `actions/checkout@v4` |
-| Set up Python 3.11 | Python 3.11のインストール | `actions/setup-python@v4` |
-| Cache pip packages | pipパッケージのキャッシュ | `actions/cache@v4` |
-| Install dependencies | 依存パッケージのインストール | - |
+| ステップ名           | 内容                         | 使用アクション            |
+| -------------------- | ---------------------------- | ------------------------- |
+| Checkout repository  | リポジトリのチェックアウト   | `actions/checkout@v4`     |
+| Set up Python 3.11   | Python 3.11のインストール    | `actions/setup-python@v4` |
+| Cache pip packages   | pipパッケージのキャッシュ    | `actions/cache@v4`        |
+| Install dependencies | 依存パッケージのインストール | -                         |
 
 **依存パッケージインストール内容**:
 ```bash
@@ -231,15 +245,15 @@ pytest -m "not e2e" \
 
 **テストオプション説明**:
 
-| オプション | 説明 |
-|-----------|------|
-| `-m "not e2e"` | E2Eテストを除外 (ユニット・統合テストのみ実行) |
-| `--verbosity=1` | 標準的な詳細度で出力 |
-| `--maxfail=1` | 最初の失敗で即座に停止 (高速フィードバック) |
-| `--cov=app` | `app`ディレクトリのカバレッジを計測 |
-| `--cov-report=xml` | XMLフォーマットでカバレッジレポートを出力 |
-| `--cov-report=term` | ターミナルにカバレッジサマリーを表示 |
-| `--cov-fail-under=70` | カバレッジが70%未満の場合は失敗 |
+| オプション            | 説明                                           |
+| --------------------- | ---------------------------------------------- |
+| `-m "not e2e"`        | E2Eテストを除外 (ユニット・統合テストのみ実行) |
+| `--verbosity=1`       | 標準的な詳細度で出力                           |
+| `--maxfail=1`         | 最初の失敗で即座に停止 (高速フィードバック)    |
+| `--cov=app`           | `app`ディレクトリのカバレッジを計測            |
+| `--cov-report=xml`    | XMLフォーマットでカバレッジレポートを出力      |
+| `--cov-report=term`   | ターミナルにカバレッジサマリーを表示           |
+| `--cov-fail-under=70` | カバレッジが70%未満の場合は失敗                |
 
 **環境変数**:
 ```yaml

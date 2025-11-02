@@ -3,8 +3,8 @@ category: feature
 ai_context: high
 last_updated: 2025-10-18
 related_docs:
-  - api/api_specification.md
-  - architecture/database_design.md
+  - ../api/api_specification.md
+  - ../architecture/database_design.md
 ---
 
 # 全銘柄一括取得システム完全ガイド

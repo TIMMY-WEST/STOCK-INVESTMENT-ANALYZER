@@ -6,6 +6,19 @@ related_docs:
   - ./github_workflow.md
   - ../guides/setup_guide.md
   - ../architecture/project_architecture.md
+deprecated: true
+deprecated_date: 2025-11-02
+replacement: ../guides/development-workflow.md
+---
+
+# ⚠️ このドキュメントは非推奨です
+
+**移行日**: 2025-11-02
+**理由**: 内容が統合ワークフローガイドに統合されました
+**移行先**: `docs/guides/development-workflow.md`
+
+このドキュメントは参照用として保管されていますが、最新情報は上記の移行先を参照してください。
+
 ---
 
 # Git運用ワークフロー
