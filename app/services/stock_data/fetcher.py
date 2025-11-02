@@ -64,7 +64,9 @@ class StockDataFetcher:
         except Exception as e:
             raise StockDataFetchError(str(e)) from e
 
-        self.logger.info(f"株価データ取得開始: {formatted_symbol} ({interval})")
+        self.logger.info(
+            f"株価データ取得開始: {formatted_symbol} ({interval})"
+        )
 
         try:
             # データ取得
@@ -73,7 +75,9 @@ class StockDataFetcher:
             # データの検証（バリデーターを使用）
             self.validator.validate_dataframe_structure(df, formatted_symbol)
 
-            self.logger.info(f"株価データ取得完了: {formatted_symbol} - {len(df)}件")
+            self.logger.info(
+                f"株価データ取得完了: {formatted_symbol} - {len(df)}件"
+            )
 
             return df
 
