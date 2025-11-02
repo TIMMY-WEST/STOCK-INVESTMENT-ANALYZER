@@ -14,17 +14,6 @@ import pytest
 pytestmark = pytest.mark.docs
 
 
-@pytest.fixture(scope="module")
-def guide_content_and_path():
-    """docs/api/api_usage_guide.md の内容とパスを返す fixture."""
-    guide_path = Path("docs/api/api_usage_guide.md")
-    project_root = Path(__file__).parent.parent.parent
-    full_guide_path = project_root / guide_path
-    assert full_guide_path.exists(), f"API使用例ガイドが存在しません: {full_guide_path}"
-    content = full_guide_path.read_text(encoding="utf-8")
-    return {"path": full_guide_path, "content": content}
-
-
 class TestAPIUsageGuide:
     """API使用例ガイドのテストクラス."""
 
