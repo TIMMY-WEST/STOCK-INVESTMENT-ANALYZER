@@ -111,7 +111,8 @@ def session(engine):  # noqa: C901
         # Arrange (準備)
         # テストデータを使用
 
-        # Act & Assert (実行と検証)
+        # Act (実行)
+        # Assert (検証)
         alias_check = StockDaily == Stocks1d
         assert alias_check, "StockDaily は Stocks1d のエイリアスである必要があります"
 
@@ -335,6 +336,7 @@ def session(engine):  # noqa: C901
                 created_stocks = StockDailyCRUD.bulk_create(
                     session, test_data_list
                 )
+                # Assert (検証)
                 assert len(created_stocks) == 2
                 for i, stock in enumerate(created_stocks):
                     assert stock.symbol == test_data_list[i]["symbol"]
@@ -388,9 +390,12 @@ class TestDatabaseConnection:
 
     def test_database_connection(self):
         """データベース接続が正常に動作することを確認."""
+        # Arrange (準備)
+        # Act (実行)
         try:
             with get_db_session() as session:
                 result = session.execute(text("SELECT 1")).scalar()
+            # Assert (検証)
             assert result == 1
         except Exception as e:
             pytest.fail(f"データベース接続に失敗しました: {str(e)}")
@@ -408,6 +413,8 @@ class TestDatabaseConnection:
             "stocks_1mo",
         ]
 
+        # Arrange (準備)
+        # Act (実行)
         with get_db_session() as session:
             for table_name in required_tables:
                 result = session.execute(
@@ -419,4 +426,5 @@ class TestDatabaseConnection:
                 """
                     )
                 ).scalar()
+                # Assert (検証)
                 assert result == 1, f"テーブル {table_name} が存在しません"

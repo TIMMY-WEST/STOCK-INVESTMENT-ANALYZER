@@ -30,10 +30,16 @@ class TestAPIUsageGuide:
 
     def test_file_exists(self, guide_content_and_path):
         """ガイドファイルが存在することを確認."""
+        # Arrange (準備)
+        # Act (実行)
+        # Assert (検証)
         assert guide_content_and_path["path"].exists(), "API使用例ガイドファイルが存在しません"
 
     def test_file_not_empty(self, guide_content_and_path):
         """ガイドファイルが空でないことを確認."""
+        # Arrange (準備)
+        # Act (実行)
+        # Assert (検証)
         assert (
             len(guide_content_and_path["content"].strip()) > 0
         ), "API使用例ガイドが空です"
@@ -53,7 +59,10 @@ class TestAPIUsageGuide:
             "## エラーハンドリング",
             "## レート制限",
         ]
+        # Arrange (準備)
+        # Act (実行)
         for section in required_sections:
+            # Assert (検証)
             assert (
                 section in guide_content_and_path["content"]
             ), f"必要なセクションが見つかりません: {section}"
@@ -64,6 +73,9 @@ class TestAPIUsageGuide:
         curl_matches = re.findall(
             curl_pattern, guide_content_and_path["content"], re.MULTILINE
         )
+        # Arrange (準備)
+        # Act (実行)
+        # Assert (検証)
         if len(curl_matches) == 0:
             pytest.skip("cURL サンプルがドキュメントに存在しないためスキップします")
 
@@ -73,6 +85,9 @@ class TestAPIUsageGuide:
         python_matches = re.findall(
             python_pattern, guide_content_and_path["content"], re.MULTILINE
         )
+        # Arrange (準備)
+        # Act (実行)
+        # Assert (検証)
         if len(python_matches) == 0:
             pytest.skip("Python サンプルがドキュメントに存在しないためスキップします")
 
@@ -87,7 +102,10 @@ class TestAPIUsageGuide:
             "/api/system/database/connection",
             "/api/system/external-api/connection",
         ]
+        # Arrange (準備)
+        # Act (実行)
         for endpoint in expected_endpoints:
+            # Assert (検証)
             assert (
                 endpoint in guide_content_and_path["content"]
             ), f"エンドポイントがドキュメント化されていません: {endpoint}"
@@ -95,7 +113,10 @@ class TestAPIUsageGuide:
     def test_http_methods_documented(self, guide_content_and_path):
         """HTTPメソッドが適切にドキュメント化されていることを確認."""
         http_methods = ["GET", "POST"]
+        # Arrange (準備)
+        # Act (実行)
         for method in http_methods:
+            # Assert (検証)
             assert (
                 method in guide_content_and_path["content"]
             ), f"HTTPメソッドがドキュメント化されていません: {method}"
@@ -112,7 +133,10 @@ class TestAPIUsageGuide:
             "DATABASE_ERROR",
             "INTERNAL_SERVER_ERROR",
         ]
+        # Arrange (準備)
+        # Act (実行)
         for error_code in expected_error_codes:
+            # Assert (検証)
             assert (
                 error_code in guide_content_and_path["content"]
             ), f"エラーコードがドキュメント化されていません: {error_code}"
@@ -123,6 +147,9 @@ class TestAPIUsageGuide:
         json_matches = re.findall(
             json_pattern, guide_content_and_path["content"], re.MULTILINE
         )
+        # Arrange (準備)
+        # Act (実行)
+        # Assert (検証)
         if len(json_matches) == 0:
             pytest.skip("JSON レスポンス例がドキュメントに存在しないためスキップします")
 

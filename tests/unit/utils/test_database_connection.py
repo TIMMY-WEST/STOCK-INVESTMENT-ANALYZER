@@ -122,19 +122,22 @@ class TestSessionManagement:
     @patch("app.models.SessionLocal")
     def test_session_always_closed(self, mock_session_local):
         """例外の有無に関わらずセッションが必ずクローズされることを確認."""
+        # Arrange (準備)
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
 
-        # 正常ケース
+        # Act (実行) - 正常ケース
         with get_db_session():
             pass
+        # Assert (検証)
         mock_session.close.assert_called_once()
 
-        # 例外ケース
+        # Act (実行) - 例外ケース
         mock_session.reset_mock()
         with pytest.raises(RuntimeError):
             with get_db_session():
                 raise RuntimeError("Test error")
+        # Assert (検証)
         mock_session.close.assert_called_once()
 
 
@@ -145,31 +148,35 @@ class TestConnectionLeakPrevention:
         """連続したセッション使用で接続リークが発生しないことを確認."""
         from sqlalchemy import text
 
+        # Arrange (準備)
+        # Act (実行)
         # 複数のセッションを連続して使用
         for _ in range(5):
             with get_db_session() as session:
+                # Assert (検証)
                 assert session is not None
                 result = session.execute(text("SELECT 1")).scalar()
                 assert result == 1
 
-        # プールの統計情報を確認（接続がプールに戻されていることを確認）
+        # Assert (検証) - プールの統計情報を確認（接続がプールに戻されていることを確認）
         pool = engine.pool
-        # チェックアウトされた接続数が0であることを確認
         assert pool.checkedout() == 0
 
     def test_session_exception_does_not_leak_connection_with_error_returns_clean_state(
         self,
     ):
         """例外発生時も接続リークが発生しないことを確認."""
+        # Arrange (準備)
         initial_checkedout = engine.pool.checkedout()
 
+        # Act (実行)
         try:
             with get_db_session():
                 raise ValueError("Test exception")
         except ValueError:
             pass
 
-        # チェックアウトされた接続数が元に戻っていることを確認
+        # Assert (検証)
         assert engine.pool.checkedout() == initial_checkedout
 
 
@@ -186,9 +193,9 @@ class TestConnectionResilience:
             OperationalError("statement", "params", "orig"),
             MagicMock(),
         ]
-
-        # pool_pre_pingにより自動的に再接続されるはず
-        # （この挙動は実際のデータベース接続でテストするのが望ましい）
+        # Arrange (準備)
+        # Act (実行) - pool.connect が最初失敗し次に成功するように設定
+        # Assert (検証) - 実際の接続フローは外部 DB 環境での検証を推奨
         pass
 
 
@@ -197,26 +204,33 @@ class TestSessionLocalConfiguration:
 
     def test_session_local_autocommit_false(self):
         """SessionLocalのautocommitがFalseであることを確認."""
-        # SQLAlchemy 2.0ではSessionLocalのautocommit引数がFalseに設定されている
-        # セッション作成時の設定を確認
+        # Arrange (準備)
+        # Act (実行)
         session = SessionLocal()
         try:
+            # Assert (検証)
             assert session is not None
         finally:
             session.close()
 
     def test_session_local_autoflush_false(self):
         """SessionLocalのautoflushがFalseであることを確認."""
+        # Arrange (準備)
+        # Act (実行)
         session = SessionLocal()
         try:
+            # Assert (検証)
             assert not session.autoflush
         finally:
             session.close()
 
     def test_session_local_bound_to_engine(self):
         """SessionLocalが正しいエンジンにバインドされていることを確認."""
+        # Arrange (準備)
+        # Act (実行)
         session = SessionLocal()
         try:
+            # Assert (検証)
             assert session.bind == engine
         finally:
             session.close()
