@@ -88,7 +88,8 @@ class TestQualityGateConfiguration:
             "#### 6.2.3 コードスタイル",
             "#### 6.2.4 型チェック",
             "### 6.3 pre-commitフックによる品質チェック",
-            "### 6.4 品質ゲート失敗時の対応",
+            "### 6.4 GitHub Actionsによる品質チェック",
+            "### 6.5 品質ゲート失敗時の対応",
         ]
 
         for section in required_sections:
