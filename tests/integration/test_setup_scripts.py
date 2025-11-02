@@ -273,7 +273,7 @@ class TestSetupScripts:
     def test_dev_setup_sh_is_executable(self, scripts_dir):
         """dev_setup.sh が実行可能であることを確認（Unix系のみ）."""
         # Arrange (準備)
-        dev_setup_sh = scripts_dir / "dev_setup.sh"
+        dev_setup_sh = scripts_dir / "setup" / "dev_setup.sh"
         os.chmod(dev_setup_sh, 0o755)
 
         # Act (実行)

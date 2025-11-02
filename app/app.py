@@ -67,8 +67,9 @@ app.config["API_SUPPORTED_VERSIONS"] = ["v1"]
 # APIバージョニングミドルウェア初期化
 versioning_middleware = APIVersioningMiddleware(app)
 
-# テーブル作成
-Base.metadata.create_all(bind=engine)
+# テーブル作成（テスト環境では実行しない）
+if not os.getenv("PYTEST_CURRENT_TEST"):
+    Base.metadata.create_all(bind=engine)
 
 # 既存Blueprint登録（後方互換性のため保持）
 app.register_blueprint(bulk_api)
