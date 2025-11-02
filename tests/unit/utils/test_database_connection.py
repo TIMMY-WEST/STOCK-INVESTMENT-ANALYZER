@@ -1,10 +1,10 @@
 """データベース接続管理のユニットテスト.
 
 このモジュールは、データベース接続プールとセッション管理の
-ユニットテストを提供します。
+ユニットテストを提供します.
 """
+# flake8: noqa
 
-import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,8 +17,8 @@ from app.models import SessionLocal, engine, get_db_session
 pytestmark = pytest.mark.unit
 
 
-class TestDatabaseConnectionPool(unittest.TestCase):
-    """データベース接続プールのテストクラス."""
+class TestDatabaseConnectionPool:
+    """データベース接続プールのテストクラス。"""
 
     def test_engine_has_pool_configuration_with_settings_returns_configured_pool(
         self,
@@ -27,16 +27,12 @@ class TestDatabaseConnectionPool(unittest.TestCase):
         # Arrange (準備)
         # エンジンのプール設定を確認
         pool = engine.pool
-
-        # Act (実行)
-        # 設定値の取得は準備フェーズで完了
-
         # Assert (検証)
-        self.assertIsNotNone(pool)
+        assert pool is not None
         # pool_sizeの確認（10に設定されているはず）
-        self.assertEqual(pool.size(), 10)
+        assert pool.size() == 10
         # max_overflowの確認（20に設定されているはず）
-        self.assertEqual(pool._max_overflow, 20)
+        assert pool._max_overflow == 20
 
     def test_engine_has_pool_pre_ping_with_setting_returns_enabled(self):
         """pool_pre_pingが有効であることを確認."""
@@ -45,9 +41,8 @@ class TestDatabaseConnectionPool(unittest.TestCase):
 
         # Act (実行)
         # 設定値の取得は準備フェーズで完了
-
         # Assert (検証)
-        self.assertTrue(engine.pool._pre_ping)
+        assert engine.pool._pre_ping
 
     def test_engine_has_pool_recycle_with_setting_returns_configured_time(
         self,
@@ -58,9 +53,8 @@ class TestDatabaseConnectionPool(unittest.TestCase):
 
         # Act (実行)
         # 設定値の取得は準備フェーズで完了
-
         # Assert (検証)
-        self.assertEqual(engine.pool._recycle, 3600)
+        assert engine.pool._recycle == 3600
 
     def test_engine_pool_timeout_with_setting_returns_configured_timeout(self):
         """pool_timeoutが設定されていることを確認."""
@@ -69,13 +63,12 @@ class TestDatabaseConnectionPool(unittest.TestCase):
 
         # Act (実行)
         # 設定値の取得は準備フェーズで完了
-
         # Assert (検証)
-        self.assertEqual(engine.pool._timeout, 30)
+        assert engine.pool._timeout == 30
 
 
-class TestSessionManagement(unittest.TestCase):
-    """セッション管理のテストクラス."""
+class TestSessionManagement:
+    """セッション管理のテストクラス。"""
 
     def test_get_db_session_context_manager_with_usage_returns_session(self):
         """get_db_sessionがコンテキストマネージャーとして機能することを確認."""
@@ -85,9 +78,9 @@ class TestSessionManagement(unittest.TestCase):
         # Act (実行)
         with get_db_session() as db_session:
             # Assert (検証)
-            self.assertIsNotNone(db_session)
+            assert db_session is not None
             # セッションが有効であることを確認
-            self.assertTrue(db_session.is_active)
+            assert db_session.is_active
 
     @patch("app.models.SessionLocal")
     def test_session_commit_on_success_with_normal_operation_returns_committed(
@@ -98,12 +91,9 @@ class TestSessionManagement(unittest.TestCase):
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
 
-        # Act (実行)
         with get_db_session():
-            # 正常に処理が完了
             pass
 
-        # Assert (検証)
         # commitが呼ばれたことを確認
         mock_session.commit.assert_called_once()
         # closeが呼ばれたことを確認
@@ -118,13 +108,10 @@ class TestSessionManagement(unittest.TestCase):
         mock_session = MagicMock()
         mock_session_local.return_value = mock_session
 
-        # Act (実行)
         with pytest.raises(ValueError):
             with get_db_session():
-                # 例外を発生させる
                 raise ValueError("Test exception")
 
-        # Assert (検証)
         # rollbackが呼ばれたことを確認
         mock_session.rollback.assert_called_once()
         # closeが呼ばれたことを確認
@@ -151,8 +138,8 @@ class TestSessionManagement(unittest.TestCase):
         mock_session.close.assert_called_once()
 
 
-class TestConnectionLeakPrevention(unittest.TestCase):
-    """接続リーク防止のテストクラス."""
+class TestConnectionLeakPrevention:
+    """接続リーク防止のテストクラス。"""
 
     def test_multiple_sequential_sessions(self):
         """連続したセッション使用で接続リークが発生しないことを確認."""
@@ -161,15 +148,14 @@ class TestConnectionLeakPrevention(unittest.TestCase):
         # 複数のセッションを連続して使用
         for _ in range(5):
             with get_db_session() as session:
-                self.assertIsNotNone(session)
-                # セッション内で簡単なクエリを実行
+                assert session is not None
                 result = session.execute(text("SELECT 1")).scalar()
-                self.assertEqual(result, 1)
+                assert result == 1
 
         # プールの統計情報を確認（接続がプールに戻されていることを確認）
         pool = engine.pool
         # チェックアウトされた接続数が0であることを確認
-        self.assertEqual(pool.checkedout(), 0)
+        assert pool.checkedout() == 0
 
     def test_session_exception_does_not_leak_connection_with_error_returns_clean_state(
         self,
@@ -179,17 +165,16 @@ class TestConnectionLeakPrevention(unittest.TestCase):
 
         try:
             with get_db_session():
-                # 意図的に例外を発生させる
                 raise ValueError("Test exception")
         except ValueError:
             pass
 
         # チェックアウトされた接続数が元に戻っていることを確認
-        self.assertEqual(engine.pool.checkedout(), initial_checkedout)
+        assert engine.pool.checkedout() == initial_checkedout
 
 
-class TestConnectionResilience(unittest.TestCase):
-    """接続の回復力テストクラス."""
+class TestConnectionResilience:
+    """接続の回復力テストクラス。"""
 
     @patch("app.models.engine.pool.connect")
     def test_pool_pre_ping_detects_stale_connections_with_invalid_connection_returns_new_connection(
@@ -207,8 +192,8 @@ class TestConnectionResilience(unittest.TestCase):
         pass
 
 
-class TestSessionLocalConfiguration(unittest.TestCase):
-    """SessionLocalの設定テストクラス."""
+class TestSessionLocalConfiguration:
+    """SessionLocalの設定テストクラス。"""
 
     def test_session_local_autocommit_false(self):
         """SessionLocalのautocommitがFalseであることを確認."""
@@ -216,10 +201,7 @@ class TestSessionLocalConfiguration(unittest.TestCase):
         # セッション作成時の設定を確認
         session = SessionLocal()
         try:
-            # SQLAlchemy 2.0ではautocommit属性は存在しないため、
-            # sessionmaker の設定を確認
-            # autocommit=Falseはデフォルト動作
-            self.assertIsNotNone(session)
+            assert session is not None
         finally:
             session.close()
 
@@ -227,8 +209,7 @@ class TestSessionLocalConfiguration(unittest.TestCase):
         """SessionLocalのautoflushがFalseであることを確認."""
         session = SessionLocal()
         try:
-            # autoflushがFalseであることを確認
-            self.assertFalse(session.autoflush)
+            assert not session.autoflush
         finally:
             session.close()
 
@@ -236,11 +217,6 @@ class TestSessionLocalConfiguration(unittest.TestCase):
         """SessionLocalが正しいエンジンにバインドされていることを確認."""
         session = SessionLocal()
         try:
-            # セッションが正しいエンジンを使用していることを確認
-            self.assertEqual(session.bind, engine)
+            assert session.bind == engine
         finally:
             session.close()
-
-
-if __name__ == "__main__":
-    unittest.main()
