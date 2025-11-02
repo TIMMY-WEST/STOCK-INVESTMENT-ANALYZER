@@ -76,17 +76,6 @@ repos:
           - '--max-line-length=79'
           - '--max-complexity=10'
 
-      - id: complexity-check
-        name: 複雑度チェック（McCabe）
-        entry: python scripts/hooks/run_check_with_status.py --check complexity
-        language: system
-        types: [python]
-        exclude: ^(venv/|\.venv/|migrations/|build/|dist/|\.eggs/|\.serena/|\.claude/)
-        verbose: true
-        args:
-          - '--select=C901'
-          - '--max-complexity=10'
-
 
       - id: mypy-status
         name: mypyによる型チェック（サマリー収集）
@@ -98,6 +87,7 @@ repos:
           - --config-file=pyproject.toml
           - --no-incremental
           - app
+
 
       - id: commit-status-summary
         name: コミット最終サマリー

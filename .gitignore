@@ -50,9 +50,6 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-# pytest HTML reports
-*_unit.html
-*_integration.html
 
 # Translations
 *.mo

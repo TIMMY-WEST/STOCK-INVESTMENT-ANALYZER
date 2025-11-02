@@ -49,18 +49,22 @@ related_docs:
   - [4. CI/CD（GitHub Actions）](#4-cicdgithub-actions)
     - [4.1 基本方針](#41-基本方針)
     - [4.2 基本的なワークフロー構成](#42-基本的なワークフロー構成)
-      - [メインワークフロー（品質チェック）](#メインワークフロー品質チェック)
+      - [メインワークフロー](#メインワークフロー)
     - [4.3 ブランチ保護との連携](#43-ブランチ保護との連携)
       - [PR作成時の自動チェック](#pr作成時の自動チェック)
       - [mainブランチへのマージ条件](#mainブランチへのマージ条件)
-    - [4.4 ワークフローの概要まとめ](#44-ワークフローの概要まとめ)
-    - [4.5 ワークフロー管理のベストプラクティス](#45-ワークフロー管理のベストプラクティス)
+    - [4.4 セキュリティ・品質チェック](#44-セキュリティ品質チェック)
+      - [依存関係の脆弱性チェック](#依存関係の脆弱性チェック)
+      - [コード品質チェック](#コード品質チェック)
+    - [4.5 デプロイメント（必要に応じて）](#45-デプロイメント必要に応じて)
+      - [本番デプロイワークフロー（例）](#本番デプロイワークフロー例)
+    - [4.6 ワークフロー管理のベストプラクティス](#46-ワークフロー管理のベストプラクティス)
       - [やるべきこと ✅](#やるべきこと--1)
       - [避けるべきこと ❌](#避けるべきこと--1)
-    - [4.6 環境変数とシークレット管理](#46-環境変数とシークレット管理)
-      - [GitHub Secretsの設定](#github-secretsの設定)
-      - [ワークフローでの使用方法](#ワークフローでの使用方法)
-    - [4.7 トラブルシューティング](#47-トラブルシューティング)
+    - [4.7 環境変数とシークレット管理](#47-環境変数とシークレット管理)
+      - [GitHub Secrets設定例](#github-secrets設定例)
+      - [ワークフローでの使用例](#ワークフローでの使用例)
+    - [4.8 トラブルシューティング](#48-トラブルシューティング)
       - [よくある問題と対処法](#よくある問題と対処法)
       - [ログの確認方法](#ログの確認方法)
   - [5. まとめ](#5-まとめ)
@@ -325,138 +329,244 @@ Protect this branch: ✅
 
 ### 4.2 基本的なワークフロー構成
 
-#### メインワークフロー（テスト）
+#### メインワークフロー
+```yaml
+# .github/workflows/main.yml
+name: CI/CD Pipeline
 
-**トリガー条件**:
-- 全ブランチへのプルリクエスト作成時に自動実行
-- 全ブランチへのpush時に自動実行
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-**実行内容**:
-1. **テスト環境のセットアップ**
-   - Python 3.11環境の構築
-   - 依存パッケージのインストール
-   - PostgreSQL 14サービスコンテナの起動
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-2. **データベースのセットアップ**
-   - PostgreSQLサービスコンテナへの接続確認
-   - テーブルスキーマの作成（`scripts/database/schema/create_tables.sql`）
-   - データベース構造の検証
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-3. **テストの実行**
-   - pytestによるユニット・統合テストの実行
-   - E2Eテストを除く全テストの実行
-   - カバレッジレポート生成
+      - name: Install dependencies
+        run: npm ci
 
-**目的**:
-- プルリクエストのマージ前にテストを自動実行
-- 実際のPostgreSQLデータベース環境でのテスト検証
-- 潜在的なバグの早期発見
-- コード変更による既存機能への影響を検証
+      - name: Run linting
+        run: npm run lint
 
-**データベース環境**:
-- PostgreSQL 14コンテナを使用
-- データベース名: `stock_data_system`
-- ユーザー名: `stock_user`
-- パスワード: `stock_password`
-- ポート: 5432
+      - name: Run tests
+        run: npm test
 
-**注意事項**:
-- コード品質チェック（pre-commit）はローカルで実行
-- GitHub Actions内ではテストのみを実行
-- データベースは各ワークフロー実行時にクリーンな状態で作成される
+      - name: Run type checking
+        run: npm run type-check
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: dist/
+```
 
 ### 4.3 ブランチ保護との連携
 
 #### PR作成時の自動チェック
-プルリクエストのマージ前に以下の項目が自動でチェックされます：
-
-- ✅ **テストによる問題確認**: E2Eテストを除く全テストの実行
+```yaml
+# PRマージ前に必須チェック項目
+- ✅ Linting pass
+- ✅ Type checking pass
+- ✅ Unit tests pass
+- ✅ Build successful
+```
 
 #### mainブランチへのマージ条件
-以下の条件を全て満たす必要があります：
+- 全てのGitHub Actionsジョブが成功
+- PRレビュー完了（セルフレビュー可）
+- ブランチが最新状態
 
-- ✅ GitHub Actionsのテストが全て成功
-- ✅ PRレビュー完了（セルフレビュー可）
-- ✅ ブランチが最新のmainと同期されている
+### 4.4 セキュリティ・品質チェック
 
-#### ローカルでの品質チェック
-以下の品質チェックはローカル環境で実施してください：
+#### 依存関係の脆弱性チェック
+```yaml
+# .github/workflows/security.yml
+name: Security Scan
 
-- ✅ **pre-commitフック**: コミット前に自動実行（flake8, mypy, blackなど）
-- ✅ ローカルでテストを実行して動作確認
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 毎週月曜日 9:00
+  pull_request:
+    branches: [ main ]
 
-### 4.4 ワークフローの概要まとめ
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-本プロジェクトでは、以下のGitHub Actionsワークフローを運用しています：
+      - name: Run npm audit
+        run: npm audit --audit-level moderate
 
-| ワークフロー | トリガー                           | 主な目的         |
-| ------------ | ---------------------------------- | ---------------- |
-| **テスト**   | PR作成時と各ブランチへのプッシュ時 | テストの自動実行 |
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        if: github.event_name == 'pull_request'
+```
 
-**設計方針**:
-- **軽量なCI**: 自動実行はテストのみに限定
-- **効率的な開発**: 品質チェック（pre-commit）はローカルで実行し、CI実行時間を最小化
-- **開発速度の維持**: 過度な自動化を避け、必要最小限のチェックで開発速度を維持
+#### コード品質チェック
+```yaml
+# .github/workflows/code-quality.yml
+name: Code Quality
 
-### 4.5 ワークフロー管理のベストプラクティス
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Code coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+```
+
+### 4.5 デプロイメント（必要に応じて）
+
+#### 本番デプロイワークフロー（例）
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*'  # バージョンタグでトリガー
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for production
+        run: npm run build:prod
+
+      - name: Deploy to server
+        run: |
+          # デプロイスクリプトの実行
+          echo "Deploy to production server"
+```
+
+### 4.6 ワークフロー管理のベストプラクティス
 
 #### やるべきこと ✅
-- **軽量なCI**: 実行時間を最小限に抑える（テストは2-3分程度）
+- **軽量なCI**: 実行時間を5分以内に抑制
 - **早期失敗**: 問題があれば素早く検出して停止
-- **キャッシュ活用**: Pythonパッケージのキャッシュで実行時間短縮
+- **キャッシュ活用**: node_modules等の依存関係をキャッシュ
+- **並列実行**: 独立したジョブは並列で実行
 - **明確な名前**: ワークフローとジョブに分かりやすい名前を付与
-- **適切なトリガー**: 必要な場面でのみワークフローを実行
-- **ローカルでの品質チェック**: pre-commitフックを活用してコミット前に品質を確保
 
 #### 避けるべきこと ❌
-- **過度な自動化**: 不要な複雑さを避ける（品質チェックはローカルで実施）
-- **長時間実行**: 10分を超えるワークフローは見直しが必要
-- **秘密情報の露出**: 環境変数やシークレットをログに出力しない
-- **無駄なトリガー**: 不要なイベントでのワークフロー実行を避ける
-- **CI内での品質チェック**: pre-commitはローカルで実行し、CIでは実行しない
+- **過度な自動化**: 不要な複雑さを避ける
+- **長時間実行**: 10分を超えるワークフローは見直し
+- **秘密情報の露出**: API キーやパスワードをログに出力
+- **無駄なトリガー**: 不要なイベントでのワークフロー実行
 
-### 4.6 環境変数とシークレット管理
+### 4.7 環境変数とシークレット管理
 
-#### GitHub Secretsの設定
-機密情報（APIキー、データベース接続文字列など）は、GitHubのSecretsとして管理します。
+#### GitHub Secrets設定例
+```
+# Repository Settings > Secrets and variables > Actions
+DATABASE_URL=postgresql://...
+API_KEY=your-api-key
+DEPLOY_TOKEN=your-deploy-token
+```
 
-**設定場所**:
-- リポジトリの `Settings` > `Secrets and variables` > `Actions`
+#### ワークフローでの使用例
+```yaml
+env:
+  NODE_ENV: production
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-**管理すべき情報の例**:
-- データベース接続情報（`DATABASE_URL`）
-- 外部APIキー（`API_KEY`）
-- デプロイトークン（`DEPLOY_TOKEN`）
+steps:
+  - name: Run with secrets
+    run: npm run migrate
+    env:
+      API_KEY: ${{ secrets.API_KEY }}
+```
 
-#### ワークフローでの使用方法
-- シークレットは `${{ secrets.SECRET_NAME }}` の形式で参照
-- 環境変数として設定し、ワークフロー内で利用
-- ログに機密情報が出力されないよう注意
-
-### 4.7 トラブルシューティング
+### 4.8 トラブルシューティング
 
 #### よくある問題と対処法
+```
+❌ npm ci が失敗する
+→ package-lock.json のコミット確認
 
-**テストが失敗する場合**:
-- pytestのエラーメッセージを確認
-- ローカル環境でテストを実行して再現性を確認
-- 依存パッケージのバージョンを確認
+❌ テストがタイムアウトする
+→ jest.config.js のtimeout設定を確認
 
-**ワークフローが起動しない場合**:
-- ワークフローファイルの構文エラーを確認
-- トリガー条件（push, pull_request）が正しく設定されているか確認
+❌ ビルドが失敗する
+→ 環境変数の設定を確認
 
-**ローカルで品質チェックが失敗する場合**:
-- pre-commitフックのエラー内容を確認
-- `pre-commit run --all-files` を実行して全ファイルをチェック
-- Blackのフォーマット、flake8のLint、mypyの型チェックを個別に確認
-- エラーを修正してから再度コミット
+❌ デプロイが失敗する
+→ 秘密情報の設定を確認
+```
 
 #### ログの確認方法
-1. GitHubリポジトリの `Actions` タブを開く
-2. 該当のワークフロー実行を選択
-3. 失敗したジョブをクリックして詳細ログを確認
-4. エラーメッセージから原因を特定し、対処
+- GitHub > Actions タブでワークフロー実行状況を確認
+- 失敗したジョブの詳細ログを確認
+- 必要に応じてdebugログを有効化（`ACTIONS_STEP_DEBUG: true`）
 
 ## 5. まとめ
 
