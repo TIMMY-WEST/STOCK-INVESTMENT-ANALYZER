@@ -6,9 +6,7 @@
 - **[テスト標準仕様書 (v3.0.0)](../standards/testing-standards.md)** ← こちらを使用
 
 このファイルは `testing_guide.md`、`testing_strategy.md`、`test_coverage_report.md` を統合した最新バージョンです。
-
 ---
-
 # テストカバレッジレポート - サービス層 (ARCHIVED)
 
 **作成日**: 2025-11-01

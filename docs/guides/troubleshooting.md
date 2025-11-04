@@ -9,9 +9,7 @@
 - [データベースの問題](#データベースの問題)
 - [APIの問題](#apiの問題)
 - [デバッグ方法](#デバッグ方法)
-
 ---
-
 ## 概要
 
 **最終更新**: 2025-11-02
@@ -19,9 +17,7 @@
 **AI優先度**: 中
 
 本ドキュメントは、開発中に発生する一般的な問題と解決方法を提供します。
-
 ---
-
 ## 開発環境の問題
 
 ### Python バージョン不一致
@@ -80,9 +76,7 @@ pip install -r requirements.txt
 pip cache purge
 pip install -r requirements.txt
 ```
-
 ---
-
 ## テスト実行の問題
 
 ### テストが失敗する
@@ -148,9 +142,7 @@ pytest --durations=10
 pytest -m unit
 pytest -m "not slow"
 ```
-
 ---
-
 ## CI/CDパイプラインの問題
 
 ### Pre-commit フックが実行されない
@@ -248,9 +240,7 @@ env:
   DB_PORT: 5432
   # ...
 ```
-
 ---
-
 ## データベースの問題
 
 ### データベース接続エラー
@@ -311,9 +301,7 @@ psql -h localhost -U stock_user -d stock_data_system -f scripts/database/schema/
 # サンプルデータを挿入
 psql -h localhost -U stock_user -d stock_data_system -f scripts/database/seed/insert_sample_data.sql
 ```
-
 ---
-
 ## APIの問題
 
 ### APIエンドポイントが404を返す
@@ -366,9 +354,7 @@ curl -v http://localhost:5000/api/stocks
 psql -h localhost -U stock_user -d stock_data_system
 SELECT * FROM stocks_1d LIMIT 10;
 ```
-
 ---
-
 ## デバッグ方法
 
 ### ローカルでのデバッグ
@@ -429,9 +415,7 @@ pdbデバッガが起動:
 2. New repository secret をクリック
 3. Name: `ACTIONS_RUNNER_DEBUG`, Value: `true`
 4. Add secret をクリック
-
 ---
-
 ## よくある質問 (FAQ)
 
 ### Q1: コミット時にPre-commitフックをスキップしたい
@@ -480,9 +464,7 @@ pytest      # 通常
 ```bash
 flake8 app/ --show-source  # エラー箇所のソースコードを表示
 ```
-
 ---
-
 ## まとめ
 
 問題が発生した場合は、以下の流れで対応することを推奨します:
@@ -497,17 +479,13 @@ flake8 app/ --show-source  # エラー箇所のソースコードを表示
 - GitHub Issuesで質問
 - プロジェクトメンバーに相談
 - 関連ドキュメントを参照
-
 ---
-
 ## 関連ドキュメント
 
 - [CI/CDパイプライン設定](../ci-cd/pipeline-config.md) - CI/CD詳細設定
 - [テスト規約](../standards/testing-standards.md) - テスト作成ガイドライン
 - [コーディング規約](../standards/coding-standards.md) - コーディング規約
 - [開発ワークフロー](development-workflow.md) - 開発フロー全体
-
 ---
-
 **最終更新**: 2025-11-02
 **文書バージョン**: v2.0.0

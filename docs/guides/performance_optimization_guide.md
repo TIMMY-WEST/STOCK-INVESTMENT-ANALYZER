@@ -1,20 +1,16 @@
----
 category: guide
 ai_context: low
 last_updated: 2025-10-18
 related_docs:
   - ../architecture/database_design.md
   - ../api/api_specification.md
----
 
 # パフォーマンス最適化ガイド
 
 ## 📋 概要
 v1.1.0において、大量データ処理とレスポンス速度を最適化するためのガイドです。
 10万件以上のデータでも快適に動作する高性能システムを実現します。
-
 ---
-
 ## 🎯 最適化目標
 
 ### パフォーマンス要件
@@ -29,9 +25,7 @@ v1.1.0において、大量データ処理とレスポンス速度を最適化�
 - メモリ使用量
 - CPU 使用率
 - 並行接続数
-
 ---
-
 ## 🗄️ データベースパフォーマンス最適化
 
 ### 1. インデックス最適化
@@ -130,9 +124,7 @@ FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
 CREATE TABLE stocks_1d_2025 PARTITION OF stocks_1d
 FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');
 ```
-
 ---
-
 ## 🌐 フロントエンドパフォーマンス改善
 
 ### 1. 仮想化による大量データ表示
@@ -249,9 +241,7 @@ const StockSelector = () => {
   }
 }
 ```
-
 ---
-
 ## ⚙️ バックエンドパフォーマンス改善
 
 ### 1. 並列データ取得処理
@@ -349,9 +339,7 @@ app.get('/api/stocks/:symbol', async (req, res) => {
   res.json(data);
 });
 ```
-
 ---
-
 ## 📊 監視とプロファイリング
 
 ### 1. パフォーマンス監視
@@ -407,9 +395,7 @@ FROM pg_stat_statements
 WHERE mean_time > 100
 ORDER BY mean_time DESC;
 ```
-
 ---
-
 ## 🧪 パフォーマンステスト
 
 ### 1. 負荷テスト
@@ -477,9 +463,7 @@ takeHeapSnapshot('heap-before.heapsnapshot');
 // 大量データ処理を実行
 takeHeapSnapshot('heap-after.heapsnapshot');
 ```
-
 ---
-
 ## 📈 最適化の検証
 
 ### 1. ベンチマーク指標
@@ -538,7 +522,5 @@ const performanceCheck = async () => {
 // 毎時パフォーマンスチェック実行
 setInterval(performanceCheck, 60 * 60 * 1000);
 ```
-
 ---
-
 このパフォーマンス最適化ガイドにより、v1.1.0システムは大量データを高速かつ効率的に処理できるようになります。定期的な監視と継続的な改善により、長期的な安定性とパフォーマンスを維持します。

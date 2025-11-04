@@ -67,11 +67,11 @@ POST /api/stocks/data
 
 **パラメータ**
 
-| フィールド | 型 | 必須 | 説明 | デフォルト |
-|-----------|-----|------|------|-----------|
-| `symbol` | string | ○ | 銘柄コード（例: 7203.T = トヨタ） | - |
-| `period` | string | - | 取得期間 | "1mo" |
-| `interval` | string | - | 時間軸 | "1d" |
+| フィールド | 型     | 必須 | 説明                              | デフォルト |
+| ---------- | ------ | ---- | --------------------------------- | ---------- |
+| `symbol`   | string | ○    | 銘柄コード（例: 7203.T = トヨタ） | -          |
+| `period`   | string | -    | 取得期間                          | "1mo"      |
+| `interval` | string | -    | 時間軸                            | "1d"       |
 
 **期間（period）の指定可能な値**
 - `1d`, `5d`, `1mo`, `3mo`, `6mo`, `1y`, `2y`, `5y`, `10y`, `ytd`, `max`
@@ -134,9 +134,7 @@ POST /api/stocks/data
   }
 }
 ```
-
 ---
-
 #### 2. 株価データ一覧取得
 
 保存済みの株価データを検索・取得します。
@@ -148,16 +146,16 @@ GET /api/stocks
 
 **クエリパラメータ**
 
-| パラメータ | 型 | 必須 | 説明 | デフォルト |
-|-----------|-----|------|------|-----------|
-| `symbol` | string | - | 銘柄コード（指定時はその銘柄のみ） | - |
-| `interval` | string | - | 時間軸 | "1d" |
-| `limit` | integer | - | 取得件数制限（1-1000） | 100 |
-| `offset` | integer | - | オフセット（0以上） | 0 |
-| `start_date` | string | - | 開始日（YYYY-MM-DD） | - |
-| `end_date` | string | - | 終了日（YYYY-MM-DD） | - |
-| `from` | string | - | 開始日のエイリアス（start_dateより優先） | - |
-| `to` | string | - | 終了日のエイリアス（end_dateより優先） | - |
+| パラメータ   | 型      | 必須 | 説明                                     | デフォルト |
+| ------------ | ------- | ---- | ---------------------------------------- | ---------- |
+| `symbol`     | string  | -    | 銘柄コード（指定時はその銘柄のみ）       | -          |
+| `interval`   | string  | -    | 時間軸                                   | "1d"       |
+| `limit`      | integer | -    | 取得件数制限（1-1000）                   | 100        |
+| `offset`     | integer | -    | オフセット（0以上）                      | 0          |
+| `start_date` | string  | -    | 開始日（YYYY-MM-DD）                     | -          |
+| `end_date`   | string  | -    | 終了日（YYYY-MM-DD）                     | -          |
+| `from`       | string  | -    | 開始日のエイリアス（start_dateより優先） | -          |
+| `to`         | string  | -    | 終了日のエイリアス（end_dateより優先）   | -          |
 
 **リクエスト例**
 ```
@@ -213,9 +211,7 @@ GET /api/stocks?interval=5m&limit=100&offset=100
   }
 }
 ```
-
 ---
-
 #### 3. 株価データ作成
 
 新しい株価データレコードを作成します。
@@ -256,9 +252,7 @@ POST /api/stocks
   }
 }
 ```
-
 ---
-
 #### 4. 株価データ詳細取得
 
 特定のIDの株価データを取得します。
@@ -270,8 +264,8 @@ GET /api/stocks/{stock_id}
 
 **パスパラメータ**
 
-| パラメータ | 型 | 説明 |
-|-----------|-----|------|
+| パラメータ | 型      | 説明           |
+| ---------- | ------- | -------------- |
 | `stock_id` | integer | 株価データのID |
 
 **成功レスポンス (200)**
@@ -306,9 +300,7 @@ GET /api/stocks/{stock_id}
   }
 }
 ```
-
 ---
-
 #### 5. 株価データ更新
 
 特定のIDの株価データを更新します。
@@ -346,9 +338,7 @@ PUT /api/stocks/{stock_id}
   }
 }
 ```
-
 ---
-
 #### 6. 株価データ削除
 
 特定のIDの株価データを削除します。
@@ -365,9 +355,7 @@ DELETE /api/stocks/{stock_id}
   "message": "株価データが正常に削除されました"
 }
 ```
-
 ---
-
 ### バルクデータAPI
 
 バージョン付きエンドポイントのみサポート。
@@ -404,9 +392,7 @@ POST /api/v1/bulk-data/jobs
   }
 }
 ```
-
 ---
-
 #### 2. バルクジョブステータス確認
 
 実行中のバルクジョブの進捗を確認します。
@@ -439,9 +425,7 @@ GET /api/v1/bulk-data/jobs/{job_id}
 - `completed`: 完了
 - `failed`: 失敗
 - `cancelled`: キャンセル済み
-
 ---
-
 #### 3. バルクジョブ停止
 
 実行中のバルクジョブを停止します。
@@ -464,9 +448,7 @@ POST /api/v1/bulk-data/jobs/{job_id}/stop
   }
 }
 ```
-
 ---
-
 ### 銘柄マスターAPI
 
 バージョン付きエンドポイントのみサポート。
@@ -489,9 +471,9 @@ POST /api/v1/stock-master
 
 **パラメータ**
 
-| フィールド | 型 | 必須 | 説明 | デフォルト |
-|-----------|-----|------|------|-----------|
-| `force_update` | boolean | - | 強制更新フラグ | false |
+| フィールド     | 型      | 必須 | 説明           | デフォルト |
+| -------------- | ------- | ---- | -------------- | ---------- |
+| `force_update` | boolean | -    | 強制更新フラグ | false      |
 
 **成功レスポンス (200)**
 ```json
@@ -507,9 +489,7 @@ POST /api/v1/stock-master
   }
 }
 ```
-
 ---
-
 #### 2. 銘柄マスター一覧取得
 
 登録されている銘柄マスター情報を取得します。
@@ -521,12 +501,12 @@ GET /api/v1/stock-master/stocks
 
 **クエリパラメータ**
 
-| パラメータ | 型 | 必須 | 説明 | デフォルト |
-|-----------|-----|------|------|-----------|
-| `market` | string | - | 市場（Prime, Standard, Growth） | - |
-| `sector` | string | - | 業種 | - |
-| `limit` | integer | - | 取得件数制限 | 100 |
-| `offset` | integer | - | オフセット | 0 |
+| パラメータ | 型      | 必須 | 説明                            | デフォルト |
+| ---------- | ------- | ---- | ------------------------------- | ---------- |
+| `market`   | string  | -    | 市場（Prime, Standard, Growth） | -          |
+| `sector`   | string  | -    | 業種                            | -          |
+| `limit`    | integer | -    | 取得件数制限                    | 100        |
+| `offset`   | integer | -    | オフセット                      | 0          |
 
 **成功レスポンス (200)**
 ```json
@@ -549,9 +529,7 @@ GET /api/v1/stock-master/stocks
   }
 }
 ```
-
 ---
-
 ### システム監視API
 
 #### 1. ヘルスチェック
@@ -589,9 +567,7 @@ GET /api/v1/system/health-check
 - `healthy`: 正常
 - `degraded`: 一部機能に問題あり
 - `unhealthy`: システムエラー
-
 ---
-
 #### 2. データベース接続テスト
 
 データベース接続の健全性を確認します。
@@ -616,9 +592,7 @@ GET /api/v1/system/database/connection
   }
 }
 ```
-
 ---
-
 #### 3. 外部API接続テスト
 
 Yahoo Finance APIへの接続を確認します。
@@ -631,9 +605,9 @@ GET /api/v1/system/external-api/connection
 
 **クエリパラメータ**
 
-| パラメータ | 型 | 必須 | 説明 | デフォルト |
-|-----------|-----|------|------|-----------|
-| `symbol` | string | - | テスト用銘柄コード | "7203.T" |
+| パラメータ | 型     | 必須 | 説明               | デフォルト |
+| ---------- | ------ | ---- | ------------------ | ---------- |
+| `symbol`   | string | -    | テスト用銘柄コード | "7203.T"   |
 
 **成功レスポンス (200)**
 ```json
@@ -647,9 +621,7 @@ GET /api/v1/system/external-api/connection
   }
 }
 ```
-
 ---
-
 ## データモデル
 
 ### 株価データ（StockData）
@@ -660,18 +632,18 @@ GET /api/v1/system/external-api/connection
 
 **テーブル**: `stocks_1d`, `stocks_1wk`, `stocks_1mo`
 
-| フィールド | 型 | NULL | 説明 |
-|-----------|-----|------|------|
-| `id` | INTEGER | NOT NULL | 主キー（自動採番） |
-| `symbol` | VARCHAR(20) | NOT NULL | 銘柄コード |
-| `date` | DATE | NOT NULL | 取引日 |
-| `open` | FLOAT | - | 始値 |
-| `high` | FLOAT | - | 高値 |
-| `low` | FLOAT | - | 安値 |
-| `close` | FLOAT | - | 終値 |
-| `volume` | BIGINT | - | 出来高 |
-| `created_at` | TIMESTAMP | NOT NULL | 作成日時 |
-| `updated_at` | TIMESTAMP | NOT NULL | 更新日時 |
+| フィールド   | 型          | NULL     | 説明               |
+| ------------ | ----------- | -------- | ------------------ |
+| `id`         | INTEGER     | NOT NULL | 主キー（自動採番） |
+| `symbol`     | VARCHAR(20) | NOT NULL | 銘柄コード         |
+| `date`       | DATE        | NOT NULL | 取引日             |
+| `open`       | FLOAT       | -        | 始値               |
+| `high`       | FLOAT       | -        | 高値               |
+| `low`        | FLOAT       | -        | 安値               |
+| `close`      | FLOAT       | -        | 終値               |
+| `volume`     | BIGINT      | -        | 出来高             |
+| `created_at` | TIMESTAMP   | NOT NULL | 作成日時           |
+| `updated_at` | TIMESTAMP   | NOT NULL | 更新日時           |
 
 **複合ユニークキー**: `(symbol, date)`
 
@@ -679,51 +651,49 @@ GET /api/v1/system/external-api/connection
 
 **テーブル**: `stocks_1m`, `stocks_5m`, `stocks_15m`, `stocks_30m`, `stocks_1h`
 
-| フィールド | 型 | NULL | 説明 |
-|-----------|-----|------|------|
-| `id` | INTEGER | NOT NULL | 主キー（自動採番） |
-| `symbol` | VARCHAR(20) | NOT NULL | 銘柄コード |
-| `datetime` | TIMESTAMP | NOT NULL | 取引日時 |
-| `open` | FLOAT | - | 始値 |
-| `high` | FLOAT | - | 高値 |
-| `low` | FLOAT | - | 安値 |
-| `close` | FLOAT | - | 終値 |
-| `volume` | BIGINT | - | 出来高 |
-| `created_at` | TIMESTAMP | NOT NULL | 作成日時 |
-| `updated_at` | TIMESTAMP | NOT NULL | 更新日時 |
+| フィールド   | 型          | NULL     | 説明               |
+| ------------ | ----------- | -------- | ------------------ |
+| `id`         | INTEGER     | NOT NULL | 主キー（自動採番） |
+| `symbol`     | VARCHAR(20) | NOT NULL | 銘柄コード         |
+| `datetime`   | TIMESTAMP   | NOT NULL | 取引日時           |
+| `open`       | FLOAT       | -        | 始値               |
+| `high`       | FLOAT       | -        | 高値               |
+| `low`        | FLOAT       | -        | 安値               |
+| `close`      | FLOAT       | -        | 終値               |
+| `volume`     | BIGINT      | -        | 出来高             |
+| `created_at` | TIMESTAMP   | NOT NULL | 作成日時           |
+| `updated_at` | TIMESTAMP   | NOT NULL | 更新日時           |
 
 **複合ユニークキー**: `(symbol, datetime)`
 
 ### 時間軸とテーブル対応表
 
-| interval | テーブル名 | 時間フィールド | 説明 |
-|----------|-----------|---------------|------|
-| 1m | stocks_1m | datetime | 1分足 |
-| 5m | stocks_5m | datetime | 5分足 |
-| 15m | stocks_15m | datetime | 15分足 |
-| 30m | stocks_30m | datetime | 30分足 |
-| 1h | stocks_1h | datetime | 1時間足 |
-| 1d | stocks_1d | date | 日足 |
-| 1wk | stocks_1wk | date | 週足 |
-| 1mo | stocks_1mo | date | 月足 |
-
+| interval | テーブル名 | 時間フィールド | 説明    |
+| -------- | ---------- | -------------- | ------- |
+| 1m       | stocks_1m  | datetime       | 1分足   |
+| 5m       | stocks_5m  | datetime       | 5分足   |
+| 15m      | stocks_15m | datetime       | 15分足  |
+| 30m      | stocks_30m | datetime       | 30分足  |
+| 1h       | stocks_1h  | datetime       | 1時間足 |
+| 1d       | stocks_1d  | date           | 日足    |
+| 1wk      | stocks_1wk | date           | 週足    |
+| 1mo      | stocks_1mo | date           | 月足    |
 ---
-
 ## エラーハンドリング
 
 ### エラーコード一覧
 
-| エラーコード | HTTPステータス | 説明 |
-|------------|---------------|------|
-| `INVALID_SYMBOL` | 400 | 無効な銘柄コード |
-| `INVALID_INTERVAL` | 400 | 無効な時間軸指定 |
-| `INVALID_PERIOD` | 400 | 無効な期間指定 |
-| `VALIDATION_ERROR` | 400 | バリデーションエラー |
-| `NOT_FOUND` | 404 | リソースが見つからない |
-| `DATABASE_ERROR` | 500 | データベースエラー |
-| `DATA_FETCH_ERROR` | 500 | データ取得エラー |
-| `EXTERNAL_API_ERROR` | 502 | 外部APIエラー |
-| `INTERNAL_SERVER_ERROR` | 500 | 内部サーバーエラー |
+| エラーコード            | HTTPステータス | 説明                   |
+| ----------------------- | -------------- | ---------------------- |
+| `INVALID_SYMBOL`        | 400            | 無効な銘柄コード       |
+| `INVALID_INTERVAL`      | 400            | 無効な時間軸指定       |
+| `INVALID_PERIOD`        | 400            | 無効な期間指定         |
+| `VALIDATION_ERROR`      | 400            | バリデーションエラー   |
+| `NOT_FOUND`             | 404            | リソースが見つからない |
+| `DATABASE_ERROR`        | 500            | データベースエラー     |
+| `DATA_FETCH_ERROR`      | 500            | データ取得エラー       |
+| `EXTERNAL_API_ERROR`    | 502            | 外部APIエラー          |
+| `INTERNAL_SERVER_ERROR` | 500            | 内部サーバーエラー     |
 
 ### エラーレスポンス形式
 
@@ -741,9 +711,7 @@ GET /api/v1/system/external-api/connection
   }
 }
 ```
-
 ---
-
 ## レスポンス形式
 
 ### 成功レスポンス
@@ -783,17 +751,15 @@ GET /api/v1/system/external-api/connection
 
 ### 共通フィールド
 
-| フィールド | 型 | 説明 |
-|-----------|-----|------|
-| `success` | boolean | 成功フラグ（true/false） |
-| `message` | string | メッセージ（成功時） |
-| `data` | object/array | レスポンスデータ |
-| `pagination` | object | ページネーション情報（一覧取得時） |
-| `meta` | object | メタデータ（任意） |
-| `error` | object | エラー情報（失敗時） |
-
+| フィールド   | 型           | 説明                               |
+| ------------ | ------------ | ---------------------------------- |
+| `success`    | boolean      | 成功フラグ（true/false）           |
+| `message`    | string       | メッセージ（成功時）               |
+| `data`       | object/array | レスポンスデータ                   |
+| `pagination` | object       | ページネーション情報（一覧取得時） |
+| `meta`       | object       | メタデータ（任意）                 |
+| `error`      | object       | エラー情報（失敗時）               |
 ---
-
 ## 付録
 
 ### API仕様の確認方法
@@ -817,9 +783,7 @@ http://localhost:8000/api/openapi.yaml
 
 - [API使用例ガイド](./api_usage_guide.md) - 実践的な使用例とコードサンプル
 - [APIバージョニングガイド](./versioning_guide.md) - バージョン管理の詳細
-- [プロジェクトアーキテクチャ](../architecture/project_architecture.md) - システム全体の設計
-
+- [アーキテクチャ概要](../architecture/architecture_overview.md) - システム全体の設計
 ---
-
 **最終更新**: 2025-01-15
 **バージョン**: 1.0.0

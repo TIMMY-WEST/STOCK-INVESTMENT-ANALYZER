@@ -1,11 +1,9 @@
----
 category: guide
 ai_context: low
 last_updated: 2025-10-18
 related_docs:
   - ../guides/DATABASE_SETUP.md
   - ../architecture/database_design.md
----
 
 # データベースバックアップ手順書
 
@@ -230,9 +228,7 @@ net start postgresql-x64-13
 ```
 
 ## 関連ドキュメント
-- [データベース運用手順書](./database_operations.md)
-- [障害対応手順書](./disaster_recovery.md)
-- [Issue #65 実装仕様](../README.md)
-
+- [データベース設計](../architecture/database_design.md)
+- [トラブルシューティング](./troubleshooting.md)
 ---
 **重要**: このバックアップ手順は、データの安全性を確保するための重要なプロセスです。必ず全ての手順を実行し、バックアップの検証まで完了してから次の作業に進んでください。

@@ -15,9 +15,7 @@
 6. [コメントとドキュメンテーション](#コメントとドキュメンテーション)
 7. [例外処理](#例外処理)
 8. [その他のベストプラクティス](#その他のベストプラクティス)
-
 ---
-
 ## 基本方針
 
 ### PEP 8準拠
@@ -30,9 +28,7 @@
 
 - [PEP 8 -- Style Guide for Python Code](https://peps.python.org/pep-0008/)
 - [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
-
 ---
-
 ## コードレイアウト
 
 ### インデント
@@ -113,9 +109,7 @@ def function():
 - 通常は**ダブルクォーテーション（"）** を使用
 - 文字列内にダブルクォーテーションが含まれる場合はシングルクォーテーション（'）を使用
 - docstringは常に**三重ダブルクォーテーション（"""）** を使用
-
 ---
-
 ## 命名規則
 
 ### モジュール名（ファイル名）
@@ -260,9 +254,7 @@ retry = True
 
 - 真偽値には`is_`, `has_`, `can_`などの接頭辞を使用
 - コレクションには型を示す接尾辞（`_list`, `_dict`, `_set`）を使用
-
 ---
-
 ## インポート文
 
 ### インポートの順序
@@ -327,9 +319,7 @@ from models import *
 
 - **絶対インポート**を推奨
 - 相対インポートは同じパッケージ内でのみ使用
-
 ---
-
 ## 型ヒント
 
 ### 基本的な型ヒント
@@ -410,9 +400,7 @@ def validate_symbol(symbol):
 
 - 全ての公開関数・メソッドに型ヒントを記述
 - プライベート関数でも可能な限り型ヒントを使用
-
 ---
-
 ## コメントとドキュメンテーション
 
 ### モジュールレベルのdocstring
@@ -541,9 +529,7 @@ retry_count += 1  # 1を足す
 - `FIXME`: 修正が必要なバグ
 - `NOTE`: 重要な注意事項
 - 担当者やIssue番号を含めることを推奨
-
 ---
-
 ## 例外処理
 
 ### 例外クラスの定義
@@ -611,9 +597,7 @@ finally:
 
 - リソースの解放は`finally`句で行う
 - コンテキストマネージャー（`with`文）を使用することを推奨
-
 ---
-
 ## その他のベストプラクティス
 
 ### コンテキストマネージャーの使用
@@ -717,9 +701,7 @@ message = "銘柄コード: {}".format(symbol)
 
 - Python 3.6以降は**f-string**を使用
 - 可読性とパフォーマンスが向上
-
 ---
-
 ## まとめ
 
 このコーディング規約は、チーム全体で一貫性のあるコードを書くためのガイドラインです。
@@ -742,17 +724,13 @@ message = "銘柄コード: {}".format(symbol)
 - **型チェック**: mypy
 
 詳細は[Issue #108 (フォーマッタ・Linterの導入)](https://github.com/TIMMY-WEST/STOCK-INVESTMENT-ANALYZER/issues/108)を参照してください。
-
 ---
-
 ## 参考文献
 
 - [PEP 8 -- Style Guide for Python Code](https://peps.python.org/pep-0008/)
 - [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
 - [The Hitchhiker's Guide to Python - Code Style](https://docs.python-guide.org/writing/style/)
-
 ---
-
 **更新履歴**
 
 - 2025-10-22: 初版作成 (Issue #107)

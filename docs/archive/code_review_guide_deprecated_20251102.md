@@ -9,8 +9,7 @@ related_docs:
   - ./testing_guide.md
 deprecated: true
 deprecated_date: 2025-11-02
-replacement: ../guides/development-workflow.md
----
+## replacement: ../guides/development-workflow.md
 
 # ⚠️ このドキュメントは非推奨です
 
@@ -19,9 +18,7 @@ replacement: ../guides/development-workflow.md
 **移行先**: `docs/guides/development-workflow.md` (コードレビューセクション)
 
 このドキュメントは参照用として保管されていますが、最新情報は上記の移行先を参照してください。
-
 ---
-
 # コードレビューガイドライン
 
 ## 目次
@@ -634,8 +631,6 @@ except ConnectionError as e:
 - [コーディング規約](./coding_standards.md)
 - [テストガイド](./testing_guide.md)
 - [テスト戦略](./testing_strategy.md)
-
 ---
-
 **更新履歴:**
 - 2025-10-23: 初版作成（Issue #115対応）

@@ -11,9 +11,7 @@
 5. [mypy設定](#mypy設定)
 6. [実装例](#実装例)
 7. [よくある問題と解決方法](#よくある問題と解決方法)
-
 ---
-
 ## 概要
 
 型ヒントは、Pythonコードの可読性と保守性を向上させる重要な機能です。本プロジェクトでは、mypyを使用した型チェックを導入し、段階的に型ヒントを追加していきます。
@@ -24,9 +22,7 @@
 - **開発効率の向上**: IDEでの補完機能が強化される
 - **バグの早期発見**: 型の不整合を実行前に検出できる
 - **リファクタリングの安全性**: 型情報により安全な変更が可能
-
 ---
-
 ## 型ヒントの基本
 
 ### 基本的な型の記述
@@ -82,9 +78,7 @@ class StockData:
     def update_price(self, new_price: Decimal) -> None:
         self.price = new_price
 ```
-
 ---
-
 ## 記述ガイドライン
 
 ### 1. 必須の型ヒント
@@ -140,9 +134,7 @@ count = 0  # int型が明らか
 for item in items:  # itemの型は文脈から明らか
     process(item)
 ```
-
 ---
-
 ## 段階的導入方針
 
 ### フェーズ1: 新規コードへの適用（即座に開始）
@@ -171,9 +163,7 @@ for item in items:  # itemの型は文脈から明らか
 - **一度に大量の変更を避ける**: 小さな単位で段階的に実施
 - **テストの実行**: 型ヒント追加後は必ずテストを実行
 - **mypy エラーの段階的解決**: 厳密度を徐々に上げる
-
 ---
-
 ## mypy設定
 
 プロジェクトのmypy設定は`pyproject.toml`で管理されています：
@@ -230,9 +220,7 @@ mypy app/models.py
 # 詳細な出力でチェック
 mypy --show-error-codes --show-column-numbers app/
 ```
-
 ---
-
 ## 実装例
 
 ### データベースモデルの型ヒント例
@@ -365,9 +353,7 @@ def save_stock_data(symbol: str) -> Tuple[Response, int]:
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 ```
-
 ---
-
 ## よくある問題と解決方法
 
 ### 1. サードパーティライブラリの型エラー
@@ -430,18 +416,14 @@ def legacy_function(data):  # type: ignore
     # 既存のコード（後で型ヒントを追加予定）
     pass
 ```
-
 ---
-
 ## 参考資料
 
 - [PEP 484 - Type Hints](https://www.python.org/dev/peps/pep-0484/)
 - [mypy公式ドキュメント](https://mypy.readthedocs.io/)
 - [typing モジュール公式ドキュメント](https://docs.python.org/3/library/typing.html)
 - [Real Python - Python Type Checking](https://realpython.com/python-type-checking/)
-
 ---
-
 ## 更新履歴
 
 - 2024-01-XX: 初版作成（Issue #109対応）

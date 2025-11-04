@@ -6,9 +6,7 @@
 - **[テスト標準仕様書 (v3.0.0)](../standards/testing-standards.md)** ← 現在のテスト状況と戦略
 
 最新のテスト実行結果は統合ドキュメントの「現在のカバレッジ状況」セクションに記載されています。
-
 ---
-
 # 既存テストドキュメント (ARCHIVED)
 
 ## 概要
@@ -386,9 +384,7 @@ pytest -m docs
 - [pytest公式ドキュメント](https://docs.pytest.org/)
 - [pytest-cov](https://pytest-cov.readthedocs.io/)
 - [プロジェクトのテスト実行ガイド](../tests/README.md)
-
 ---
-
 **最終更新日:** 2025-10-25
 **作成者:** Issue #162対応
 **次回更新予定:** 新機能追加時またはテスト構造変更時

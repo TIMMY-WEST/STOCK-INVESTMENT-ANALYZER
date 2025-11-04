@@ -3,9 +3,7 @@
 ## 📋 Issue一覧
 
 以下のIssueは [`milestones.md`](./milestones.md) のv1.1.0マイルストンから分解されたタスクです。GitHub Issue管理の基本方針（[`github_workflow.md`](../github_workflow.md) 2.1節）に従って作成されています。
-
 ---
-
 ## 🔧 マイルストン 1: データ取得機能の強化 関連Issue
 
 ### Issue: 取得期間選択の拡張（maxオプション追加）
@@ -40,9 +38,7 @@
 #### 参考仕様書
 - [`api_specification.md`](../api_specification.md)
 - [`frontend_design.md`](../frontend_design.md)
-
 ---
-
 ### Issue: 時間軸（足データ）対応 - データベース設計
 **Labels**: `feature`, `database`, `infrastructure`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -74,9 +70,7 @@
 
 #### 参考仕様書
 - [`database_design.md`](../database_design.md)
-
 ---
-
 ### Issue: データベース初期化スクリプト修正
 **Labels**: `feature`, `infrastructure`, `database`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -110,9 +104,7 @@
 #### 参考仕様書
 - [`database_design.md`](../database_design.md)
 - [`scripts/README.md`](../../scripts/README.md)
-
 ---
-
 ### Issue: 時間軸選択UI実装
 **Labels**: `feature`, `frontend`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -144,9 +136,7 @@
 
 #### 参考仕様書
 - [`frontend_design.md`](../frontend_design.md)
-
 ---
-
 ### Issue: 各時間軸でのデータ取得・保存機能実装
 **Labels**: `feature`, `backend`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -179,9 +169,7 @@ yfinanceから各時間軸のデータを取得し、対応するテーブルに
 
 #### 参考仕様書
 - [`api_specification.md`](../api_specification.md)
-
 ---
-
 ## 📊 マイルストン 2: 全銘柄一括取得機能 関連Issue
 
 ### Issue: JPX銘柄情報取得機能実装
@@ -215,9 +203,7 @@ JPXの銘柄一覧Excel（data_j.xls）を自動ダウンロードし、銘柄�
 
 #### 参考仕様書
 - [`jpx_integration_spec.md`](../jpx_integration_spec.md)
-
 ---
-
 ### Issue: 全銘柄一括取得機能実装
 **Labels**: `feature`, `batch-processing`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -250,9 +236,7 @@ JPXの銘柄一覧Excel（data_j.xls）を自動ダウンロードし、銘柄�
 
 #### 参考仕様書
 - [`batch_processing_design.md`](../batch_processing_design.md)
-
 ---
-
 ### Issue: 全銘柄取得フロントエンド機能追加
 **Labels**: `feature`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -284,9 +268,7 @@ JPXの銘柄一覧Excel（data_j.xls）を自動ダウンロードし、銘柄�
 
 #### 参考仕様書
 - [`frontend_design.md`](../frontend_design.md)
-
 ---
-
 ### Issue: 銘柄マスタデータベース設計・実装（Phase 2）
 **Labels**: `feature`, `database`, `phase2`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -318,9 +300,7 @@ JPX銘柄一覧を管理する銘柄マスタテーブルと更新履歴テー�
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - 銘柄マスタテーブル)
 - [`database_design.md`](../database_design.md)
-
 ---
-
 ### Issue: JPX銘柄一覧取得・更新機能実装（Phase 2）
 **Labels**: `feature`, `backend`, `phase2`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -352,9 +332,7 @@ JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、デ
 
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - JPX銘柄一覧の取得と管理)
-
 ---
-
 ### Issue: 銘柄マスタ管理API実装（Phase 2）
 **Labels**: `feature`, `backend`, `phase2`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -388,9 +366,7 @@ JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、デ
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - API エンドポイント)
 - [`api_specification.md`](../api_specification.md)
-
 ---
-
 ### Issue: バッチ処理データベース設計・実装（Phase 2）
 **Labels**: `feature`, `database`, `phase2`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -422,9 +398,7 @@ JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、デ
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - バッチ実行情報テーブル)
 - [`database_design.md`](../database_design.md)
-
 ---
-
 ### Issue: バッチ処理エンジン実装（Phase 2）
 **Labels**: `feature`, `backend`, `phase2`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -457,9 +431,7 @@ JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、デ
 
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - BatchEngine クラス)
-
 ---
-
 ### Issue: エラーハンドリング・リカバリ機能実装（Phase 2）
 **Labels**: `feature`, `backend`, `phase2`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -491,9 +463,7 @@ JPX公式サイトからExcel形式の銘柄一覧をダウンロードし、デ
 
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - エラーハンドリング)
-
 ---
-
 ### Issue: WebSocket進捗配信機能実装（Phase 2）
 **Labels**: `feature`, `backend`, `phase2`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -525,9 +495,7 @@ WebSocketによるリアルタイム進捗配信機能の実装
 
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - WebSocket進捗情報)
-
 ---
-
 ### Issue: バッチ処理監視・ログ機能実装（Phase 2）
 **Labels**: `feature`, `monitoring`, `phase2`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -558,9 +526,7 @@ WebSocketによるリアルタイム進捗配信機能の実装
 
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 2 - 監視・ログ)
-
 ---
-
 ### Issue: Phase 1からPhase 2への移行実装
 **Labels**: `migration`, `phase2`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -592,9 +558,7 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 
 #### 参考仕様書
 - [`api_bulk_fetch.md`](../api_bulk_fetch.md) (Phase 1からPhase 2への移行計画)
-
 ---
-
 ## 🐛 マイルストン 3: UI/UX改善・バグ修正 関連Issue
 
 ### Issue: ページネーション機能修正
@@ -628,9 +592,7 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 
 #### 参考仕様書
 - [`frontend_design.md`](../frontend_design.md)
-
 ---
-
 ### Issue: システム状態表示機能実装
 **Labels**: `feature`, `monitoring`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -662,9 +624,7 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 
 #### 参考仕様書
 - [`system_monitoring_design.md`](../system_monitoring_design.md)
-
 ---
-
 ### Issue: データ表示機能改善
 **Labels**: `enhancement`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -696,9 +656,7 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 
 #### 参考仕様書
 - [`frontend_design.md`](../frontend_design.md)
-
 ---
-
 ## 🚀 マイルストン 4: パフォーマンス最適化 関連Issue
 
 ### Issue: データベースパフォーマンス最適化
@@ -732,9 +690,7 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 
 #### 参考仕様書
 - [`performance_optimization_guide.md`](../performance_optimization_guide.md)
-
 ---
-
 ### Issue: フロントエンドパフォーマンス改善
 **Labels**: `performance`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -766,9 +722,7 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 
 #### 参考仕様書
 - [`performance_optimization_guide.md`](../performance_optimization_guide.md)
-
 ---
-
 ### Issue: バックエンドパフォーマンス改善
 **Labels**: `performance`, `backend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -800,9 +754,7 @@ Phase 1のシンプルなバッチ処理からPhase 2の高度なバッチ処理
 
 #### 参考仕様書
 - [`performance_optimization_guide.md`](../performance_optimization_guide.md)
-
 ---
-
 ## 🧪 マイルストン 5: 統合テスト・品質保証 関連Issue
 
 ### Issue: 新機能の統合テスト
@@ -836,9 +788,7 @@ v1.1.0で追加された全機能の統合テスト実装
 
 #### 参考仕様書
 - [`testing_strategy.md`](../testing_strategy.md)
-
 ---
-
 ### Issue: UI/UXテスト
 **Labels**: `testing`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -871,9 +821,7 @@ v1.1.0で追加された全機能の統合テスト実装
 #### 参考仕様書
 - [`testing_strategy.md`](../testing_strategy.md)
 - [`frontend_design.md`](../frontend_design.md)
-
 ---
-
 ### Issue: パフォーマンステスト
 **Labels**: `testing`, `performance`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -906,9 +854,7 @@ v1.1.0で追加された全機能の統合テスト実装
 #### 参考仕様書
 - [`testing_strategy.md`](../testing_strategy.md)
 - [`performance_optimization_guide.md`](../performance_optimization_guide.md)
-
 ---
-
 ### Issue: エラーハンドリングテスト
 **Labels**: `testing`, `error-handling`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -940,9 +886,7 @@ v1.1.0で追加された全機能の統合テスト実装
 
 #### 参考仕様書
 - [`testing_strategy.md`](../testing_strategy.md)
-
 ---
-
 ## 📊 Issue管理方針
 
 ### 🔄 推奨開発フロー
@@ -961,7 +905,5 @@ v1.1.0で追加された全機能の統合テスト実装
 2. 機能ごとにFeature Branchを作成
 3. Pull Requestでコードレビューを実施
 4. 各Issue完了時に動作確認・テスト実施
-
 ---
-
 このv1.1.0 Issue管理により、MVP版から大幅に実用性とユーザビリティが向上した株価データ管理システムを段階的に構築できます。

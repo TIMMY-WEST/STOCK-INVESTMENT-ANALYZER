@@ -1,4 +1,3 @@
----
 category: monitoring
 ai_context: medium
 last_updated: 2025-10-19
@@ -6,8 +5,6 @@ related_docs:
   - ../architecture/database_design.md
   - bulk-data-fetch.md
   - jpx-sequential-fetch.md
-implementation_status: ✅ 実装完了
----
 
 # システム監視・ログ機能完全ガイド
 
@@ -560,4 +557,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 - [一括データ取得ガイド](bulk-data-fetch.md) - バッチ処理の詳細仕様
 - [JPX全銘柄取得ガイド](jpx-sequential-fetch.md) - JPX統合システムの監視
-- [データベース設計書](architecture/database_design.md) - DB接続の詳細
+- [データベース設計書](../architecture/database_design.md) - DB接続の詳細
