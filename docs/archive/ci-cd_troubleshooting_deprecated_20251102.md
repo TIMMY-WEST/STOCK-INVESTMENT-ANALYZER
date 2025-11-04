@@ -8,8 +8,7 @@ replacement_doc: ../ci-cd/pipeline-config.md
 related_docs:
   - pipeline_overview.md
   - ../development/pre_commit_setup.md
-  - ../development/testing_guide.md
----
+## - ../development/testing_guide.md
 
 # ⚠️ 非推奨: このドキュメントは統合されました
 
@@ -20,9 +19,7 @@ related_docs:
 - **[トラブルシューティングガイド (v2.0.0)](../guides/troubleshooting.md)** ← 全般的な問題解決
 
 このファイルの内容は上記の統合ドキュメントに含まれています。
-
 ---
-
 # CI/CD トラブルシューティングガイド (ARCHIVED)
 
 ## 📋 目次

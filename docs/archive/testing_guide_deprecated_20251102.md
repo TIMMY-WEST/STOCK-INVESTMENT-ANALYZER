@@ -8,8 +8,7 @@ replacement_doc: ../standards/testing-standards.md
 related_docs:
   - testing_strategy.md
   - coding_standards.md
-  - ../architecture/project_architecture.md
----
+## - ../architecture/project_architecture.md
 
 # ⚠️ 非推奨: このドキュメントは統合されました
 
@@ -19,9 +18,7 @@ related_docs:
 - **[テスト標準仕様書 (v3.0.0)](../standards/testing-standards.md)** ← こちらを使用
 
 このファイルは `testing_guide.md`、`testing_strategy.md`、`test_coverage_report.md` を統合した最新バージョンです。
-
 ---
-
 # テスト作成ガイドライン (ARCHIVED)
 
 ## 📋 概要
@@ -669,9 +666,7 @@ pytest -vv --log-cli-level=DEBUG
 - [testing_strategy.md](testing_strategy.md) - 統合テスト戦略
 - [coding_standards.md](coding_standards.md) - コーディング規約
 - [Real Python - Testing Guide](https://realpython.com/pytest-python-testing/)
-
 ---
-
 **最終更新**: 2025-10-22
 **文書バージョン**: v1.0.0
 **次回見直し**: マイルストーン3開始時

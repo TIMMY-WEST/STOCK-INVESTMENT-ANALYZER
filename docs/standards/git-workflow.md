@@ -1,11 +1,9 @@
----
 category: development
 ai_context: high
 last_updated: 2025-10-18
 related_docs:
   - ../guides/setup_guide.md
   - ../architecture/project_architecture.md
----
 
 # 株価データ取得・管理システム GitHub運用ルール
 
@@ -307,8 +305,8 @@ CI/CD（GitHub Actions 等）の詳細な設定やワークフローは、この
 CI/CD のパイプライン設計、ワークフローの具体的なジョブ、環境変数・シークレット管理、トラブルシューティングについては専用のドキュメントを参照してください。
 
 - 主要ドキュメント:
-  - [CI/CD パイプライン概要](../ci-cd/pipeline_overview.md)
-  - [CI/CD トラブルシューティング](../ci-cd/troubleshooting.md)
+  - [CI/CD パイプライン設定](../ci-cd/pipeline-config.md)
+  - [トラブルシューティング](../guides/troubleshooting.md)
 
 このドキュメントでは、CI/CD による品質ゲート（例: PR マージ前にテストが成功していること）が必要である点のみを取り扱います。詳細なワークフロー設計や運用手順は上記ドキュメントをご参照ください。
 

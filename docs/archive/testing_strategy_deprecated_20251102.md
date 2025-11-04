@@ -8,8 +8,7 @@ replacement_doc: ../standards/testing-standards.md
 related_docs:
   - testing_guide.md
   - coding_standards.md
-  - ../architecture/project_architecture.md
----
+## - ../architecture/project_architecture.md
 
 # ⚠️ 非推奨: このドキュメントは統合されました
 
@@ -19,9 +18,7 @@ related_docs:
 - **[テスト標準仕様書 (v3.0.0)](../standards/testing-standards.md)** ← こちらを使用
 
 このファイルは `testing_guide.md`、`testing_strategy.md`、`test_coverage_report.md` を統合した最新バージョンです。
-
 ---
-
 # テスト戦略 (ARCHIVED)
 
 ## 📋 目次
@@ -35,9 +32,7 @@ related_docs:
 7. [モック使用ガイドライン](#モック使用ガイドライン)
 8. [テスト実行ルール](#テスト実行ルール)
 9. [まとめ](#まとめ)
-
 ---
-
 ## 1. テストの目的と重要性
 
 ### 1.1 なぜテストが必要か
@@ -61,9 +56,7 @@ related_docs:
 ### 1.3 テストの重要性
 
 特にリファクタリング時において、テストは**安全網**として機能します。包括的なテストスイートがあれば、コードの内部構造を大胆に変更しても、既存機能が破壊されていないことを確認できます。
-
 ---
-
 ## 2. テストレベルの定義
 
 ### 2.1 ユニットテスト (Unit Test)
@@ -108,9 +101,7 @@ def test_stock_daily_repr_with_valid_data():
     expected = "<Stocks1d(symbol='7203.T', date='2024-09-13', close=2500.00)>"
     assert result == expected
 ```
-
 ---
-
 ### 2.2 統合テスト (Integration Test)
 
 #### 目的
@@ -162,9 +153,7 @@ def test_stock_data_fetch_and_save_integration(app, db_session):
     ).all()
     assert len(saved_data) > 0
 ```
-
 ---
-
 ### 2.3 E2Eテスト (End-to-End Test)
 
 #### 目的
@@ -218,9 +207,7 @@ def test_stock_data_display_flow_e2e(selenium_driver):
     rows = table.find_elements(By.TAG_NAME, "tr")
     assert len(rows) > 1  # ヘッダー行 + データ行
 ```
-
 ---
-
 ## 3. テストカバレッジ目標
 
 ### 3.1 カバレッジ目標の設定
@@ -271,9 +258,7 @@ pytest --cov --cov-fail-under=70
 - **PR作成時**: カバレッジレポートをPR説明に含める
 - **CI/CD**: パイプラインでカバレッジを自動測定し、70%未満の場合はビルド失敗
 - **定期レビュー**: 月次で全体カバレッジを確認し、改善計画を立てる
-
 ---
-
 ## 4. テスト命名規則
 
 ### 4.1 テストファイル命名規則
@@ -332,9 +317,7 @@ def test_calculate_sma_with_period_greater_than_data_length_returns_none():
   tests/
   ├── test_stock_data_service.py
   ```
-
 ---
-
 ## 5. テストパターン
 
 ### 5.1 AAAパターンの適用ルール
@@ -382,9 +365,7 @@ def test_fetch_stock_data_with_valid_symbol_returns_success():
 - **可読性向上**: テストの意図が明確になる
 - **保守性向上**: 各セクションの役割が明確で、変更が容易
 - **一貫性**: プロジェクト全体で統一されたテスト構造
-
 ---
-
 ## 6. テストデータ管理
 
 ### 6.1 フィクスチャの活用
@@ -471,9 +452,7 @@ def test_stock_daily_factory():
     assert stock.symbol == "6758.T"
     assert stock.close == Decimal("3000.00")
 ```
-
 ---
-
 ## 7. モック使用ガイドライン
 
 ### 7.1 いつモックを使うべきか
@@ -549,9 +528,7 @@ def test_fetch_stock_data_with_mocked_response(mock_ticker_class):
 - **明確な振る舞い定義**: モックの返り値や例外を明確に定義
 - **過度なモック化を避ける**: 統合テストでは実際の依存関係を使用
 - **モックの検証**: モックが正しく呼び出されたかを検証（`assert_called_with`等）
-
 ---
-
 ## 8. テスト実行ルール
 
 ### 8.1 ローカルでのテスト実行義務
@@ -638,9 +615,7 @@ pytest --lf
 # 最初の失敗で停止
 pytest -x
 ```
-
 ---
-
 ## 9. まとめ
 
 本ドキュメントで定義したテスト戦略は、リファクタリングの安全網として機能し、プロジェクト全体の品質を保証します。
@@ -668,9 +643,7 @@ pytest -x
 - [testing_guide.md](testing_guide.md) - テスト作成ガイドライン
 - [coding_standards.md](coding_standards.md) - コーディング規約
 - [GitHub Workflow](github_workflow.md) - GitHub運用ルール
-
 ---
-
 **最終更新**: 2025-10-25
 **文書バージョン**: v2.0.0
 **次回見直し**: リファクタリング完了時

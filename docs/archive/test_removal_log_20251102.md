@@ -24,9 +24,7 @@
 - `tests/e2e/test_e2e_application.py::TestE2EApplication::test_accessibility_features`
 - `tests/e2e/test_e2e_application.py::TestE2EApplication::test_responsive_design_elements`
 - `tests/e2e/test_e2e_application.py::TestE2EApplication::test_stock_data_fetch_form_interaction`
-
 ---
-
 ### 2. tests/docs/test_d212_docstring_format.py
 
 #### 削除理由
@@ -51,9 +49,7 @@ pre-commit run flake8 --all-files
 # CI/CDでの実行例
 flake8 app/ tests/ --select=D212 --statistics
 ```
-
 ---
-
 ## 削除後の統計
 
 ### 削除前
@@ -69,9 +65,7 @@ flake8 app/ tests/ --select=D212 --statistics
 1. スキップされていたテスト（実行されていなかった）
 2. ツールで代替可能なコードスタイルチェック
 3. 他のテストで機能がカバーされている重複テスト
-
 ---
-
 ## レビュー時の確認事項
 
 ### 削除判断の妥当性
@@ -83,15 +77,11 @@ flake8 app/ tests/ --select=D212 --statistics
 - [ ] 全テストが通過することを確認
 - [ ] テストカバレッジレポートを生成し、70%以上を維持していることを確認
 - [ ] CI/CDパイプラインが正常に動作することを確認
-
 ---
-
 ## 関連Issue・PR
 - Issue #207: [REFACTOR] 不要テストの削除と統合
 - Related to Issue #202: [REFACTOR] 既存テストの監査とリファクタリング計画
-
 ---
-
 ## 備考
 
 ### 今後の方針
@@ -103,9 +93,7 @@ flake8 app/ tests/ --select=D212 --statistics
 - [テスト戦略](../development/testing_strategy.md)
 - [コーディング規約](../development/coding_standards.md)
 - [GitHub Workflow](../development/github_workflow.md)
-
 ---
-
 **最終更新**: 2025-11-01
 **文書バージョン**: v1.0.0
 **作成者**: AI Assistant

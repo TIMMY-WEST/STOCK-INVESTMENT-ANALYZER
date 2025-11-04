@@ -8,8 +8,7 @@ replacement_doc: ../standards/testing-standards.md
 related_docs:
   - testing_strategy.md
   - testing_guide.md
-  - ../development/coding_standards.md
----
+## - ../development/coding_standards.md
 
 # ⚠️ 非推奨: このドキュメントは統合されました
 
@@ -19,9 +18,7 @@ related_docs:
 - **[テスト標準仕様書 (v3.0.0)](../standards/testing-standards.md)** ← テスト戦略とベストプラクティス
 
 このリファクタリング計画で提案された内容は統合ドキュメントに反映されています。
-
 ---
-
 # テストリファクタリング計画 (ARCHIVED)
 
 ## 📋 目次
@@ -34,9 +31,7 @@ related_docs:
 6. [リスク評価と対策](#リスク評価と対策)
 7. [成功基準](#成功基準)
 8. [関連Issue](#関連issue)
-
 ---
-
 ## 1. エグゼクティブサマリー
 
 ### 1.1 監査実施概要
@@ -74,9 +69,7 @@ related_docs:
 - **フェーズ3**: 命名規則の統一と品質向上（1-2週間）
 
 **総見積もり工数**: 4-7週間
-
 ---
-
 ## 2. 監査結果の概要
 
 ### 2.1 テストファイル総数と分布
@@ -102,9 +95,7 @@ related_docs:
 - **最大テストファイル**: `tests/unit/test_bulk_data_service.py` （推定500+行）
 - **最小テストファイル**: `tests/e2e/.gitkeep` （0行）
 - **平均行数**: 約287行/ファイル
-
 ---
-
 ## 3. 発見された問題点
 
 ### 3.1 テストマーカーの欠落 (優先度: P1)
@@ -162,9 +153,7 @@ pytestmark = pytest.mark.integration
 # tests/e2e/test_*.py の場合
 pytestmark = pytest.mark.e2e
 ```
-
 ---
-
 ### 3.2 AAAパターンの未適用 (優先度: P2)
 
 #### 問題の詳細
@@ -216,9 +205,7 @@ def test_handle_temporary_error_returns_retry(error_handler):
 - `tests/test_api_response.py`
 - `tests/integration/test_reset_db.py`
 - その他30+ファイル
-
 ---
-
 ### 3.3 unittest と pytest の混在 (優先度: P1)
 
 #### 問題の詳細
@@ -273,9 +260,7 @@ class TestStocksDailyRemoval:
     def test_removal(self, db):
         ...
 ```
-
 ---
-
 ### 3.4 テスト関数命名規則の不統一 (優先度: P2)
 
 #### 問題の詳細
@@ -303,9 +288,7 @@ test_<機能>_<条件>_<期待結果>
 - ✓ `test_save_stock_data_with_duplicate_record_raises_error()`
 - ✗ `test_fetch()` - 詳細度不足
 - ✗ `test_stock_data()` - 曖昧
-
 ---
-
 ### 3.5 恒久的なテストスキップ (優先度: P1)
 
 #### 問題の詳細
@@ -340,9 +323,7 @@ def test_export_stocks_json_success():
 1. モック設定を修正してテストを有効化
 2. テストが不要な場合は削除
 3. 技術的に困難な場合は別のアプローチでテスト（統合テスト等）
-
 ---
-
 ### 3.6 その他の問題
 
 #### A. ディレクトリ配置の不整合
@@ -366,9 +347,7 @@ def test_export_stocks_json_success():
 
 - **エラーハンドリングテスト不足**: 正常系のテストが多く、異常系のテストが少ない
 - **パラメトライズドテストの不足**: 類似テストケースの重複
-
 ---
-
 ## 4. リファクタリング優先順位
 
 ### 4.1 優先順位の基準
@@ -393,9 +372,7 @@ def test_export_stocks_json_success():
 | **P2** | テスト関数命名規則の統一       | 12-15          | 中     | 低     | フェーズ3    |
 | **P3** | エラーハンドリングテストの充実 | 全体           | 中     | 中     | フェーズ3    |
 | **P3** | パフォーマンステストの追加     | 全体           | 低     | 中     | 継続的に実施 |
-
 ---
-
 ## 5. フェーズ別実装計画
 
 ### フェーズ1: 基盤整備とマーカー追加 (1-2週間)
@@ -471,9 +448,7 @@ pytestmark = pytest.mark.unit  # またはintegration, e2e, api
 - [ ] `pytest -m e2e` でE2Eテストのみが実行される
 - [ ] unittest を使用しているテストが存在しない
 - [ ] 恒久的にスキップされているテストが存在しない
-
 ---
-
 ### フェーズ2: テストパターンと品質向上 (2-3週間)
 
 #### 目的
@@ -558,9 +533,7 @@ def test_start_requires_api_key():
 - [ ] 各テスト関数に説明的なdocstringが付与されている
 - [ ] 共通フィクスチャが `conftest.py` に集約されている
 - [ ] テストの可読性が向上している
-
 ---
-
 ### フェーズ3: 命名規則統一と品質向上 (1-2週間)
 
 #### 目的
@@ -618,9 +591,7 @@ def test_bulk_start_without_api_key_returns_401():
 - [ ] エラーハンドリングテストが充実している
 - [ ] 不要なテストが削除されている
 - [ ] テストカバレッジが70%以上
-
 ---
-
 ### フェーズ4: CI/CD統合とドキュメント整備 (1週間)
 
 #### 目的
@@ -666,9 +637,7 @@ CI/CDパイプラインへのテスト統合とドキュメント整備
 - [ ] GitHub Actions でテストが自動実行される
 - [ ] カバレッジ70%未満でビルドが失敗する
 - [ ] CI/CD運用ドキュメントが整備されている
-
 ---
-
 ## 6. リスク評価と対策
 
 ### 6.1 リスク一覧
@@ -711,9 +680,7 @@ CI/CDパイプラインへのテスト統合とドキュメント整備
 1. リファクタリング計画のレビュー
 2. 定期的な進捗共有
 3. 疑問点の早期解決
-
 ---
-
 ## 7. 成功基準
 
 ### 7.1 定量的基準
@@ -744,9 +711,7 @@ CI/CDパイプラインへのテスト統合とドキュメント整備
 - [ ] テストカバレッジが70%以上
 - [ ] CI/CDパイプラインでテストが自動実行される
 - [ ] 品質ゲートが設定されている
-
 ---
-
 ## 8. 関連Issue
 
 ### 8.1 既存Issue
@@ -782,9 +747,7 @@ CI/CDパイプラインへのテスト統合とドキュメント整備
    - タイトル: `[FIX] 恒久的にスキップされているテストの解決`
    - 優先度: P1
    - 見積もり: Small（1-2日）
-
 ---
-
 ## 9. 参考情報
 
 ### 9.1 関連ドキュメント
@@ -799,9 +762,7 @@ CI/CDパイプラインへのテスト統合とドキュメント整備
 - [pytest ドキュメント](https://docs.pytest.org/)
 - [pytest-cov ドキュメント](https://pytest-cov.readthedocs.io/)
 - [AAAパターンのベストプラクティス](https://docs.pytest.org/en/latest/explanation/anatomy.html)
-
 ---
-
 **最終更新**: 2025-10-29
 **文書バージョン**: v1.0.0
 **次回見直し**: フェーズ1完了時

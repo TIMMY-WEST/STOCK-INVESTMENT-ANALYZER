@@ -403,14 +403,14 @@ flowchart LR
 
 **変換ルール:**
 
-| 変換前（Yahoo Finance） | 変換後（システム） | 型 |
-|------------------------|-------------------|-----|
-| Date (index) | date / datetime | datetime64 / date |
-| Open | open | DECIMAL(10,2) |
-| High | high | DECIMAL(10,2) |
-| Low | low | DECIMAL(10,2) |
-| Close | close | DECIMAL(10,2) |
-| Volume | volume | BIGINT |
+| 変換前（Yahoo Finance） | 変換後（システム） | 型                |
+| ----------------------- | ------------------ | ----------------- |
+| Date (index)            | date / datetime    | datetime64 / date |
+| Open                    | open               | DECIMAL(10,2)     |
+| High                    | high               | DECIMAL(10,2)     |
+| Low                     | low                | DECIMAL(10,2)     |
+| Close                   | close              | DECIMAL(10,2)     |
+| Volume                  | volume             | BIGINT            |
 
 ### 4.2 DataFrame → SQLAlchemyモデル変換
 

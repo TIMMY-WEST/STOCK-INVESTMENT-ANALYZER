@@ -11,9 +11,7 @@ STOCK-INVESTMENT-ANALYZER APIの実践的な使用例とコードサンプル集
 - [エラーハンドリング](#エラーハンドリング)
 - [実践的なユースケース](#実践的なユースケース)
 - [パフォーマンス最適化](#パフォーマンス最適化)
-
 ---
-
 ## クイックスタート
 
 ### 前提条件
@@ -79,9 +77,7 @@ fetch(`${BASE_URL}/api/stocks/data`, {
   .then(response => response.json())
   .then(data => console.log(data));
 ```
-
 ---
-
 ## 株価データ取得の基本
 
 ### 1. 日足データの取得
@@ -201,9 +197,7 @@ print(f"週足データ: {weekly['data']['records_count']}件")
 monthly = fetch_monthly_data("7203.T", "5y")
 print(f"月足データ: {monthly['data']['records_count']}件")
 ```
-
 ---
-
 ## 複数銘柄の一括取得
 
 ### 1. 逐次的な取得（シンプル）
@@ -318,9 +312,7 @@ if job.get("success"):
     else:
         print("ジョブが失敗しました")
 ```
-
 ---
-
 ## データの検索とフィルタリング
 
 ### 1. 日付範囲指定での検索
@@ -429,9 +421,7 @@ for timeframe, data in multi_data.items():
         count = len(data["data"])
         print(f"{timeframe}: {count}件")
 ```
-
 ---
-
 ## エラーハンドリング
 
 ### 1. 基本的なエラーハンドリング
@@ -546,9 +536,7 @@ def fetch_with_retry(symbol, period="1mo", interval="1d"):
 # 使用例
 result = fetch_with_retry("7203.T", "1mo", "1d")
 ```
-
 ---
-
 ## 実践的なユースケース
 
 ### 1. 日次データ更新スクリプト
@@ -685,9 +673,7 @@ if df is not None:
 
     print(f"\nゴールデンクロス発生日: {len(golden_crosses)}回")
 ```
-
 ---
-
 ## パフォーマンス最適化
 
 ### 1. 並列処理による高速化
@@ -815,9 +801,7 @@ data1 = client.get_stocks("7203.T", "1d", 100)
 # 2回目はキャッシュから取得（高速）
 data2 = client.get_stocks("7203.T", "1d", 100)
 ```
-
 ---
-
 ## まとめ
 
 このガイドでは、STOCK-INVESTMENT-ANALYZER APIの実践的な使用方法を紹介しました。
@@ -834,7 +818,7 @@ data2 = client.get_stocks("7203.T", "1d", 100)
 
 - [APIリファレンス](./api_reference.md) - 全エンドポイントの詳細仕様
 - [APIバージョニングガイド](./versioning_guide.md) - バージョン管理の詳細
-- [プロジェクトアーキテクチャ](../architecture/project_architecture.md) - システム設計の理解
+- [アーキテクチャ概要](../architecture/architecture_overview.md) - システム設計の理解
 
 ### トラブルシューティング
 
@@ -843,8 +827,6 @@ data2 = client.get_stocks("7203.T", "1d", 100)
 2. リクエストパラメータの形式が正しいか確認
 3. サーバーが起動しているか確認（`http://localhost:8000`）
 4. エラーメッセージの内容を確認
-
 ---
-
 **最終更新**: 2025-01-15
 **バージョン**: 1.0.0
