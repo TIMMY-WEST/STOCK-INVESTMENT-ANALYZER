@@ -3,9 +3,7 @@
 ## 📋 Issue一覧
 
 以下のIssueは [`milestones.md`](./milestones.md) のリファクタリング&共同開発マイルストーンから分解されたタスクです。
-
 ---
-
 ## 🏗️ マイルストン 1: アーキテクチャの整理とドキュメント化 関連Issue
 
 ### Issue #1: システムアーキテクチャドキュメント作成
@@ -45,9 +43,7 @@
 #### 参考仕様書
 - 既存の全ソースコード
 - [`README.md`](../../README.md)
-
 ---
-
 ### Issue #2: サービス責任分掌ドキュメント作成
 **Labels**: `documentation`, `architecture`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -78,9 +74,7 @@
 
 #### 参考仕様書
 - `app/services/` 配下の全サービスクラス
-
 ---
-
 ### Issue #3: APIエンドポイント整理ドキュメント作成
 **Labels**: `documentation`, `api`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -113,9 +107,7 @@
 #### 参考仕様書
 - `app/routes/` 配下のルーティング定義
 - 既存の `docs/api_specification.md`
-
 ---
-
 ### Issue #4: コーディング規約とスタイルガイド作成
 **Labels**: `documentation`, `coding-standards`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -148,9 +140,7 @@ Python PEP8準拠のコーディング規約と命名規則の策定
 #### 参考仕様書
 - PEP8公式ドキュメント
 - 既存コードベース
-
 ---
-
 ### Issue #5: フォーマッタ・Linterの導入と設定
 **Labels**: `tooling`, `infrastructure`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -187,9 +177,7 @@ Black、isort、flake8、pylintを導入し、統一設定ファイルを作成
 - Black公式ドキュメント
 - isort公式ドキュメント
 - flake8公式ドキュメント
-
 ---
-
 ### Issue #6: 型チェック（mypy）の導入
 **Labels**: `tooling`, `type-checking`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -222,9 +210,7 @@ mypyを導入し、型ヒントの記述ガイドラインを作成
 #### 参考仕様書
 - mypy公式ドキュメント
 - PEP 484 - Type Hints
-
 ---
-
 ### Issue #7: pre-commitフックの設定
 **Labels**: `tooling`, `infrastructure`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -259,9 +245,7 @@ pre-commitフックを設定し、コミット前の自動チェックを実現
 
 #### 参考仕様書
 - pre-commit公式ドキュメント
-
 ---
-
 ### Issue #8: テスト方針の策定とドキュメント作成
 **Labels**: `documentation`, `testing`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -299,9 +283,7 @@ pre-commitフックを設定し、コミット前の自動チェックを実現
 #### 参考仕様書
 - pytest公式ドキュメント
 - 既存のテストコード
-
 ---
-
 ### Issue #9: Git運用ワークフローの策定
 **Labels**: `documentation`, `git`, `workflow`, `priority:critical`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -344,9 +326,7 @@ pre-commitフックを設定し、コミット前の自動チェックを実現
 #### 参考仕様書
 - Git Flow公式ドキュメント
 - Conventional Commits仕様
-
 ---
-
 ### Issue #10: GitHubブランチ保護ルールの設定
 **Labels**: `infrastructure`, `git`, `priority:critical`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -378,9 +358,7 @@ GitHubリポジトリのブランチ保護ルールを設定し、品質を保�
 
 #### 参考仕様書
 - GitHub Branch Protection公式ドキュメント
-
 ---
-
 ### Issue #11: PRテンプレートとIssueテンプレートの作成
 **Labels**: `documentation`, `github`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -416,9 +394,7 @@ GitHubのPRテンプレートとIssueテンプレートを作成
 
 #### 参考仕様書
 - GitHub Templates公式ドキュメント
-
 ---
-
 ### Issue #12: コードレビューガイドラインの作成
 **Labels**: `documentation`, `code-review`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -453,9 +429,7 @@ GitHubのPRテンプレートとIssueテンプレートを作成
 #### 参考仕様書
 - Google Engineering Practices
 - 各種コードレビューベストプラクティス
-
 ---
-
 ## 📦 マイルストン 2: 開発環境の整備と開発者体験の向上 関連Issue
 
 ### Issue #13: ワンコマンドセットアップスクリプトの作成
@@ -492,9 +466,7 @@ GitHubのPRテンプレートとIssueテンプレートを作成
 #### 参考仕様書
 - 既存の `scripts/` ディレクトリ
 - `README.md`
-
 ---
-
 ### Issue #14: データベース管理スクリプトの作成
 **Labels**: `tooling`, `database`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -527,9 +499,7 @@ GitHubのPRテンプレートとIssueテンプレートを作成
 #### 参考仕様書
 - 既存の `scripts/create_tables.sql`
 - `docs/database_design.md`
-
 ---
-
 ### Issue #15: エディタ設定ファイルの整備
 **Labels**: `tooling`, `developer-experience`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -573,9 +543,7 @@ GitHubのPRテンプレートとIssueテンプレートを作成
 #### 参考仕様書
 - EditorConfig公式ドキュメント
 - VSCode公式ドキュメント
-
 ---
-
 ### Issue #16: README.mdの改善
 **Labels**: `documentation`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -611,9 +579,7 @@ README.mdを新規開発者向けに大幅改善
 #### 参考仕様書
 - 既存の `README.md`
 - 他のOSSプロジェクトのREADME
-
 ---
-
 ### Issue #17: CONTRIBUTING.mdの作成
 **Labels**: `documentation`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -648,9 +614,7 @@ README.mdを新規開発者向けに大幅改善
 
 #### 参考仕様書
 - 他のOSSプロジェクトのCONTRIBUTING.md
-
 ---
-
 ### Issue #18: Docker導入計画の策定（将来検討）
 **Labels**: `documentation`, `docker`, `priority:low`, `future`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -682,9 +646,7 @@ Docker導入の要件整理とメリット・デメリット評価
 
 #### 参考仕様書
 - Docker公式ドキュメント
-
 ---
-
 ## 🧪 マイルストン 3: テスト戦略の策定（フェーズ1）関連Issue
 
 ### Issue #19: テスト戦略ドキュメントの作成
@@ -724,9 +686,7 @@ Docker導入の要件整理とメリット・デメリット評価
 #### 参考仕様書
 - pytest公式ドキュメント
 - テストベストプラクティス
-
 ---
-
 ### Issue #20: テスト環境の基本セットアップ
 **Labels**: `testing`, `infrastructure`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -761,9 +721,7 @@ Docker導入の要件整理とメリット・デメリット評価
 
 #### 参考仕様書
 - pytest公式ドキュメント
-
 ---
-
 ### Issue #21: 共通テストユーティリティの作成
 **Labels**: `testing`, `infrastructure`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -797,9 +755,7 @@ Docker導入の要件整理とメリット・デメリット評価
 
 #### 参考仕様書
 - pytest fixtures公式ドキュメント
-
 ---
-
 ### Issue #22: 既存テストの動作確認と温存
 **Labels**: `testing`, `priority:critical`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -829,9 +785,7 @@ Docker導入の要件整理とメリット・デメリット評価
 
 #### 参考仕様書
 - 既存テストコード
-
 ---
-
 ## 🔨 マイルストン 4: コア機能のリファクタリング（サービス層）関連Issue
 
 ### Issue #23: Stock Data Fetcherの整理
@@ -868,9 +822,7 @@ Stock Data Fetcherを単一責任原則に準拠するようリファクタリ�
 #### 参考仕様書
 - `app/services/stock_data_fetcher.py`
 - Issue #19のテスト戦略
-
 ---
-
 ### Issue #24: Stock Data Orchestratorの簡素化
 **Labels**: `refactoring`, `backend`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -903,9 +855,7 @@ Orchestratorの責任範囲を明確化し、複雑な分岐ロジックを削�
 
 #### 参考仕様書
 - `app/services/stock_data_orchestrator.py`
-
 ---
-
 ### Issue #25: バッチサービスとバルクデータサービスの統合検討
 **Labels**: `refactoring`, `backend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -940,9 +890,7 @@ Orchestratorの責任範囲を明確化し、複雑な分岐ロジックを削�
 #### 参考仕様書
 - `app/services/batch_service.py`
 - `app/services/bulk_data_service.py`
-
 ---
-
 ### Issue #26: Stock Data Saverの改善
 **Labels**: `refactoring`, `backend`, `database`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -975,9 +923,7 @@ Orchestratorの責任範囲を明確化し、複雑な分岐ロジックを削�
 
 #### 参考仕様書
 - `app/services/stock_data_saver.py`
-
 ---
-
 ### Issue #27: データベース接続管理の改善
 **Labels**: `refactoring`, `backend`, `database`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1007,9 +953,7 @@ Orchestratorの責任範囲を明確化し、複雑な分岐ロジックを削�
 
 #### 参考仕様書
 - SQLAlchemy公式ドキュメント
-
 ---
-
 ### Issue #28: カスタム例外クラスの体系化
 **Labels**: `refactoring`, `backend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1044,9 +988,7 @@ Orchestratorの責任範囲を明確化し、複雑な分岐ロジックを削�
 
 #### 参考仕様書
 - Python例外処理ベストプラクティス
-
 ---
-
 ## 🎨 マイルストン 5: フロントエンド（WebUI）のモダン化 関連Issue
 
 ### Issue #29: JavaScriptコードのモジュール化
@@ -1080,9 +1022,7 @@ JavaScriptコードをES6 modulesでモジュール化し、グローバル変�
 
 #### 参考仕様書
 - `static/js/` 配下のJavaScriptファイル
-
 ---
-
 ### Issue #30: HTMLテンプレートの改善
 **Labels**: `refactoring`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1115,9 +1055,7 @@ Jinja2テンプレートの継承構造最適化と共通レイアウトの抽�
 #### 参考仕様書
 - `templates/` 配下のHTMLファイル
 - Jinja2公式ドキュメント
-
 ---
-
 ### Issue #31: CSSの整理とBEM命名規則の適用
 **Labels**: `refactoring`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1150,9 +1088,7 @@ CSSの整理とCSS変数、BEM命名規則の適用
 #### 参考仕様書
 - `static/css/` 配下のCSSファイル
 - BEM公式ドキュメント
-
 ---
-
 ### Issue #32: クライアントサイド状態管理の改善
 **Labels**: `refactoring`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1183,9 +1119,7 @@ CSSの整理とCSS変数、BEM命名規則の適用
 
 #### 参考仕様書
 - 既存のWebSocket実装
-
 ---
-
 ### Issue #33: フロントエンドビルドプロセスの検討（オプション）
 **Labels**: `enhancement`, `frontend`, `priority:low`, `future`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1218,9 +1152,7 @@ CSSの整理とCSS変数、BEM命名規則の適用
 #### 参考仕様書
 - Vite公式ドキュメント
 - TypeScript公式ドキュメント
-
 ---
-
 ### Issue #34: フロントエンド開発ガイドの作成
 **Labels**: `documentation`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1252,9 +1184,7 @@ CSSの整理とCSS変数、BEM命名規則の適用
 
 #### 参考仕様書
 - リファクタリング後のフロントエンドコード
-
 ---
-
 ## 🔌 マイルストン 6: API設計の見直しとドキュメント化 関連Issue
 
 ### Issue #35: APIエンドポイントのRESTful化
@@ -1288,9 +1218,7 @@ RESTful原則に準拠したAPIエンドポイントへの再設計
 
 #### 参考仕様書
 - RESTful API設計ベストプラクティス
-
 ---
-
 ### Issue #36: APIバージョニングの導入
 **Labels**: `enhancement`, `api`, `backend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1320,9 +1248,7 @@ APIバージョニング戦略の導入と後方互換性の保証
 
 #### 参考仕様書
 - APIバージョニングベストプラクティス
-
 ---
-
 ### Issue #37: APIレスポンス形式の統一
 **Labels**: `refactoring`, `api`, `backend`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1353,9 +1279,7 @@ APIバージョニング戦略の導入と後方互換性の保証
 
 #### 参考仕様書
 - JSON API仕様
-
 ---
-
 ### Issue #38: OpenAPI仕様書の作成
 **Labels**: `documentation`, `api`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1388,9 +1312,7 @@ OpenAPI 3.0仕様での全エンドポイント定義とSwagger UIの導入
 #### 参考仕様書
 - OpenAPI 3.0仕様
 - Swagger公式ドキュメント
-
 ---
-
 ### Issue #39: API使用例とサンプルコードの作成
 **Labels**: `documentation`, `api`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1421,9 +1343,7 @@ OpenAPI 3.0仕様での全エンドポイント定義とSwagger UIの導入
 
 #### 参考仕様書
 - 完成したOpenAPI仕様書
-
 ---
-
 ### Issue #40: API認証・認可の検討（将来対応）
 **Labels**: `security`, `api`, `priority:low`, `future`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1455,9 +1375,7 @@ API認証・認可の要件整理と将来の実装計画
 #### 参考仕様書
 - JWT公式ドキュメント
 - OAuth 2.0仕様
-
 ---
-
 ### Issue #41: API統合テストの充実
 **Labels**: `testing`, `api`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1488,9 +1406,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - Issue #19のテスト戦略
-
 ---
-
 ## 🧪 マイルストン 7: 既存テスト整理とCI/CD構築（フェーズ2）関連Issue
 
 ### Issue #42: 既存テストの監査とリファクタリング計画
@@ -1527,9 +1443,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - 既存テストコード全体
-
 ---
-
 ### Issue #43: 既存テストの命名規則修正
 **Labels**: `testing`, `refactoring`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1558,9 +1472,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - Issue #19のテスト戦略
-
 ---
-
 ### Issue #44: 既存テストのAAAパターン適用
 **Labels**: `testing`, `refactoring`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1591,9 +1503,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - Issue #19のテスト戦略
-
 ---
-
 ### Issue #45: テストディレクトリ構造の再編成
 **Labels**: `testing`, `refactoring`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1626,9 +1536,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - Issue #19のテスト戦略
-
 ---
-
 ### Issue #46: テストフィクスチャの共通化とリファクタリング
 **Labels**: `testing`, `refactoring`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1658,9 +1566,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - pytest fixtures公式ドキュメント
-
 ---
-
 ### Issue #47: 不要テストの削除と統合
 **Labels**: `testing`, `refactoring`, `priority:low`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1690,9 +1596,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - 既存テストコード
-
 ---
-
 ### Issue #48: テストカバレッジの向上（サービス層）
 **Labels**: `testing`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1722,9 +1626,7 @@ API統合テストの作成と自動化
 
 #### 参考仕様書
 - Issue #19のテスト戦略
-
 ---
-
 ### Issue #49: E2Eテストの整備
 **Labels**: `testing`, `e2e`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1757,9 +1659,7 @@ API統合テストの作成と自動化
 #### 参考仕様書
 - Selenium公式ドキュメント
 - Playwright公式ドキュメント
-
 ---
-
 ### Issue #50: GitHub Actionsワークフローの作成
 **Labels**: `ci-cd`, `infrastructure`, `priority:critical`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1794,9 +1694,7 @@ GitHub Actionsによる自動テスト・品質チェックの構築
 
 #### 参考仕様書
 - GitHub Actions公式ドキュメント
-
 ---
-
 ### Issue #51: 品質ゲートの設定
 **Labels**: `ci-cd`, `quality`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1826,9 +1724,7 @@ GitHub Actionsによる自動テスト・品質チェックの構築
 
 #### 参考仕様書
 - pytest-cov公式ドキュメント
-
 ---
-
 ### Issue #52: CI/CDドキュメントの作成
 **Labels**: `documentation`, `ci-cd`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1860,9 +1756,7 @@ CI/CDパイプラインの説明とトラブルシューティングガイドの
 
 #### 参考仕様書
 - 完成したCI/CDワークフロー
-
 ---
-
 ## 🚀 マイルストン 8: パフォーマンス最適化とスケーラビリティ 関連Issue
 
 ### Issue #53: スロークエリの特定と最適化
@@ -1895,9 +1789,7 @@ CI/CDパイプラインの説明とトラブルシューティングガイドの
 
 #### 参考仕様書
 - SQLAlchemyパフォーマンスガイド
-
 ---
-
 ### Issue #54: データベース接続管理の最適化
 **Labels**: `performance`, `database`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1927,9 +1819,7 @@ CI/CDパイプラインの説明とトラブルシューティングガイドの
 
 #### 参考仕様書
 - SQLAlchemy公式ドキュメント
-
 ---
-
 ### Issue #55: タスクキュー（Celery）の導入検討
 **Labels**: `enhancement`, `performance`, `priority:medium`, `future`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1961,9 +1851,7 @@ CI/CDパイプラインの説明とトラブルシューティングガイドの
 
 #### 参考仕様書
 - Celery公式ドキュメント
-
 ---
-
 ### Issue #56: キャッシング戦略の策定と導入
 **Labels**: `enhancement`, `performance`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -1994,9 +1882,7 @@ Redis等のキャッシュレイヤー導入とキャッシュ戦略の確立
 
 #### 参考仕様書
 - Redis公式ドキュメント
-
 ---
-
 ### Issue #57: フロントエンドレンダリング最適化
 **Labels**: `performance`, `frontend`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -2026,9 +1912,7 @@ Redis等のキャッシュレイヤー導入とキャッシュ戦略の確立
 
 #### 参考仕様書
 - Virtual Scrollingライブラリ
-
 ---
-
 ### Issue #58: パフォーマンステストスイートの作成
 **Labels**: `testing`, `performance`, `priority:high`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -2060,9 +1944,7 @@ Redis等のキャッシュレイヤー導入とキャッシュ戦略の確立
 
 #### 参考仕様書
 - パフォーマンステストベストプラクティス
-
 ---
-
 ### Issue #59: パフォーマンスモニタリングの導入
 **Labels**: `monitoring`, `performance`, `priority:medium`
 **Projects**: `@TIMMY-WEST's STOCK-INVESTMENT-ANALYZER`
@@ -2095,9 +1977,7 @@ Redis等のキャッシュレイヤー導入とキャッシュ戦略の確立
 
 #### 参考仕様書
 - Prometheusなどのモニタリングツール
-
 ---
-
 ## 📊 Issue管理方針
 
 ### 🔄 推奨開発フロー
@@ -2127,7 +2007,5 @@ Redis等のキャッシュレイヤー導入とキャッシュ戦略の確立
 - **建設的なフィードバック**: 問題点だけでなく改善案も提示
 - **小さなPR**: 1PR = 1機能/1修正を心がける（500行以下推奨）
 - **自動チェック優先**: Linter・テストは自動化し、人間はロジックレビューに集中
-
 ---
-
 このリファクタリング&共同開発Issue管理により、保守性の高い株価データ管理システムへの段階的な移行が実現できます。

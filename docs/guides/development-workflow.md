@@ -10,9 +10,7 @@
 - [レビュープロセス](#レビュープロセス)
 - [テストとCI/CD](#テストとcicd)
 - [デプロイ](#デプロイ)
-
 ---
-
 ## 概要
 
 **最終更新**: 2025-11-02
@@ -28,9 +26,7 @@
     ↓                                            ↓
 8. デプロイ ← 7. マージ ← 6. レビュー ← 5. テスト実行
 ```
-
 ---
-
 ## 開発サイクル
 
 ### 1. タスクの特定とIssue作成
@@ -195,9 +191,7 @@ git branch -d feature/issue-123-stock-api
 本番環境へのデプロイは、mainブランチへのマージ後に自動または手動で実行します。
 
 詳細は [CI/CDパイプライン設定](../ci-cd/pipeline-config.md) を参照。
-
 ---
-
 ## Issue管理
 
 ### Issueのライフサイクル
@@ -224,9 +218,7 @@ git branch -d feature/issue-123-stock-api
 - `frontend` - フロントエンド
 - `database` - データベース
 - `infrastructure` - インフラ
-
 ---
-
 ## ブランチ戦略
 
 ### メインブランチ
@@ -261,9 +253,7 @@ docs/issue-106-readme-update
 - ✅ Require status checks to pass before merging
 - ✅ Require branches to be up to date before merging
 - ❌ 直接pushは禁止
-
 ---
-
 ## コミットとPR
 
 ### コミットのベストプラクティス
@@ -283,9 +273,7 @@ docs/issue-106-readme-update
 - **理想**: 200〜300行以内
 - **最大**: 500行以内
 - **500行超**: 分割を検討
-
 ---
-
 ## レビュープロセス
 
 ### レビュアーの責任
@@ -311,9 +299,7 @@ with SessionLocal() as session:
 ```
 これは良くない。
 ```
-
 ---
-
 ## テストとCI/CD
 
 ### ローカルでのテスト実行
@@ -345,9 +331,7 @@ pytest -m "not e2e"
 3. 自動デプロイ（設定による）
 
 詳細は [CI/CDパイプライン設定](../ci-cd/pipeline-config.md) を参照。
-
 ---
-
 ## デプロイ
 
 ### デプロイフロー
@@ -363,9 +347,7 @@ mainブランチマージ → CI/CD自動実行 → テスト成功 → デプ�
 - [ ] Linterエラーがない
 - [ ] ドキュメントが更新されている
 - [ ] データベースマイグレーションが適用されている
-
 ---
-
 ## まとめ
 
 この開発ワークフローは、小規模開発に最適化されています:
@@ -374,17 +356,13 @@ mainブランチマージ → CI/CD自動実行 → テスト成功 → デプ�
 ✅ **柔軟な対応**: 実用性を重視
 ✅ **品質確保**: 基本的なレビューとテストで品質維持
 ✅ **効率性**: 素早い開発サイクル
-
 ---
-
 ## 関連ドキュメント
 
 - [テスト規約](../standards/testing-standards.md) - テストの作成方法
 - [コーディング規約](../standards/coding-standards.md) - コーディング規約
 - [Git/GitHub運用ルール](../standards/git-workflow.md) - Git詳細ルール
 - [CI/CDパイプライン設定](../ci-cd/pipeline-config.md) - CI/CD詳細
-
 ---
-
 **最終更新**: 2025-11-02
 **文書バージョン**: v2.0.0

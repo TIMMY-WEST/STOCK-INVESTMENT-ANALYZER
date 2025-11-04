@@ -91,9 +91,7 @@ app/services/
 
 **カスタム例外:**
 - `StockDataFetchError` - データ取得時のエラー
-
 ---
-
 #### 2.2.2 StockDataSaver（データ保存サービス）
 
 **ファイルパス:** [app/services/stock_data/saver.py](app/services/stock_data/saver.py)
@@ -121,9 +119,7 @@ app/services/
 
 **カスタム例外:**
 - `StockDataSaveError` - データ保存時のエラー
-
 ---
-
 #### 2.2.3 StockDataOrchestrator（統括サービス）
 
 **ファイルパス:** [app/services/stock_data/orchestrator.py](app/services/stock_data/orchestrator.py)
@@ -153,9 +149,7 @@ app/services/
 **特徴:**
 - Fetcher と Saver を組み合わせた高レベルサービス
 - エラーハンドリングとロギングを統合
-
 ---
-
 #### 2.2.4 BulkDataService（一括取得サービス）
 
 **ファイルパス:** [app/services/bulk/bulk_service.py](app/services/bulk/bulk_service.py)
@@ -194,9 +188,7 @@ app/services/
 - WebSocket経由で進捗配信
 - ETA推定機能
 - バッチ実行管理との連携
-
 ---
-
 #### 2.2.5 JPXStockService（JPX銘柄サービス）
 
 **ファイルパス:** [app/services/jpx/jpx_stock_service.py](app/services/jpx/jpx_stock_service.py)
@@ -236,9 +228,7 @@ app/services/
 **特徴:**
 - JPX公式サイトから銘柄一覧を取得
 - 銘柄マスタの完全な更新管理（追加・更新・非アクティブ化）
-
 ---
-
 #### 2.2.6 BatchService（バッチ管理サービス）
 
 **ファイルパス:** [app/services/batch/batch_service.py](app/services/batch/batch_service.py)
@@ -271,9 +261,7 @@ app/services/
 - バッチ処理の完全なライフサイクル管理
 - 詳細な実行履歴の記録
 - フィルタリングとページネーション対応
-
 ---
-
 #### 2.2.7 StockDataScheduler（スケジューラ）
 
 **ファイルパス:** [app/services/stock_data/scheduler.py](app/services/stock_data/scheduler.py)
@@ -309,9 +297,7 @@ app/services/
 
 **グローバル関数:**
 - `get_scheduler()` - シングルトンインスタンスの取得
-
 ---
-
 #### 2.2.8 ErrorHandler（エラーハンドリングサービス）
 
 **ファイルパス:** [app/services/common/error_handler.py](app/services/common/error_handler.py)
@@ -349,9 +335,7 @@ app/services/
 - エラーの詳細な分類と適切なアクション決定
 - 指数バックオフによるリトライ
 - エラー統計とレポート生成
-
 ---
-
 ## 3. 主要メソッドの説明
 
 ### 3.1 データ取得フロー
@@ -656,21 +640,21 @@ Scheduler
 
 ### 8.2 重複機能の統合提案サマリー
 
-| 機能 | 統合前 | 統合後 | 優先度 |
-|------|--------|--------|--------|
-| 複数銘柄データ取得 | StockDataFetcher + BulkDataService | BulkDataService のみ | 高 |
-| DBセッション管理 | 混在（明示的 + コンテキストマネージャー） | コンテキストマネージャー統一 | 中 |
-| エラーハンドリング | 一部重複あり | ErrorHandler に完全委譲 | 中 |
-| ロギング | 各サービスで独立 | 現状維持（または一元管理） | 低 |
+| 機能               | 統合前                                    | 統合後                       | 優先度 |
+| ------------------ | ----------------------------------------- | ---------------------------- | ------ |
+| 複数銘柄データ取得 | StockDataFetcher + BulkDataService        | BulkDataService のみ         | 高     |
+| DBセッション管理   | 混在（明示的 + コンテキストマネージャー） | コンテキストマネージャー統一 | 中     |
+| エラーハンドリング | 一部重複あり                              | ErrorHandler に完全委譲      | 中     |
+| ロギング           | 各サービスで独立                          | 現状維持（または一元管理）   | 低     |
 
 ### 8.3 不要なコードのサマリー
 
-| コード | ファイル | 行番号 | 推奨アクション | 優先度 |
-|--------|---------|--------|---------------|--------|
-| fetch_batch_stock_data() | stock_data_fetcher.py | 213-337 | 削除 | 高 |
-| 未使用インポート | 全サービス | - | 削除 | 中 |
-| 重複エラーハンドリング | bulk_data_service.py | 複数箇所 | 統一 | 中 |
-| 不要な変数 | bulk_data_service.py | 134-171 | 削除 | 低 |
+| コード                   | ファイル              | 行番号   | 推奨アクション | 優先度 |
+| ------------------------ | --------------------- | -------- | -------------- | ------ |
+| fetch_batch_stock_data() | stock_data_fetcher.py | 213-337  | 削除           | 高     |
+| 未使用インポート         | 全サービス            | -        | 削除           | 中     |
+| 重複エラーハンドリング   | bulk_data_service.py  | 複数箇所 | 統一           | 中     |
+| 不要な変数               | bulk_data_service.py  | 134-171  | 削除           | 低     |
 
 ### 8.4 次のステップ
 

@@ -11,9 +11,7 @@
 - [テスト実行とCI/CD](#テスト実行とcicd)
 - [pytest設定とプラグイン](#pytest設定とプラグイン)
 - [ベストプラクティス](#ベストプラクティス)
-
 ---
-
 ## 概要
 
 **最終更新**: 2025-11-02
@@ -28,9 +26,7 @@
 - [Git/GitHub運用ルール](git-workflow.md) - 開発フロー全体
 - [CI/CDパイプライン設定](../ci-cd/pipeline-config.md) - CI/CD詳細
 - [トラブルシューティング](../guides/troubleshooting.md) - 問題解決
-
 ---
-
 ## テストの目的と原則
 
 ### テストの目的
@@ -80,9 +76,7 @@ def test_stock_daily_repr_with_valid_data():
     expected = "<Stocks1d(symbol='7203.T', date='2024-09-13', close=2500.00)>"
     assert result == expected
 ```
-
 ---
-
 ## テストレベルの定義
 
 ### 1. ユニットテスト (Unit Test)
@@ -210,9 +204,7 @@ def test_stock_data_display_flow(selenium_driver):
     )
     assert table.is_displayed()
 ```
-
 ---
-
 ## テストカバレッジ目標
 
 ### カバレッジ基準
@@ -271,9 +263,7 @@ pytest --cov=app --cov-report=term-missing
 # 最低カバレッジ設定（70%未満の場合、テスト失敗）
 pytest --cov --cov-fail-under=70
 ```
-
 ---
-
 ## テスト命名規則
 
 ### ファイル命名規則
@@ -319,9 +309,7 @@ def test_fetch_stock_data_with_invalid_symbol_returns_error():
 def test_calculate_sma_with_period_greater_than_data_length_returns_none():
     pass
 ```
-
 ---
-
 ## テストコーディング規約
 
 ### 1. モジュールレベルマーカーの使用
@@ -433,9 +421,7 @@ def test_fetch_stock_data_with_various_parameters(symbol, period, expected):
     result = service.fetch_stock_data(symbol=symbol, period=period)
     assert result["success"] == expected
 ```
-
 ---
-
 ## テスト実行とCI/CD
 
 ### ローカルでのテスト実行
@@ -475,9 +461,7 @@ pytest -x
 - カバレッジレポート保存
 
 詳細は [CI/CDパイプライン設定](../ci-cd/pipeline-config.md) を参照。
-
 ---
-
 ## pytest設定とプラグイン
 
 ### 必須プラグイン
@@ -543,9 +527,7 @@ def test_long_running_process():
 def test_full_user_flow():
     pass
 ```
-
 ---
-
 ## ベストプラクティス
 
 ### やるべきこと ✅
@@ -578,18 +560,14 @@ def test_full_user_flow():
 - [ ] 境界値がテストされているか
 - [ ] Docstringが記述されているか
 - [ ] 適切なマーカーが付与されているか
-
 ---
-
 ## 関連ドキュメント
 
 - [コーディング規約](coding-standards.md) - 一般的なコーディング規約
 - [Git/GitHub運用ルール](git-workflow.md) - 開発フロー全体
 - [CI/CDパイプライン設定](../ci-cd/pipeline-config.md) - CI/CD詳細設定
 - [トラブルシューティング](../guides/troubleshooting.md) - テスト関連の問題解決
-
 ---
-
 **最終更新**: 2025-11-02
 **文書バージョン**: v3.0.0
 **次回見直し**: カバレッジ70%達成時

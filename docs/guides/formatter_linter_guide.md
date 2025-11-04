@@ -9,9 +9,7 @@
 3. [各ツールの使い方](#各ツールの使い方)
 4. [VSCodeでの自動フォーマット](#vscodeでの自動フォーマット)
 5. [トラブルシューティング](#トラブルシューティング)
-
 ---
-
 ## 導入済みツール
 
 ### コードフォーマッター
@@ -27,9 +25,7 @@
 ### 型チェック
 
 - **mypy**: 型ヒントの検証
-
 ---
-
 ## セットアップ
 
 ### 1. 開発用ツールのインストール
@@ -59,9 +55,7 @@ VSCodeで開発する場合、以下の拡張機能をインストールする�
 - Pylance (ms-python.vscode-pylance)
 
 プロジェクトを開くと、VSCodeが自動的にこれらの拡張機能をインストールするよう推奨します。
-
 ---
-
 ## 各ツールの使い方
 
 ### Black（コードフォーマッター）
@@ -92,9 +86,7 @@ python -m black --diff app/models.py
 主な設定：
 - 行の最大長: 79文字
 - 除外ディレクトリ: `migrations/`, `venv/`, `.venv/`, `.git/` など
-
 ---
-
 ### isort（インポート文ソート）
 
 #### 基本的な使い方
@@ -124,9 +116,7 @@ python -m isort --diff app/models.py
 1. 標準ライブラリ
 2. サードパーティライブラリ
 3. ローカルモジュール（app, models, services, utils, tests）
-
 ---
-
 ### flake8（Linter）
 
 #### 基本的な使い方
@@ -156,9 +146,7 @@ python -m flake8 app/ --statistics
 - 行の最大長: 79文字
 - 複雑度の閾値: 10
 - 無視するエラー: E203, W503, E501
-
 ---
-
 ### pylint（静的解析ツール）
 
 #### 基本的な使い方
@@ -184,9 +172,7 @@ python -m pylint app/models.py --output-format=text
 主な設定：
 - 行の最大長: 79文字
 - 無効化されたメッセージ: C0111, C0103, R0903, W0212
-
 ---
-
 ### mypy（型チェック）
 
 #### 基本的な使い方
@@ -212,9 +198,7 @@ python -m mypy app/models.py --show-error-codes
 主な設定：
 - Python バージョン: 3.8以上
 - サードパーティライブラリの型スタブがない場合は警告を無視
-
 ---
-
 ## VSCodeでの自動フォーマット
 
 ### 設定内容
@@ -237,9 +221,7 @@ python -m mypy app/models.py --show-error-codes
 
 - **フォーマット**: `Shift+Alt+F`（Windows）または `Shift+Option+F`（macOS）
 - **インポートをソート**: コマンドパレット（`Ctrl+Shift+P`）→ "Organize Imports"
-
 ---
-
 ## 一括フォーマット・チェックのコマンド
 
 プロジェクト全体を一括でフォーマット・チェックする場合は、以下のコマンドを使用します。
@@ -286,9 +268,7 @@ python -m flake8 . && \
 python -m pylint app/ && \
 python -m mypy .
 ```
-
 ---
-
 ## トラブルシューティング
 
 ### 1. ツールがインストールされていない
@@ -318,21 +298,17 @@ pip install -r requirements-dev.txt
 - `E203`: Blackと競合
 - `W503`: PEP 8で推奨される改行位置
 - `E501`: 行の長さはBlackに任せる
-
 ---
-
 ## 関連ドキュメント
 
-- [コーディング規約とスタイルガイド](coding_standards.md)
+- [コーディング規約とスタイルガイド](../standards/coding-standards.md)
 - [PEP 8 -- Style Guide for Python Code](https://peps.python.org/pep-0008/)
 - [Black公式ドキュメント](https://black.readthedocs.io/)
 - [isort公式ドキュメント](https://pycqa.github.io/isort/)
 - [flake8公式ドキュメント](https://flake8.pycqa.org/)
 - [pylint公式ドキュメント](https://pylint.pycqa.org/)
 - [mypy公式ドキュメント](https://mypy.readthedocs.io/)
-
 ---
-
 **更新履歴**
 
 - 2025-10-22: 初版作成 (Issue #108)

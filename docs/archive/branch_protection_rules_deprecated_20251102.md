@@ -1,4 +1,3 @@
----
 category: development
 ai_context: high
 last_updated: 2025-10-22
@@ -8,8 +7,7 @@ related_docs:
   - ./testing_strategy.md
 deprecated: true
 deprecated_date: 2025-11-02
-replacement: ../guides/development-workflow.md
----
+## replacement: ../guides/development-workflow.md
 
 # ⚠️ このドキュメントは非推奨です
 
@@ -18,13 +16,13 @@ replacement: ../guides/development-workflow.md
 **移行先**: `docs/guides/development-workflow.md` (ブランチ保護設定セクション)
 
 このドキュメントは参照用として保管されていますが、最新情報は上記の移行先を参照してください。
-
 ---
-
 # GitHubブランチ保護ルール設定ガイド
 
 ## 目次
 
+- [⚠️ このドキュメントは非推奨です](#️-このドキュメントは非推奨です)
+  - [このドキュメントは参照用として保管されていますが、最新情報は上記の移行先を参照してください。](#このドキュメントは参照用として保管されていますが最新情報は上記の移行先を参照してください)
 - [GitHubブランチ保護ルール設定ガイド](#githubブランチ保護ルール設定ガイド)
   - [目次](#目次)
   - [1. 概要](#1-概要)
@@ -33,8 +31,17 @@ replacement: ../guides/development-workflow.md
   - [2. ブランチ保護ルール設定内容](#2-ブランチ保護ルール設定内容)
     - [2.1 mainブランチの保護設定](#21-mainブランチの保護設定)
     - [2.2 設定項目の詳細](#22-設定項目の詳細)
+      - [Require a pull request before merging](#require-a-pull-request-before-merging)
+      - [Require approvals](#require-approvals)
+      - [Dismiss stale pull request approvals when new commits are pushed](#dismiss-stale-pull-request-approvals-when-new-commits-are-pushed)
+      - [Require status checks to pass before merging](#require-status-checks-to-pass-before-merging)
+      - [Require branches to be up to date before merging](#require-branches-to-be-up-to-date-before-merging)
   - [3. 設定手順](#3-設定手順)
     - [3.1 GitHub Web UIからの設定](#31-github-web-uiからの設定)
+      - [Step 1: リポジトリ設定にアクセス](#step-1-リポジトリ設定にアクセス)
+      - [Step 2: ブランチパターンの指定](#step-2-ブランチパターンの指定)
+      - [Step 3: 保護ルールの設定](#step-3-保護ルールの設定)
+      - [Step 4: 設定の保存](#step-4-設定の保存)
     - [3.2 設定値の確認](#32-設定値の確認)
   - [4. CI/CD要件](#4-cicd要件)
     - [4.1 必須チェック項目](#41-必須チェック項目)
@@ -47,12 +54,25 @@ replacement: ../guides/development-workflow.md
     - [5.5 再承認設定の確認](#55-再承認設定の確認)
   - [6. 運用上の注意事項](#6-運用上の注意事項)
     - [6.1 緊急時の対応](#61-緊急時の対応)
+      - [緊急修正が必要な場合](#緊急修正が必要な場合)
+      - [管理者による一時的な保護解除（最終手段）](#管理者による一時的な保護解除最終手段)
     - [6.2 設定変更時のルール](#62-設定変更時のルール)
     - [6.3 ベストプラクティス](#63-ベストプラクティス)
+      - [PR作成時](#pr作成時)
+      - [レビュー時](#レビュー時)
   - [7. トラブルシューティング](#7-トラブルシューティング)
     - [7.1 マージできない場合](#71-マージできない場合)
+      - [問題: "Required status checks must pass"](#問題-required-status-checks-must-pass)
+      - [問題: "This branch is out-of-date with the base branch"](#問題-this-branch-is-out-of-date-with-the-base-branch)
+      - [問題: "Review required"](#問題-review-required)
     - [7.2 CI/CDが失敗する場合](#72-cicdが失敗する場合)
+      - [Lintエラー](#lintエラー)
+      - [型チェックエラー](#型チェックエラー)
+      - [テストエラー](#テストエラー)
   - [8. まとめ](#8-まとめ)
+    - [実現される保護](#実現される保護)
+    - [重要な原則](#重要な原則)
+    - [継続的な改善](#継続的な改善)
 
 ## 1. 概要
 
@@ -693,9 +713,7 @@ pytest tests/ --cov --cov-report=html
 - チームからのフィードバック収集
 - CI/CDチェックの追加・改善
 - ドキュメントの更新
-
 ---
-
 **関連ドキュメント:**
 - [Git運用ワークフロー](./git_workflow.md)
 - [GitHub運用ルール](./github_workflow.md)

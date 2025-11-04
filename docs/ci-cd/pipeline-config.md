@@ -9,9 +9,7 @@
 - [品質ゲート](#品質ゲート)
 - [環境変数とシークレット](#環境変数とシークレット)
 - [トラブルシューティング](#トラブルシューティング)
-
 ---
-
 ## 概要
 
 **最終更新**: 2025-11-02
@@ -20,9 +18,7 @@
 
 本ドキュメントは、CI/CDパイプラインの設定と運用に関する詳細な情報を提供します。
 `ci-cd/pipeline_overview.md`と`ci-cd/troubleshooting.md`の内容を統合しています。
-
 ---
-
 ## パイプライン全体像
 
 ### 2層構造
@@ -67,9 +63,7 @@
 │                                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
-
 ---
-
 ## GitHub Actionsワークフロー
 
 ### ワークフローファイル
@@ -174,9 +168,7 @@ services:
     name: coverage-report
     path: coverage.xml
 ```
-
 ---
-
 ## Pre-commit Hooks
 
 ### セットアップ
@@ -242,9 +234,7 @@ git commit -m "your message" --no-verify
 ```
 
 **注意**: `--no-verify`は品質チェックをスキップするため、CI環境でエラーになる可能性があります。
-
 ---
-
 ## 品質ゲート
 
 ### カバレッジ品質ゲート
@@ -277,9 +267,7 @@ git commit -m "your message" --no-verify
 **失敗時の動作**:
 - 警告を表示するが、コミットはブロックしない (現在の設定)
 - 開発者は型ヒントを追加・修正することを推奨
-
 ---
-
 ## 環境変数とシークレット
 
 ### 必要な環境変数
@@ -303,9 +291,7 @@ DB_NAME: stock_data_system
 **デバッグモード有効化**:
 - Name: `ACTIONS_RUNNER_DEBUG`, Value: `true`
 - Name: `ACTIONS_STEP_DEBUG`, Value: `true`
-
 ---
-
 ## トラブルシューティング
 
 ### Pre-commit Hooks のトラブルシューティング
@@ -447,9 +433,7 @@ sudo systemctl start postgresql  # Linux/macOS
    - GitHubリポジトリページ → Actions → Caches
    - 該当するキャッシュを削除
 2. ワークフローを再実行
-
 ---
-
 ## デバッグ方法
 
 ### GitHub Actions でのデバッグ
@@ -467,9 +451,7 @@ sudo systemctl start postgresql  # Linux/macOS
 2. New repository secret をクリック
 3. Name: `ACTIONS_RUNNER_DEBUG`, Value: `true`
 4. Add secret をクリック
-
 ---
-
 ## まとめ
 
 本プロジェクトのCI/CDパイプラインは、以下の2層構造で品質を保証しています:
@@ -483,17 +465,13 @@ sudo systemctl start postgresql  # Linux/macOS
    - テストの自動実行
    - カバレッジの計測と品質ゲート
    - 統合的な品質保証
-
 ---
-
 ## 関連ドキュメント
 
 - [テスト規約](../standards/testing-standards.md) - テスト作成ガイドライン
 - [コーディング規約](../standards/coding-standards.md) - コーディング規約
 - [開発ワークフロー](../guides/development-workflow.md) - 開発フロー全体
 - [トラブルシューティング](../guides/troubleshooting.md) - 全般的な問題解決
-
 ---
-
 **最終更新**: 2025-11-02
 **文書バージョン**: v2.0.0

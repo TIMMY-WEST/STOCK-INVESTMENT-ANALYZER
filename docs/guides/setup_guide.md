@@ -1,4 +1,3 @@
----
 category: guide
 ai_context: high
 last_updated: 2025-10-18
@@ -6,7 +5,6 @@ related_docs:
   - ../guides/DATABASE_SETUP.md
   - ../architecture/project_architecture.md
   - ../development/github_workflow.md
----
 
 # 環境構築・セットアップ手順書
 
@@ -52,7 +50,6 @@ related_docs:
     - [A. 必要なファイルの作成](#a-必要なファイルの作成)
     - [B. 環境変数一覧](#b-環境変数一覧)
     - [C. ポート番号一覧](#c-ポート番号一覧)
-
 ## 前提条件
 
 - Windows 10/11, macOS, またはLinux

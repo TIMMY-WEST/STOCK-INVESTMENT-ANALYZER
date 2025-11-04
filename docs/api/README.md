@@ -22,9 +22,7 @@ APIの完全な技術仕様書です。全エンドポイント、パラメー�
 - エンドポイントの仕様を確認したい
 - パラメータの詳細を知りたい
 - エラーコードの意味を調べたい
-
 ---
-
 #### 2. [API使用例ガイド](./api_usage_guide.md) 💡
 **対象**: 実装を始める開発者
 
@@ -43,9 +41,7 @@ APIの完全な技術仕様書です。全エンドポイント、パラメー�
 - コピペで動くサンプルコードが欲しい
 - ベストプラクティスを知りたい
 - 実践的なユースケースを参考にしたい
-
 ---
-
 #### 3. [APIバージョニングガイド](./versioning_guide.md) 📌
 **対象**: API統合を行う開発者
 
@@ -61,9 +57,7 @@ APIのバージョン管理について詳しく説明したドキュメント�
 - APIバージョンの使い分けを理解したい
 - 新バージョンへの移行を計画している
 - 後方互換性について確認したい
-
 ---
-
 ## 🚀 クイックスタート
 
 ### 1. APIサーバーの起動確認
@@ -94,9 +88,7 @@ curl "http://localhost:8000/api/stocks?symbol=7203.T&limit=10"
 ```
 
 詳細は [API使用例ガイド](./api_usage_guide.md) を参照してください。
-
 ---
-
 ## 📖 学習パス
 
 ### 初心者向け
@@ -113,13 +105,11 @@ curl "http://localhost:8000/api/stocks?symbol=7203.T&limit=10"
 1. 並列処理による高速化を実装
 2. キャッシュ戦略の最適化
 3. テクニカル分析システムとの統合
-
 ---
-
 ## 🔗 関連リソース
 
 ### 技術仕様
-- **[OpenAPI仕様書](../api/openapi.yaml)** - OpenAPI 3.0形式の機械可読な仕様
+- **OpenAPI仕様書** - OpenAPI 3.0形式の機械可読な仕様（将来対応予定）
 - **[Swagger UI](http://localhost:8000/api/docs/)** - インタラクティブなAPI探索ツール
 - **[ReDoc](http://localhost:8000/api/docs/redoc/)** - 読みやすいAPI仕様ビューア
 
@@ -127,9 +117,7 @@ curl "http://localhost:8000/api/stocks?symbol=7203.T&limit=10"
 - [アーキテクチャ概要](../architecture/architecture_overview.md)
 - [データベース設計](../architecture/database_design.md)
 - [バルクデータフェッチ仕様](../guides/bulk-data-fetch.md)
-
 ---
-
 ## 🛠️ 開発ツール
 
 ### APIテストツール
@@ -143,16 +131,14 @@ curl "http://localhost:8000/api/stocks?symbol=7203.T&limit=10"
 # 公式クライアントライブラリ（将来対応予定）
 # pip install stock-analyzer-client
 ```
-
 ---
-
 ## 📝 ドキュメント更新履歴
 
 ### 2025-01-15
 - ✅ 新しいドキュメント構造を導入
 - ✅ [APIリファレンス](./api_reference.md) を新規作成（統合版）
 - ✅ [API使用例ガイド](./api_usage_guide.md) を全面改訂（実装ベース）
-- ✅ [api_specification.md](./api_specification.md) を非推奨化
+- ✅ `api_specification.md` を非推奨化（api_reference.mdに統合）
 - ✅ `openapi.md` を削除（冗長なため）
 - ✅ ポート番号を `8000` に統一
 - ✅ 実装と一致する内容に修正
@@ -160,9 +146,7 @@ curl "http://localhost:8000/api/stocks?symbol=7203.T&limit=10"
 ### 過去の更新
 - 2025-10-18: 複数時間軸対応を追加
 - 以前: 初版作成
-
 ---
-
 ## ❓ よくある質問
 
 ### Q: どのドキュメントから読めばいいですか？
@@ -188,21 +172,15 @@ curl "http://localhost:8000/api/stocks?symbol=7203.T&limit=10"
 - 日足以上: 1d, 5d, 1wk, 1mo, 3mo
 
 詳細は [APIリファレンス](./api_reference.md) の「データモデル」セクションを参照してください。
-
 ---
-
 ## 🐛 問題が発生した場合
 
 1. **[API使用例ガイド](./api_usage_guide.md)** のトラブルシューティングセクションを確認
 2. **[APIリファレンス](./api_reference.md)** でエラーコードの詳細を確認
 3. GitHubのIssueで報告（該当する場合）
-
 ---
-
 ## 📬 フィードバック
 
 ドキュメントの改善提案やバグ報告は、GitHubのIssueまたはPull Requestでお願いします。
-
 ---
-
 **最終更新**: 2025-01-15
