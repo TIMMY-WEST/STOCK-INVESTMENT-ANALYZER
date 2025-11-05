@@ -57,6 +57,7 @@ class TestDocsFileInventory:
             "guides/README.md",
             "guides/backup_procedures.md",
             "guides/bulk-data-fetch.md",
+            "guides/contributing.md",
             "guides/DATABASE_SETUP.md",
             "guides/development-workflow.md",
             "guides/formatter_linter_guide.md",

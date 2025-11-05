@@ -514,7 +514,7 @@ VACUUM ANALYZE;
 
 詳細な開発ガイドラインについては、以下のドキュメントを参照してください：
 
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - 貢献ガイドライン
+- **[CONTRIBUTING.md](docs/guides/contributing.md)** - 貢献ガイドライン
 - **[コーディング規約](docs/development/coding_standards.md)** - コードスタイルとベストプラクティス
 - **[Git運用ルール](docs/development/git_workflow.md)** - ブランチ戦略とコミット規約
 - **[テスト戦略](docs/development/testing_strategy.md)** - テストの書き方と実行方法

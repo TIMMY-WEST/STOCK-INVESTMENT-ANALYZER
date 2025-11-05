@@ -62,7 +62,7 @@ STOCK-INVESTMENT-ANALYZERへの貢献を検討していただき、ありがと�
 - `help wanted`: コミュニティからの協力を歓迎しているタスク
 - `documentation`: ドキュメント関連のタスク
 
-まずは[README.md](README.md)と[開発環境セットアップガイド](#開発環境のセットアップ)を読んで、プロジェクトの概要と環境構築方法を理解してください。
+まずは[README.md](../../README.md)と[開発環境セットアップガイド](#開発環境のセットアップ)を読んで、プロジェクトの概要と環境構築方法を理解してください。
 
 ---
 
@@ -134,7 +134,7 @@ git push -u origin feature/issue-123-stock-api
 - `fix(database): データベース接続エラーを修正`
 - `docs(readme): セットアップ手順を更新`
 
-詳細は[Git Workflow](docs/development/git_workflow.md)を参照してください。
+詳細は[Git Workflow](../standards/git-workflow.md)を参照してください。
 
 ---
 
@@ -150,10 +150,10 @@ git push -u origin feature/issue-123-stock-api
 
 Issueを作成する際は、適切なテンプレートを使用してください：
 
-- **[Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)**: 新機能の提案
-- **[Bug Report](.github/ISSUE_TEMPLATE/bug_report.md)**: バグ報告
-- **[Question](.github/ISSUE_TEMPLATE/question.md)**: 質問
-- **[Refactoring](.github/ISSUE_TEMPLATE/refactoring.md)**: リファクタリング提案
+- **[Feature Request](../../.github/ISSUE_TEMPLATE/feature_request.md)**: 新機能の提案
+- **[Bug Report](../../.github/ISSUE_TEMPLATE/bug_report.md)**: バグ報告
+- **[Question](../../.github/ISSUE_TEMPLATE/question.md)**: 質問
+- **[Refactoring](../../.github/ISSUE_TEMPLATE/refactoring.md)**: リファクタリング提案
 
 ### ラベルの使い方
 
@@ -190,7 +190,7 @@ PRを作成する前に、以下の項目を確認してください：
 
 ### PRの説明の書き方
 
-PRテンプレート（[.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md)）に従って、以下の情報を記載してください：
+PRテンプレート（[.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md)）に従って、以下の情報を記載してください：
 
 1. **概要**: 変更の目的と背景
 2. **変更内容**: 主な変更点をリストアップ
@@ -269,7 +269,7 @@ flake8 app/ tests/
 mypy app/
 ```
 
-詳細は[Coding Standards](docs/development/coding_standards.md)を参照してください。
+詳細は[Coding Standards](../standards/coding-standards.md)を参照してください。
 
 ---
 
@@ -299,7 +299,7 @@ pytest --cov=app --cov-report=html
 - **目標**: 80%以上のカバレッジを維持
 - 新しいコードには必ずテストを追加
 
-詳細は[Testing Guide](docs/development/testing_guide.md)を参照してください。
+詳細は[Testing Guide](../standards/testing-standards.md)を参照してください。
 
 ---
 
@@ -358,7 +358,7 @@ pytest --cov=app --cov-report=html
 
 ## 開発環境のセットアップ
 
-詳細な開発環境のセットアップ手順は、[README.md](README.md#クイックスタートガイド)を参照してください。
+詳細な開発環境のセットアップ手順は、[README.md](../../README.md#クイックスタートガイド)を参照してください。
 
 ### クイックセットアップ
 
@@ -378,11 +378,11 @@ scripts\setup\dev_setup.bat
 
 ## 関連ドキュメント
 
-- **[README.md](README.md)**: プロジェクト概要とセットアップ
-- **[GitHub Workflow](docs/development/github_workflow.md)**: 個人開発向けワークフロー
-- **[Git Workflow](docs/development/git_workflow.md)**: 共同開発向けワークフロー
-- **[Coding Standards](docs/development/coding_standards.md)**: コーディング規約
-- **[Testing Guide](docs/development/testing_guide.md)**: テストガイドライン
+- **[README.md](../../README.md)**: プロジェクト概要とセットアップ
+- **[Development Workflow](development-workflow.md)**: 開発ワークフロー
+- **[Git Workflow](../standards/git-workflow.md)**: Git運用ワークフロー
+- **[Coding Standards](../standards/coding-standards.md)**: コーディング規約
+- **[Testing Guide](../standards/testing-standards.md)**: テストガイドライン
 
 ---
 

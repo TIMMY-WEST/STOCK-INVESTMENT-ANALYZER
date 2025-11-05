@@ -53,7 +53,9 @@ class TestReadmeImprovement:
     def test_contributing_file_exists(self, project_root):
         """CONTRIBUTING.mdファイルが存在することを確認."""
         # Arrange (準備)
-        contributing_path = project_root / "CONTRIBUTING.md"
+        contributing_path = (
+            project_root / "docs" / "guides" / "contributing.md"
+        )
 
         # Act (実行)
         exists = contributing_path.exists()
@@ -184,7 +186,9 @@ class TestReadmeImprovement:
     def test_readme_has_contributing_link(self, readme_content):
         """README.mdにCONTRIBUTING.mdへのリンクが含まれていることを確認."""
         # Arrange (準備)
-        contributing_link_pattern = r"\[CONTRIBUTING\.md\]\(CONTRIBUTING\.md\)"
+        contributing_link_pattern = (
+            r"\[CONTRIBUTING\.md\]\(docs/guides/contributing\.md\)"
+        )
 
         # Act (実行)
         result = re.search(contributing_link_pattern, readme_content)
@@ -342,7 +346,9 @@ class TestRelatedFiles:
     def test_contributing_file_content(self, project_root):
         """CONTRIBUTING.mdファイルの内容が適切であることを確認."""
         # Arrange (準備)
-        contributing_path = project_root / "CONTRIBUTING.md"
+        contributing_path = (
+            project_root / "docs" / "guides" / "contributing.md"
+        )
         contributing_patterns = [
             r"# プロジェクトへの貢献ガイド",
             r"## 貢献方法",
