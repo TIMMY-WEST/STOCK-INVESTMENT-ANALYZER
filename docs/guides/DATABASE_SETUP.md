@@ -1,11 +1,9 @@
----
 category: guide
 ai_context: high
 last_updated: 2025-10-18
 related_docs:
   - ../architecture/database_design.md
   - ../guides/setup_guide.md
----
 
 # PostgreSQL環境構築とデータベース接続設定（Issue #10改善版）
 
@@ -234,8 +232,7 @@ python app/simple_test.py
 
 ### 4. 期待される出力
 ```
-PostgreSQL + SQLAlchemy Connection Test
-==================================================
+# PostgreSQL + SQLAlchemy Connection Test
 Test 1: Database Connection
 [PASS] Connection successful: データベース接続に成功しました
   Database URL: postgresql://stock_user:***@localhost:5432/stock_data_system
@@ -252,11 +249,9 @@ Test 3: Basic CRUD Operations
   [PASS] Data updated successfully
   DELETE test...
   [PASS] Data deleted successfully
-
-==================================================
+---
 All tests passed successfully!
-PostgreSQL environment and SQLAlchemy connection are ready.
-==================================================
+# PostgreSQL environment and SQLAlchemy connection are ready.
 ```
 
 ## 6. トラブルシューティング（Issue #10改善版）
@@ -374,9 +369,7 @@ STOCK-INVESTMENT-ANALYZER/
 1. 株価データ取得API実装
 2. WebアプリケーションのUI作成
 3. データ分析機能の追加
-
 ---
-
 ## 環境変数設定 (.env)
 
 このセットアップで使用される環境変数:
@@ -396,9 +389,7 @@ FLASK_PORT=8000
 ```
 
 **注意:** `.env`ファイルには認証情報が含まれているため、バージョン管理には含めないでください。`.gitignore`に追加することを推奨します。
-
 ---
-
 ## 🎉 Issue #10改善の成果
 
 ### 実装前の問題

@@ -9,6 +9,7 @@ import os
 
 from flask import Blueprint, request
 
+from app.models import StockMaster, StockMasterUpdate, get_db_session
 from app.services.jpx.jpx_stock_service import (
     JPXStockService,
     JPXStockServiceError,
@@ -372,8 +373,6 @@ def get_stock_master_status():
         }.
     """
     try:
-        from app.models import StockMaster, StockMasterUpdate, get_db_session
-
         with get_db_session() as session:
             # 銘柄統計を取得
             total_stocks = session.query(StockMaster).count()

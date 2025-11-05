@@ -1,1112 +1,525 @@
 # API使用例ガイド
 
-このガイドでは、STOCK-INVESTMENT-ANALYZER APIの各エンドポイントの使用方法を、具体的なサンプルコードとともに説明します。
+STOCK-INVESTMENT-ANALYZER APIの実践的な使用例とコードサンプル集です。
 
 ## 目次
 
-1. [認証](#認証)
-2. [株価データ取得API](#株価データ取得api)
-3. [銘柄一覧取得API](#銘柄一覧取得api)
-4. [銘柄詳細取得API](#銘柄詳細取得api)
-5. [JPX銘柄マスタ更新API](#jpx銘柄マスタ更新api)
-6. [バルクデータAPI](#バルクデータapi)
-7. [システム監視API](#システム監視api)
-8. [エラーハンドリング](#エラーハンドリング)
-9. [レート制限](#レート制限)
+- [クイックスタート](#クイックスタート)
+- [株価データ取得の基本](#株価データ取得の基本)
+- [複数銘柄の一括取得](#複数銘柄の一括取得)
+- [データの検索とフィルタリング](#データの検索とフィルタリング)
+- [エラーハンドリング](#エラーハンドリング)
+- [実践的なユースケース](#実践的なユースケース)
+- [パフォーマンス最適化](#パフォーマンス最適化)
+---
+## クイックスタート
 
-## 認証
+### 前提条件
 
-APIキーが設定されている場合、すべてのリクエストにAPIキーが必要です。
+- APIサーバーが `http://localhost:8000` で起動していること
+- 必要に応じて認証情報（将来実装予定）
 
-### ヘッダー設定
-```
-X-API-Key: your_api_key_here
-```
+### 最小限の例
 
-## 株価データ取得API
+#### cURL
 
-### エンドポイント
-```
-POST /api/fetch-data
-```
-
-### cURLサンプル
-
-#### 基本的な株価データ取得
 ```bash
-curl -X POST "http://localhost:5000/api/fetch-data" \
+# 株価データを取得して保存
+curl -X POST "http://localhost:8000/api/stocks/data" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your_api_key_here" \
   -d '{
     "symbol": "7203.T",
     "period": "1mo",
     "interval": "1d"
   }'
+
+# 保存されたデータを取得
+curl -X GET "http://localhost:8000/api/stocks?symbol=7203.T&limit=10"
 ```
 
-#### 複数時間軸での取得
-```bash
-curl -X POST "http://localhost:5000/api/fetch-data" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your_api_key_here" \
-  -d '{
-    "symbol": "6758.T",
-    "period": "3mo",
-    "interval": "1wk"
-  }'
-```
+#### Python
 
-### Pythonクライアントサンプル
-
-#### 基本的な使用例
 ```python
 import requests
-import json
 
-def fetch_stock_data(symbol, period="1mo", interval="1d", api_key=None):
-    """
-    株価データを取得する関数
+BASE_URL = "http://localhost:8000"
 
-    Args:
-        symbol (str): 銘柄コード（例: "7203.T"）
-        period (str): 取得期間（例: "1mo", "3mo", "6mo", "1y"）
-        interval (str): データ間隔（例: "1d", "1wk", "1mo"）
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = "http://localhost:5000/api/fetch-data"
-
-    headers = {
-        "Content-Type": "application/json"
+# 株価データを取得して保存
+response = requests.post(
+    f"{BASE_URL}/api/stocks/data",
+    json={
+        "symbol": "7203.T",
+        "period": "1mo",
+        "interval": "1d"
     }
+)
 
-    if api_key:
-        headers["X-API-Key"] = api_key
+print(response.json())
+```
 
+#### JavaScript
+
+```javascript
+const BASE_URL = 'http://localhost:8000';
+
+// 株価データを取得して保存
+fetch(`${BASE_URL}/api/stocks/data`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    symbol: '7203.T',
+    period: '1mo',
+    interval: '1d'
+  })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+---
+## 株価データ取得の基本
+
+### 1. 日足データの取得
+
+最も一般的な使用例です。
+
+#### Python実装例
+
+```python
+import requests
+from datetime import datetime, timedelta
+
+class StockDataClient:
+    def __init__(self, base_url="http://localhost:8000"):
+        self.base_url = base_url
+
+    def fetch_daily_data(self, symbol, period="1mo"):
+        """日足データを取得"""
+        url = f"{self.base_url}/api/stocks/data"
+        payload = {
+            "symbol": symbol,
+            "period": period,
+            "interval": "1d"
+        }
+
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def get_latest_data(self, symbol, limit=30):
+        """最新の日足データを取得"""
+        url = f"{self.base_url}/api/stocks"
+        params = {
+            "symbol": symbol,
+            "interval": "1d",
+            "limit": limit,
+            "offset": 0
+        }
+
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
+
+# 使用例
+client = StockDataClient()
+
+# トヨタ自動車の1ヶ月分のデータを取得
+result = client.fetch_daily_data("7203.T", "1mo")
+print(f"取得件数: {result['data']['records_count']}")
+print(f"保存件数: {result['data']['saved_records']}")
+
+# 最新30件のデータを取得
+latest_data = client.get_latest_data("7203.T", 30)
+print(f"データ件数: {len(latest_data['data'])}")
+```
+
+### 2. 分足データの取得
+
+短期取引や詳細分析に使用します。
+
+```python
+def fetch_intraday_data(symbol, interval="5m", period="1d"):
+    """分足データを取得"""
+    url = "http://localhost:8000/api/stocks/data"
     payload = {
         "symbol": symbol,
         "period": period,
         "interval": interval
     }
 
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()
+    response = requests.post(url, json=payload)
+    return response.json()
 
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
+# 5分足データを取得
+intraday = fetch_intraday_data("7203.T", interval="5m", period="1d")
 
-# 使用例
-if __name__ == "__main__":
-    # トヨタ自動車の1ヶ月間の日次データを取得
-    result = fetch_stock_data("7203.T", "1mo", "1d", "your_api_key_here")
-
-    if result and result.get("status") == "success":
-        data = result.get("data", {})
-        print(f"銘柄: {data.get('symbol')}")
-        print(f"データ件数: {len(data.get('stock_data', []))}")
-        print(f"取得期間: {data.get('period')}")
-        print(f"データ間隔: {data.get('interval')}")
-    else:
-        print("データ取得に失敗しました")
+# 取得したデータの確認
+if intraday["success"]:
+    print(f"5分足データ: {intraday['data']['records_count']}件")
+    print(f"期間: {intraday['data']['date_range']}")
 ```
 
-#### 複数銘柄の一括取得
+### 3. 週足・月足データの取得
+
+長期分析に使用します。
+
 ```python
-import requests
-import json
+def fetch_weekly_data(symbol, period="1y"):
+    """週足データを取得"""
+    url = "http://localhost:8000/api/stocks/data"
+    payload = {
+        "symbol": symbol,
+        "period": period,
+        "interval": "1wk"
+    }
+
+    response = requests.post(url, json=payload)
+    return response.json()
+
+def fetch_monthly_data(symbol, period="5y"):
+    """月足データを取得"""
+    url = "http://localhost:8000/api/stocks/data"
+    payload = {
+        "symbol": symbol,
+        "period": period,
+        "interval": "1mo"
+    }
+
+    response = requests.post(url, json=payload)
+    return response.json()
+
+# 週足データ取得
+weekly = fetch_weekly_data("7203.T", "1y")
+print(f"週足データ: {weekly['data']['records_count']}件")
+
+# 月足データ取得
+monthly = fetch_monthly_data("7203.T", "5y")
+print(f"月足データ: {monthly['data']['records_count']}件")
+```
+---
+## 複数銘柄の一括取得
+
+### 1. 逐次的な取得（シンプル）
+
+```python
 import time
 
-def fetch_multiple_stocks(symbols, period="1mo", interval="1d", api_key=None):
-    """
-    複数銘柄の株価データを一括取得する関数
-
-    Args:
-        symbols (list): 銘柄コードのリスト
-        period (str): 取得期間
-        interval (str): データ間隔
-        api_key (str): APIキー
-
-    Returns:
-        dict: 銘柄コードをキーとした結果辞書
-    """
+def fetch_multiple_stocks_sequential(symbols, period="1mo", interval="1d"):
+    """複数銘柄を順次取得"""
     results = {}
 
     for symbol in symbols:
         print(f"取得中: {symbol}")
-        result = fetch_stock_data(symbol, period, interval, api_key)
-        results[symbol] = result
 
-        # レート制限を考慮して少し待機
-        time.sleep(0.5)
+        try:
+            response = requests.post(
+                "http://localhost:8000/api/stocks/data",
+                json={
+                    "symbol": symbol,
+                    "period": period,
+                    "interval": interval
+                }
+            )
+            results[symbol] = response.json()
+
+            # レート制限を考慮して待機
+            time.sleep(1)
+
+        except Exception as e:
+            print(f"エラー ({symbol}): {e}")
+            results[symbol] = {"error": str(e)}
 
     return results
 
 # 使用例
 symbols = ["7203.T", "6758.T", "9984.T"]  # トヨタ、ソニー、ソフトバンク
-results = fetch_multiple_stocks(symbols, "1mo", "1d", "your_api_key_here")
+results = fetch_multiple_stocks_sequential(symbols, "1mo", "1d")
 
+# 結果の確認
 for symbol, result in results.items():
-    if result and result.get("status") == "success":
-        data_count = len(result.get("data", {}).get("stock_data", []))
-        print(f"{symbol}: {data_count}件のデータを取得")
+    if result.get("success"):
+        count = result["data"]["records_count"]
+        print(f"{symbol}: {count}件取得成功")
     else:
         print(f"{symbol}: 取得失敗")
 ```
 
-### 成功レスポンス例
-
-#### 単一銘柄のレスポンス
-```json
-{
-  "status": "success",
-  "message": "株価データの取得が完了しました",
-  "data": {
-    "symbol": "7203.T",
-    "period": "1mo",
-    "interval": "1d",
-    "stock_data": [
-      {
-        "date": "2024-01-15",
-        "open": 2500.0,
-        "high": 2550.0,
-        "low": 2480.0,
-        "close": 2530.0,
-        "volume": 1500000
-      }
-    ],
-    "total_records": 20,
-    "data_source": "yahoo_finance"
-  },
-  "meta": {
-    "timestamp": "2024-01-15T10:30:00Z",
-    "response_time_ms": 1250.5
-  }
-}
-```
-
-#### 複数時間軸のレスポンス
-```json
-{
-  "status": "success",
-  "message": "株価データの取得が完了しました",
-  "data": {
-    "symbol": "6758.T",
-    "period": "3mo",
-    "interval": "1wk",
-    "stock_data": [
-      {
-        "date": "2024-01-15",
-        "open": 12000.0,
-        "high": 12200.0,
-        "low": 11900.0,
-        "close": 12100.0,
-        "volume": 800000
-      }
-    ],
-    "total_records": 12,
-    "data_source": "yahoo_finance"
-  },
-  "meta": {
-    "timestamp": "2024-01-15T10:35:00Z",
-    "response_time_ms": 1850.2
-  }
-}
-```
-
-#### エラーレスポンス例
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "INVALID_SYMBOL",
-    "message": "指定された銘柄コードが無効です",
-    "details": "銘柄コード '9999.T' は存在しません"
-  },
-  "meta": {
-    "timestamp": "2024-01-15T10:40:00Z",
-    "response_time_ms": 50.1
-  }
-}
-```
-
-## 銘柄一覧取得API
-
-### エンドポイント
-```
-GET /api/stocks
-```
-
-### cURLサンプル
-
-#### 全銘柄取得
-```bash
-curl -X GET "http://localhost:5000/api/stocks" \
-  -H "X-API-Key: your_api_key_here"
-```
-
-#### ページネーション付き取得
-```bash
-curl -X GET "http://localhost:5000/api/stocks?page=1&per_page=50" \
-  -H "X-API-Key: your_api_key_here"
-```
-
-#### 市場別フィルタリング
-```bash
-curl -X GET "http://localhost:5000/api/stocks?market=Prime" \
-  -H "X-API-Key: your_api_key_here"
-```
-
-### Pythonクライアントサンプル
+### 2. バルクAPIを使用した一括取得（推奨）
 
 ```python
-import requests
-
-def get_stocks(page=None, per_page=None, market=None, api_key=None):
-    """
-    銘柄一覧を取得する関数
-
-    Args:
-        page (int): ページ番号
-        per_page (int): 1ページあたりの件数
-        market (str): 市場名でフィルタリング
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = "http://localhost:5000/api/stocks"
-
-    headers = {}
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    params = {}
-    if page is not None:
-        params["page"] = page
-    if per_page is not None:
-        params["per_page"] = per_page
-    if market:
-        params["market"] = market
-
-    try:
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
-
-def search_stocks_by_sector(sector, api_key=None):
-    """
-    セクター別に銘柄を検索する関数
-
-    Args:
-        sector (str): セクター名
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = "http://localhost:5000/api/stocks"
-
-    headers = {}
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    params = {"sector": sector}
-
-    try:
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
-
-def get_all_stocks_paginated(api_key=None, page_size=100):
-    """
-    全銘柄をページネーションで取得する関数
-
-    Args:
-        api_key (str): APIキー
-        page_size (int): 1ページあたりの件数
-
-    Returns:
-        list: 全銘柄のリスト
-    """
-    all_stocks = []
-    page = 1
-
-    while True:
-        result = get_stocks(page=page, per_page=page_size, api_key=api_key)
-
-        if not result or result.get("status") != "success":
-            break
-
-        stocks = result.get("data", [])
-        if not stocks:
-            break
-
-        all_stocks.extend(stocks)
-
-        # 最後のページかチェック
-        pagination = result.get("pagination", {})
-        if page >= pagination.get("total_pages", 0):
-            break
-
-        page += 1
-
-    return all_stocks
-
-# 使用例
-if __name__ == "__main__":
-    # プライム市場の銘柄を50件ずつ取得
-    result = get_stocks(page=1, per_page=50, market="Prime", api_key="your_api_key_here")
-
-    if result and result.get("status") == "success":
-        stocks = result.get("data", [])
-        pagination = result.get("pagination", {})
-
-        print(f"取得件数: {len(stocks)}")
-        print(f"総件数: {pagination.get('total')}")
-        print(f"現在のページ: {pagination.get('page')}")
-
-        # 最初の5銘柄を表示
-        for stock in stocks[:5]:
-            print(f"- {stock.get('symbol')}: {stock.get('name')}")
-
-    # セクター検索の例
-    tech_stocks = search_stocks_by_sector("輸送用機器", "your_api_key_here")
-    if tech_stocks and tech_stocks.get("status") == "success":
-        print("\n輸送用機器セクターの銘柄:")
-        for stock in tech_stocks.get("data", [])[:3]:
-            print(f"  {stock.get('symbol')}: {stock.get('name')}")
-```
-
-### 成功レスポンス例
-```json
-{
-  "status": "success",
-  "message": "銘柄一覧の取得が完了しました",
-  "data": [
-    {
-      "symbol": "7203.T",
-      "name": "トヨタ自動車",
-      "market": "Prime",
-      "sector": "輸送用機器",
-      "industry": "自動車"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "per_page": 50,
-    "total": 3800,
-    "total_pages": 76
-  }
-}
-```
-
-## 銘柄詳細取得API
-
-### エンドポイント
-```
-GET /api/stocks/{stock_id}
-```
-
-### cURLサンプル
-
-```bash
-curl -X GET "http://localhost:5000/api/stocks/7203.T" \
-  -H "X-API-Key: your_api_key_here"
-```
-
-### Pythonクライアントサンプル
-
-```python
-import requests
-
-def get_stock_detail(stock_id, api_key=None):
-    """
-    銘柄詳細情報を取得する関数
-
-    Args:
-        stock_id (str): 銘柄ID（例: "7203.T"）
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = f"http://localhost:5000/api/stocks/{stock_id}"
-
-    headers = {}
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
-
-# 使用例
-result = get_stock_detail("7203.T", "your_api_key_here")
-
-if result and result.get("status") == "success":
-    stock = result.get("data")
-    print(f"銘柄名: {stock.get('name')}")
-    print(f"市場: {stock.get('market')}")
-    print(f"業種: {stock.get('sector')}")
-else:
-    print("銘柄詳細の取得に失敗しました")
-```
-
-## JPX銘柄マスタ更新API
-
-### エンドポイント
-```
-POST /api/stock-master/
-```
-
-### cURLサンプル
-
-#### 手動更新
-```bash
-curl -X POST "http://localhost:5000/api/stock-master/" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your_api_key_here" \
-  -d '{
-    "update_type": "manual"
-  }'
-```
-
-#### スケジュール更新
-```bash
-curl -X POST "http://localhost:5000/api/stock-master/" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your_api_key_here" \
-  -d '{
-    "update_type": "scheduled"
-  }'
-```
-
-### Pythonクライアントサンプル
-
-```python
-import requests
-
-def update_stock_master(update_type="manual", api_key=None):
-    """
-    JPX銘柄マスタを更新する関数
-
-    Args:
-        update_type (str): 更新タイプ（"manual" または "scheduled"）
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = "http://localhost:5000/api/stock-master/"
-
-    headers = {
-        "Content-Type": "application/json"
-    }
-
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    payload = {
-        "update_type": update_type
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
-
-# 使用例
-result = update_stock_master("manual", "your_api_key_here")
-
-if result and result.get("status") == "success":
-    data = result.get("data")
-    print(f"更新完了: {data.get('total_stocks')}銘柄")
-    print(f"追加: {data.get('added_stocks')}銘柄")
-    print(f"更新: {data.get('updated_stocks')}銘柄")
-    print(f"削除: {data.get('removed_stocks')}銘柄")
-else:
-    print("銘柄マスタの更新に失敗しました")
-```
-
-## バルクデータAPI
-
-### エンドポイント
-```
-POST /api/bulk-data/
-```
-
-### cURLサンプル
-
-#### バルクデータジョブの開始
-```bash
-curl -X POST "http://localhost:5000/api/bulk-data/" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your_api_key_here" \
-  -d '{
-    "symbols": ["7203.T", "6758.T", "9984.T"],
-    "period": "1mo",
-    "interval": "1d"
-  }'
-```
-
-#### ジョブ状態の確認
-```bash
-curl -X GET "http://localhost:5000/api/bulk-data/job/{job_id}" \
-  -H "X-API-Key: your_api_key_here"
-```
-
-### Pythonクライアントサンプル
-
-```python
-import requests
-import time
-
-def start_bulk_job(symbols, period="1mo", interval="1d", api_key=None):
-    """
-    バルクデータジョブを開始する関数
-
-    Args:
-        symbols (list): 銘柄コードのリスト
-        period (str): 取得期間
-        interval (str): データ間隔
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = "http://localhost:5000/api/bulk-data/"
-
-    headers = {
-        "Content-Type": "application/json"
-    }
-
-    if api_key:
-        headers["X-API-Key"] = api_key
-
+def start_bulk_job(symbols, period="1mo", interval="1d"):
+    """バルクジョブを開始"""
+    url = "http://localhost:8000/api/v1/bulk-data/jobs"
     payload = {
         "symbols": symbols,
         "period": period,
         "interval": interval
     }
 
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()
+    response = requests.post(url, json=payload)
+    return response.json()
 
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
+def check_job_status(job_id):
+    """ジョブのステータスを確認"""
+    url = f"http://localhost:8000/api/v1/bulk-data/jobs/{job_id}"
+    response = requests.get(url)
+    return response.json()
 
-def check_job_status(job_id, api_key=None):
-    """
-    ジョブの状態を確認する関数
+def wait_for_job_completion(job_id, timeout=300, interval=5):
+    """ジョブの完了を待機"""
+    import time
 
-    Args:
-        job_id (str): ジョブID
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = f"http://localhost:5000/api/bulk-data/job/{job_id}"
-
-    headers = {}
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
-
-def wait_for_job_completion(job_id, api_key=None, timeout=300):
-    """
-    ジョブの完了を待機する関数
-
-    Args:
-        job_id (str): ジョブID
-        api_key (str): APIキー
-        timeout (int): タイムアウト秒数
-
-    Returns:
-        dict: 最終的なジョブ状態
-    """
     start_time = time.time()
 
     while time.time() - start_time < timeout:
-        status = check_job_status(job_id, api_key)
+        status = check_job_status(job_id)
 
-        if not status:
+        if not status.get("success"):
             return None
 
-        job_status = status.get("data", {}).get("status")
+        job_status = status["data"]["status"]
+        progress = status["data"].get("progress_percentage", 0)
 
-        if job_status in ["completed", "failed"]:
+        print(f"進捗: {progress:.1f}% - {job_status}")
+
+        if job_status == "completed":
+            return status
+        elif job_status == "failed":
             return status
 
-        print(f"ジョブ状態: {job_status}")
-        time.sleep(5)  # 5秒待機
+        time.sleep(interval)
 
     print("タイムアウトしました")
     return None
 
 # 使用例
-if __name__ == "__main__":
-    symbols = ["7203.T", "6758.T", "9984.T"]
+symbols = ["7203.T", "6758.T", "9984.T", "8306.T", "9433.T"]
 
-    # バルクジョブを開始
-    result = start_bulk_job(symbols, "1mo", "1d", "your_api_key_here")
+# ジョブ開始
+job = start_bulk_job(symbols, "1mo", "1d")
 
-    if result and result.get("status") == "success":
-        job_id = result.get("data", {}).get("job_id")
-        print(f"ジョブ開始: {job_id}")
+if job.get("success"):
+    job_id = job["data"]["job_id"]
+    print(f"ジョブID: {job_id}")
 
-        # ジョブの完了を待機
-        final_status = wait_for_job_completion(job_id, "your_api_key_here")
+    # 完了を待機
+    result = wait_for_job_completion(job_id)
 
-        if final_status:
-            job_data = final_status.get("data", {})
-            if job_data.get("status") == "completed":
-                print("ジョブが正常に完了しました")
-                print(f"処理件数: {job_data.get('processed_count')}")
-            else:
-                print("ジョブが失敗しました")
-                print(f"エラー: {job_data.get('error_message')}")
+    if result and result["data"]["status"] == "completed":
+        print("全ての銘柄のデータ取得が完了しました")
+        print(f"処理済み: {result['data']['processed_symbols']}")
     else:
-        print("ジョブの開始に失敗しました")
+        print("ジョブが失敗しました")
 ```
+---
+## データの検索とフィルタリング
 
-### バルクデータAPIレスポンス例
-
-#### ジョブ開始成功レスポンス
-```json
-{
-  "status": "success",
-  "data": {
-    "job_id": "bulk_job_20240115_001",
-    "status": "started",
-    "symbols": ["7203.T", "6758.T", "9984.T"],
-    "estimated_completion": "2024-01-15T11:35:00Z"
-  },
-  "meta": {
-    "request_id": "req_bulk_start_001",
-    "timestamp": "2024-01-15T11:30:00Z",
-    "response_time_ms": 120
-  }
-}
-```
-
-#### ジョブ状態確認レスポンス
-```json
-{
-  "status": "success",
-  "data": {
-    "job_id": "bulk_job_20240115_001",
-    "status": "completed",
-    "processed_count": 3,
-    "success_count": 3,
-    "error_count": 0,
-    "completion_time": "2024-01-15T11:33:45Z"
-  },
-  "meta": {
-    "request_id": "req_bulk_status_001",
-    "timestamp": "2024-01-15T11:34:00Z",
-    "response_time_ms": 45
-  }
-}
-```
-
-## システム監視API
-
-### データベース接続テスト
-
-#### エンドポイント
-```
-GET /api/system/database/connection
-```
-
-#### cURLサンプル
-```bash
-curl -X GET "http://localhost:5000/api/system/database/connection" \
-  -H "X-API-Key: your_api_key_here"
-```
-
-#### Pythonクライアントサンプル
-```python
-import requests
-
-def test_database_connection(api_key=None):
-    """
-    データベース接続をテストする関数
-
-    Args:
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = "http://localhost:5000/api/system/database/connection"
-
-    headers = {}
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
-
-# 使用例
-result = test_database_connection("your_api_key_here")
-
-if result and result.get("status") == "success":
-    data = result.get("data")
-    meta = result.get("meta")
-    print(f"データベース: {data.get('database')}")
-    print(f"テーブル存在: {data.get('table_exists')}")
-    print(f"接続数: {data.get('connection_count')}")
-    print(f"応答時間: {meta.get('response_time_ms')}ms")
-else:
-    print("データベース接続テストに失敗しました")
-```
-
-#### 成功レスポンス例
-```json
-{
-  "status": "success",
-  "data": {
-    "database": "stock_investment_analyzer",
-    "table_exists": true,
-    "connection_count": 5,
-    "last_updated": "2024-01-15T10:45:00Z"
-  },
-  "meta": {
-    "request_id": "req_db_test_001",
-    "timestamp": "2024-01-15T11:15:00Z",
-    "response_time_ms": 25
-  }
-}
-```
-
-### 外部API接続テスト
-
-#### エンドポイント
-```
-GET /api/system/external-api/connection
-```
-
-#### cURLサンプル
-```bash
-curl -X GET "http://localhost:5000/api/system/external-api/connection?symbol=7203.T" \
-  -H "X-API-Key: your_api_key_here"
-```
-
-#### Pythonクライアントサンプル
-```python
-import requests
-
-def test_external_api_connection(symbol="7203.T", api_key=None):
-    """
-    外部API接続をテストする関数
-
-    Args:
-        symbol (str): テスト用銘柄コード
-        api_key (str): APIキー
-
-    Returns:
-        dict: APIレスポンス
-    """
-    url = "http://localhost:5000/api/system/external-api/connection"
-
-    headers = {}
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    params = {"symbol": symbol}
-
-    try:
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.RequestException as e:
-        print(f"リクエストエラー: {e}")
-        return None
-
-# 使用例
-result = test_external_api_connection("7203.T", "your_api_key_here")
-
-if result and result.get("status") == "success":
-    data = result.get("data")
-    meta = result.get("meta")
-    print(f"テスト銘柄: {data.get('symbol')}")
-    print(f"API接続: 正常")
-    print(f"応答時間: {meta.get('response_time_ms')}ms")
-```
-
-#### 成功レスポンス例
-```json
-{
-  "status": "success",
-  "data": {
-    "symbol": "7203.T",
-    "api_status": "connected",
-    "test_data_retrieved": true,
-    "last_price": 2530.0
-  },
-  "meta": {
-    "request_id": "req_ext_api_test_001",
-    "timestamp": "2024-01-15T11:20:00Z",
-    "response_time_ms": 180
-  }
-}
-```
-
-### システム監視の統合例
+### 1. 日付範囲指定での検索
 
 ```python
-import requests
-import time
-
-def comprehensive_system_check(api_key=None):
-    """
-    システム全体の健全性をチェックする関数
-
-    Args:
-        api_key (str): APIキー
-
-    Returns:
-        dict: システム状態の詳細
-    """
-    results = {
-        "database": None,
-        "external_api": None,
-        "overall_status": "unknown"
+def get_stocks_by_date_range(symbol, start_date, end_date, interval="1d"):
+    """日付範囲でデータを取得"""
+    url = "http://localhost:8000/api/stocks"
+    params = {
+        "symbol": symbol,
+        "interval": interval,
+        "start_date": start_date,
+        "end_date": end_date,
+        "limit": 1000
     }
 
-    # データベース接続テスト
-    db_result = test_database_connection(api_key)
-    results["database"] = db_result
+    response = requests.get(url, params=params)
+    return response.json()
 
-    # 外部API接続テスト
-    ext_api_result = test_external_api_connection("7203.T", api_key)
-    results["external_api"] = ext_api_result
+# 使用例：2024年1月のデータを取得
+data = get_stocks_by_date_range(
+    symbol="7203.T",
+    start_date="2024-01-01",
+    end_date="2024-01-31",
+    interval="1d"
+)
 
-    # 総合判定
-    if (db_result and db_result.get("status") == "success" and
-        ext_api_result and ext_api_result.get("status") == "success"):
-        results["overall_status"] = "healthy"
-    else:
-        results["overall_status"] = "unhealthy"
+print(f"取得件数: {len(data['data'])}")
+```
+
+### 2. ページネーションを使った大量データ取得
+
+```python
+def get_all_stocks_paginated(symbol, interval="1d", page_size=100):
+    """ページネーションで全データを取得"""
+    all_data = []
+    offset = 0
+
+    while True:
+        url = "http://localhost:8000/api/stocks"
+        params = {
+            "symbol": symbol,
+            "interval": interval,
+            "limit": page_size,
+            "offset": offset
+        }
+
+        response = requests.get(url, params=params)
+        result = response.json()
+
+        if not result.get("success"):
+            break
+
+        data = result["data"]
+        if not data:
+            break
+
+        all_data.extend(data)
+
+        # 次のページがあるか確認
+        pagination = result.get("pagination", {})
+        if not pagination.get("has_next", False):
+            break
+
+        offset += page_size
+        print(f"取得済み: {len(all_data)}件")
+
+    return all_data
+
+# 使用例
+all_data = get_all_stocks_paginated("7203.T", "1d", 100)
+print(f"総取得件数: {len(all_data)}")
+```
+
+### 3. 複数時間軸のデータを統合
+
+```python
+def get_multi_timeframe_data(symbol):
+    """複数の時間軸でデータを取得"""
+    timeframes = {
+        "daily": "1d",
+        "weekly": "1wk",
+        "monthly": "1mo"
+    }
+
+    results = {}
+
+    for name, interval in timeframes.items():
+        url = "http://localhost:8000/api/stocks"
+        params = {
+            "symbol": symbol,
+            "interval": interval,
+            "limit": 100
+        }
+
+        response = requests.get(url, params=params)
+        results[name] = response.json()
 
     return results
 
 # 使用例
-system_status = comprehensive_system_check("your_api_key_here")
-print(f"システム状態: {system_status['overall_status']}")
-```
+multi_data = get_multi_timeframe_data("7203.T")
 
+for timeframe, data in multi_data.items():
+    if data.get("success"):
+        count = len(data["data"])
+        print(f"{timeframe}: {count}件")
+```
+---
 ## エラーハンドリング
 
-### 一般的なエラーレスポンス形式
-
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "エラーメッセージ"
-  },
-  "details": {
-    "timestamp": "2024-01-15T10:30:00Z",
-    "request_id": "req_123456789"
-  }
-}
-```
-
-### エラーコード一覧
-
-| エラーコード | HTTPステータス | 説明 |
-|-------------|---------------|------|
-| `INVALID_SYMBOL` | 400 | 無効な銘柄コード |
-| `INVALID_PERIOD` | 400 | 無効な期間指定 |
-| `INVALID_INTERVAL` | 400 | 無効な間隔指定 |
-| `UNAUTHORIZED` | 401 | 認証エラー |
-| `RATE_LIMIT_EXCEEDED` | 429 | レート制限超過 |
-| `YAHOO_FINANCE_ERROR` | 502 | Yahoo Finance APIエラー |
-| `DATABASE_ERROR` | 500 | データベースエラー |
-| `INTERNAL_SERVER_ERROR` | 500 | 内部サーバーエラー |
-
-### Pythonでのエラーハンドリング例
+### 1. 基本的なエラーハンドリング
 
 ```python
-import requests
-from requests.exceptions import RequestException
-
-def handle_api_response(response):
-    """
-    APIレスポンスを処理し、エラーハンドリングを行う関数
-
-    Args:
-        response (requests.Response): HTTPレスポンス
-
-    Returns:
-        dict or None: 成功時はデータ、失敗時はNone
-    """
+def fetch_with_error_handling(symbol, period="1mo", interval="1d"):
+    """エラーハンドリング付きデータ取得"""
     try:
-        response.raise_for_status()
-        data = response.json()
+        response = requests.post(
+            "http://localhost:8000/api/stocks/data",
+            json={
+                "symbol": symbol,
+                "period": period,
+                "interval": interval
+            },
+            timeout=30
+        )
 
-        if data.get("status") == "success":
-            return data
-        else:
-            # APIレベルのエラー
-            error = data.get("error", {})
-            error_code = error.get("code", "UNKNOWN_ERROR")
+        # HTTPステータスコードをチェック
+        response.raise_for_status()
+
+        result = response.json()
+
+        # APIレベルのエラーチェック
+        if not result.get("success"):
+            error = result.get("error", {})
+            error_code = error.get("code", "UNKNOWN")
             error_message = error.get("message", "不明なエラー")
 
             print(f"APIエラー [{error_code}]: {error_message}")
             return None
 
+        return result
+
+    except requests.exceptions.ConnectionError:
+        print("接続エラー: サーバーに接続できません")
+        return None
+
+    except requests.exceptions.Timeout:
+        print("タイムアウトエラー: リクエストがタイムアウトしました")
+        return None
+
     except requests.exceptions.HTTPError as e:
-        # HTTPエラー
         status_code = e.response.status_code
 
-        if status_code == 401:
-            print("認証エラー: APIキーを確認してください")
-        elif status_code == 429:
-            print("レート制限エラー: しばらく待ってから再試行してください")
-        elif status_code >= 500:
+        if status_code == 400:
+            print("リクエストエラー: パラメータを確認してください")
+        elif status_code == 500:
             print("サーバーエラー: しばらく待ってから再試行してください")
         else:
             print(f"HTTPエラー {status_code}: {e}")
 
         return None
 
-    except requests.exceptions.RequestException as e:
-        # ネットワークエラーなど
-        print(f"リクエストエラー: {e}")
-        return None
-
-    except ValueError as e:
-        # JSON解析エラー
-        print(f"レスポンス解析エラー: {e}")
+    except Exception as e:
+        print(f"予期しないエラー: {e}")
         return None
 
 # 使用例
-def fetch_stock_data_with_error_handling(symbol, period="1mo", interval="1d", api_key=None):
-    """
-    エラーハンドリング付きの株価データ取得関数
-    """
-    url = "http://localhost:5000/api/fetch-data"
-
-    headers = {
-        "Content-Type": "application/json"
-    }
-
-    if api_key:
-        headers["X-API-Key"] = api_key
-
-    payload = {
-        "symbol": symbol,
-        "period": period,
-        "interval": interval
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        return handle_api_response(response)
-
-    except requests.exceptions.Timeout:
-        print("タイムアウトエラー: リクエストがタイムアウトしました")
-        return None
-
-    except requests.exceptions.ConnectionError:
-        print("接続エラー: サーバーに接続できません")
-        return None
-
-# 使用例
-result = fetch_stock_data_with_error_handling("7203.T", "1mo", "1d", "your_api_key_here")
+result = fetch_with_error_handling("7203.T", "1mo", "1d")
 
 if result:
     print("データ取得成功")
-    # データ処理...
 else:
     print("データ取得失敗")
 ```
 
-### リトライ機能付きクライアント
+### 2. リトライ機能付きクライアント
 
 ```python
-import requests
-import time
 from functools import wraps
+import time
 
 def retry_on_failure(max_retries=3, delay=1, backoff=2):
-    """
-    失敗時にリトライするデコレータ
-
-    Args:
-        max_retries (int): 最大リトライ回数
-        delay (float): 初回待機時間（秒）
-        backoff (float): 待機時間の倍率
-    """
+    """リトライデコレータ"""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             current_delay = delay
 
-            for attempt in range(max_retries + 1):
+            for attempt in range(max_retries):
                 try:
                     result = func(*args, **kwargs)
 
-                    # 成功時は結果を返す
                     if result:
                         return result
 
-                    # 最後の試行でない場合は待機
-                    if attempt < max_retries:
-                        print(f"リトライ {attempt + 1}/{max_retries} - {current_delay}秒待機")
+                    if attempt < max_retries - 1:
+                        print(f"リトライ {attempt + 1}/{max_retries} ({current_delay}秒後)")
                         time.sleep(current_delay)
                         current_delay *= backoff
 
                 except Exception as e:
-                    if attempt == max_retries:
+                    if attempt == max_retries - 1:
                         print(f"最大リトライ回数に達しました: {e}")
                         raise
 
-                    print(f"エラー発生 (試行 {attempt + 1}/{max_retries + 1}): {e}")
+                    print(f"エラー発生 (試行 {attempt + 1}): {e}")
                     time.sleep(current_delay)
                     current_delay *= backoff
 
@@ -1115,93 +528,305 @@ def retry_on_failure(max_retries=3, delay=1, backoff=2):
         return wrapper
     return decorator
 
-@retry_on_failure(max_retries=3, delay=1, backoff=2)
-def fetch_stock_data_with_retry(symbol, period="1mo", interval="1d", api_key=None):
-    """
-    リトライ機能付きの株価データ取得関数
-    """
-    return fetch_stock_data_with_error_handling(symbol, period, interval, api_key)
+@retry_on_failure(max_retries=3, delay=2, backoff=2)
+def fetch_with_retry(symbol, period="1mo", interval="1d"):
+    """リトライ機能付きデータ取得"""
+    return fetch_with_error_handling(symbol, period, interval)
 
 # 使用例
-result = fetch_stock_data_with_retry("7203.T", "1mo", "1d", "your_api_key_here")
+result = fetch_with_retry("7203.T", "1mo", "1d")
 ```
+---
+## 実践的なユースケース
 
-## レート制限
-
-### 制限内容
-- デフォルト: 60リクエスト/分
-- 環境変数 `RATE_LIMIT_PER_MINUTE` で設定可能
-- APIキーまたはIPアドレス単位で制限
-
-### レート制限エラーの処理
+### 1. 日次データ更新スクリプト
 
 ```python
+import schedule
 import time
-import requests
+from datetime import datetime
 
-def handle_rate_limit(func, *args, **kwargs):
-    """
-    レート制限を考慮してAPIを呼び出す関数
+class DailyUpdater:
+    def __init__(self, symbols):
+        self.symbols = symbols
+        self.base_url = "http://localhost:8000"
 
-    Args:
-        func: 呼び出す関数
-        *args, **kwargs: 関数の引数
+    def update_all_symbols(self):
+        """全銘柄のデータを更新"""
+        print(f"[{datetime.now()}] データ更新開始")
 
-    Returns:
-        dict or None: APIレスポンス
-    """
-    max_retries = 3
-    base_delay = 60  # 1分待機
+        for symbol in self.symbols:
+            try:
+                response = requests.post(
+                    f"{self.base_url}/api/stocks/data",
+                    json={
+                        "symbol": symbol,
+                        "period": "5d",
+                        "interval": "1d"
+                    }
+                )
 
-    for attempt in range(max_retries):
-        try:
-            response = func(*args, **kwargs)
-            return response
+                result = response.json()
 
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:
-                if attempt < max_retries - 1:
-                    wait_time = base_delay * (attempt + 1)
-                    print(f"レート制限に達しました。{wait_time}秒待機します...")
-                    time.sleep(wait_time)
-                    continue
+                if result.get("success"):
+                    saved = result["data"]["saved_records"]
+                    print(f"  {symbol}: {saved}件保存")
                 else:
-                    print("レート制限により最大リトライ回数に達しました")
-                    return None
-            else:
-                raise
+                    print(f"  {symbol}: エラー")
 
-    return None
+                time.sleep(1)  # レート制限対策
+
+            except Exception as e:
+                print(f"  {symbol}: 例外 - {e}")
+
+        print(f"[{datetime.now()}] データ更新完了")
+
+    def run_scheduled(self):
+        """スケジュール実行"""
+        # 平日の16:00に実行（東証の取引終了後）
+        schedule.every().monday.at("16:00").do(self.update_all_symbols)
+        schedule.every().tuesday.at("16:00").do(self.update_all_symbols)
+        schedule.every().wednesday.at("16:00").do(self.update_all_symbols)
+        schedule.every().thursday.at("16:00").do(self.update_all_symbols)
+        schedule.every().friday.at("16:00").do(self.update_all_symbols)
+
+        print("スケジューラー起動")
+
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
 
 # 使用例
-def api_call():
-    return requests.post(
-        "http://localhost:5000/api/fetch-data",
-        headers={"Content-Type": "application/json", "X-API-Key": "your_api_key_here"},
-        json={"symbol": "7203.T", "period": "1mo", "interval": "1d"}
-    )
+watchlist = ["7203.T", "6758.T", "9984.T", "8306.T"]
+updater = DailyUpdater(watchlist)
 
-result = handle_rate_limit(api_call)
+# 即座に実行
+updater.update_all_symbols()
+
+# スケジュール実行（本番環境）
+# updater.run_scheduled()
 ```
 
+### 2. テクニカル分析との連携
+
+```python
+import pandas as pd
+
+def get_stock_dataframe(symbol, interval="1d", limit=200):
+    """株価データをDataFrameで取得"""
+    url = "http://localhost:8000/api/stocks"
+    params = {
+        "symbol": symbol,
+        "interval": interval,
+        "limit": limit
+    }
+
+    response = requests.get(url, params=params)
+    result = response.json()
+
+    if not result.get("success"):
+        return None
+
+    # DataFrameに変換
+    df = pd.DataFrame(result["data"])
+
+    # 日付を datetime 型に変換
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df.set_index("date", inplace=True)
+    elif "datetime" in df.columns:
+        df["datetime"] = pd.to_datetime(df["datetime"])
+        df.set_index("datetime", inplace=True)
+
+    # 降順から昇順に並び替え
+    df.sort_index(inplace=True)
+
+    return df
+
+def calculate_indicators(df):
+    """テクニカル指標を計算"""
+    # 移動平均
+    df["SMA_5"] = df["close"].rolling(window=5).mean()
+    df["SMA_25"] = df["close"].rolling(window=25).mean()
+    df["SMA_75"] = df["close"].rolling(window=75).mean()
+
+    # ボリンジャーバンド
+    df["BB_middle"] = df["close"].rolling(window=20).mean()
+    bb_std = df["close"].rolling(window=20).std()
+    df["BB_upper"] = df["BB_middle"] + (bb_std * 2)
+    df["BB_lower"] = df["BB_middle"] - (bb_std * 2)
+
+    return df
+
+# 使用例
+df = get_stock_dataframe("7203.T", "1d", 200)
+
+if df is not None:
+    df = calculate_indicators(df)
+
+    # 最新のデータを表示
+    print(df[["close", "SMA_5", "SMA_25", "SMA_75"]].tail())
+
+    # ゴールデンクロスの検出
+    df["golden_cross"] = (df["SMA_5"] > df["SMA_25"]) & (df["SMA_5"].shift(1) <= df["SMA_25"].shift(1))
+    golden_crosses = df[df["golden_cross"]]
+
+    print(f"\nゴールデンクロス発生日: {len(golden_crosses)}回")
+```
+---
+## パフォーマンス最適化
+
+### 1. 並列処理による高速化
+
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def fetch_single_symbol(symbol, period="1mo", interval="1d"):
+    """単一銘柄のデータを取得"""
+    try:
+        response = requests.post(
+            "http://localhost:8000/api/stocks/data",
+            json={
+                "symbol": symbol,
+                "period": period,
+                "interval": interval
+            },
+            timeout=30
+        )
+        return symbol, response.json()
+    except Exception as e:
+        return symbol, {"error": str(e)}
+
+def fetch_multiple_parallel(symbols, period="1mo", interval="1d", max_workers=5):
+    """並列処理で複数銘柄を取得"""
+    results = {}
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # 全ての銘柄に対してタスクを投入
+        futures = {
+            executor.submit(fetch_single_symbol, symbol, period, interval): symbol
+            for symbol in symbols
+        }
+
+        # 完了したタスクから順次処理
+        for future in as_completed(futures):
+            symbol, result = future.result()
+            results[symbol] = result
+
+            if result.get("success"):
+                print(f"✓ {symbol}: 取得完了")
+            else:
+                print(f"✗ {symbol}: 取得失敗")
+
+    return results
+
+# 使用例
+symbols = ["7203.T", "6758.T", "9984.T", "8306.T", "9433.T",
+           "8035.T", "6501.T", "6861.T", "6902.T", "7974.T"]
+
+# 並列処理で高速取得
+results = fetch_multiple_parallel(symbols, "1mo", "1d", max_workers=5)
+
+# 成功した銘柄数を集計
+success_count = sum(1 for r in results.values() if r.get("success"))
+print(f"\n成功: {success_count}/{len(symbols)}")
+```
+
+### 2. キャッシュの活用
+
+```python
+from datetime import datetime, timedelta
+import json
+import os
+
+class CachedStockClient:
+    def __init__(self, cache_dir="cache", cache_ttl=3600):
+        self.cache_dir = cache_dir
+        self.cache_ttl = cache_ttl
+
+        # キャッシュディレクトリの作成
+        os.makedirs(cache_dir, exist_ok=True)
+
+    def _get_cache_path(self, symbol, interval):
+        """キャッシュファイルのパスを生成"""
+        filename = f"{symbol}_{interval}.json"
+        return os.path.join(self.cache_dir, filename)
+
+    def _is_cache_valid(self, cache_path):
+        """キャッシュが有効か確認"""
+        if not os.path.exists(cache_path):
+            return False
+
+        # ファイルの更新時刻をチェック
+        mtime = os.path.getmtime(cache_path)
+        age = time.time() - mtime
+
+        return age < self.cache_ttl
+
+    def get_stocks(self, symbol, interval="1d", limit=100, use_cache=True):
+        """キャッシュを使用してデータを取得"""
+        cache_path = self._get_cache_path(symbol, interval)
+
+        # キャッシュの確認
+        if use_cache and self._is_cache_valid(cache_path):
+            print(f"キャッシュから取得: {symbol}")
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+
+        # APIからデータを取得
+        print(f"APIから取得: {symbol}")
+        url = "http://localhost:8000/api/stocks"
+        params = {
+            "symbol": symbol,
+            "interval": interval,
+            "limit": limit
+        }
+
+        response = requests.get(url, params=params)
+        result = response.json()
+
+        # キャッシュに保存
+        if result.get("success"):
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(result, f, ensure_ascii=False, indent=2)
+
+        return result
+
+# 使用例
+client = CachedStockClient(cache_ttl=3600)  # 1時間キャッシュ
+
+# 初回はAPIから取得
+data1 = client.get_stocks("7203.T", "1d", 100)
+
+# 2回目はキャッシュから取得（高速）
+data2 = client.get_stocks("7203.T", "1d", 100)
+```
+---
 ## まとめ
 
-このガイドでは、STOCK-INVESTMENT-ANALYZER APIの各エンドポイントの使用方法を、cURLとPythonの両方のサンプルコードで説明しました。
+このガイドでは、STOCK-INVESTMENT-ANALYZER APIの実践的な使用方法を紹介しました。
 
 ### 重要なポイント
-1. **認証**: APIキーが設定されている場合は必須
-2. **エラーハンドリング**: 適切なエラー処理とリトライ機能の実装
-3. **レート制限**: 1分間に60リクエストまでの制限に注意
-4. **タイムアウト**: 長時間のリクエストに対するタイムアウト設定
+
+1. **エラーハンドリング**: 常に適切なエラー処理を実装する
+2. **レート制限**: 連続リクエスト時は適切な待機時間を設ける
+3. **バルクAPI**: 大量データ取得時はバルクAPIを活用する
+4. **キャッシュ**: 頻繁にアクセスするデータはキャッシュを活用する
+5. **並列処理**: パフォーマンスが必要な場合は並列処理を検討する
 
 ### 次のステップ
-- [API仕様書](./api_specification.md)で詳細な仕様を確認
-- [OpenAPI仕様](./openapi.md)でスキーマ定義を確認
-- 実際の開発環境でサンプルコードを試行
 
-### サポート
-問題が発生した場合は、以下を確認してください：
-1. APIキーの設定
-2. エンドポイントURLの正確性
-3. リクエスト形式の妥当性
-4. ネットワーク接続状況
+- [APIリファレンス](./api_reference.md) - 全エンドポイントの詳細仕様
+- [APIバージョニングガイド](./versioning_guide.md) - バージョン管理の詳細
+- [アーキテクチャ概要](../architecture/architecture_overview.md) - システム設計の理解
+
+### トラブルシューティング
+
+問題が発生した場合：
+1. エンドポイントURLが正しいか確認
+2. リクエストパラメータの形式が正しいか確認
+3. サーバーが起動しているか確認（`http://localhost:8000`）
+4. エラーメッセージの内容を確認
+---
+**最終更新**: 2025-01-15
+**バージョン**: 1.0.0

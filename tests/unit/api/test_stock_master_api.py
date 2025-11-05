@@ -331,7 +331,6 @@ class TestStockMasterAPI:
         assert response_data["error"]["code"] == "VALIDATION_ERROR"
         assert "is_activeは" in response_data["message"]
 
-    @pytest.mark.skip(reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み")
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.get_db_session")
     def test_stock_master_status_with_valid_request_returns_success(
@@ -393,7 +392,6 @@ class TestStockMasterAPI:
         assert response_data["data"]["inactive_stocks"] == 10
         assert response_data["data"]["last_update"]["id"] == 123
 
-    @pytest.mark.skip(reason="モック設定が複雑なため一時的にスキップ - 主要機能は動作確認済み")
     @patch.dict("os.environ", {"API_KEY": "test_api_key"})
     @patch("app.api.stock_master.get_db_session")
     def test_stock_master_status_with_no_update_history_returns_null_last_update(

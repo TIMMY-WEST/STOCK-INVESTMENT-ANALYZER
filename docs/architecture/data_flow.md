@@ -15,7 +15,8 @@
 **データフローの特徴:**
 - **Yahoo Finance → PostgreSQL**: 外部APIからデータベースへの一方向フロー
 - **リアルタイム配信**: WebSocketによる進捗情報の即時配信
-- **マルチタイムフレーム**: 8種類の時間軸に対応したデータ振り分け
+- **マルチタイムフレーム対応（実装済み）**: 8種類の時間軸（1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo）に対応したデータ振り分け
+- **並列処理**: ThreadPoolExecutorによる最大10並列の効率的なデータ取得
 
 ## 2. データフロー全体図
 
@@ -100,11 +101,29 @@ flowchart TB
     style Saver fill:#ffe1f5
 ```
 
-### 2.2 サービスモジュール化による影響
+### 2.2 サービスモジュール構造（実装済み）
 
-- データフロー自体（取得→変換→保存）は不変。
-- 呼び出し元サービスの所在が `app/services/<feature>/` に整理されます。
-- Orchestrator/Bulk は従来どおり、Fetcher/Saver を組み合わせて動作します。
+**実装完了済み（v1.0）:**
+
+```
+app/services/
+├── stock_data/      # 株価データ取得・保存
+│   ├── fetcher.py          # StockDataFetcher
+│   ├── saver.py            # StockDataSaver
+│   ├── orchestrator.py     # StockDataOrchestrator
+│   └── scheduler.py        # StockDataScheduler
+├── bulk/            # 一括データ取得
+│   └── bulk_service.py     # BulkDataService
+├── jpx/             # JPX銘柄マスタ管理
+│   └── jpx_stock_service.py # JPXStockService
+└── batch/           # バッチ実行管理
+    └── batch_service.py    # BatchService
+```
+
+**データフローへの影響:**
+- データフロー自体（取得→変換→保存）は変更なし
+- サービスの所在が機能別ディレクトリに整理
+- Orchestrator/BulkはFetcher/Saverを組み合わせて動作（従来どおり）
 
 ## 3. 主要データフロー
 
@@ -213,7 +232,7 @@ sequenceDiagram
 4. **ETA計算**: 処理速度から残り時間を推定
 5. **完了通知**: 全銘柄の処理完了をWebSocketで通知
 
-### 3.3 JPX全銘柄順次取得フロー
+### 3.3 JPX全銘柄順次取得フロー（実装済み）
 
 ```mermaid
 sequenceDiagram
@@ -238,21 +257,21 @@ sequenceDiagram
     DB-->>JPXSvc: 保存完了
     JPXSvc-->>BulkAPI: symbols[]
 
-    loop 各時間軸 (1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo)
+    loop 8種類の時間軸 (1m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo)
         BulkAPI->>BulkSvc: fetch_multiple_stocks(symbols, interval)
-        Note over BulkSvc: 並列処理で全銘柄取得
+        Note over BulkSvc: ThreadPoolExecutor（最大10並列）で全銘柄取得
         BulkSvc-->>BulkAPI: 処理結果
     end
 
     BulkAPI-->>User: {job_id, status, total_symbols, intervals}
 ```
 
-**処理ステップ:**
+**処理ステップ（実装済み）:**
 1. **銘柄一覧取得**: SeleniumでJPX公式サイトから銘柄一覧を取得
 2. **銘柄マスタ保存**: 取得した銘柄をstock_masterテーブルに保存
-3. **時間軸ループ**: 8種類の時間軸それぞれで全銘柄のデータを取得
-4. **並列処理**: 各時間軸ごとにバルクデータ取得を実行
-5. **進捗管理**: 全体の進捗（時間軸 × 銘柄数）を管理
+3. **8時間軸ループ**: 実装済みの8種類の時間軸それぞれで全銘柄のデータを取得
+4. **並列処理**: ThreadPoolExecutorで最大10銘柄を並列処理
+5. **進捗管理**: WebSocket経由でリアルタイム進捗配信（時間軸 × 銘柄数）
 
 ### 3.4 銘柄マスタ更新フロー
 
@@ -384,14 +403,14 @@ flowchart LR
 
 **変換ルール:**
 
-| 変換前（Yahoo Finance） | 変換後（システム） | 型 |
-|------------------------|-------------------|-----|
-| Date (index) | date / datetime | datetime64 / date |
-| Open | open | DECIMAL(10,2) |
-| High | high | DECIMAL(10,2) |
-| Low | low | DECIMAL(10,2) |
-| Close | close | DECIMAL(10,2) |
-| Volume | volume | BIGINT |
+| 変換前（Yahoo Finance） | 変換後（システム） | 型                |
+| ----------------------- | ------------------ | ----------------- |
+| Date (index)            | date / datetime    | datetime64 / date |
+| Open                    | open               | DECIMAL(10,2)     |
+| High                    | high               | DECIMAL(10,2)     |
+| Low                     | low                | DECIMAL(10,2)     |
+| Close                   | close              | DECIMAL(10,2)     |
+| Volume                  | volume             | BIGINT            |
 
 ### 4.2 DataFrame → SQLAlchemyモデル変換
 
@@ -636,7 +655,8 @@ sequenceDiagram
 
 ## 関連ドキュメント
 
-- [システムアーキテクチャ概要](system_overview.md) - システム全体のアーキテクチャ
+- [アーキテクチャ概要](architecture_overview.md) - システム全体のアーキテクチャ
 - [コンポーネント依存関係](component_dependency.md) - サービス間の依存関係
+- [サービス責任分掌](service_responsibilities.md) - 各サービスの役割と責任
 - [データベース設計](database_design.md) - データベーススキーマ詳細
-- [API仕様書](../api/api_specification.md) - API エンドポイント詳細
+- [API仕様書](../api/README.md) - API エンドポイント詳細

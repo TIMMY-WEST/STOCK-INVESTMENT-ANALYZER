@@ -200,15 +200,35 @@ graph TD
     style Base fill:#ffe1e1
 ```
 
-### 2.4 サービスモジュール別構造（ディレクトリ再編成）
+### 2.4 サービスモジュール構造（実装済み）
 
-- `stock_data` モジュール: Fetcher / Saver / Converter / Validator / Orchestrator / Scheduler
-- `bulk` モジュール: BulkDataService / ProgressTracker
-- `jpx` モジュール: JPXStockService
-- `batch` モジュール: BatchService
-- `common` モジュール: ErrorHandler（共通例外処理）
+**実装完了済み（v1.0）:**
 
-> 依存の原則は従来どおり（上位→下位、疎結合）。モジュール内の低レベルサービス（Fetcher/Saver 等）は高レベルサービス（Orchestrator/Bulk 等）からのみ参照します。
+システムは機能別にモジュール化されています:
+
+```
+app/services/
+├── stock_data/      # 株価データ取得・保存
+│   ├── fetcher.py          # StockDataFetcher
+│   ├── saver.py            # StockDataSaver
+│   ├── converter.py        # データ変換
+│   ├── validator.py        # データ検証
+│   ├── orchestrator.py     # StockDataOrchestrator
+│   └── scheduler.py        # StockDataScheduler
+├── bulk/            # 一括データ取得
+│   └── bulk_service.py     # BulkDataService + ProgressTracker
+├── jpx/             # JPX銘柄マスタ管理
+│   └── jpx_stock_service.py # JPXStockService
+├── batch/           # バッチ実行管理
+│   └── batch_service.py    # BatchService
+└── common/          # 共通機能
+    └── error_handler.py    # ErrorHandler
+```
+
+**モジュール間依存の原則:**
+- 上位モジュール（bulk, stock_data/orchestrator） → 下位モジュール（stock_data/fetcher, stock_data/saver）
+- 疎結合: すべてのモジュールは独立して機能
+- 低レベルサービス（Fetcher/Saver）は高レベルサービス（Orchestrator/Bulk）からのみ参照
 
 ## 3. 各サービスの依存関係
 
@@ -372,17 +392,17 @@ graph TB
 ### 4.2 モジュール間依存マトリクス
 
 | 依存元 ↓ / 依存先 → | Flask | BulkAPI | StockAPI | MonitorAPI | Orchestrator | BulkService | JPXService | BatchService | Fetcher | Saver | Models |
-|-------------------|-------|---------|----------|------------|--------------|-------------|------------|--------------|---------|-------|--------|
-| Flask             | -     | ✓       | ✓        | ✓          | ✓            | -           | -          | -            | -       | -     | ✓      |
-| BulkAPI           | -     | -       | -        | -          | -            | ✓           | ✓          | ✓            | -       | -     | -      |
-| StockAPI          | -     | -       | -        | -          | -            | -           | ✓          | -            | -       | -     | -      |
-| MonitorAPI        | -     | -       | -        | -          | -            | -           | -          | ✓            | -       | -     | -      |
-| Orchestrator      | -     | -       | -        | -          | -            | -           | -          | -            | ✓       | ✓     | -      |
-| BulkService       | -     | -       | -        | -          | -            | -           | -          | -            | ✓       | ✓     | -      |
-| JPXService        | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | ✓      |
-| BatchService      | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | ✓      |
-| Fetcher           | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | -      |
-| Saver             | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | ✓      |
+| ------------------- | ----- | ------- | -------- | ---------- | ------------ | ----------- | ---------- | ------------ | ------- | ----- | ------ |
+| Flask               | -     | ✓       | ✓        | ✓          | ✓            | -           | -          | -            | -       | -     | ✓      |
+| BulkAPI             | -     | -       | -        | -          | -            | ✓           | ✓          | ✓            | -       | -     | -      |
+| StockAPI            | -     | -       | -        | -          | -            | -           | ✓          | -            | -       | -     | -      |
+| MonitorAPI          | -     | -       | -        | -          | -            | -           | -          | ✓            | -       | -     | -      |
+| Orchestrator        | -     | -       | -        | -          | -            | -           | -          | -            | ✓       | ✓     | -      |
+| BulkService         | -     | -       | -        | -          | -            | -           | -          | -            | ✓       | ✓     | -      |
+| JPXService          | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | ✓      |
+| BatchService        | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | ✓      |
+| Fetcher             | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | -      |
+| Saver               | -     | -       | -        | -          | -            | -           | -          | -            | -       | -     | ✓      |
 
 ✓ = 依存関係あり、- = 依存関係なし
 
@@ -472,7 +492,8 @@ class StockDataOrchestrator:
 
 ## 関連ドキュメント
 
-- [システムアーキテクチャ概要](system_overview.md) - システム全体のアーキテクチャ
+- [アーキテクチャ概要](architecture_overview.md) - システム全体のアーキテクチャ
+- [サービス責任分掌](service_responsibilities.md) - 各サービスの役割と責任
 - [データフロー](data_flow.md) - データの流れと処理フロー
 - [データベース設計](database_design.md) - データベーススキーマ詳細
-- [API仕様書](../api/api_specification.md) - API エンドポイント詳細
+- [API仕様書](../api/README.md) - API エンドポイント詳細

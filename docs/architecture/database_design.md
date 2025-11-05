@@ -1,19 +1,27 @@
----
 category: architecture
 ai_context: high
-last_updated: 2025-10-18
+last_updated: 2025-01-02
 related_docs:
-  - ../api/api_specification.md
-  - ../architecture/project_architecture.md
+  - ../api/README.md
+  - ./architecture_overview.md
   - ../guides/DATABASE_SETUP.md
----
 
 # データベース設計書
 
 ## 概要
 
 株価データ取得システムのデータベース設計仕様書です。
-プロジェクトの設計理念（**動作優先・シンプル設計・後から拡張**）に基づき、最小限の構成から開始し、必要に応じて拡張していく方針です。
+
+**実装完了済み（v1.0）:**
+- ✅ 8種類の時間軸テーブル（stocks_1m, stocks_5m, stocks_15m, stocks_30m, stocks_1h, stocks_1d, stocks_1wk, stocks_1mo）
+- ✅ 銘柄マスタテーブル（stock_master）
+- ✅ バッチ実行管理テーブル（batch_executions, batch_execution_details）
+- ✅ 合計11テーブルで運用中
+
+**設計方針:**
+- マルチタイムフレーム対応: 8種類の時間軸に対応
+- スケーラビリティ: 4000+銘柄の株価データを効率的に管理
+- データ整合性: UPSERT操作による重複排除
 
 ## 目次
 
@@ -24,31 +32,62 @@ related_docs:
   - [テーブル設計](#テーブル設計)
     - [1. stocks\_1d テーブル（日足データ）](#1-stocks_1d-テーブル日足データ)
       - [テーブル定義](#テーブル定義)
-      - [カラム定義](#カラム定義)
-      - [制約](#制約)
-        - [主キー制約](#主キー制約)
+    - [2. stocks\_1m テーブル（1分足データ）](#2-stocks_1m-テーブル1分足データ)
+      - [テーブル定義](#テーブル定義-1)
+    - [3. stocks\_5m テーブル（5分足データ）](#3-stocks_5m-テーブル5分足データ)
+    - [4. stocks\_15m テーブル（15分足データ）](#4-stocks_15m-テーブル15分足データ)
+    - [5. stocks\_30m テーブル（30分足データ）](#5-stocks_30m-テーブル30分足データ)
+    - [6. stocks\_1h テーブル（1時間足データ）](#6-stocks_1h-テーブル1時間足データ)
+    - [7. stocks\_1wk テーブル（1週間足データ）](#7-stocks_1wk-テーブル1週間足データ)
+    - [8. stocks\_1mo テーブル（1ヶ月足データ）](#8-stocks_1mo-テーブル1ヶ月足データ)
+      - [共通カラム定義](#共通カラム定義)
+      - [制約設計](#制約設計)
+        - [主キー制約（全テーブル共通）](#主キー制約全テーブル共通)
         - [ユニーク制約](#ユニーク制約)
-        - [チェック制約](#チェック制約)
+        - [チェック制約（全テーブル共通）](#チェック制約全テーブル共通)
+    - [9. batch\_executions テーブル（バッチ実行情報）](#9-batch_executions-テーブルバッチ実行情報)
+      - [カラム定義](#カラム定義)
+    - [10. batch\_execution\_details テーブル（バッチ実行詳細）](#10-batch_execution_details-テーブルバッチ実行詳細)
+      - [カラム定義](#カラム定義-1)
+      - [制約設計](#制約設計-1)
   - [インデックス設計](#インデックス設計)
+    - [基本設計方針](#基本設計方針)
     - [1. 主キーインデックス（自動作成）](#1-主キーインデックス自動作成)
     - [2. ユニーク制約インデックス（自動作成）](#2-ユニーク制約インデックス自動作成)
-    - [3. 検索用インデックス](#3-検索用インデックス)
-      - [銘柄コード検索インデックス](#銘柄コード検索インデックス)
-      - [日付検索インデックス](#日付検索インデックス)
-      - [複合インデックス（銘柄+日付降順）](#複合インデックス銘柄日付降順)
+    - [3. 検索用インデックス設計](#3-検索用インデックス設計)
+      - [銘柄コード検索インデックス（全テーブル共通）](#銘柄コード検索インデックス全テーブル共通)
+      - [時間検索インデックス](#時間検索インデックス)
+      - [複合インデックス（パフォーマンス最適化）](#複合インデックスパフォーマンス最適化)
+    - [4. 各テーブルのインデックス例](#4-各テーブルのインデックス例)
+      - [stocks\_1d テーブル](#stocks_1d-テーブル)
+      - [stocks\_1m テーブル](#stocks_1m-テーブル)
+      - [stocks\_5m テーブル](#stocks_5m-テーブル)
+      - [stocks\_15m テーブル](#stocks_15m-テーブル)
+      - [stocks\_30m テーブル](#stocks_30m-テーブル)
+      - [stocks\_1h テーブル](#stocks_1h-テーブル)
+      - [stocks\_1wk テーブル](#stocks_1wk-テーブル)
+      - [stocks\_1mo テーブル](#stocks_1mo-テーブル)
+      - [batch\_executions テーブル](#batch_executions-テーブル)
+      - [batch\_execution\_details テーブル](#batch_execution_details-テーブル)
+    - [5. インデックス利用想定クエリ](#5-インデックス利用想定クエリ)
+      - [特定銘柄のデータ検索](#特定銘柄のデータ検索)
+      - [期間指定でのデータ検索](#期間指定でのデータ検索)
+      - [銘柄別最新データ取得](#銘柄別最新データ取得)
+      - [分足データでの時間範囲検索](#分足データでの時間範囲検索)
   - [SQLAlchemy モデル定義](#sqlalchemy-モデル定義)
     - [Python実装例](#python実装例)
   - [データベース初期化](#データベース初期化)
     - [1. データベース作成](#1-データベース作成)
-    - [2. テーブル作成](#2-テーブル作成)
+    - [2. 全テーブル作成スクリプト](#2-全テーブル作成スクリプト)
+    - [3. データ移行（既存のstocks\_dailyテーブルがある場合）](#3-データ移行既存のstocks_dailyテーブルがある場合)
   - [パフォーマンス考慮事項](#パフォーマンス考慮事項)
-    - [MVP段階での方針](#mvp段階での方針)
-    - [将来の拡張案（必要になってから検討）](#将来の拡張案必要になってから検討)
+    - [現在の方針（v1.0実装済み）](#現在の方針v10実装済み)
+    - [将来の拡張案（必要時に検討）](#将来の拡張案必要時に検討)
   - [データ容量見積もり](#データ容量見積もり)
     - [1銘柄あたりのデータ量](#1銘柄あたりのデータ量)
     - [100銘柄の場合](#100銘柄の場合)
   - [バックアップ・運用](#バックアップ運用)
-    - [MVP段階での方針](#mvp段階での方針-1)
+    - [現在の運用方針（v1.0）](#現在の運用方針v10)
     - [将来の運用計画（必要になってから）](#将来の運用計画必要になってから)
   - [サンプルデータ](#サンプルデータ)
     - [テストデータ挿入例](#テストデータ挿入例)
@@ -56,13 +95,15 @@ related_docs:
     - [優先度: 高（MVP必須）](#優先度-高mvp必須)
     - [優先度: 中（動作確認後）](#優先度-中動作確認後)
     - [優先度: 低（必要になってから）](#優先度-低必要になってから)
-  - [複数時間軸対応（将来拡張）](#複数時間軸対応将来拡張)
-    - [yfinanceで対応可能な時間軸](#yfinanceで対応可能な時間軸)
+  - [マイルストーン1対応：複数時間軸とmax期間対応](#マイルストーン1対応複数時間軸とmax期間対応)
+    - [yfinanceで対応可能な時間軸とテーブル対応表](#yfinanceで対応可能な時間軸とテーブル対応表)
+    - [yfinanceで対応可能な期間（period）](#yfinanceで対応可能な期間period)
+    - [period=maxの仕様](#periodmaxの仕様)
     - [将来のテーブル設計案](#将来のテーブル設計案)
       - [分足データテーブル（将来拡張）](#分足データテーブル将来拡張)
       - [週足・月足データテーブル（将来拡張）](#週足月足データテーブル将来拡張)
     - [設計方針](#設計方針)
-      - [MVP段階（現在）](#mvp段階現在)
+      - [現在の実装（v1.0完了）](#現在の実装v10完了)
       - [将来拡張時](#将来拡張時)
     - [拡張時の考慮事項](#拡張時の考慮事項)
       - [データ量](#データ量)
@@ -329,19 +370,19 @@ CREATE TABLE batch_executions (
 
 #### カラム定義
 
-| カラム名           | データ型                 | NULL     | デフォルト        | 説明                                    |
-| ------------------ | ------------------------ | -------- | ----------------- | --------------------------------------- |
-| `id`               | SERIAL                   | NOT NULL | AUTO_INCREMENT    | 主キー、自動採番                       |
-| `batch_type`       | VARCHAR(50)              | NOT NULL | -                 | バッチ種別（例：daily_fetch）          |
-| `status`           | VARCHAR(20)              | NOT NULL | 'pending'         | 実行状態（pending/running/completed/failed） |
-| `total_symbols`    | INTEGER                  | NOT NULL | 0                 | 処理対象銘柄数                         |
-| `processed_symbols`| INTEGER                  | NOT NULL | 0                 | 処理完了銘柄数                         |
-| `failed_symbols`   | INTEGER                  | NOT NULL | 0                 | 処理失敗銘柄数                         |
-| `start_time`       | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理開始時刻                           |
-| `end_time`         | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理終了時刻                           |
-| `error_message`    | TEXT                     | NULL     | -                 | エラーメッセージ                       |
-| `created_at`       | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時                       |
-| `updated_at`       | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時                       |
+| カラム名            | データ型                 | NULL     | デフォルト        | 説明                                         |
+| ------------------- | ------------------------ | -------- | ----------------- | -------------------------------------------- |
+| `id`                | SERIAL                   | NOT NULL | AUTO_INCREMENT    | 主キー、自動採番                             |
+| `batch_type`        | VARCHAR(50)              | NOT NULL | -                 | バッチ種別（例：daily_fetch）                |
+| `status`            | VARCHAR(20)              | NOT NULL | 'pending'         | 実行状態（pending/running/completed/failed） |
+| `total_symbols`     | INTEGER                  | NOT NULL | 0                 | 処理対象銘柄数                               |
+| `processed_symbols` | INTEGER                  | NOT NULL | 0                 | 処理完了銘柄数                               |
+| `failed_symbols`    | INTEGER                  | NOT NULL | 0                 | 処理失敗銘柄数                               |
+| `start_time`        | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理開始時刻                                 |
+| `end_time`          | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理終了時刻                                 |
+| `error_message`     | TEXT                     | NULL     | -                 | エラーメッセージ                             |
+| `created_at`        | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時                             |
+| `updated_at`        | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時                             |
 
 ### 10. batch_execution_details テーブル（バッチ実行詳細）
 
@@ -364,18 +405,18 @@ CREATE TABLE batch_execution_details (
 
 #### カラム定義
 
-| カラム名             | データ型                 | NULL     | デフォルト        | 説明                                    |
-| -------------------- | ------------------------ | -------- | ----------------- | --------------------------------------- |
-| `id`                 | SERIAL                   | NOT NULL | AUTO_INCREMENT    | 主キー、自動採番                       |
-| `batch_execution_id` | INTEGER                  | NOT NULL | -                 | バッチ実行ID（外部キー）               |
-| `symbol`             | VARCHAR(20)              | NOT NULL | -                 | 銘柄コード（例：7203.T）               |
+| カラム名             | データ型                 | NULL     | デフォルト        | 説明                                         |
+| -------------------- | ------------------------ | -------- | ----------------- | -------------------------------------------- |
+| `id`                 | SERIAL                   | NOT NULL | AUTO_INCREMENT    | 主キー、自動採番                             |
+| `batch_execution_id` | INTEGER                  | NOT NULL | -                 | バッチ実行ID（外部キー）                     |
+| `symbol`             | VARCHAR(20)              | NOT NULL | -                 | 銘柄コード（例：7203.T）                     |
 | `status`             | VARCHAR(20)              | NOT NULL | 'pending'         | 処理状態（pending/running/completed/failed） |
-| `records_inserted`   | INTEGER                  | NOT NULL | 0                 | 挿入されたレコード数                   |
-| `start_time`         | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理開始時刻                           |
-| `end_time`           | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理終了時刻                           |
-| `error_message`      | TEXT                     | NULL     | -                 | エラーメッセージ                       |
-| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時                       |
-| `updated_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時                       |
+| `records_inserted`   | INTEGER                  | NOT NULL | 0                 | 挿入されたレコード数                         |
+| `start_time`         | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理開始時刻                                 |
+| `end_time`           | TIMESTAMP WITH TIME ZONE | NULL     | -                 | 処理終了時刻                                 |
+| `error_message`      | TEXT                     | NULL     | -                 | エラーメッセージ                             |
+| `created_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード作成日時                             |
+| `updated_at`         | TIMESTAMP WITH TIME ZONE | NOT NULL | CURRENT_TIMESTAMP | レコード更新日時                             |
 
 #### 制約設計
 
@@ -1133,13 +1174,14 @@ FROM stocks_daily;
 
 ## パフォーマンス考慮事項
 
-### MVP段階での方針
+### 現在の方針（v1.0実装済み）
 
-- **インデックス**: 必要最小限のみ作成
-- **パーティション**: 現時点では不要（データ量が少ないため）
-- **最適化**: 動作確認後に検討
+- **インデックス**: 検索パフォーマンス向上のため適切に配置
+- **クエリ**: 最適化されたSELECT文とUPSERT操作
+- **並列処理**: ThreadPoolExecutorによる最大10並列データ取得
+- **実績**: 4000+銘柄 × 8時間軸のデータ管理を実現
 
-### 将来の拡張案（必要になってから検討）
+### 将来の拡張案（必要時に検討）
 
 - **テーブルパーティション**: 日付別パーティション
 - **読み取り専用レプリカ**: 分析用途
@@ -1158,13 +1200,13 @@ FROM stocks_daily;
 - 1年: 2.5 MB
 - 10年: 25 MB
 
-**結論**: MVP段階では容量を気にする必要なし
+**結論**: 現在の実装（v1.0）では容量は十分に管理可能
 
 ## バックアップ・運用
 
-### MVP段階での方針
+### 現在の運用方針（v1.0）
 
-- **バックアップ**: 開発段階では最小限
+- **バックアップ**: PostgreSQLの標準バックアップ機能を使用
 - **監視**: 基本的なエラーログのみ
 - **メンテナンス**: 必要になってから検討
 
@@ -1216,32 +1258,32 @@ INSERT INTO stocks_1d (symbol, date, open, high, low, close, volume) VALUES
 
 ### yfinanceで対応可能な時間軸とテーブル対応表
 
-| 時間軸   | yfinance interval | テーブル名   | 実装優先度        | 備考              |
-| -------- | ----------------- | ------------ | ----------------- | ----------------- |
-| 1分足    | 1m                | stocks_1m    | **高（M1必須）**  | 大容量注意        |
-| 5分足    | 5m                | stocks_5m    | **高（M1必須）**  | 効率的分析        |
-| 15分足   | 15m               | stocks_15m   | **高（M1必須）**  | スイング向け      |
-| 30分足   | 30m               | stocks_30m   | **高（M1必須）**  | 中期分析          |
-| 1時間足  | 1h                | stocks_1h    | **高（M1必須）**  | デイトレード      |
-| 日足     | 1d                | stocks_1d    | **高（M1必須）**  | 既存からリネーム  |
-| 週足     | 1wk               | stocks_1wk   | **高（M1必須）**  | 中長期分析        |
-| 月足     | 1mo               | stocks_1mo   | **高（M1必須）**  | 長期投資          |
+| 時間軸  | yfinance interval | テーブル名 | 実装優先度       | 備考             |
+| ------- | ----------------- | ---------- | ---------------- | ---------------- |
+| 1分足   | 1m                | stocks_1m  | **高（M1必須）** | 大容量注意       |
+| 5分足   | 5m                | stocks_5m  | **高（M1必須）** | 効率的分析       |
+| 15分足  | 15m               | stocks_15m | **高（M1必須）** | スイング向け     |
+| 30分足  | 30m               | stocks_30m | **高（M1必須）** | 中期分析         |
+| 1時間足 | 1h                | stocks_1h  | **高（M1必須）** | デイトレード     |
+| 日足    | 1d                | stocks_1d  | **高（M1必須）** | 既存からリネーム |
+| 週足    | 1wk               | stocks_1wk | **高（M1必須）** | 中長期分析       |
+| 月足    | 1mo               | stocks_1mo | **高（M1必須）** | 長期投資         |
 
 ### yfinanceで対応可能な期間（period）
 
-| period | 説明                 | 対応状況           | 備考                     |
-| ------ | -------------------- | ------------------ | ------------------------ |
-| 1d     | 過去1日              | ✅ 既存対応        | -                        |
-| 5d     | 過去5日              | ✅ 既存対応        | -                        |
-| 1mo    | 過去1ヶ月            | ✅ 既存対応        | -                        |
-| 3mo    | 過去3ヶ月            | ✅ 既存対応        | -                        |
-| 6mo    | 過去6ヶ月            | ✅ 既存対応        | -                        |
-| 1y     | 過去1年              | ✅ 既存対応        | -                        |
-| 2y     | 過去2年              | ✅ 既存対応        | -                        |
-| 5y     | 過去5年              | ✅ 既存対応        | -                        |
-| 10y    | 過去10年             | ✅ 既存対応        | -                        |
-| ytd    | 年初来               | ✅ 既存対応        | -                        |
-| **max** | **利用可能な全期間** | **🆕 M1で追加**   | **マイルストーン1必須** |
+| period  | 説明                 | 対応状況       | 備考                    |
+| ------- | -------------------- | -------------- | ----------------------- |
+| 1d      | 過去1日              | ✅ 既存対応     | -                       |
+| 5d      | 過去5日              | ✅ 既存対応     | -                       |
+| 1mo     | 過去1ヶ月            | ✅ 既存対応     | -                       |
+| 3mo     | 過去3ヶ月            | ✅ 既存対応     | -                       |
+| 6mo     | 過去6ヶ月            | ✅ 既存対応     | -                       |
+| 1y      | 過去1年              | ✅ 既存対応     | -                       |
+| 2y      | 過去2年              | ✅ 既存対応     | -                       |
+| 5y      | 過去5年              | ✅ 既存対応     | -                       |
+| 10y     | 過去10年             | ✅ 既存対応     | -                       |
+| ytd     | 年初来               | ✅ 既存対応     | -                       |
+| **max** | **利用可能な全期間** | **🆕 M1で追加** | **マイルストーン1必須** |
 
 ### period=maxの仕様
 
@@ -1309,9 +1351,9 @@ CREATE TABLE stocks_monthly (
 
 ### 設計方針
 
-#### MVP段階（現在）
-- **全時間軸実装済み**: stocks_1m, stocks_5m, stocks_15m, stocks_30m, stocks_1h, stocks_1d, stocks_1wk, stocks_1mo テーブル
-- **シンプル設計**: 複雑な統合は避ける
+#### 現在の実装（v1.0完了）
+- **全時間軸実装済み**: stocks_1m, stocks_5m, stocks_15m, stocks_30m, stocks_1h, stocks_1d, stocks_1wk, stocks_1mo の8テーブル
+- **シンプル設計**: メンテナンス性を重視した明確なテーブル分離
 - **動作優先**: まず日足で動作確認
 
 #### 将来拡張時
@@ -1335,9 +1377,7 @@ CREATE TABLE stocks_monthly (
 - **エンドポイント**: `GET /api/stocks`（クエリパラメータ対応）
 - **パラメータ**: `symbol`, `interval`（例: `1m`, `5m`, `15m`, `30m`, `1h`, `1d`, `1wk`, `1mo`）, `limit`, `from`, `to`
 - **レスポンス**: 時間軸に応じたフォーマット（例: 分足は `datetime`、日足以上は `date`）
-
 ---
-
 ## まとめ
 
 ### 🎯 **個人+AI開発でのシンプルDB設計**

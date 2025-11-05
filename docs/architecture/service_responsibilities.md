@@ -14,32 +14,34 @@
 
 本ドキュメントは、`app/services/` 配下の全サービスクラスの責任範囲を明確化し、重複機能や不要コードを特定することで、システムのメンテナンス性と拡張性を向上させることを目的としています。
 
-【ディレクトリ再編成方針】
-- services を機能単位のモジュールに分割し、クラスの増加に伴う見通しを改善します。
-- 新構成: `stock_data/`, `bulk/`, `jpx/`, `batch/`, `common/`
-- 旧→新の代表的な対応:
-  - `stock_data_fetcher.py` → `stock_data/fetcher.py`
-  - `stock_data_saver.py` → `stock_data/saver.py`
-  - `stock_data_converter.py` → `stock_data/converter.py`
-  - `stock_data_validator.py` → `stock_data/validator.py`
-  - `stock_data_orchestrator.py` → `stock_data/orchestrator.py`
-  - `stock_data_scheduler.py` → `stock_data/scheduler.py`
-  - `bulk_data_service.py` → `bulk/bulk_service.py`
-  - `jpx_stock_service.py` → `jpx/jpx_stock_service.py`
-  - `batch_service.py` → `batch/batch_service.py`
-  - `error_handler.py` → `common/error_handler.py`
+【サービスモジュール構造（実装済み）】
 
-**ドキュメント作成日:** 2025-10-22
-**対象サービス数:** 8
-**分析対象ファイル:**
-- batch_service.py
-- bulk_data_service.py
-- error_handler.py
-- jpx_stock_service.py
-- stock_data_fetcher.py
-- stock_data_orchestrator.py
-- stock_data_saver.py
-- stock_data_scheduler.py
+**実装完了済み（v1.0）:**
+
+システムは機能別にモジュール化されています:
+
+```
+app/services/
+├── stock_data/      # 株価データ取得・保存
+│   ├── fetcher.py          # StockDataFetcher
+│   ├── saver.py            # StockDataSaver
+│   ├── converter.py        # データ変換
+│   ├── validator.py        # データ検証
+│   ├── orchestrator.py     # StockDataOrchestrator
+│   └── scheduler.py        # StockDataScheduler
+├── bulk/            # 一括データ取得
+│   └── bulk_service.py     # BulkDataService
+├── jpx/             # JPX銘柄マスタ管理
+│   └── jpx_stock_service.py # JPXStockService
+├── batch/           # バッチ実行管理
+│   └── batch_service.py    # BatchService
+└── common/          # 共通機能
+    └── error_handler.py    # ErrorHandler
+```
+
+**ドキュメント更新日:** 2025-01-02
+**対象サービス数:** 10
+**実装済みモジュール:** stock_data, bulk, jpx, batch, common
 
 ## 2. サービス一覧と責任範囲
 
@@ -67,7 +69,7 @@
 
 #### 2.2.1 StockDataFetcher（データ取得サービス）
 
-**ファイルパス:** [app/services/stock_data_fetcher.py](app/services/stock_data_fetcher.py)
+**ファイルパス:** [app/services/stock_data/fetcher.py](app/services/stock_data/fetcher.py)
 
 **責任範囲:**
 - Yahoo Finance APIからの株価データ取得
@@ -89,12 +91,10 @@
 
 **カスタム例外:**
 - `StockDataFetchError` - データ取得時のエラー
-
 ---
-
 #### 2.2.2 StockDataSaver（データ保存サービス）
 
-**ファイルパス:** [app/services/stock_data_saver.py](app/services/stock_data_saver.py)
+**ファイルパス:** [app/services/stock_data/saver.py](app/services/stock_data/saver.py)
 
 **責任範囲:**
 - データベースへの株価データ保存
@@ -119,12 +119,10 @@
 
 **カスタム例外:**
 - `StockDataSaveError` - データ保存時のエラー
-
 ---
-
 #### 2.2.3 StockDataOrchestrator（統括サービス）
 
-**ファイルパス:** [app/services/stock_data_orchestrator.py](app/services/stock_data_orchestrator.py)
+**ファイルパス:** [app/services/stock_data/orchestrator.py](app/services/stock_data/orchestrator.py)
 
 **責任範囲:**
 - 単一銘柄のデータ取得・保存フローの統括
@@ -151,12 +149,10 @@
 **特徴:**
 - Fetcher と Saver を組み合わせた高レベルサービス
 - エラーハンドリングとロギングを統合
-
 ---
-
 #### 2.2.4 BulkDataService（一括取得サービス）
 
-**ファイルパス:** [app/services/bulk_data_service.py](app/services/bulk_data_service.py)
+**ファイルパス:** [app/services/bulk/bulk_service.py](app/services/bulk/bulk_service.py)
 
 **責任範囲:**
 - 複数銘柄のデータを並列処理で効率的に取得・保存
@@ -192,12 +188,10 @@
 - WebSocket経由で進捗配信
 - ETA推定機能
 - バッチ実行管理との連携
-
 ---
-
 #### 2.2.5 JPXStockService（JPX銘柄サービス）
 
-**ファイルパス:** [app/services/jpx_stock_service.py](app/services/jpx_stock_service.py)
+**ファイルパス:** [app/services/jpx/jpx_stock_service.py](app/services/jpx/jpx_stock_service.py)
 
 **責任範囲:**
 - JPX（日本取引所グループ）公式サイトからの銘柄一覧取得
@@ -234,12 +228,10 @@
 **特徴:**
 - JPX公式サイトから銘柄一覧を取得
 - 銘柄マスタの完全な更新管理（追加・更新・非アクティブ化）
-
 ---
-
 #### 2.2.6 BatchService（バッチ管理サービス）
 
-**ファイルパス:** [app/services/batch_service.py](app/services/batch_service.py)
+**ファイルパス:** [app/services/batch/batch_service.py](app/services/batch/batch_service.py)
 
 **責任範囲:**
 - バッチ処理の実行履歴管理
@@ -269,12 +261,10 @@
 - バッチ処理の完全なライフサイクル管理
 - 詳細な実行履歴の記録
 - フィルタリングとページネーション対応
-
 ---
-
 #### 2.2.7 StockDataScheduler（スケジューラ）
 
-**ファイルパス:** [app/services/stock_data_scheduler.py](app/services/stock_data_scheduler.py)
+**ファイルパス:** [app/services/stock_data/scheduler.py](app/services/stock_data/scheduler.py)
 
 **責任範囲:**
 - 定期的なデータ更新のスケジューリング
@@ -307,12 +297,10 @@
 
 **グローバル関数:**
 - `get_scheduler()` - シングルトンインスタンスの取得
-
 ---
-
 #### 2.2.8 ErrorHandler（エラーハンドリングサービス）
 
-**ファイルパス:** [app/services/error_handler.py](app/services/error_handler.py)
+**ファイルパス:** [app/services/common/error_handler.py](app/services/common/error_handler.py)
 
 **責任範囲:**
 - エラーの分類（一時的、恒久的、システムエラー）
@@ -347,9 +335,7 @@
 - エラーの詳細な分類と適切なアクション決定
 - 指数バックオフによるリトライ
 - エラー統計とレポート生成
-
 ---
-
 ## 3. 主要メソッドの説明
 
 ### 3.1 データ取得フロー
@@ -654,21 +640,21 @@ Scheduler
 
 ### 8.2 重複機能の統合提案サマリー
 
-| 機能 | 統合前 | 統合後 | 優先度 |
-|------|--------|--------|--------|
-| 複数銘柄データ取得 | StockDataFetcher + BulkDataService | BulkDataService のみ | 高 |
-| DBセッション管理 | 混在（明示的 + コンテキストマネージャー） | コンテキストマネージャー統一 | 中 |
-| エラーハンドリング | 一部重複あり | ErrorHandler に完全委譲 | 中 |
-| ロギング | 各サービスで独立 | 現状維持（または一元管理） | 低 |
+| 機能               | 統合前                                    | 統合後                       | 優先度 |
+| ------------------ | ----------------------------------------- | ---------------------------- | ------ |
+| 複数銘柄データ取得 | StockDataFetcher + BulkDataService        | BulkDataService のみ         | 高     |
+| DBセッション管理   | 混在（明示的 + コンテキストマネージャー） | コンテキストマネージャー統一 | 中     |
+| エラーハンドリング | 一部重複あり                              | ErrorHandler に完全委譲      | 中     |
+| ロギング           | 各サービスで独立                          | 現状維持（または一元管理）   | 低     |
 
 ### 8.3 不要なコードのサマリー
 
-| コード | ファイル | 行番号 | 推奨アクション | 優先度 |
-|--------|---------|--------|---------------|--------|
-| fetch_batch_stock_data() | stock_data_fetcher.py | 213-337 | 削除 | 高 |
-| 未使用インポート | 全サービス | - | 削除 | 中 |
-| 重複エラーハンドリング | bulk_data_service.py | 複数箇所 | 統一 | 中 |
-| 不要な変数 | bulk_data_service.py | 134-171 | 削除 | 低 |
+| コード                   | ファイル              | 行番号   | 推奨アクション | 優先度 |
+| ------------------------ | --------------------- | -------- | -------------- | ------ |
+| fetch_batch_stock_data() | stock_data_fetcher.py | 213-337  | 削除           | 高     |
+| 未使用インポート         | 全サービス            | -        | 削除           | 中     |
+| 重複エラーハンドリング   | bulk_data_service.py  | 複数箇所 | 統一           | 中     |
+| 不要な変数               | bulk_data_service.py  | 134-171  | 削除           | 低     |
 
 ### 8.4 次のステップ
 
@@ -686,7 +672,8 @@ Scheduler
 
 ## 関連ドキュメント
 
-- [システムアーキテクチャ概要](system_overview.md) - システム全体のアーキテクチャ
+- [アーキテクチャ概要](architecture_overview.md) - システム全体のアーキテクチャ
 - [コンポーネント依存関係](component_dependency.md) - サービス間の依存関係
 - [データフロー](data_flow.md) - データの流れと処理フロー
-- [API仕様書](../api/api_specification.md) - API エンドポイント詳細
+- [データベース設計](database_design.md) - データベーススキーマ詳細
+- [API仕様書](../api/README.md) - API エンドポイント詳細

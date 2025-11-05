@@ -1,53 +1,25 @@
-"""共通テストフィクスチャ.
+"""テスト共通の fixtures を置く conftest です.
 
-このファイルはpytestによって自動的に読み込まれ、
-全てのテストで利用可能な共通フィクスチャを提供します。
-
-テストレベル別のディレクトリ構造:
-- tests/unit/: ユニットテスト（外部依存なし）
-- tests/integration/: 統合テスト（DB/API連携）
-- tests/e2e/: E2Eテスト（ブラウザ操作）
-
-既存のテストは現在の場所に保持され、リファクタリングの安全網として機能します。
-
-## フィクスチャ分類
-
-### アプリケーション関連
-- app: Flaskアプリケーションインスタンス
-- client: Flaskテストクライアント
-
-### 環境設定
-- setup_test_env: テスト環境変数のセットアップ
-
-### データベース関連
-- mock_db_session: モックDBセッション（ユニットテスト用）
-- test_db_session: テストDBセッションコンテキストマネージャー（統合テスト用）
-
-### テストデータ
-- sample_stock_data: サンプル株価データ（辞書）
-- sample_stock_list: 複数銘柄のサンプルデータリスト
-- sample_dataframe: サンプル株価データのDataFrame
-
-### モックヘルパー
-- mock_yfinance_ticker: Yahoo Finance Tickerクラスのモック
-- mock_yfinance_download: Yahoo Finance download関数のモック
-
-## 個別テストファイルでのフィクスチャ定義について
-
-一部のテストファイルでは、テスト固有の要件により専用フィクスチャを定義しています。
-これらは以下の理由で conftest.py に統合されていません：
-
-1. テスト固有の設定が必要（例: 特定のBlueprint のみを登録）
-2. 異なるデータ構造が必要（例: 複数行のDataFrame）
-3. 統合テスト特有の設定が必要
-
-各テストファイルでコメントにより、その理由が説明されています。
+このファイルには、ドキュメント読み込み用の fixture を配置して
+複数のテストファイルで共有できるようにします.
 """
 
 import os
+from pathlib import Path
 import sys
 
 import pytest
+
+
+@pytest.fixture(scope="session")
+def guide_content_and_path():
+    """docs/api/api_usage_guide.md の内容とパスを返す fixture."""
+    guide_path = Path("docs/api/api_usage_guide.md")
+    project_root = Path(__file__).parent.parent
+    full_guide_path = project_root / guide_path
+    assert full_guide_path.exists(), f"API使用例ガイドが存在しません: {full_guide_path}"
+    content = full_guide_path.read_text(encoding="utf-8")
+    return {"path": full_guide_path, "content": content}
 
 
 # プロジェクトのルートディレクトリをPythonパスに追加
