@@ -53,8 +53,6 @@ class TestDocsFileInventory:
             "ci-cd/README.md",
             "ci-cd/pipeline-config.md",
             "ci-cd/pre_commit_setup.md",
-            # development/
-            "development/git_workflow.md",
             # guides/
             "guides/README.md",
             "guides/backup_procedures.md",

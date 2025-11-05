@@ -46,7 +46,6 @@ class TestDocsStructure:
             "guides",
             "standards",
             "ci-cd",
-            "development",
             "tasks",
             "archive",
             "old",
@@ -108,10 +107,10 @@ class TestDocsStructure:
     ) -> None:
         """Markdownファイルを含む全サブディレクトリにREADME.mdがあることを確認.
 
-        development/ディレクトリは除外（README不要）
+        old/ディレクトリは除外（README不要）
         """
         # Arrange (準備)
-        exclude_dirs = {"development"}
+        exclude_dirs = {"old"}
         missing_readme = []
 
         # Act (実行)
@@ -164,7 +163,6 @@ class TestDocsFileMovementDetection:
             "standards/git-workflow.md",
             "ci-cd/README.md",
             "ci-cd/pipeline-config.md",
-            "development/git_workflow.md",
             "tasks/README.md",
             "archive/README.md",
         ]
@@ -222,9 +220,6 @@ class TestDocsFileMovementDetection:
             "ci-cd": [
                 "pipeline-config.md",
                 "pre_commit_setup.md",
-            ],
-            "development": [
-                "git_workflow.md",
             ],
             "tasks": [
                 "issues.md",

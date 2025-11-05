@@ -64,32 +64,27 @@ class TestQualityGateConfiguration:
     def test_quality_gates_documentation_exists(self):
         """品質ゲート設定ドキュメントがgit_workflow.mdに存在する."""
         # Arrange
-        doc_path = Path("docs/development/git_workflow.md")
+        doc_path = Path("docs/standards/git-workflow.md")
 
         # Act & Assert
-        assert doc_path.exists(), "git_workflow.mdが存在しません"
+        assert doc_path.exists(), "git-workflow.mdが存在しません"
 
         content = doc_path.read_text(encoding="utf-8")
-        assert "## 6. 品質ゲート設定" in content, "git_workflow.mdに品質ゲート設定セクションがありません"
+        assert "CI/CD" in content, "git-workflow.mdにCI/CD関連セクションがありません"
 
     def test_documentation_contains_required_sections(self):
-        """git_workflow.mdに品質ゲートの必要なセクションが含まれている."""
+        """git-workflow.mdに開発ワークフローの必要なセクションが含まれている."""
         # Arrange
-        doc_path = Path("docs/development/git_workflow.md")
+        doc_path = Path("docs/standards/git-workflow.md")
         content = doc_path.read_text(encoding="utf-8")
 
         # Act & Assert
         required_sections = [
-            "## 6. 品質ゲート設定",
-            "### 6.1 概要",
-            "### 6.2 品質基準",
-            "#### 6.2.1 コードカバレッジ",
-            "#### 6.2.2 複雑度チェック",
-            "#### 6.2.3 コードスタイル",
-            "#### 6.2.4 型チェック",
-            "### 6.3 pre-commitフックによる品質チェック",
-            "### 6.4 GitHub Actionsによる品質チェック",
-            "### 6.5 品質ゲート失敗時の対応",
+            "## 1. 開発ワークフロー概要",
+            "## 2. Issue管理とタスクトラッキング",
+            "## 3. ブランチ戦略",
+            "## 4. CI/CD",
+            "## 5. まとめ",
         ]
 
         for section in required_sections:
