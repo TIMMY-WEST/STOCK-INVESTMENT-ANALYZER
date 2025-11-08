@@ -89,27 +89,30 @@ graph TB
         Browser[Webブラウザ]
     end
 
-    subgraph "アプリケーション層"
-        Flask[Flask Webアプリ]
-        SocketIO[Flask-SocketIO]
-
-        subgraph "API Blueprint"
-            BulkAPI[Bulk Data API]
-            StockAPI[Stock Master API]
-            MonitorAPI[System Monitoring API]
-        end
-
-        subgraph "サービス層"
-            Orchestrator[StockDataOrchestrator]
-            Fetcher[StockDataFetcher]
-            Saver[StockDataSaver]
-            BulkService[BulkDataService]
-            JPXService[JPXStockService]
-        end
+    subgraph "プレゼンテーション層"
+        Flask[Flask App<br/>Routes/Templates]
     end
 
-    subgraph "データ層"
-        PostgreSQL[(PostgreSQL<br/>11テーブル)]
+    subgraph "API層"
+        BulkAPI[Bulk Data API]
+        StockAPI[Stock Master API]
+        MonitorAPI[System Monitoring API]
+    end
+
+    subgraph "サービス層"
+        Orchestrator[StockDataOrchestrator]
+        Fetcher[StockDataFetcher]
+        Saver[StockDataSaver]
+        BulkService[BulkDataService]
+        JPXService[JPXStockService]
+    end
+
+    subgraph "データアクセス層"
+        Models[SQLAlchemy Models<br/>11テーブル]
+    end
+
+    subgraph "データストレージ層"
+        PostgreSQL[(PostgreSQL)]
     end
 
     subgraph "外部API"
@@ -119,10 +122,15 @@ graph TB
     Browser -->|HTTP/WebSocket| Flask
     Flask --> BulkAPI & StockAPI & MonitorAPI
     BulkAPI --> BulkService & JPXService
-    Orchestrator --> Fetcher --> YFinance
-    Orchestrator --> Saver --> PostgreSQL
+    StockAPI --> JPXService
+    MonitorAPI --> BulkService
+    Orchestrator --> Fetcher
+    Orchestrator --> Saver
     BulkService --> Fetcher & Saver
-    JPXService --> PostgreSQL
+    JPXService --> Saver
+    Fetcher --> YFinance
+    Saver --> Models
+    Models --> PostgreSQL
 
     style Flask fill:#e1f5ff
     style PostgreSQL fill:#ffebe1
@@ -133,26 +141,32 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant Client as クライアント
-    participant API as Flask API
-    participant Service as サービス層
-    participant Fetcher as Fetcher
-    participant Saver as Saver
-    participant DB as PostgreSQL
-    participant YF as Yahoo Finance
+    participant Client as クライアント層<br/>Webブラウザ
+    participant Flask as プレゼンテーション層<br/>Flask App
+    participant API as API層<br/>Bulk Data API
+    participant Orchestrator as サービス層<br/>StockDataOrchestrator
+    participant Fetcher as サービス層<br/>StockDataFetcher
+    participant Saver as サービス層<br/>StockDataSaver
+    participant Models as データアクセス層<br/>SQLAlchemy Models
+    participant DB as データストレージ層<br/>PostgreSQL
+    participant YF as 外部API<br/>Yahoo Finance
 
-    Client->>API: データ取得リクエスト
-    API->>Service: Orchestrator呼び出し
-    Service->>Fetcher: データ取得指示
-    Fetcher->>YF: API呼び出し
+    Client->>Flask: データ取得リクエスト
+    Flask->>API: API呼び出し
+    API->>Orchestrator: fetch_and_save()
+    Orchestrator->>Fetcher: データ取得指示
+    Fetcher->>YF: yfinance呼び出し
     YF-->>Fetcher: 株価データ
-    Fetcher-->>Service: 正規化データ
-    Service->>Saver: データ保存指示
-    Saver->>DB: UPSERT実行
-    DB-->>Saver: 保存完了
-    Saver-->>Service: 保存完了
-    Service-->>API: 処理完了
-    API-->>Client: レスポンス返却
+    Fetcher-->>Orchestrator: 正規化データ
+    Orchestrator->>Saver: データ保存指示
+    Saver->>Models: UPSERT実行
+    Models->>DB: SQL実行
+    DB-->>Models: 保存完了
+    Models-->>Saver: 保存完了
+    Saver-->>Orchestrator: 保存完了
+    Orchestrator-->>API: 処理完了
+    API-->>Flask: レスポンス生成
+    Flask-->>Client: レスポンス返却
 ```
 
 ---
@@ -163,10 +177,10 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    A[プレゼンテーション層<br/>Flask Routes<br/>Templates]
-    B[API層<br/>Blueprint<br/>エンドポイント]
-    C[ビジネスロジック層<br/>Services<br/>Orchestrator]
-    D[データアクセス層<br/>SQLAlchemy<br/>Models]
+    A[プレゼンテーション層<br/>Flask App<br/>Routes/Templates]
+    B[API層<br/>Blueprint<br/>Bulk/Stock/Monitor API]
+    C[サービス層<br/>Orchestrator<br/>Fetcher/Saver]
+    D[データアクセス層<br/>SQLAlchemy Models<br/>11テーブル]
     E[データストレージ層<br/>PostgreSQL]
 
     A --> B --> C --> D --> E
@@ -198,22 +212,24 @@ app/services/
     └── error_handler.py
 ```
 
-### データベーステーブル構成
+### データベーステーブル構成（データアクセス層）
 
-| カテゴリ | テーブル名 | 用途 |
-|---------|-----------|------|
-| **株価データ** | `stocks_1m`, `stocks_5m`, `stocks_15m`, `stocks_30m` | 短期足（分足） |
-| | `stocks_1h` | 時間足 |
-| | `stocks_1d`, `stocks_1wk`, `stocks_1mo` | 日足・週足・月足 |
-| **管理データ** | `stock_master` | JPX銘柄マスタ |
-| | `batch_execution` | バッチ実行サマリ |
-| | `batch_execution_detail` | バッチ実行詳細 |
+**SQLAlchemy Models（11テーブル）:**
+
+| カテゴリ | テーブル名 | 用途 | モデルクラス |
+|---------|-----------|------|-------------|
+| **株価データ（8）** | `stocks_1m`, `stocks_5m`, `stocks_15m`, `stocks_30m` | 短期足（分足） | Stocks1m, Stocks5m, Stocks15m, Stocks30m |
+| | `stocks_1h` | 時間足 | Stocks1h |
+| | `stocks_1d`, `stocks_1wk`, `stocks_1mo` | 日足・週足・月足 | Stocks1d, Stocks1wk, Stocks1mo |
+| **管理データ（3）** | `stock_master` | JPX銘柄マスタ | StockMaster |
+| | `batch_execution` | バッチ実行サマリ | BatchExecution |
+| | `batch_execution_detail` | バッチ実行詳細 | BatchExecutionDetail |
 
 **共通カラム:**
-- `symbol` (VARCHAR): 銘柄コード
+- `symbol`: 銘柄コード
 - `date`/`datetime`: 日付/日時
-- `open`, `high`, `low`, `close` (DECIMAL): 四本値
-- `volume` (BIGINT): 出来高
+- `open`, `high`, `low`, `close`: 四本値
+- `volume`: 出来高
 
 ---
 
@@ -261,55 +277,53 @@ app/services/
 
 ### コアパッケージ
 
-#### app/
-アプリケーション本体
+#### app/ - アプリケーション本体
 
 ```
 app/
-├── app.py              # Flaskアプリケーションメイン
-├── models.py           # SQLAlchemyモデル定義
-├── api/                # API Blueprint群
-├── services/           # ビジネスロジック層
+├── app.py              # プレゼンテーション層: Flaskアプリメイン
+├── models.py           # データアクセス層: SQLAlchemy Models定義
+├── api/                # API層: Blueprint群
+├── services/           # サービス層: ビジネスロジック
 ├── utils/              # ユーティリティ
-├── templates/          # HTMLテンプレート
-└── static/             # 静的ファイル
+├── templates/          # プレゼンテーション層: HTMLテンプレート
+└── static/             # プレゼンテーション層: 静的ファイル
 ```
 
-#### app/api/
-APIエンドポイント定義
+#### app/api/ - API層
+エンドポイント定義（Blueprint）
 
-- `bulk_data.py`: 一括データ取得API
-- `stock_master.py`: 銘柄マスタAPI
-- `system_monitoring.py`: システム監視API
+- `bulk_data.py`: Bulk Data API（一括データ取得）
+- `stock_master.py`: Stock Master API（銘柄マスタ）
+- `system_monitoring.py`: System Monitoring API（システム監視）
 
-#### app/services/
-サービス層（機能別モジュール）
+#### app/services/ - サービス層
+ビジネスロジック（機能別モジュール）
 
 **stock_data/** - 株価データ処理
-- `orchestrator.py`: データ取得・保存の統括管理
-- `fetcher.py`: Yahoo Finance APIからデータ取得
-- `saver.py`: データベースへの保存
-- `converter.py`: データ形式の変換
-- `validator.py`: データ検証
+- `orchestrator.py`: **StockDataOrchestrator** - データ取得・保存統括
+- `fetcher.py`: **StockDataFetcher** - Yahoo Finance APIからデータ取得
+- `saver.py`: **StockDataSaver** - データアクセス層経由でDB保存
+- `converter.py`: **StockDataConverter** - データ形式変換
+- `validator.py`: **StockDataValidator** - データ検証
 
 **bulk/** - バルク処理
-- `bulk_service.py`: 複数銘柄の一括取得（並列処理）
+- `bulk_service.py`: **BulkDataService** - 複数銘柄並列取得
 
 **jpx/** - JPX銘柄管理
-- `jpx_stock_service.py`: JPX全銘柄マスタ管理
+- `jpx_stock_service.py`: **JPXStockService** - JPX銘柄マスタ管理
 
 **batch/** - バッチ管理
-- `batch_service.py`: バッチ実行履歴管理
+- `batch_service.py`: **BatchService** - バッチ実行履歴管理
 
 **common/** - 共通機能
-- `error_handler.py`: エラーハンドリング統一管理
+- `error_handler.py`: **ErrorHandler** - エラーハンドリング統一管理
 
-#### app/utils/
-ユーティリティモジュール
+#### app/utils/ - ユーティリティ
 
-- `structured_logger.py`: JSON形式のログ出力
-- `timeframe_utils.py`: 時間軸の変換・管理
-- `database_utils.py`: DB接続管理
+- `structured_logger.py`: **StructuredLogger** - JSON形式ログ出力
+- `timeframe_utils.py`: **TimeframeUtils** - 時間軸変換・管理
+- `database_utils.py`: **DatabaseUtils** - DB接続管理
 - `api_response.py`: API レスポンス標準化
 
 ### 主要クラス・メソッド
