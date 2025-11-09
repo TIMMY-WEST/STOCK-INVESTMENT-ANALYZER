@@ -7,6 +7,22 @@ related_docs:
 
 # リファクタリング計画 概要
 
+> **⚠️ 重要なお知らせ**
+>
+> このドキュメントは**アーカイブ版**です。
+>
+> **最新のリファクタリング計画書は以下の場所に移動しました:**
+> - **📐 メイン計画書**: [docs/tasks/refactoring/refactoring_plan.md](../../tasks/refactoring/refactoring_plan.md)
+> - **📄 Phase 0 計画**: [データアクセス層リファクタリング計画](../../tasks/refactoring/data_access_layer_plan.md)
+> - **📄 Phase 1 計画**: [サービス層リファクタリング計画](../../tasks/refactoring/service_layer_plan.md)
+> - **📄 Phase 2 計画**: [API層リファクタリング計画](../../tasks/refactoring/api_layer_plan.md)
+> - **📄 Phase 3 計画**: [プレゼンテーション層リファクタリング計画](../../tasks/refactoring/presentation_layer_plan.md)
+>
+> このディレクトリのドキュメントは**参照用のアーカイブ**として残していますが、
+> タスク計画書として使用する場合は、上記の`docs/tasks/refactoring/`ディレクトリのドキュメントを参照してください。
+
+---
+
 ## 目次
 
 - [1. はじめに](#1-はじめに)
