@@ -59,7 +59,33 @@ app/services/
 
 ## 2. 現状の課題
 
-### 2.1 コードの肥大化
+### 2.1 例外処理の改善
+
+#### 問題点
+
+**型定義の散在**:
+- 例外関連の型定義が各モジュールに分散（exceptions.py, error_handler.py）
+- エラー情報の辞書型定義が不明確（`Dict[str, Any]`の多用）
+- IDE補完が効きにくく、型チェックの限界がある
+
+**ErrorHandlerの肥大化**:
+- 約475行の複雑なクラス
+- 複数の責務が混在（分類、処理、リトライ、ログ、統計、レポート）
+- 単一責任原則違反
+
+**エラーコードマッピングの重複**:
+- エラータイプマッピングが複数箇所に存在（exceptions.py、error_handler.py）
+- 同じマッピングロジックの重複
+- 保守性の低下とエラーコード追加時の複数箇所修正が必要
+
+#### 影響
+
+- **保守性の低下**: エラーハンドリングロジックの変更が困難
+- **テストの困難性**: ErrorHandlerのモック作成が複雑
+- **一貫性リスク**: 各箇所でのマッピングが不一致になる可能性
+- **コードの重複**: 同じエラーハンドリングロジックが多数存在
+
+### 2.2 コードの肥大化
 
 #### 問題点
 
@@ -101,7 +127,7 @@ def fetch_single_stock(self, symbol, interval, period):
 - **変更の影響範囲が広い**: 1つの修正が複数の機能に影響
 - **循環的複雑度の増加**: メンテナンスコスト増大
 
-### 2.2 責務の不明確さ
+### 2.3 責務の不明確さ
 
 #### 問題点
 
@@ -131,7 +157,7 @@ class BulkDataService:
 - **テストの複雑化**: 各クラスごとにモックを設定
 - **責務の曖昧さ**: どちらを使うべきか不明確
 
-### 2.3 エラーハンドリングの分散
+### 2.4 エラーハンドリングの分散
 
 #### 問題点
 
@@ -161,7 +187,7 @@ def fetch_single_stock(self, symbol, interval, period):
 - **重複コード**: 同じようなtry-exceptが多数
 - **保守性の低下**: エラーハンドリングロジックの変更が困難
 
-### 2.4 依存性注入の欠如
+### 2.5 依存性注入の欠如
 
 #### 問題点
 
@@ -182,7 +208,7 @@ class StockDataOrchestrator:
 - **柔軟性の欠如**: 実装の差し替えが困難
 - **結合度の増加**: クラス間の密結合
 
-### 2.5 メソッドの長大化
+### 2.6 メソッドの長大化
 
 #### 問題点
 
@@ -202,7 +228,7 @@ class StockDataOrchestrator:
 - **再利用性の低下**: 部分的な機能の再利用が困難
 - **テストの困難性**: 1つのメソッドで複数のシナリオをテスト
 
-### 2.6 型ヒントの不完全性
+### 2.7 型ヒントの不完全性
 
 #### 問題点
 
@@ -241,6 +267,40 @@ def _process_batch_results(self, results):
 | **依存性注入（DI）** | コンストラクタインジェクションによる疎結合 |
 
 ### 3.2 リファクタリング戦略
+
+#### Phase 0: 例外処理システムの改善
+
+**目的**: 型安全性の向上とエラーハンドリングの統一
+
+**アプローチ**:
+1. 例外関連の型定義をTypedDictで定義し`app/types/exceptions.py`に集約
+2. ErrorHandlerを4つの専門クラスに分割（ErrorClassifier、ErrorActionDecider、ErrorRetryManager、ErrorReporter）
+3. エラーコードマッピングを`ErrorCodeMapping`クラスで一元管理
+4. 既存例外クラスを段階的に非推奨化
+
+```python
+# 階層的型定義構造の例
+from typing import TypedDict, Literal
+
+class ErrorInfo(TypedDict):
+    """エラー情報の型定義."""
+    error_code: str
+    error_type: Literal["temporary", "permanent", "system"]
+    message: str
+    details: Optional[dict[str, Any]]
+    timestamp: str
+    stack_trace: Optional[str]
+
+# ErrorHandlerの分割
+ErrorHandler（475行）
+    ↓
+ErrorClassifier（150行）          # エラー分類専門
+ErrorActionDecider（100行）       # アクション決定専門
+ErrorRetryManager（80行）         # リトライ制御専門
+ErrorReporter（150行）            # 統計・レポート専門（オプション）
+```
+
+**詳細**: [例外処理システムリファクタリング計画](./exception_handling_refactoring.md)を参照
 
 #### Phase 1: 依存性注入の導入
 
@@ -1187,6 +1247,33 @@ def retry_on_error(
 
 ### 6.1 フェーズ別実装ロードマップ
 
+#### Phase 0: 例外処理システムの改善（2週間）
+
+**目標**: 型安全性の向上とエラーハンドリングの統一
+
+**タスク**:
+
+| タスク | 対象ファイル | 優先度 | 工数 |
+|--------|------------|--------|------|
+| 例外関連型定義作成 | app/types/exceptions.py | 高 | 1日 |
+| ErrorCodeMapping作成 | app/exceptions/mappings.py | 高 | 0.5日 |
+| ErrorClassifier作成 | error_handling/classifier.py | 高 | 1日 |
+| ErrorActionDecider作成 | error_handling/action_decider.py | 高 | 1日 |
+| ErrorRetryManager作成 | error_handling/retry_manager.py | 高 | 1日 |
+| ErrorReporter作成 | error_handling/reporter.py | 中 | 1日 |
+| ErrorHandlingCoordinator作成 | error_handling/coordinator.py | 高 | 1日 |
+| レガシーラッパー作成 | error_handler.py | 高 | 1日 |
+| 単体テスト作成 | tests/services/error_handling/ | 高 | 3日 |
+
+**成果物**:
+- app/types/exceptions.py（型定義）
+- app/exceptions/mappings.py（マッピング定義）
+- 4つの専門クラス + 統括クラス
+- 後方互換性を維持したラッパークラス
+- 包括的な単体テスト
+
+**詳細**: [例外処理システムリファクタリング計画](../exception_handling.md)の実装計画を参照
+
 #### Phase 1: 依存性注入の導入（1週間）
 
 **目標**: テスタビリティの基盤整備
@@ -1288,6 +1375,7 @@ def retry_on_error(
 
 | 優先度 | 対象 | 理由 |
 |--------|------|------|
+| **最優先** | 例外処理システムの改善 | 他のリファクタリングの基盤となる |
 | **最優先** | BulkDataServiceの分割 | 最も肥大化しており影響範囲が大きい |
 | **高** | 依存性注入の導入 | テスタビリティ向上の基盤 |
 | **高** | 型定義の追加 | 型安全性の向上、IDE補完向上 |
@@ -1515,6 +1603,7 @@ orchestrator = StockDataOrchestrator(fetcher=custom_fetcher)
 ## 関連ドキュメント
 
 - [サービス層仕様書](../layers/service_layer.md)
+- [例外処理システム仕様書](../exception_handling.md) - エラーハンドリングの詳細
 - [API層リファクタリング計画](./api_layer_refactoring.md)
 - [プレゼンテーション層リファクタリング計画](./presentation_layer_refactoring.md)
 - [アーキテクチャ概要](../architecture_overview.md)
