@@ -1,9 +1,11 @@
 category: refactoring
 ai_context: high
-last_updated: 2025-01-08
+last_updated: 2025-01-09
 related_docs:
   - ../layers/api_layer.md
+  - ./service_layer_refactoring.md
   - ./presentation_layer_refactoring.md
+  - ../type_definition_strategy.md
   - ../architecture_overview.md
 
 # API層リファクタリング計画
@@ -15,8 +17,9 @@ related_docs:
 - [3. リファクタリング方針](#3-リファクタリング方針)
 - [4. リファクタリング後のアーキテクチャ](#4-リファクタリング後のアーキテクチャ)
 - [5. 具体的な改善項目](#5-具体的な改善項目)
-- [6. 実装計画](#6-実装計画)
-- [7. 期待される効果](#7-期待される効果)
+- [6. 型定義戦略](#6-型定義戦略)
+- [7. 実装計画](#7-実装計画)
+- [8. 期待される効果](#8-期待される効果)
 
 ---
 
@@ -1789,9 +1792,516 @@ def get_stock_master_list():
 
 ---
 
-## 6. 実装計画
+## 6. 型定義戦略
 
-### 6.1 Phase 1: 基盤整備（2-3日）
+### 6.1 階層的型定義構造の採用
+
+API層のリファクタリングでは、プロジェクト全体で一貫した**階層的型定義構造**を採用します。
+
+詳細は [型定義配置戦略](../type_definition_strategy.md) を参照してください。
+
+### 6.2 API層の型定義配置
+
+```
+app/
+├── types.py                    # プロジェクト全体の共通型（新設）
+│   ├── Interval               # 時間軸型
+│   ├── ProcessStatus          # 処理ステータス
+│   ├── BatchStatus            # バッチステータス
+│   ├── PaginationParams       # ページネーション型
+│   └── ...
+├── api/
+│   ├── types.py                # API層固有の型定義（新設）
+│   ├── bulk_data.py
+│   ├── stock_master.py
+│   └── system_monitoring.py
+└── services/
+    └── types.py                # サービス層固有の型定義（新設）
+```
+
+### 6.3 API層固有の型定義
+
+**app/api/types.py（新設）**
+
+```python
+"""API層の型定義.
+
+このモジュールは、API層で使用される型定義を提供します。
+"""
+
+from typing import TypedDict, Optional, List, Any, Literal
+from datetime import datetime
+
+from app.types import Interval, Symbol, PaginationMeta
+
+
+# ============================================================================
+# APIリクエストの型定義
+# ============================================================================
+
+class FetchStockDataRequest(TypedDict, total=False):
+    """株価データ取得リクエスト.
+
+    Attributes:
+        symbol: 銘柄コード（例: "7203.T"）
+        interval: 時間軸
+        period: 取得期間
+    """
+    symbol: Symbol
+    interval: Interval
+    period: str
+
+
+class BulkFetchRequest(TypedDict, total=False):
+    """バルク取得リクエスト.
+
+    Attributes:
+        symbols: 銘柄コードのリスト
+        interval: 時間軸
+        period: 取得期間（オプション）
+        max_workers: 最大並列ワーカー数
+        retry_count: リトライ回数
+    """
+    symbols: List[Symbol]
+    interval: Interval
+    period: Optional[str]
+    max_workers: int
+    retry_count: int
+
+
+class StockListRequest(TypedDict, total=False):
+    """銘柄一覧取得リクエスト.
+
+    Attributes:
+        is_active: 有効な銘柄のみ取得するか
+        market_category: 市場区分
+        limit: 取得件数上限
+        offset: オフセット
+    """
+    is_active: bool
+    market_category: Optional[str]
+    limit: int
+    offset: int
+
+
+class UpdateStockMasterRequest(TypedDict):
+    """銘柄マスタ更新リクエスト.
+
+    Attributes:
+        update_type: 更新タイプ（manual, scheduled）
+    """
+    update_type: Literal["manual", "scheduled"]
+
+
+# ============================================================================
+# APIレスポンスの型定義
+# ============================================================================
+
+class APIResponse(TypedDict):
+    """API標準レスポンス.
+
+    Attributes:
+        success: 成功フラグ
+        message: メッセージ
+        data: レスポンスデータ
+        meta: メタ情報（ページネーション等）
+    """
+    success: bool
+    message: str
+    data: Optional[Any]
+    meta: Optional[dict[str, Any]]
+
+
+class APIErrorResponse(TypedDict):
+    """APIエラーレスポンス.
+
+    Attributes:
+        success: 成功フラグ（常にFalse）
+        error_code: エラーコード
+        message: エラーメッセージ
+        details: エラー詳細情報
+        timestamp: タイムスタンプ
+    """
+    success: bool
+    error_code: str
+    message: str
+    details: Optional[dict[str, Any]]
+    timestamp: datetime
+
+
+class PaginatedResponse(TypedDict):
+    """ページネーション付きレスポンス.
+
+    Attributes:
+        success: 成功フラグ
+        data: レスポンスデータのリスト
+        pagination: ページネーション情報
+    """
+    success: bool
+    data: List[Any]
+    pagination: PaginationMeta
+
+
+class JobResponse(TypedDict):
+    """ジョブ実行レスポンス.
+
+    Attributes:
+        success: 成功フラグ
+        job_id: ジョブID
+        status: ジョブステータス
+        message: メッセージ
+    """
+    success: bool
+    job_id: str
+    status: str
+    message: str
+
+
+# ============================================================================
+# WebSocket関連の型定義
+# ============================================================================
+
+class WebSocketEvent(TypedDict):
+    """WebSocketイベント基本型.
+
+    Attributes:
+        event: イベント名
+        data: イベントデータ
+        timestamp: タイムスタンプ
+    """
+    event: str
+    data: dict[str, Any]
+    timestamp: datetime
+
+
+class JobProgressEvent(WebSocketEvent):
+    """ジョブ進捗イベント.
+
+    Attributes:
+        job_id: ジョブID
+        progress: 進捗率（0-100）
+        status: ステータス
+        message: メッセージ
+    """
+    job_id: str
+    progress: int
+    status: str
+    message: str
+
+
+class JobCompleteEvent(WebSocketEvent):
+    """ジョブ完了イベント.
+
+    Attributes:
+        job_id: ジョブID
+        total: 総数
+        successful: 成功数
+        failed: 失敗数
+        duration_ms: 処理時間（ミリ秒）
+    """
+    job_id: str
+    total: int
+    successful: int
+    failed: int
+    duration_ms: int
+
+
+# ============================================================================
+# バリデーション関連の型定義
+# ============================================================================
+
+class ValidationError(TypedDict):
+    """バリデーションエラー.
+
+    Attributes:
+        field: フィールド名
+        message: エラーメッセージ
+        constraint: 制約条件
+    """
+    field: str
+    message: str
+    constraint: Optional[str]
+
+
+class ValidationResult(TypedDict):
+    """バリデーション結果.
+
+    Attributes:
+        is_valid: バリデーション成功フラグ
+        errors: エラーリスト
+    """
+    is_valid: bool
+    errors: List[ValidationError]
+
+
+# ============================================================================
+# ジョブ管理関連の型定義
+# ============================================================================
+
+class JobInfo(TypedDict):
+    """ジョブ情報.
+
+    Attributes:
+        job_id: ジョブID
+        status: ステータス
+        created_at: 作成日時
+        started_at: 開始日時
+        completed_at: 完了日時
+        total: 総数
+        processed: 処理済み数
+        successful: 成功数
+        failed: 失敗数
+    """
+    job_id: str
+    status: str
+    created_at: datetime
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    total: int
+    processed: int
+    successful: int
+    failed: int
+
+
+class JobConfig(TypedDict):
+    """ジョブ設定.
+
+    Attributes:
+        symbols: 銘柄コードリスト
+        interval: 時間軸
+        period: 取得期間
+        max_workers: 最大ワーカー数
+        retry_count: リトライ回数
+        timeout: タイムアウト（秒）
+    """
+    symbols: List[Symbol]
+    interval: Interval
+    period: Optional[str]
+    max_workers: int
+    retry_count: int
+    timeout: int
+```
+
+### 6.4 プロジェクト共通型の定義
+
+**app/types.py（新設）**
+
+```python
+"""株価投資分析システムの共通型定義.
+
+このモジュールは、複数のレイヤーで使用される共通の型定義を提供します。
+"""
+
+from typing import TypedDict, Optional, Literal
+from enum import Enum
+
+
+# ============================================================================
+# 基本型定義
+# ============================================================================
+
+Interval = Literal["1m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo"]
+"""株価データの時間軸型."""
+
+Symbol = str
+"""銘柄コード型（例: "7203.T"）."""
+
+
+# ============================================================================
+# ステータス定義
+# ============================================================================
+
+class ProcessStatus(str, Enum):
+    """処理ステータス."""
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class BatchStatus(str, Enum):
+    """バッチステータス."""
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+# ============================================================================
+# ページネーション型
+# ============================================================================
+
+class PaginationParams(TypedDict, total=False):
+    """ページネーションパラメータ."""
+    limit: int
+    offset: int
+
+
+class PaginationMeta(TypedDict):
+    """ページネーションメタ情報."""
+    total: int
+    limit: int
+    offset: int
+    has_next: bool
+    has_prev: bool
+```
+
+### 6.5 型定義の使用例
+
+#### エンドポイント実装での型使用
+
+```python
+# app/api/bulk_data.py
+from typing import Tuple
+from flask import request, jsonify
+
+from app.api.types import (
+    BulkFetchRequest,
+    JobResponse,
+    APIErrorResponse,
+)
+from app.types import Interval
+from app.services.bulk.coordinator import BulkDataCoordinator
+
+
+@bulk_api.route("/fetch", methods=["POST"])
+def start_bulk_fetch() -> Tuple[dict, int]:
+    """バルクデータ取得を開始.
+
+    Returns:
+        JobResponse またはAPIErrorResponse と HTTPステータスコード
+    """
+    # リクエストデータを型付きで取得
+    request_data: BulkFetchRequest = request.get_json()
+
+    # バリデーション
+    validation_result = validate_bulk_fetch_request(request_data)
+    if not validation_result["is_valid"]:
+        error_response: APIErrorResponse = {
+            "success": False,
+            "error_code": "VALIDATION_ERROR",
+            "message": "リクエストが不正です",
+            "details": {"errors": validation_result["errors"]},
+            "timestamp": datetime.now(),
+        }
+        return error_response, 400
+
+    # ジョブ作成
+    coordinator = BulkDataCoordinator()
+    job_id = coordinator.create_job(
+        symbols=request_data["symbols"],
+        interval=request_data["interval"],
+        period=request_data.get("period"),
+    )
+
+    # レスポンス作成
+    response: JobResponse = {
+        "success": True,
+        "job_id": job_id,
+        "status": "started",
+        "message": "バルクデータ取得を開始しました",
+    }
+    return response, 202
+```
+
+#### バリデーション関数での型使用
+
+```python
+# app/utils/validators.py
+from typing import List
+from app.api.types import ValidationResult, ValidationError, BulkFetchRequest
+from app.types import Interval
+
+
+def validate_bulk_fetch_request(
+    request_data: BulkFetchRequest
+) -> ValidationResult:
+    """バルク取得リクエストをバリデーション.
+
+    Args:
+        request_data: リクエストデータ
+
+    Returns:
+        バリデーション結果
+    """
+    errors: List[ValidationError] = []
+
+    # symbols バリデーション
+    if "symbols" not in request_data:
+        errors.append({
+            "field": "symbols",
+            "message": "symbols は必須です",
+            "constraint": "required",
+        })
+    elif not isinstance(request_data["symbols"], list):
+        errors.append({
+            "field": "symbols",
+            "message": "symbols はリストである必要があります",
+            "constraint": "type",
+        })
+
+    # interval バリデーション
+    valid_intervals: List[Interval] = [
+        "1m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo"
+    ]
+    if "interval" in request_data:
+        if request_data["interval"] not in valid_intervals:
+            errors.append({
+                "field": "interval",
+                "message": f"interval は {valid_intervals} のいずれかである必要があります",
+                "constraint": "enum",
+            })
+
+    return {
+        "is_valid": len(errors) == 0,
+        "errors": errors,
+    }
+```
+
+### 6.6 型定義のメリット
+
+#### IDEサポート
+
+```python
+# 型補完が効く
+request_data: BulkFetchRequest = request.get_json()
+symbols = request_data["symbols"]  # IDE が List[str] と認識
+interval = request_data["interval"]  # IDE が Interval と認識
+
+# 存在しないキーへのアクセスはIDEが警告
+invalid = request_data["invalid_key"]  # IDE が警告
+```
+
+#### 型安全性
+
+```python
+# mypy による静的型チェック
+def process_response(response: JobResponse) -> None:
+    job_id = response["job_id"]  # OK: str
+    status = response["status"]   # OK: str
+    invalid = response["invalid"]  # ERROR: TypedDict has no key 'invalid'
+```
+
+#### ドキュメント性
+
+```python
+# 型定義自体がドキュメントとして機能
+class BulkFetchRequest(TypedDict, total=False):
+    """バルク取得リクエスト.
+
+    すべてのフィールドがオプショナルであることが型定義から明確
+    """
+    symbols: List[Symbol]
+    interval: Interval
+    period: Optional[str]
+```
+
+---
+
+## 7. 実装計画
+
+### 7.1 Phase 1: 基盤整備（2-3日）
 
 #### ステップ1: 共通ユーティリティ作成
 
@@ -1820,7 +2330,7 @@ def get_stock_master_list():
 - [ ] バリデーション関数のユニットテスト
 - [ ] エラーハンドラの統合テスト
 
-### 6.2 Phase 2: 構造改善（3-5日）
+### 7.2 Phase 2: 構造改善（3-5日）
 
 #### ステップ1: ジョブ管理分離
 
@@ -1851,7 +2361,7 @@ def get_stock_master_list():
 - [ ] `NotificationService` のユニットテスト
 - [ ] APIエンドポイントの統合テスト
 
-### 6.3 Phase 3: 高度化（必要に応じて）
+### 7.3 Phase 3: 高度化（必要に応じて）
 
 #### オプション改善
 
@@ -1861,9 +2371,9 @@ def get_stock_master_list():
 
 ---
 
-## 7. 期待される効果
+## 8. 期待される効果
 
-### 7.1 定量的効果
+### 8.1 定量的効果
 
 | 指標 | 現状 | 改善後 | 効果 |
 |------|------|--------|------|
@@ -1872,7 +2382,7 @@ def get_stock_master_list():
 | **テストカバレッジ** | 低（約30%） | 高（約80%目標） | **+50pt** |
 | **平均関数行数** | 約100行 | 約30行 | **70%削減** |
 
-### 7.2 定性的効果
+### 8.2 定性的効果
 
 #### 保守性の向上
 
@@ -1898,7 +2408,7 @@ def get_stock_master_list():
 - **堅牢性**: スレッドセーフなジョブ管理
 - **信頼性**: テストカバレッジ向上
 
-### 7.3 開発効率の向上
+### 8.3 開発効率の向上
 
 | 作業 | 現状 | 改善後 | 効果 |
 |------|------|--------|------|

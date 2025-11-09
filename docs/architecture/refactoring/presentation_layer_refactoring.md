@@ -1,8 +1,11 @@
 category: refactoring
 ai_context: high
-last_updated: 2025-01-08
+last_updated: 2025-01-09
 related_docs:
   - ../layers/presentation_layer.md
+  - ./service_layer_refactoring.md
+  - ./api_layer_refactoring.md
+  - ../type_definition_strategy.md
   - ../architecture_overview.md
   - ../../guides/CONTRIBUTING.md
 
@@ -840,7 +843,176 @@ if __name__ == '__main__':
 
 ---
 
-## 9. 移行計画
+## 9. 型定義戦略
+
+### 9.1 プロジェクト全体の型定義構造
+
+プレゼンテーション層のリファクタリングにおいても、プロジェクト全体で一貫した**階層的型定義構造**を採用します。
+
+詳細は [型定義配置戦略](../type_definition_strategy.md) を参照してください。
+
+### 9.2 Application Factory パターンでの型使用
+
+**app/config.py での型定義**
+
+```python
+"""アプリケーション設定クラス.
+
+環境ごとの設定を型安全に管理します。
+"""
+
+from typing import TypedDict, Optional
+from enum import Enum
+
+
+class Environment(str, Enum):
+    """環境種別."""
+    DEVELOPMENT = "development"
+    TESTING = "testing"
+    PRODUCTION = "production"
+
+
+class DatabaseConfig(TypedDict):
+    """データベース設定."""
+    host: str
+    port: int
+    name: str
+    user: str
+    password: str
+
+
+class Config:
+    """基本設定クラス."""
+
+    # 基本設定
+    SECRET_KEY: str
+    DEBUG: bool = False
+    TESTING: bool = False
+
+    # データベース設定
+    SQLALCHEMY_DATABASE_URI: str
+    SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
+
+    # API設定
+    API_DEFAULT_VERSION: str = "v1"
+    API_TIMEOUT: int = 30
+
+    @staticmethod
+    def init_app(app) -> None:
+        """アプリケーション初期化."""
+        pass
+
+
+class DevelopmentConfig(Config):
+    """開発環境設定."""
+    DEBUG = True
+    SQLALCHEMY_ECHO = True
+
+
+class TestingConfig(Config):
+    """テスト環境設定."""
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+
+
+class ProductionConfig(Config):
+    """本番環境設定."""
+    DEBUG = False
+    TESTING = False
+
+
+# 設定マップ
+config: dict[Environment, type[Config]] = {
+    Environment.DEVELOPMENT: DevelopmentConfig,
+    Environment.TESTING: TestingConfig,
+    Environment.PRODUCTION: ProductionConfig,
+}
+```
+
+**app/__init__.py での型使用**
+
+```python
+"""アプリケーションファクトリモジュール."""
+
+from typing import Optional
+from flask import Flask
+
+from app.config import Config, config, Environment
+from app.extensions import init_extensions
+from app.routes import register_routes
+from app.api import register_blueprints
+
+
+def create_app(
+    config_name: Optional[Environment] = None
+) -> Flask:
+    """Flask アプリケーションファクトリ.
+
+    Args:
+        config_name: 環境設定名（development, testing, production）
+                     None の場合は環境変数から取得
+
+    Returns:
+        設定済みの Flask アプリケーションインスタンス
+
+    Raises:
+        ValueError: 不正な設定名が指定された場合
+
+    Example:
+        >>> app = create_app(Environment.DEVELOPMENT)
+        >>> app.run()
+    """
+    app = Flask(__name__)
+
+    # 設定読み込み
+    if config_name is None:
+        config_name = Environment.DEVELOPMENT
+
+    if config_name not in config:
+        raise ValueError(f"Invalid config name: {config_name}")
+
+    app.config.from_object(config[config_name])
+    config[config_name].init_app(app)
+
+    # 拡張機能初期化
+    init_extensions(app)
+
+    # Blueprint登録
+    register_blueprints(app)
+
+    # ルート登録
+    register_routes(app)
+
+    return app
+```
+
+### 9.3 型定義によるメリット
+
+#### 設定の型安全性
+
+```python
+# 型安全な設定アクセス
+app = create_app(Environment.DEVELOPMENT)  # OK
+app = create_app("invalid")  # ERROR: 型エラー
+
+# IDE補完が効く
+env = Environment.PRODUCTION  # IDE が候補を表示
+```
+
+#### ドキュメント性の向上
+
+```python
+# 関数シグネチャから使い方が明確
+def create_app(
+    config_name: Optional[Environment] = None
+) -> Flask:
+    """型ヒントにより引数と戻り値の型が明確."""
+    ...
+```
+
+---
+
+## 10. 移行計画
 
 ### Phase 1: 準備フェーズ（1-2時間）
 
@@ -885,7 +1057,7 @@ if __name__ == '__main__':
 
 ---
 
-## 10. メリット・デメリット
+## 11. メリット・デメリット
 
 ### メリット
 
