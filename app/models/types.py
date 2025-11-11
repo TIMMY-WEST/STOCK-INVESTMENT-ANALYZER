@@ -6,17 +6,8 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, TypeVar
-
-
-try:
-    # typing_extensions はより新しい TypedDict/Generic サポートを含む
-    from typing_extensions import TypedDict
-except Exception:
-    # Python 3.8+ では typing.TypedDict が存在するためフォールバック
-    from typing import TypedDict
-
-from typing import Literal
+# All imports are placed at the top for clarity and consistency
+from typing import Any, List, Literal, Optional, TypedDict, TypeVar
 
 
 # 汎用タイプ変数

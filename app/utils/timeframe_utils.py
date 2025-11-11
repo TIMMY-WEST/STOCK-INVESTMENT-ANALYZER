@@ -164,4 +164,4 @@ def get_table_name(interval: str) -> str:
             f"サポート時間軸: {list(TIMEFRAME_MODEL_MAP.keys())}"
         )
     # SQLAlchemyのdeclarative_baseで動的に生成される属性
-    return TIMEFRAME_MODEL_MAP[interval].__tablename__  # type: ignore[attr-defined]
+    return TIMEFRAME_MODEL_MAP[interval].__tablename__

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 # Type stubs to help static type checkers (mypy) understand symbols exported by app.models
 
@@ -25,4 +25,4 @@ DATABASE_URL: Any
 engine: Any
 StockDailyCRUD: Any
 
-__all__: list[str]
+__all__: List[str]

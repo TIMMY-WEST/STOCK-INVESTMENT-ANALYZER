@@ -406,17 +406,17 @@ class StockDataSaver:
             if is_intraday:
                 # 分足・時間足: datetime
                 result = (
-                    sess.query(model_class.datetime)  # type: ignore[attr-defined]
+                    sess.query(model_class.datetime)
                     .filter(model_class.symbol == symbol)
-                    .order_by(model_class.datetime.desc())  # type: ignore[attr-defined]
+                    .order_by(model_class.datetime.desc())
                     .first()
                 )
             else:
                 # 日足・週足・月足: date
                 result = (
-                    sess.query(model_class.date)  # type: ignore[attr-defined]
+                    sess.query(model_class.date)
                     .filter(model_class.symbol == symbol)
-                    .order_by(model_class.date.desc())  # type: ignore[attr-defined]
+                    .order_by(model_class.date.desc())
                     .first()
                 )
 
