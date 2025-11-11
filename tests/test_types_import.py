@@ -8,11 +8,20 @@ def test_interval_literal_exists() -> None:
     assert hasattr(types, "Interval")
 
 
-def test_enums_have_expected_members() -> None:
-    # ProcessStatus と BatchStatus に代表的メンバーがあることを確認する
+def test_processstatus_members() -> None:
+    # ProcessStatus の代表的メンバーを個別に検証する
     assert types.ProcessStatus.PENDING.value == "pending"
     assert types.ProcessStatus.RUNNING.value == "running"
+    assert types.ProcessStatus.SUCCESS.value == "success"
+    assert types.ProcessStatus.FAILED.value == "failed"
+
+
+def test_batchstatus_members() -> None:
+    # BatchStatus の代表的メンバーを個別に検証する
     assert types.BatchStatus.QUEUED.value == "queued"
+    assert types.BatchStatus.PROCESSING.value == "processing"
+    assert types.BatchStatus.COMPLETED.value == "completed"
+    assert types.BatchStatus.FAILED.value == "failed"
 
 
 def test_pagination_typedict_keys() -> None:
