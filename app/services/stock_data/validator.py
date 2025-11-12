@@ -9,6 +9,7 @@ from typing import List
 
 import pandas as pd
 
+from app.types import Interval
 from app.utils.timeframe_utils import validate_interval
 
 
@@ -184,7 +185,7 @@ class StockDataValidator:
 
         self.logger.debug(f"データ検証完了: {symbol} - {len(df)}件")
 
-    def validate_interval(self, interval: str) -> bool:
+    def validate_interval(self, interval: Interval) -> bool:
         """時間間隔の妥当性をチェック.
 
         Args:

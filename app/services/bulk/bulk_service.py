@@ -14,6 +14,7 @@ from app.services.common.error_handler import ErrorAction, ErrorHandler
 from app.services.stock_data.converter import StockDataConverter
 from app.services.stock_data.fetcher import StockDataFetcher
 from app.services.stock_data.saver import StockDataSaver
+from app.types import Interval
 from app.utils.structured_logger import (
     get_batch_logger,
     setup_structured_logging,
@@ -226,7 +227,7 @@ class BulkDataService:
         )
 
     def _fetch_and_convert_data(
-        self, symbol: str, interval: str, period: Optional[str]
+        self, symbol: str, interval: Interval, period: Optional[str]
     ) -> tuple[bool, list, int]:
         """データの取得と変換.
 
@@ -301,7 +302,10 @@ class BulkDataService:
             ) from error
 
     def fetch_single_stock(
-        self, symbol: str, interval: str = "1d", period: Optional[str] = None
+        self,
+        symbol: str,
+        interval: Interval = "1d",
+        period: Optional[str] = None,
     ) -> Dict[str, Any]:
         """単一銘柄のデータを取得・保存（ErrorHandlerによるリトライ機能付き).
 
@@ -395,7 +399,7 @@ class BulkDataService:
     def fetch_multiple_stocks(
         self,
         symbols: List[str],
-        interval: str = "1d",
+        interval: Interval = "1d",
         period: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
         use_batch: bool = True,
@@ -424,7 +428,7 @@ class BulkDataService:
             )
 
     def _process_batch_data_conversion(
-        self, batch_data: dict, interval: str
+        self, batch_data: dict, interval: Interval
     ) -> tuple[dict, list]:
         """バッチデータの変換処理.
 
@@ -472,7 +476,7 @@ class BulkDataService:
         return symbols_data, conversion_errors
 
     def _save_batch_if_data_exists(
-        self, symbols_data: dict, interval: str, batch_index: int
+        self, symbols_data: dict, interval: Interval, batch_index: int
     ) -> tuple[dict, int]:
         """データが存在する場合の保存処理.
 
@@ -505,7 +509,7 @@ class BulkDataService:
     def _record_batch_result(
         self,
         symbol: str,
-        interval: str,
+        interval: Interval,
         symbols_data: dict,
         save_result: dict,
         batch_duration: int,
@@ -571,7 +575,7 @@ class BulkDataService:
     def _fetch_multiple_stocks_batch(
         self,
         symbols: List[str],
-        interval: str = "1d",
+        interval: Interval = "1d",
         period: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
         batch_size: int = 100,
@@ -709,7 +713,7 @@ class BulkDataService:
     def _fetch_multiple_stocks_parallel(
         self,
         symbols: List[str],
-        interval: str = "1d",
+        interval: Interval = "1d",
         period: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Dict[str, Any]:
@@ -833,7 +837,7 @@ class BulkDataService:
     def fetch_all_stocks_from_list_file(
         self,
         file_path: str,
-        interval: str = "1d",
+        interval: Interval = "1d",
         period: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Dict[str, Any]:
@@ -871,7 +875,7 @@ class BulkDataService:
             raise BulkDataServiceError(error_msg) from e
 
     def estimate_completion_time(
-        self, symbol_count: int, interval: str = "1d"
+        self, symbol_count: int, interval: Interval = "1d"
     ) -> Dict[str, Any]:
         """処理完了時間を推定.
 

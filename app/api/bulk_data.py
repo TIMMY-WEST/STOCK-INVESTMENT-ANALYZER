@@ -15,6 +15,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from app.services.batch.batch_service import BatchService, BatchServiceError
 from app.services.bulk.bulk_service import BulkDataService
+from app.types import Interval
 
 
 # Blueprintの作成
@@ -339,7 +340,7 @@ def _run_job(
     app,
     job_id: str,
     symbols: List[str],
-    interval: str,
+    interval: Interval,
     period: Optional[str],
     batch_db_id: Optional[int] = None,
 ):

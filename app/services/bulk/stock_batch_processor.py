@@ -12,6 +12,7 @@ import yfinance as yf
 from app.services.stock_data.converter import StockDataConverter
 from app.services.stock_data.fetcher import StockDataFetcher
 from app.services.stock_data.validator import StockDataValidator
+from app.types import Interval
 
 
 logger = logging.getLogger(__name__)
@@ -35,9 +36,9 @@ class StockBatchProcessor:
     def fetch_multiple_timeframes(
         self,
         symbol: str,
-        intervals: List[str],
+        intervals: List[Interval],
         period: Optional[str] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> Dict[Interval, Dict[str, Any]]:
         """複数時間軸のデータを取得.
 
         Args:
@@ -59,8 +60,8 @@ class StockBatchProcessor:
             }
             return {interval: error_result for interval in intervals}
 
-        results = {}
-        errors = []
+        results: Dict[Interval, Dict[str, Any]] = {}
+        errors: List[str] = []
 
         self.logger.info(f"複数時間軸データ取得開始: {symbol} ({len(intervals)}種類)")
 
@@ -115,7 +116,7 @@ class StockBatchProcessor:
     def fetch_batch_stock_data(
         self,
         symbols: List[str],
-        interval: str = "1d",
+        interval: Interval = "1d",
         period: Optional[str] = None,
     ) -> Dict[str, Dict[str, Any]]:
         """複数銘柄の株価データを一括取得.
@@ -180,7 +181,7 @@ class StockBatchProcessor:
     def _process_valid_symbols(
         self,
         valid_symbols: List[str],
-        interval: str,
+        interval: Interval,
         period: Optional[str],
         results: Dict[str, Dict[str, Any]],
     ) -> None:
@@ -209,7 +210,7 @@ class StockBatchProcessor:
         self,
         symbol_dataframes: Dict[str, pd.DataFrame],
         valid_symbols: List[str],
-        interval: str,
+        interval: Interval,
         results: Dict[str, Dict[str, Any]],
     ) -> None:
         """個別銘柄のデータを処理."""
@@ -240,7 +241,7 @@ class StockBatchProcessor:
         self,
         df: pd.DataFrame,
         symbol: str,
-        interval: str,
+        interval: Interval,
         results: Dict[str, Dict[str, Any]],
     ) -> None:
         """データの検証と変換を実行."""
@@ -286,7 +287,7 @@ class StockBatchProcessor:
     def _download_batch_from_yahoo(
         self,
         symbols: List[str],
-        interval: str,
+        interval: Interval,
         period: Optional[str] = None,
     ) -> pd.DataFrame:
         """Yahoo Financeから一括ダウンロード.

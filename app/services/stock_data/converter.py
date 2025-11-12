@@ -9,6 +9,8 @@ from typing import Any, Dict, List, cast
 
 import pandas as pd
 
+from app.types import Interval
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ class StockDataConverter:
         self.logger = logger
 
     def convert_to_dict(
-        self, df: pd.DataFrame, interval: str
+        self, df: pd.DataFrame, interval: Interval
     ) -> List[Dict[str, Any]]:
         """DataFrameを辞書リストに変換（データベース保存用）.
 
@@ -113,7 +115,7 @@ class StockDataConverter:
             return False
 
     def _create_record_from_row(
-        self, index: pd.Timestamp, row: pd.Series, interval: str
+        self, index: pd.Timestamp, row: pd.Series, interval: Interval
     ) -> Dict[str, Any]:
         """陦後ョ繝ｼ繧ｿ縺九ｉ繝ｬ繧ｳ繝ｼ繝芽ｾ樊嶌繧剃ｽ懈・.
 
@@ -219,7 +221,7 @@ class StockDataConverter:
         return result
 
     def format_summary_data(
-        self, results: Dict[str, Any], symbol: str, interval: str
+        self, results: Dict[str, Any], symbol: str, interval: Interval
     ) -> Dict[str, Any]:
         """サマリーデータをフォーマット.
 
