@@ -13,7 +13,7 @@ def _load_types_module():
     Note: repository contains `app/models.py` as a module, so `app.models` is
     not a package. For the unit test we import the file directly by path.
     """
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = Path(__file__).resolve().parents[3]
     types_path = repo_root / "app" / "models" / "types.py"
     spec = spec_from_file_location("app_models_types", str(types_path))
     module = module_from_spec(spec)
