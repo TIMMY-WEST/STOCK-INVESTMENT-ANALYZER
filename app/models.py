@@ -4,11 +4,13 @@
 データベースモデルとCRUD操作を提供します。
 """
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal
 import os
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, TypeAlias
 
 from dotenv import load_dotenv
 from sqlalchemy import (
@@ -445,7 +447,8 @@ class Stocks1mo(Base, StockDataBase):
 
 
 # 既存のStockDailyクラスは後方互換性のためにStocks1dのエイリアスとして残す
-StockDaily = Stocks1d
+# 明示的に TypeAlias を付与して型ツールで扱いやすくする
+StockDaily: TypeAlias = Stocks1d
 
 
 # 銘柄マスタテーブル (Phase 2)
