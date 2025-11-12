@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from dotenv import load_dotenv
 from sqlalchemy import (
@@ -87,8 +87,15 @@ class StockDataBase:
             Dict[str, Any]: モデルの辞書表現
         """
 
-        def safe_float_conversion(value):
-            """Decimal値を安全にfloatに変換し、NaN値をNoneに変換する."""
+        def safe_float_conversion(value: Any) -> Optional[float]:
+            """Decimal値を安全にfloatに変換し、NaN値をNoneに変換する.
+
+            Args:
+                value: Decimal もしくは数値/None を想定
+
+            Returns:
+                Optional[float]: 変換後の float、変換不可や NaN/Inf は None
+            """
             if value is None:
                 return None
             try:
@@ -160,7 +167,7 @@ class Stocks1m(Base, StockDataBase):
         Index("idx_stocks_1m_symbol_datetime_desc", "symbol", "datetime"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -200,7 +207,7 @@ class Stocks5m(Base, StockDataBase):
         Index("idx_stocks_5m_symbol_datetime_desc", "symbol", "datetime"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -240,7 +247,7 @@ class Stocks15m(Base, StockDataBase):
         Index("idx_stocks_15m_symbol_datetime_desc", "symbol", "datetime"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -280,7 +287,7 @@ class Stocks30m(Base, StockDataBase):
         Index("idx_stocks_30m_symbol_datetime_desc", "symbol", "datetime"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -320,7 +327,7 @@ class Stocks1h(Base, StockDataBase):
         Index("idx_stocks_1h_symbol_datetime_desc", "symbol", "datetime"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -356,7 +363,7 @@ class Stocks1d(Base, StockDataBase):
         Index("idx_stocks_1d_symbol_date_desc", "symbol", "date"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -392,7 +399,7 @@ class Stocks1wk(Base, StockDataBase):
         Index("idx_stocks_1wk_symbol_date_desc", "symbol", "date"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -428,7 +435,7 @@ class Stocks1mo(Base, StockDataBase):
         Index("idx_stocks_1mo_symbol_date_desc", "symbol", "date"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -507,7 +514,7 @@ class StockMaster(Base):
         Index("idx_stock_master_sector_33", "sector_code_33"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -580,7 +587,7 @@ class StockMasterUpdate(Base):
         DateTime(timezone=True)
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -826,7 +833,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @contextmanager
-def get_db_session():
+def get_db_session() -> Iterator[Session]:
     """データベースセッションのコンテキストマネージャー.
 
     データベースセッションを安全に管理し、
