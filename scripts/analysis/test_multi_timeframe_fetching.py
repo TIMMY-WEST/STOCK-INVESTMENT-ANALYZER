@@ -20,6 +20,7 @@ from app.services.stock_data.orchestrator import (  # noqa: E402
 from app.utils.timeframe_utils import (  # noqa: E402
     get_all_intervals,
     get_display_name,
+    normalize_interval,
 )
 
 
@@ -35,18 +36,21 @@ logger = logging.getLogger(__name__)
 def test_single_timeframe(symbol: str, interval: str):
     """単一時間軸のテスト."""
     logger.info(f"\n{'=' * 80}")
-    logger.info(f"単一時間軸テスト: {symbol} ({get_display_name(interval)})")
+    # 呼び出し前に正規化して Literal 型 (Interval) を渡す
+    interval_norm = normalize_interval(interval)
+    logger.info(f"単一時間軸テスト: {symbol} ({get_display_name(interval_norm)})")
     logger.info(f"{'=' * 80}")
 
     orchestrator = StockDataOrchestrator()
 
     try:
         result = orchestrator.fetch_and_save(
-            symbol=symbol, interval=interval, period=None  # 推奨期間を使用
+            symbol=symbol, interval=interval_norm, period=None  # 推奨期間を使用
         )
 
         if result["success"]:
-            logger.info(f"✓ 成功: {get_display_name(interval)}")
+            # 結果表示でも正規化済の値を使う
+            logger.info(f"✓ 成功: {get_display_name(interval_norm)}")
             logger.info(f"  取得件数: {result['fetch_count']}")
             logger.info(f"  保存件数: {result['save_result']['saved']}")
             logger.info(f"  スキップ: {result['save_result']['skipped']}")
@@ -54,7 +58,7 @@ def test_single_timeframe(symbol: str, interval: str):
                 f"  レコード数: {result['integrity_check']['record_count']}"
             )
         else:
-            logger.error(f"✗ 失敗: {get_display_name(interval)}")
+            logger.error(f"✗ 失敗: {get_display_name(interval_norm)}")
             logger.error(f"  エラー: {result.get('error')}")
 
         return result
@@ -64,7 +68,7 @@ def test_single_timeframe(symbol: str, interval: str):
         return {"success": False, "error": str(e)}
 
 
-def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
+def test_multiple_timeframes(symbol: str, intervals: list | None = None):
     """複数時間軸のテスト."""
     logger.info(f"\n{'=' * 80}")
     logger.info(f"複数時間軸テスト: {symbol}")
@@ -72,6 +76,9 @@ def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
 
     if intervals is None:
         intervals = get_all_intervals()
+
+    # 正規化: list[str] -> list[Interval]
+    intervals = [normalize_interval(i) for i in intervals]
 
     orchestrator = StockDataOrchestrator()
 

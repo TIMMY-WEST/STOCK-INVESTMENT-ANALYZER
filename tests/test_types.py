@@ -1,23 +1,12 @@
 # tests/test_types.py
 # 日本語コメント: このテストは `app/types.py` に定義された共通型の基本的な動作を検証します。
 
-import importlib.util
-from pathlib import Path
-import types as _types
 from typing import get_args, get_origin
 
 import pytest
 
-
-# テスト実行環境に依存せず、直接ファイルからモジュールを読み込む
-root = Path(__file__).resolve().parents[1]
-module_path = root / "app" / "types.py"
-spec = importlib.util.spec_from_file_location("app.types", str(module_path))
-types = _types.ModuleType("app.types")
-if spec and spec.loader:
-    spec.loader.exec_module(types)
-else:
-    raise ImportError(f"Cannot load module from {module_path}")
+# テストでは通常のインポートでモジュールを取得する（静的解析が期待通りに働くようにする）
+from app import types
 
 
 def test_interval_literal_contains_expected_values() -> None:

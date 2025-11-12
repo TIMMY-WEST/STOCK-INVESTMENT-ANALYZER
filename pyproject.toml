@@ -197,6 +197,14 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+    "scripts.*",
+    "mccabe",
+]
+ignore_missing_imports = true
+
 # ===== Pytest Configuration =====
 [tool.pytest.ini_options]
 # テストディレクトリとファイルパターン
