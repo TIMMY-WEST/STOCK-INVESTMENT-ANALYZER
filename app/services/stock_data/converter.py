@@ -117,15 +117,15 @@ class StockDataConverter:
     def _create_record_from_row(
         self, index: pd.Timestamp, row: pd.Series, interval: Interval
     ) -> Dict[str, Any]:
-        """陦後ョ繝ｼ繧ｿ縺九ｉ繝ｬ繧ｳ繝ｼ繝芽ｾ樊嶌繧剃ｽ懈・.
+        """行（Series）からデータベース保存用のレコード辞書を作成する内部メソッド.
 
         Args:
-            index: 譌･譎ゅう繝ｳ繝・ャ繧ｯ繧ｹ
-            row: 陦後ョ繝ｼ繧ｿ
-            interval: 譎る俣霆ｸ
+            index: 行のタイムスタンプ（pandas.Timestamp）
+            row: 行データ（pandas.Series）
+            interval: 時間軸（Interval）
 
         Returns:
-            繝ｬ繧ｳ繝ｼ繝芽ｾ樊嶌
+            レコード辞書（open/high/low/close/volume と date または datetime を含む）
         """
         try:
             record: Dict[str, Any] = {
@@ -145,7 +145,7 @@ class StockDataConverter:
             return record
         except (AttributeError, TypeError, ValueError) as e:
             raise StockDataConversionError(
-                f"繝ｬ繧ｳ繝ｼ繝我ｽ懈・繧ｨ繝ｩ繝ｼ: 繧､繝ｳ繝・ャ繧ｯ繧ｹ={index}, 繧ｨ繝ｩ繝ｼ={str(e)}"
+                f"レコード作成エラー: index={index}, error={e}"
             )
 
     def extract_price_data(self, df: pd.DataFrame) -> Dict[str, Any]:

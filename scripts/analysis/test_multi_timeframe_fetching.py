@@ -13,6 +13,7 @@ sys.path.insert(
 )
 
 import logging  # noqa: E402
+from typing import List, Optional  # noqa: E402
 
 from app.services.stock_data.orchestrator import (  # noqa: E402
     StockDataOrchestrator,
@@ -66,7 +67,7 @@ def test_single_timeframe(symbol: str, interval: Interval):
 
 
 def test_multiple_timeframes(
-    symbol: str, intervals: list[Interval] | None = None
+    symbol: str, intervals: Optional[List[Interval]] = None
 ):
     """複数時間軸のテスト."""
     logger.info(f"\n{'=' * 80}")
