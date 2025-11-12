@@ -36,7 +36,7 @@ class StockDataSaver:
     def save_stock_data(
         self,
         symbol: str,
-        interval: str | Interval,
+        interval: Interval,
         data_list: List[Dict[str, Any]],
         session: Optional[Session] = None,
     ) -> Dict[str, Any]:
@@ -76,7 +76,7 @@ class StockDataSaver:
         self,
         session: Session,
         symbol: str,
-        interval: str | Interval,
+        interval: Interval,
         model_class: Type[Any],
         data_list: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
@@ -141,8 +141,8 @@ class StockDataSaver:
         return result
 
     def save_multiple_timeframes(
-        self, symbol: str, data_dict: Dict[str, List[Dict[str, Any]]]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, symbol: str, data_dict: Dict[Interval, List[Dict[str, Any]]]
+    ) -> Dict[Interval, Dict[str, Any]]:
         """複数時間軸のデータを一度に保存.
 
         Args:
@@ -181,7 +181,7 @@ class StockDataSaver:
     def save_batch_stock_data(
         self,
         symbols_data: Dict[str, List[Dict[str, Any]]],
-        interval: str | Interval,
+        interval: Interval,
     ) -> Dict[str, Any]:
         """複数銘柄のデータをバッチ保存(重複データ事前除外方式).
 
@@ -318,7 +318,7 @@ class StockDataSaver:
         session: Session,
         model_class: type,
         symbols_data: Dict[str, List[Dict[str, Any]]],
-        interval: str | Interval,
+        interval: Interval,
     ) -> Dict[str, List[Dict[str, Any]]]:
         """重複データを事前に除外.
 
@@ -384,7 +384,10 @@ class StockDataSaver:
         return filtered_data
 
     def get_latest_date(
-        self, symbol: str, interval: str, session: Optional[Session] = None
+        self,
+        symbol: str,
+        interval: Interval,
+        session: Optional[Session] = None,
     ) -> Optional[datetime | date]:
         """データベース内の最新データ日時を取得.
 
@@ -434,7 +437,7 @@ class StockDataSaver:
     def count_records(
         self,
         symbol: str,
-        interval: str | Interval,
+        interval: Interval,
         session: Optional[Session] = None,
     ) -> int:
         """データベース内のレコード数を取得.
@@ -472,7 +475,7 @@ class StockDataSaver:
         session: Session,
         model_class: type,
         symbol: str,
-        interval: str | Interval,
+        interval: Interval,
     ) -> set:
         """既存データの日付/日時を安全に取得する."""
         try:
@@ -494,7 +497,7 @@ class StockDataSaver:
         self,
         data_list: List[Dict[str, Any]],
         symbol: str,
-        interval: str | Interval,
+        interval: Interval,
         existing_dates: set,
     ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """保存対象レコードを構築し、統計値も更新する."""
@@ -544,7 +547,7 @@ class StockDataSaver:
         model_class: Type[Any],
         records: List[Dict[str, Any]],
         symbol: str,
-        interval: str | Interval,
+        interval: Interval,
     ) -> None:
         """レコードをバルクインサートする."""
         if not records:

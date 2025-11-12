@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.services.stock_data.saver import StockDataSaveError, StockDataSaver
+from app.utils.timeframe_utils import normalize_interval
 
 
 pytestmark = pytest.mark.unit
@@ -33,7 +34,7 @@ class TestStockDataSaver:
         mock_session = MagicMock()
         mock_get_db_session.return_value.__enter__.return_value = mock_session
         symbol = "7203.T"
-        interval = "1d"
+        interval = normalize_interval("1d")
         data_list = [
             {"date": date(2025, 1, 1), "open": 100, "close": 110},
             {"date": date(2025, 1, 2), "open": 110, "close": 120},
@@ -63,7 +64,7 @@ class TestStockDataSaver:
         mock_get_model.return_value = mock_model
         mock_session = MagicMock()
         symbol = "7203.T"
-        interval = "1d"
+        interval = normalize_interval("1d")
         data_list = [
             {"date": date(2025, 1, 1), "open": 100, "close": 110},
         ]
@@ -103,7 +104,7 @@ class TestStockDataSaver:
             []
         )
         symbol = "7203.T"
-        interval = "1d"
+        interval = normalize_interval("1d")
         data_list = [
             {"date": date(2025, 1, 1), "open": 100, "close": 110},
             {"date": date(2025, 1, 2), "open": 110, "close": 120},
@@ -198,7 +199,7 @@ class TestStockDataSaver:
         with patch.object(self.saver, "_filter_duplicate_data") as mock_filter:
             mock_filter.return_value = symbols_data
             result = self.saver.save_batch_stock_data(
-                symbols_data, interval="1d"
+                symbols_data, interval=normalize_interval("1d")
             )
 
         # Assert (検証)
@@ -230,7 +231,9 @@ class TestStockDataSaver:
         with patch.object(self.saver, "_filter_duplicate_data") as mock_filter:
             mock_filter.return_value = symbols_data
             with pytest.raises(StockDataSaveError):
-                self.saver.save_batch_stock_data(symbols_data, interval="1d")
+                self.saver.save_batch_stock_data(
+                    symbols_data, interval=normalize_interval("1d")
+                )
 
     @patch("app.services.stock_data.saver.is_intraday_interval")
     def test_filter_duplicate_data_with_existing_records_returns_filtered_data(
@@ -256,7 +259,7 @@ class TestStockDataSaver:
 
         # Act (実行)
         filtered = self.saver._filter_duplicate_data(
-            mock_session, mock_model, symbols_data, "1d"
+            mock_session, mock_model, symbols_data, normalize_interval("1d")
         )
 
         # Assert (検証)
@@ -290,7 +293,7 @@ class TestStockDataSaver:
         )
 
         # Act (実行)
-        result = self.saver.get_latest_date("7203.T", "1d")
+        result = self.saver.get_latest_date("7203.T", normalize_interval("1d"))
 
         # Assert (検証)
         assert result == latest_date
@@ -315,7 +318,7 @@ class TestStockDataSaver:
         )
 
         # Act (実行)
-        result = self.saver.count_records("7203.T", "1d")
+        result = self.saver.count_records("7203.T", normalize_interval("1d"))
 
         # Assert (検証)
         assert result == record_count
@@ -346,7 +349,11 @@ class TestStockDataSaver:
         }
 
         # Act (実行)
-        results = self.saver.save_multiple_timeframes(symbol, data_dict)
+        # normalize keys to Interval for strict API
+        norm_data_dict = {
+            normalize_interval(k): v for k, v in data_dict.items()
+        }
+        results = self.saver.save_multiple_timeframes(symbol, norm_data_dict)
 
         # Assert (検証)
         assert "1d" in results

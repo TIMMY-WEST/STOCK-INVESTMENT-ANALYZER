@@ -65,7 +65,18 @@ TIMEFRAME_RECOMMENDED_PERIOD: Dict[str, str] = {
 }
 
 
-def get_model_for_interval(interval: str | Interval) -> Type[StockDataBase]:
+def normalize_interval(value: str | Interval) -> Interval:
+    """Normalize input to an Interval literal.
+
+    Accepts either a raw string or an Interval literal and returns a validated
+    Interval. Raises ValueError when the provided value is not supported.
+    """
+    if value in TIMEFRAME_MODEL_MAP:
+        return cast(Interval, value)
+    raise ValueError(f"サポートされていない時間軸: {value}")
+
+
+def get_model_for_interval(interval: Interval) -> Type[StockDataBase]:
     """Yfinance intervalに対応するデータベースモデルを取得.
 
     Args:
@@ -82,11 +93,10 @@ def get_model_for_interval(interval: str | Interval) -> Type[StockDataBase]:
             f"サポートされていない時間軸: {interval}. "
             f"サポート時間軸: {list(TIMEFRAME_MODEL_MAP.keys())}"
         )
-    # mypy: cast to Interval because dict keys are Literal types
-    return TIMEFRAME_MODEL_MAP[cast(Interval, interval)]
+    return TIMEFRAME_MODEL_MAP[interval]
 
 
-def get_display_name(interval: str | Interval) -> str:
+def get_display_name(interval: Interval) -> str:
     """時間軸の表示名を取得.
 
     Args:
@@ -98,7 +108,7 @@ def get_display_name(interval: str | Interval) -> str:
     return TIMEFRAME_DISPLAY_NAME.get(interval, interval)
 
 
-def get_recommended_period(interval: str | Interval) -> str:
+def get_recommended_period(interval: Interval) -> str:
     """時間軸の推奨取得期間を取得.
 
     Args:
@@ -110,7 +120,7 @@ def get_recommended_period(interval: str | Interval) -> str:
     return TIMEFRAME_RECOMMENDED_PERIOD.get(interval, "1y")
 
 
-def is_intraday_interval(interval: str | Interval) -> bool:
+def is_intraday_interval(interval: Interval) -> bool:
     """分足・時間足（日内）の時間軸かどうかを判定.
 
     Args:
@@ -132,7 +142,7 @@ def get_all_intervals() -> list[Interval]:
     return list(TIMEFRAME_MODEL_MAP.keys())
 
 
-def validate_interval(interval: str | Interval) -> bool:
+def validate_interval(interval: Interval) -> bool:
     """時間軸が有効かどうかを検証.
 
     Args:
@@ -145,7 +155,7 @@ def validate_interval(interval: str | Interval) -> bool:
     return interval in TIMEFRAME_MODEL_MAP
 
 
-def get_table_name(interval: str | Interval) -> str:
+def get_table_name(interval: Interval) -> str:
     """時間軸に対応するテーブル名を取得.
 
     Args:
@@ -163,5 +173,4 @@ def get_table_name(interval: str | Interval) -> str:
             f"サポート時間軸: {list(TIMEFRAME_MODEL_MAP.keys())}"
         )
     # SQLAlchemyのdeclarative_baseで動的に生成される属性
-    # mypy: cast to Interval because dict keys are Literal types
-    return TIMEFRAME_MODEL_MAP[cast(Interval, interval)].__tablename__  # type: ignore[attr-defined]
+    return TIMEFRAME_MODEL_MAP[interval].__tablename__  # type: ignore[attr-defined]
