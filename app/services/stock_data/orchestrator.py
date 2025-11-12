@@ -11,6 +11,7 @@ from app.services.stock_data.fetcher import (
     StockDataFetchError,
 )
 from app.services.stock_data.saver import StockDataSaveError, StockDataSaver
+from app.types import Interval
 from app.utils.timeframe_utils import get_all_intervals, get_display_name
 
 
@@ -37,7 +38,7 @@ class StockDataOrchestrator:
     def _build_success_result(
         self,
         symbol: str,
-        interval: str,
+        interval: Interval,
         data_list: List[Dict],
         save_result: Dict[str, Any],
         integrity_check: Dict[str, Any],
@@ -65,7 +66,7 @@ class StockDataOrchestrator:
         }
 
     def _build_error_result(
-        self, symbol: str, interval: str, error: Exception
+        self, symbol: str, interval: Interval, error: Exception
     ) -> Dict[str, Any]:
         """エラー時の結果オブジェクトを構築.
 
@@ -86,7 +87,7 @@ class StockDataOrchestrator:
         }
 
     def _process_single_timeframe(
-        self, symbol: str, interval: str, df: Any
+        self, symbol: str, interval: Interval, df: Any
     ) -> Dict[str, Any]:
         """単一時間軸のデータを処理（変換・保存・チェック）.
 
@@ -125,7 +126,7 @@ class StockDataOrchestrator:
     def fetch_and_save(
         self,
         symbol: str,
-        interval: str = "1d",
+        interval: Interval = "1d",
         period: Optional[str] = None,
         force_update: bool = False,
     ) -> Dict[str, Any]:
@@ -172,9 +173,9 @@ class StockDataOrchestrator:
     def fetch_and_save_multiple_timeframes(
         self,
         symbol: str,
-        intervals: Optional[List[str]] = None,
+        intervals: Optional[List[Interval]] = None,
         period: Optional[str] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> Dict[Interval, Dict[str, Any]]:
         """複数時間軸のデータを取得・保存.
 
         Args:
@@ -209,8 +210,8 @@ class StockDataOrchestrator:
         return results
 
     def _fetch_and_process_batch(
-        self, symbol: str, intervals: List[str], period: Optional[str]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, symbol: str, intervals: List[Interval], period: Optional[str]
+    ) -> Dict[Interval, Dict[str, Any]]:
         """バッチ取得と各時間軸の処理を実行.
 
         Args:
@@ -238,8 +239,8 @@ class StockDataOrchestrator:
             }
 
     def _process_batch_results(
-        self, symbol: str, batch_results: Dict[str, Any]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, symbol: str, batch_results: Dict[Interval, Any]
+    ) -> Dict[Interval, Dict[str, Any]]:
         """バッチ取得結果の各時間軸データを処理.
 
         Args:
@@ -249,7 +250,7 @@ class StockDataOrchestrator:
         Returns:
             {interval: 実行結果} の辞書。
         """
-        results = {}
+        results: Dict[Interval, Dict[str, Any]] = {}
         for interval, df in batch_results.items():
             try:
                 results[interval] = self._process_single_timeframe(
@@ -263,7 +264,7 @@ class StockDataOrchestrator:
         return results
 
     def check_data_integrity(
-        self, symbol: str, interval: str
+        self, symbol: str, interval: Interval
     ) -> Dict[str, Any]:
         """データ整合性をチェック.
 
@@ -316,8 +317,8 @@ class StockDataOrchestrator:
             return {"valid": False, "error": str(e)}
 
     def get_status(
-        self, symbol: str, intervals: Optional[List[str]] = None
-    ) -> Dict[str, Dict[str, Any]]:
+        self, symbol: str, intervals: Optional[List[Interval]] = None
+    ) -> Dict[Interval, Dict[str, Any]]:
         """各時間軸のデータ状態を取得.
 
         Args:
@@ -330,7 +331,7 @@ class StockDataOrchestrator:
         if intervals is None:
             intervals = get_all_intervals()
 
-        status = {}
+        status: Dict[Interval, Dict[str, Any]] = {}
 
         for interval in intervals:
             try:
@@ -357,7 +358,7 @@ class StockDataOrchestrator:
         return status
 
     def update_all_timeframes(
-        self, symbol: str, intervals: Optional[List[str]] = None
+        self, symbol: str, intervals: Optional[List[Interval]] = None
     ) -> Dict[str, Any]:
         """全時間軸のデータを更新（差分更新）.
 

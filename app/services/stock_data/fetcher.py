@@ -12,6 +12,7 @@ import yfinance as yf
 
 from app.exceptions import StockDataFetchError as _StockDataFetchError
 from app.services.stock_data.validator import StockDataValidator
+from app.types import Interval
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class StockDataFetcher:
     def fetch_stock_data(
         self,
         symbol: str,
-        interval: str = "1d",
+        interval: Interval = "1d",
         period: Optional[str] = None,
     ) -> pd.DataFrame:
         """株価データを取得.
@@ -64,9 +65,7 @@ class StockDataFetcher:
         except Exception as e:
             raise StockDataFetchError(str(e)) from e
 
-        self.logger.info(
-            f"株価データ取得開始: {formatted_symbol} ({interval})"
-        )
+        self.logger.info(f"株価データ取得開始: {formatted_symbol} ({interval})")
 
         try:
             # データ取得
@@ -75,9 +74,7 @@ class StockDataFetcher:
             # データの検証（バリデーターを使用）
             self.validator.validate_dataframe_structure(df, formatted_symbol)
 
-            self.logger.info(
-                f"株価データ取得完了: {formatted_symbol} - {len(df)}件"
-            )
+            self.logger.info(f"株価データ取得完了: {formatted_symbol} - {len(df)}件")
 
             return df
 
@@ -91,7 +88,7 @@ class StockDataFetcher:
     def _download_from_yahoo(
         self,
         symbol: str,
-        interval: str,
+        interval: Interval,
         period: Optional[str] = None,
     ) -> pd.DataFrame:
         """Yahoo Financeからデータをダウンロード.

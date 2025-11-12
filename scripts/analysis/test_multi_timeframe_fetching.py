@@ -13,10 +13,12 @@ sys.path.insert(
 )
 
 import logging  # noqa: E402
+from typing import List, Optional  # noqa: E402
 
 from app.services.stock_data.orchestrator import (  # noqa: E402
     StockDataOrchestrator,
 )
+from app.types import Interval  # noqa: E402
 from app.utils.timeframe_utils import (  # noqa: E402
     get_all_intervals,
     get_display_name,
@@ -32,7 +34,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def test_single_timeframe(symbol: str, interval: str):
+def test_single_timeframe(symbol: str, interval: Interval):
     """単一時間軸のテスト."""
     logger.info(f"\n{'=' * 80}")
     logger.info(f"単一時間軸テスト: {symbol} ({get_display_name(interval)})")
@@ -64,7 +66,9 @@ def test_single_timeframe(symbol: str, interval: str):
         return {"success": False, "error": str(e)}
 
 
-def test_multiple_timeframes(symbol: str, intervals: list[str] = None):
+def test_multiple_timeframes(
+    symbol: str, intervals: Optional[List[Interval]] = None
+):
     """複数時間軸のテスト."""
     logger.info(f"\n{'=' * 80}")
     logger.info(f"複数時間軸テスト: {symbol}")

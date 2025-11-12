@@ -13,13 +13,14 @@ from app.models import (
     Stocks15m,
     Stocks30m,
 )
+from app.types import Interval
 
 
 # 時間軸の型定義
 TimeframeInterval = Literal["1m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo"]
 
 # yfinance interval と データベースモデルのマッピング
-TIMEFRAME_MODEL_MAP: Dict[str, Type[StockDataBase]] = {
+TIMEFRAME_MODEL_MAP: Dict[Interval, Type[StockDataBase]] = {
     "1m": Stocks1m,
     "5m": Stocks5m,
     "15m": Stocks15m,
@@ -31,7 +32,7 @@ TIMEFRAME_MODEL_MAP: Dict[str, Type[StockDataBase]] = {
 }
 
 # 時間軸の表示名マッピング
-TIMEFRAME_DISPLAY_NAME: Dict[str, str] = {
+TIMEFRAME_DISPLAY_NAME: Dict[Interval, str] = {
     "1m": "1分足",
     "5m": "5分足",
     "15m": "15分足",
@@ -43,7 +44,7 @@ TIMEFRAME_DISPLAY_NAME: Dict[str, str] = {
 }
 
 # 時間軸の優先順位（データ量が多い順）
-TIMEFRAME_PRIORITY: Dict[str, int] = {
+TIMEFRAME_PRIORITY: Dict[Interval, int] = {
     "1m": 1,  # 最優先（データ量が最大）
     "5m": 2,
     "15m": 3,
@@ -55,7 +56,7 @@ TIMEFRAME_PRIORITY: Dict[str, int] = {
 }
 
 # 時間軸の推奨取得期間（yfinance period）
-TIMEFRAME_RECOMMENDED_PERIOD: Dict[str, str] = {
+TIMEFRAME_RECOMMENDED_PERIOD: Dict[Interval, str] = {
     "1m": "7d",  # 1分足: 過去7日間
     "5m": "60d",  # 5分足: 過去60日間
     "15m": "60d",  # 15分足: 過去60日間
@@ -67,7 +68,7 @@ TIMEFRAME_RECOMMENDED_PERIOD: Dict[str, str] = {
 }
 
 
-def get_model_for_interval(interval: str) -> Type[StockDataBase]:
+def get_model_for_interval(interval: Interval) -> Type[StockDataBase]:
     """Yfinance intervalに対応するデータベースモデルを取得.
 
     Args:
@@ -87,7 +88,7 @@ def get_model_for_interval(interval: str) -> Type[StockDataBase]:
     return TIMEFRAME_MODEL_MAP[interval]
 
 
-def get_display_name(interval: str) -> str:
+def get_display_name(interval: Interval) -> str:
     """時間軸の表示名を取得.
 
     Args:
@@ -99,7 +100,7 @@ def get_display_name(interval: str) -> str:
     return TIMEFRAME_DISPLAY_NAME.get(interval, interval)
 
 
-def get_recommended_period(interval: str) -> str:
+def get_recommended_period(interval: Interval) -> str:
     """時間軸の推奨取得期間を取得.
 
     Args:
@@ -111,7 +112,7 @@ def get_recommended_period(interval: str) -> str:
     return TIMEFRAME_RECOMMENDED_PERIOD.get(interval, "1y")
 
 
-def is_intraday_interval(interval: str) -> bool:
+def is_intraday_interval(interval: Interval) -> bool:
     """分足・時間足（日内）の時間軸かどうかを判定.
 
     Args:
@@ -124,7 +125,7 @@ def is_intraday_interval(interval: str) -> bool:
     return interval in ["1m", "5m", "15m", "30m", "1h"]
 
 
-def get_all_intervals() -> list[str]:
+def get_all_intervals() -> list[Interval]:
     """サポートされている全ての時間軸を取得.
 
     Returns:
@@ -133,7 +134,7 @@ def get_all_intervals() -> list[str]:
     return list(TIMEFRAME_MODEL_MAP.keys())
 
 
-def validate_interval(interval: str) -> bool:
+def validate_interval(interval: Interval) -> bool:
     """時間軸が有効かどうかを検証.
 
     Args:
@@ -146,7 +147,7 @@ def validate_interval(interval: str) -> bool:
     return interval in TIMEFRAME_MODEL_MAP
 
 
-def get_table_name(interval: str) -> str:
+def get_table_name(interval: Interval) -> str:
     """時間軸に対応するテーブル名を取得.
 
     Args:
