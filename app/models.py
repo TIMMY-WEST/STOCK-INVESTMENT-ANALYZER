@@ -668,7 +668,7 @@ class BatchExecution(Base):
         Index("idx_batch_executions_start_time", "start_time"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
@@ -772,7 +772,7 @@ class BatchExecutionDetail(Base):
         ),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す.
 
         Returns:
