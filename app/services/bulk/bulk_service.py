@@ -18,6 +18,7 @@ from app.utils.structured_logger import (
     get_batch_logger,
     setup_structured_logging,
 )
+from app.utils.timeframe_utils import normalize_interval
 
 
 logger = logging.getLogger(__name__)
@@ -329,9 +330,10 @@ class BulkDataService:
                 if not success:
                     continue
 
-                # データ保存
+                # データ保存 (内部では Interval 型を要求するため正規化する)
+                interval_norm = normalize_interval(interval)
                 save_result = self.saver.save_stock_data(
-                    symbol, interval, data_list
+                    symbol, interval_norm, data_list
                 )
 
                 # 成功ログ
@@ -493,8 +495,9 @@ class BulkDataService:
             }, 0
 
         save_start = time.time()
+        interval_norm = normalize_interval(interval)
         save_result = self.saver.save_batch_stock_data(
-            symbols_data=symbols_data, interval=interval
+            symbols_data=symbols_data, interval=interval_norm
         )
         save_duration = int((time.time() - save_start) * 1000)
         self.logger.debug(

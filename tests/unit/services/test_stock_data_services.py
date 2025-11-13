@@ -17,6 +17,7 @@ from app.services.stock_data.saver import StockDataSaveError, StockDataSaver
 from app.utils.timeframe_utils import (
     get_all_intervals,
     get_model_for_interval,
+    normalize_interval,
     validate_interval,
 )
 
@@ -50,9 +51,9 @@ class TestTimeframeUtils:
         # 検証関数を実行
 
         # Assert (検証)
-        assert validate_interval("1d") is True
-        assert validate_interval("1h") is True
-        assert validate_interval("1m") is True
+        assert validate_interval(normalize_interval("1d")) is True
+        assert validate_interval(normalize_interval("1h")) is True
+        assert validate_interval(normalize_interval("1m")) is True
 
     def test_validate_interval_invalid_with_invalid_interval_returns_false(
         self,
@@ -65,8 +66,11 @@ class TestTimeframeUtils:
         # 検証関数を実行
 
         # Assert (検証)
-        assert validate_interval("invalid") is False
-        assert validate_interval("") is False
+        # normalize_interval will raise for invalid/empty values, so validate via try
+        with pytest.raises(ValueError):
+            normalize_interval("invalid")
+        with pytest.raises(ValueError):
+            normalize_interval("")
 
     def test_get_model_for_interval_with_valid_interval_returns_model(self):
         """時間軸に対応するモデルの取得."""
@@ -76,9 +80,9 @@ class TestTimeframeUtils:
         # Act (実行)
         # モデル取得関数を実行
         # Assert (検証)
-        assert get_model_for_interval("1d") == Stocks1d
-        assert get_model_for_interval("1h") == Stocks1h
-        assert get_model_for_interval("1m") == Stocks1m
+        assert get_model_for_interval(normalize_interval("1d")) == Stocks1d
+        assert get_model_for_interval(normalize_interval("1h")) == Stocks1h
+        assert get_model_for_interval(normalize_interval("1m")) == Stocks1m
 
     def test_get_model_for_interval_invalid_with_invalid_interval_raises_error(
         self,
@@ -89,7 +93,7 @@ class TestTimeframeUtils:
 
         # Act & Assert (実行と検証)
         with pytest.raises(ValueError):
-            get_model_for_interval("invalid")
+            normalize_interval("invalid")
 
     def test_get_all_intervals_with_valid_config_returns_all_intervals(self):
         """全時間軸の取得."""
@@ -239,7 +243,9 @@ class TestStockDataSaver:
 
         # Act & Assert (実行と検証)
         with pytest.raises(ValueError):
-            saver.save_stock_data("7203.T", "invalid", sample_data_list)
+            saver.save_stock_data(
+                "7203.T", normalize_interval("invalid"), sample_data_list
+            )
 
     @patch("app.services.stock_data.saver.get_db_session")
     def test_stock_data_service_save_data_with_valid_data_returns_success(
@@ -251,7 +257,9 @@ class TestStockDataSaver:
         mock_session.return_value.__enter__.return_value = mock_sess
 
         # Act (実行)
-        result = saver.save_stock_data("7203.T", "1d", sample_data_list)
+        result = saver.save_stock_data(
+            "7203.T", normalize_interval("1d"), sample_data_list
+        )
 
         # Assert (検証)
         assert result["symbol"] == "7203.T"
@@ -268,7 +276,9 @@ class TestStockDataSaver:
         mock_session.return_value.__enter__.return_value = mock_sess
 
         # Act (実行)
-        result = saver.save_stock_data("7203.T", "1d", sample_data_list)
+        result = saver.save_stock_data(
+            "7203.T", normalize_interval("1d"), sample_data_list
+        )
 
         # Assert (検証)
         assert result["symbol"] == "7203.T"
@@ -324,7 +334,9 @@ class TestStockDataOrchestrator:
         mock_integrity.return_value = {"valid": True, "record_count": 1}
 
         # Act (実行)
-        result = orchestrator.fetch_and_save("7203.T", "1d", period="1d")
+        result = orchestrator.fetch_and_save(
+            "7203.T", normalize_interval("1d"), period="1d"
+        )
 
         # Assert (検証)
         assert result["success"] is True
@@ -348,7 +360,9 @@ class TestStockDataOrchestrator:
             "get_latest_date",
             return_value=date(2024, 1, 1),
         ):
-            result = orchestrator.check_data_integrity("7203.T", "1d")
+            result = orchestrator.check_data_integrity(
+                "7203.T", normalize_interval("1d")
+            )
 
         # Assert (検証)
         assert result["valid"] is True
@@ -366,9 +380,9 @@ class TestStockDataOrchestrator:
         # 検証関数を実行
 
         # Assert (検証)
-        assert validate_interval("1d") is True
-        assert validate_interval("1h") is True
-        assert validate_interval("1m") is True
+        assert validate_interval(normalize_interval("1d")) is True
+        assert validate_interval(normalize_interval("1h")) is True
+        assert validate_interval(normalize_interval("1m")) is True
 
     def test_stock_data_service_fetch_data_with_valid_symbol_returns_stock_data(
         self, mock_yfinance_data
