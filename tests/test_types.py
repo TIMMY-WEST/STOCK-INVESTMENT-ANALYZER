@@ -3,8 +3,6 @@
 
 from typing import get_args, get_origin
 
-import pytest
-
 # テストでは通常のインポートでモジュールを取得する（静的解析が期待通りに働くようにする）
 from app import types
 

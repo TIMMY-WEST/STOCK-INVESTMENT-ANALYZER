@@ -17,6 +17,7 @@ import logging  # noqa: E402
 from app.services.stock_data.orchestrator import (  # noqa: E402
     StockDataOrchestrator,
 )
+from app.types import Interval  # noqa: E402
 from app.utils.timeframe_utils import (  # noqa: E402
     get_all_intervals,
     get_display_name,
@@ -38,14 +39,18 @@ def test_single_timeframe(symbol: str, interval: str):
     logger.info(f"\n{'=' * 80}")
     # 呼び出し前に正規化して Literal 型 (Interval) を渡す
     interval_norm = normalize_interval(interval)
-    logger.info(f"単一時間軸テスト: {symbol} ({get_display_name(interval_norm)})")
+    logger.info(
+        f"単一時間軸テスト: {symbol} ({get_display_name(interval_norm)})"
+    )
     logger.info(f"{'=' * 80}")
 
     orchestrator = StockDataOrchestrator()
 
     try:
         result = orchestrator.fetch_and_save(
-            symbol=symbol, interval=interval_norm, period=None  # 推奨期間を使用
+            symbol=symbol,
+            interval=interval_norm,
+            period=None,  # 推奨期間を使用
         )
 
         if result["success"]:
@@ -68,7 +73,9 @@ def test_single_timeframe(symbol: str, interval: str):
         return {"success": False, "error": str(e)}
 
 
-def test_multiple_timeframes(symbol: str, intervals: list | None = None):
+def test_multiple_timeframes(
+    symbol: str, intervals: list[Interval] | None = None
+):
     """複数時間軸のテスト."""
     logger.info(f"\n{'=' * 80}")
     logger.info(f"複数時間軸テスト: {symbol}")
@@ -100,7 +107,9 @@ def test_multiple_timeframes(symbol: str, intervals: list | None = None):
                 success_count += 1
                 saved = result["save_result"]["saved"]
                 total_saved += saved
-                logger.info(f"✓ {get_display_name(interval)}: " f"{saved}件保存")
+                logger.info(
+                    f"✓ {get_display_name(interval)}: " f"{saved}件保存"
+                )
             else:
                 logger.error(
                     f"✗ {get_display_name(interval)}: "
