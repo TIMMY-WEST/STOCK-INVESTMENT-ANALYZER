@@ -33,7 +33,13 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import func
 
-from app.models.types import CRUDResult, ModelConfig, TablePrefix
+from app.models.types import (
+    BatchStatus,
+    CRUDResult,
+    ModelConfig,
+    ProcessStatus,
+    TablePrefix,
+)
 
 
 load_dotenv()
@@ -1294,7 +1300,9 @@ __all__ = [
     # CRUD classes
     "StockDailyCRUD",
     # Model-layer types
+    "BatchStatus",
     "CRUDResult",
     "ModelConfig",
+    "ProcessStatus",
     "TablePrefix",
 ]
