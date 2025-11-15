@@ -15,6 +15,7 @@ from app.models import (
     Base,
     BatchExecution,
     BatchExecutionDetail,
+    CRUDOperationError,
     DatabaseError,
     StockDaily,
     StockDailyCRUD,
@@ -256,7 +257,7 @@ class TestStockDailyCRUD:
         }
 
         # Act & Assert (実行と検証)
-        with pytest.raises(StockDataError):
+        with pytest.raises(CRUDOperationError):
             StockDailyCRUD.create(mock_session, **data)
 
     def test_get_by_id_found_with_existing_id_returns_instance(self):
