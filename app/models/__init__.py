@@ -41,6 +41,13 @@ from app.models.exceptions import (
 # Master data models
 from app.models.master import StockMaster, StockMasterUpdate
 
+# Mixin classes
+from app.models.mixins import (
+    DictSerializableMixin,
+    SoftDeleteMixin,
+    TimestampMixin,
+)
+
 # Stock data models
 from app.models.stock_data import (
     StockDaily,
@@ -68,6 +75,10 @@ __all__ = [
     # Base classes
     "Base",
     "StockDataBase",
+    # Mixin classes
+    "TimestampMixin",
+    "SoftDeleteMixin",
+    "DictSerializableMixin",
     # Exception classes
     "BaseModelException",
     "DatabaseError",
