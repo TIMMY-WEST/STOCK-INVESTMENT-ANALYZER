@@ -22,10 +22,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models import (  # noqa: E402
     Base,
+    CRUDOperationError,
     DatabaseError,
     StockDaily,
     StockDailyCRUD,
-    StockDataError,
     Stocks1d,
     Stocks1h,
     Stocks1m,
@@ -191,7 +191,7 @@ def session(engine):  # noqa: C901
             import pytest as _pytest
 
             with _pytest.raises(
-                (DatabaseError, StockDataError, SQLAlchemyError)
+                (DatabaseError, CRUDOperationError, SQLAlchemyError)
             ):
                 StockDailyCRUD.create(session, **test_data)
 

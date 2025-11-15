@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models.errors import DatabaseError, StockDataError
+from app.models.exceptions import CRUDOperationError, DatabaseError
 from app.models.stock_data import StockDaily
 
 
@@ -28,7 +28,7 @@ class StockDailyCRUD:
             StockDaily: 作成された株価データ
 
         Raises:
-            StockDataError: データが既に存在する場合
+            CRUDOperationError: データが既に存在する場合
             DatabaseError: データベースエラーが発生した場合
         """
         try:
@@ -38,9 +38,15 @@ class StockDailyCRUD:
             return stock_data
         except IntegrityError as e:
             if "uk_stocks_daily_symbol_date" in str(e):
-                raise StockDataError(
+                raise CRUDOperationError(
                     f"銘柄 {kwargs.get('symbol')} の日付 "
-                    f"{kwargs.get('date')} のデータは既に存在します"
+                    f"{kwargs.get('date')} のデータは既に存在します",
+                    operation="create",
+                    model_name="StockDaily",
+                    context={
+                        "symbol": kwargs.get("symbol"),
+                        "date": str(kwargs.get("date")),
+                    },
                 )
             raise DatabaseError(f"データベース制約違反: {str(e)}")
         except SQLAlchemyError as e:
@@ -235,7 +241,7 @@ class StockDailyCRUD:
             Optional[StockDaily]: 更新された株価データ(見つからない場合はNone)
 
         Raises:
-            StockDataError: 銘柄コードと日付の組み合わせが重複した場合
+            CRUDOperationError: 銘柄コードと日付の組み合わせが重複した場合
             DatabaseError: データベースエラーが発生した場合
         """
         try:
@@ -256,7 +262,12 @@ class StockDailyCRUD:
             return stock_data
         except IntegrityError as e:
             if "uk_stocks_daily_symbol_date" in str(e):
-                raise StockDataError("銘柄コードと日付の組み合わせが既に存在します")
+                raise CRUDOperationError(
+                    "銘柄コードと日付の組み合わせが既に存在します",
+                    operation="update",
+                    model_name="StockDaily",
+                    context={"stock_id": stock_id},
+                )
             raise DatabaseError(f"データベース制約違反: {str(e)}")
         except SQLAlchemyError as e:
             raise DatabaseError(f"データベースエラー: {str(e)}")
@@ -304,7 +315,7 @@ class StockDailyCRUD:
             List[StockDaily]: 作成された株価データのリスト
 
         Raises:
-            StockDataError: 重複データが検出された場合
+            CRUDOperationError: 重複データが検出された場合
             DatabaseError: データベースエラーが発生した場合
         """
         try:
@@ -318,7 +329,12 @@ class StockDailyCRUD:
             return stock_objects
         except IntegrityError as e:
             if "uk_stocks_daily_symbol_date" in str(e):
-                raise StockDataError("一括作成中に重複データが検出されました")
+                raise CRUDOperationError(
+                    "一括作成中に重複データが検出されました",
+                    operation="bulk_create",
+                    model_name="StockDaily",
+                    context={"data_count": len(stock_data_list)},
+                )
             raise DatabaseError(f"データベース制約違反: {str(e)}")
         except SQLAlchemyError as e:
             raise DatabaseError(f"データベースエラー: {str(e)}")

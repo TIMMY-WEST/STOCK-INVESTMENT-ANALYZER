@@ -15,11 +15,11 @@ from app.models import (
     Base,
     BatchExecution,
     BatchExecutionDetail,
+    CRUDOperationError,
     DatabaseError,
     StockDaily,
     StockDailyCRUD,
     StockDataBase,
-    StockDataError,
     StockMaster,
     StockMasterUpdate,
     Stocks1d,
@@ -158,64 +158,6 @@ class TestStockDataBase:
         assert result == expected
 
 
-class TestDatabaseError:
-    """DatabaseErrorクラスのテスト."""
-
-    def test_database_error_creation_with_message_returns_valid_instance(self):
-        """DatabaseErrorの作成テスト."""
-        # Arrange (準備)
-        message = "データベースエラー"
-
-        # Act (実行)
-        error = DatabaseError(message)
-
-        # Assert (検証)
-        assert str(error) == message
-
-    def test_database_error_inheritance_with_exception_returns_valid_hierarchy(
-        self,
-    ):
-        """DatabaseErrorの継承関係テスト."""
-        # Arrange (準備)
-        message = "テスト"
-
-        # Act (実行)
-        error = DatabaseError(message)
-
-        # Assert (検証)
-        assert isinstance(error, Exception)
-
-
-class TestStockDataError:
-    """StockDataErrorクラスのテスト."""
-
-    def test_stock_data_error_creation_with_message_returns_valid_instance(
-        self,
-    ):
-        """StockDataErrorの作成テスト."""
-        # Arrange (準備)
-        message = "株価データエラー"
-
-        # Act (実行)
-        error = StockDataError(message)
-
-        # Assert (検証)
-        assert str(error) == message
-
-    def test_stock_data_error_inheritance_with_exception_returns_valid_hierarchy(
-        self,
-    ):
-        """StockDataErrorの継承関係テスト."""
-        # Arrange (準備)
-        message = "テスト"
-
-        # Act (実行)
-        error = StockDataError(message)
-
-        # Assert (検証)
-        assert isinstance(error, Exception)
-
-
 class TestStockDailyCRUD:
     """StockDailyCRUDクラスのテスト."""
 
@@ -256,7 +198,7 @@ class TestStockDailyCRUD:
         }
 
         # Act & Assert (実行と検証)
-        with pytest.raises(StockDataError):
+        with pytest.raises(CRUDOperationError):
             StockDailyCRUD.create(mock_session, **data)
 
     def test_get_by_id_found_with_existing_id_returns_instance(self):
