@@ -82,7 +82,7 @@ class TestSessionManagement:
             # セッションが有効であることを確認
             assert db_session.is_active
 
-    @patch("app.models.SessionLocal")
+    @patch("app.models.database.SessionLocal")
     def test_session_commit_on_success_with_normal_operation_returns_committed(
         self, mock_session_local
     ):
@@ -99,7 +99,7 @@ class TestSessionManagement:
         # closeが呼ばれたことを確認
         mock_session.close.assert_called_once()
 
-    @patch("app.models.SessionLocal")
+    @patch("app.models.database.SessionLocal")
     def test_session_rollback_on_exception_with_error_returns_rolled_back(
         self, mock_session_local
     ):
@@ -119,7 +119,7 @@ class TestSessionManagement:
         # commitは呼ばれていないことを確認
         mock_session.commit.assert_not_called()
 
-    @patch("app.models.SessionLocal")
+    @patch("app.models.database.SessionLocal")
     def test_session_always_closed(self, mock_session_local):
         """例外の有無に関わらずセッションが必ずクローズされることを確認."""
         # Arrange (準備)
