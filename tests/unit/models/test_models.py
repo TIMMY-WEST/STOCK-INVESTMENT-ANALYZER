@@ -419,7 +419,7 @@ class TestStockDailyCRUD:
 class TestGetDbSession:
     """get_db_session関数のテスト."""
 
-    @patch("app.models.SessionLocal")
+    @patch("app.models.database.SessionLocal")
     def test_get_db_session_with_context_manager_returns_session(
         self, mock_session_local
     ):
@@ -436,7 +436,7 @@ class TestGetDbSession:
         assert result == mock_session
         mock_session.close.assert_called_once()
 
-    @patch("app.models.SessionLocal")
+    @patch("app.models.database.SessionLocal")
     def test_get_db_session_exception_handling_with_error_calls_rollback(
         self, mock_session_local
     ):
