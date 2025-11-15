@@ -36,9 +36,9 @@ from app.middleware.versioning import (
 )
 from app.models import (
     Base,
+    CRUDOperationError,
     DatabaseError,
     StockDailyCRUD,
-    StockDataError,
     engine,
     get_db_session,
 )
@@ -343,7 +343,7 @@ def create_stock():
                 201,
             )
 
-    except StockDataError as e:
+    except CRUDOperationError as e:
         return (
             jsonify(
                 {
@@ -678,7 +678,7 @@ def update_stock(stock_id):
                 }
             )
 
-    except StockDataError as e:
+    except CRUDOperationError as e:
         return (
             jsonify(
                 {
@@ -808,7 +808,7 @@ def create_test_data():
                 201,
             )
 
-    except StockDataError as e:
+    except CRUDOperationError as e:
         return (
             jsonify(
                 {

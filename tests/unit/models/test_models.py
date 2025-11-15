@@ -20,7 +20,6 @@ from app.models import (
     StockDaily,
     StockDailyCRUD,
     StockDataBase,
-    StockDataError,
     StockMaster,
     StockMasterUpdate,
     Stocks1d,
@@ -157,64 +156,6 @@ class TestStockDataBase:
 
         # Assert (検証)
         assert result == expected
-
-
-class TestDatabaseError:
-    """DatabaseErrorクラスのテスト."""
-
-    def test_database_error_creation_with_message_returns_valid_instance(self):
-        """DatabaseErrorの作成テスト."""
-        # Arrange (準備)
-        message = "データベースエラー"
-
-        # Act (実行)
-        error = DatabaseError(message)
-
-        # Assert (検証)
-        assert str(error) == message
-
-    def test_database_error_inheritance_with_exception_returns_valid_hierarchy(
-        self,
-    ):
-        """DatabaseErrorの継承関係テスト."""
-        # Arrange (準備)
-        message = "テスト"
-
-        # Act (実行)
-        error = DatabaseError(message)
-
-        # Assert (検証)
-        assert isinstance(error, Exception)
-
-
-class TestStockDataError:
-    """StockDataErrorクラスのテスト."""
-
-    def test_stock_data_error_creation_with_message_returns_valid_instance(
-        self,
-    ):
-        """StockDataErrorの作成テスト."""
-        # Arrange (準備)
-        message = "株価データエラー"
-
-        # Act (実行)
-        error = StockDataError(message)
-
-        # Assert (検証)
-        assert str(error) == message
-
-    def test_stock_data_error_inheritance_with_exception_returns_valid_hierarchy(
-        self,
-    ):
-        """StockDataErrorの継承関係テスト."""
-        # Arrange (準備)
-        message = "テスト"
-
-        # Act (実行)
-        error = StockDataError(message)
-
-        # Assert (検証)
-        assert isinstance(error, Exception)
 
 
 class TestStockDailyCRUD:

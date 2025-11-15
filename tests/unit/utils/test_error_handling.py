@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yfinance as yf
 
-from app.models import DatabaseError, StockDataError
+from app.models import CRUDOperationError, DatabaseError
 
 
 pytestmark = pytest.mark.integration
