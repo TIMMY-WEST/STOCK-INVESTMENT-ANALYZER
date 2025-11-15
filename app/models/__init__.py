@@ -6,7 +6,8 @@
 モジュール構成:
     - base: SQLAlchemyのベースクラスと共通機能
     - database: データベース接続とセッション管理
-    - errors: エラークラス定義
+    - errors: レガシーエラークラス定義（後方互換性のため保持）
+    - exceptions: カスタム例外クラス定義（推奨）
     - types: 型定義
     - stock_data: 株価データモデル
     - master: 銘柄マスタモデル
@@ -29,8 +30,13 @@ from app.models.database import (
     get_db_session,
 )
 
-# Error classes
+# Error classes (legacy - kept for backward compatibility)
 from app.models.errors import DatabaseError, StockDataError
+
+# Exception classes (recommended)
+from app.models.exceptions import BaseModelException, CRUDOperationError
+from app.models.exceptions import DatabaseError as DatabaseErrorNew
+from app.models.exceptions import ModelNotFoundError, ValidationError
 
 # Master data models
 from app.models.master import StockMaster, StockMasterUpdate
@@ -59,11 +65,17 @@ from app.models.types import (
 
 
 __all__ = [
-    # Base classes and exceptions
+    # Base classes and legacy exceptions
     "Base",
-    "DatabaseError",
-    "StockDataError",
+    "DatabaseError",  # Legacy
+    "StockDataError",  # Legacy
     "StockDataBase",
+    # New exception classes (recommended)
+    "BaseModelException",
+    "DatabaseErrorNew",
+    "CRUDOperationError",
+    "ModelNotFoundError",
+    "ValidationError",
     # Stock data models
     "Stocks1m",
     "Stocks5m",
