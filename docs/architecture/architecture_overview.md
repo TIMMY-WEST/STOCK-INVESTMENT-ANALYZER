@@ -62,7 +62,7 @@ frontend_spec.mdに定義された6つの主要機能を実現するためのシ
 
 | 機能                           | できること                                                                                                                    | エンドポイント/技術                            | 実装レイヤー                            |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------- |
-| **JPX全銘柄取得**              | 4,000銘柄以上を自動取得<br>バッチ実行履歴の記録                                                                               | 既存: `POST /api/bulk/jpx-sequential/start`    | API層<br>サービス層                     |
+| **JPX全銘柄取得**              | 4,000銘柄以上を自動取得<br>バッチ実行履歴の記録                                                                               | 既存: `POST /api/batch/jpx-sequential/start`    | API層<br>サービス層                     |
 | **マルチタイムフレーム管理**   | 8種類の時間軸データを自動振り分け<br>(1分足、5分足、15分足、30分足、1時間足、1日足、1週足、1月足)<br>重複チェックとUPSERT操作 | 既存: サービス層(StockDataSaver)               | サービス層<br>データアクセス層          |
 | **ファンダメンタルデータ取得** | EPS、BPS、売上、営業利益、純利益、ROE、自己資本比率等の財務指標取得                                                           | `POST /api/fetch-fundamental`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層 |
 
@@ -72,7 +72,7 @@ frontend_spec.mdに定義された6つの主要機能を実現するためのシ
 | ---------------------------- | ---------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------- |
 | **ポートフォリオ概況表示**   | ポートフォリオ評価額、保有銘柄一覧の確認 | `GET /api/portfolio/summary`<br>※今後実装予定       | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層 |
 | **主要インデックス表示**     | 時系列インデックスデータの表示           | `GET /api/indices`<br>※今後実装予定                 | API層<br>サービス層<br>データアクセス層                         |
-| **データ取得ジョブ管理**     | 手動トリガボタン、ジョブステータス表示   | 既存: `POST /api/bulk/start`<br>WebSocket           | API層<br>プレゼンテーション層<br>フロントエンド                 |
+| **データ取得ジョブ管理**     | 手動トリガボタン、ジョブステータス表示   | 既存: `POST /api/batch/start`<br>WebSocket           | API層<br>プレゼンテーション層<br>フロントエンド                 |
 | **ウィジェットカスタマイズ** | ダッシュボードの表示項目カスタマイズ     | `PUT /api/user/dashboard-settings`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層                         |
 
 ### 3. 銘柄検索と詳細表示
@@ -136,7 +136,7 @@ graph TB
     end
 
     subgraph "API層"
-        BulkAPI[Bulk Data API<br/>非同期エンドポイント]
+        BatchAPI[一括データ取得API<br/>非同期エンドポイント]
         StockAPI[Stock Master API<br/>非同期エンドポイント]
         MonitorAPI[System Monitoring API<br/>非同期エンドポイント]
         ScreeningAPI[Screening API<br/>※今後実装]
@@ -168,10 +168,10 @@ graph TB
 
     Browser -->|HTTP/WebSocket| FastAPI
     FastAPI --> Swagger
-    FastAPI --> BulkAPI & StockAPI & MonitorAPI
+    FastAPI --> BatchAPI & StockAPI & MonitorAPI
     FastAPI -.-> ScreeningAPI & BacktestAPI & AuthAPI
 
-    BulkAPI --> StockService
+    BatchAPI --> StockService
     StockAPI --> JPXService
     MonitorAPI --> StockService
     ScreeningAPI -.-> ScreeningService

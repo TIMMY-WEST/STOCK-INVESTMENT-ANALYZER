@@ -70,7 +70,7 @@ app/api/
 │   ├── auth.py              # require_api_key（統一認証）
 │   └── rate_limit.py        # rate_limit + RateLimiterクラス
 ├── error_handlers.py        # 統一エラーハンドラ（全Blueprintで共通）
-├── bulk_data.py             # バルクデータ処理API (非同期、薄い層)
+├── batch_data.py            # 一括データ取得API (非同期、薄い層)
 ├── stock_master.py          # 銘柄マスタ管理API (非同期、薄い層)
 ├── system_monitoring.py     # システム監視API (非同期、薄い層)
 ├── screening.py             # スクリーニングAPI (※今後実装)
@@ -87,7 +87,7 @@ app/api/
 
 ```mermaid
 graph TB
-    FastAPI[FastAPI App] --> BulkAPI[Bulk Data API<br/>async endpoints]
+    FastAPI[FastAPI App] --> BatchAPI[一括データ取得API<br/>async endpoints]
     FastAPI --> StockAPI[Stock Master API<br/>async endpoints]
     FastAPI --> MonitorAPI[System Monitoring API<br/>async endpoints]
     FastAPI -.-> ScreeningAPI[Screening API<br/>※今後実装]
@@ -100,11 +100,11 @@ graph TB
         ErrorHandlers[Error Handlers<br/>統一エラー処理]
     end
 
-    BulkAPI --> Decorators
-    BulkAPI --> Validators
-    BulkAPI --> ErrorHandlers
-    BulkAPI -->|await| JobManager[JobManager<br/>ジョブ管理]
-    BulkAPI -->|await| JobExecutor[JobExecutor<br/>ジョブ実行]
+    BatchAPI --> Decorators
+    BatchAPI --> Validators
+    BatchAPI --> ErrorHandlers
+    BatchAPI -->|await| JobManager[JobManager<br/>ジョブ管理]
+    BatchAPI -->|await| JobExecutor[JobExecutor<br/>ジョブ実行]
 
     StockAPI --> Decorators
     StockAPI --> Validators
@@ -133,7 +133,7 @@ graph TB
     JobExecutor -->|await| StockService[StockDataService<br/>async]
     JobExecutor -->|await| NotifyService[NotificationService<br/>WebSocket]
 
-    style BulkAPI fill:#fff4e1
+    style BatchAPI fill:#fff4e1
     style StockAPI fill:#fff4e1
     style MonitorAPI fill:#fff4e1
     style Decorators fill:#e1e5ff
@@ -160,7 +160,7 @@ graph TB
 
 | Router名              | URLプレフィックス   | ファイル             | 主な機能                        | タグ             |
 | --------------------- | ------------------- | -------------------- | ------------------------------- | ---------------- |
-| `bulk_router`         | `/api/bulk`         | bulk_data.py         | バルクデータ取得、JPX全銘柄取得 | `bulk-data`      |
+| `batch_router`        | `/api/batch`        | batch_data.py        | 一括データ取得、JPX全銘柄取得   | `batch-data`     |
 | `stock_master_router` | `/api/stock-master` | stock_master.py      | 銘柄マスタ管理                  | `stock-master`   |
 | `system_router`       | `/api/system`       | system_monitoring.py | システム監視、ヘルスチェック    | `system`         |
 | `screening_router`    | `/api/screening`    | screening.py         | スクリーニング機能 (※今後実装)  | `screening`      |
@@ -171,239 +171,259 @@ graph TB
 
 ---
 
-## 4. クラス図
+## 4. アーキテクチャ図
 
-### API層の主要コンポーネント
+本セクションでは、API層の構造を段階的に理解できるよう、4つの視点から図解します。
+
+### 4.1 レイヤー構成（高レベルビュー）
+
+API層全体の構成と各レイヤーの責務を俯瞰します。
+
+```mermaid
+graph TB
+    subgraph "API層（薄い層）"
+        API[APIRouterエンドポイント<br/>- BatchDataAPI<br/>- StockMasterAPI<br/>- SystemMonitoringAPI]
+    end
+
+    subgraph "共通ユーティリティ（DRY原則）"
+        Utils[共通機能<br/>- Decorators（認証・レート制限）<br/>- Validators（バリデーション）<br/>- ErrorHandlers（エラー処理）<br/>- APIResponse（レスポンス標準化）]
+    end
+
+    subgraph "型定義"
+        Schemas[Pydanticスキーマ<br/>- Request/Responseモデル<br/>- 自動検証<br/>- OpenAPI生成]
+    end
+
+    subgraph "サービス層"
+        Services[ビジネスロジック<br/>- JobManager（ジョブ管理）<br/>- JobExecutor（実行オーケストレーション）<br/>- NotificationService（通知）<br/>- StockDataService（データ処理）]
+    end
+
+    API --> Utils
+    API --> Schemas
+    API --> Services
+    Utils --> Schemas
+
+    style API fill:#fff4e1
+    style Utils fill:#e1e5ff
+    style Schemas fill:#e1ffe1
+    style Services fill:#ffffcc
+```
+
+**設計のポイント**:
+- **API層は薄い**: ルーティング、バリデーション、レスポンス生成のみ（100-200行/ファイル）
+- **共通ユーティリティで重複排除**: 全APIで同じ品質基準を保証
+- **型安全性**: Pydanticによる自動検証とOpenAPI生成
+- **サービス層に委譲**: ビジネスロジック、並列処理、外部API連携
+
+### 4.2 API層エンドポイント構成
+
+各APIRouterのエンドポイントとPydanticスキーマの関係を示します。
 
 ```mermaid
 classDiagram
-    %% API層（薄い層）
-    class BulkDataAPI {
+    %% APIRouter（エンドポイントのみ）
+    class BatchDataAPI {
         <<APIRouter>>
-        +APIRouter router
-        +async start_bulk_fetch(request: BulkFetchRequest) BulkFetchResponse
-        +async get_job_status(job_id: str) JobStatusResponse
-        +async stop_job(job_id: str) JobStopResponse
-        +async start_jpx_sequential(request: JPXSequentialRequest) JPXSequentialResponse
-        +async get_jpx_symbols(limit: int, offset: int) JPXSymbolsResponse
+        +start_batch_fetch()
+        +get_job_status()
+        +stop_job()
+        +start_jpx_sequential()
+        +get_jpx_symbols()
     }
 
     class StockMasterAPI {
         <<APIRouter>>
-        +APIRouter router
-        +async update_stock_master(request: StockMasterUpdateRequest) StockMasterUpdateResponse
-        +async get_stock_master_list(params: StockMasterListParams) PaginatedResponse
-        +async search_stock_master(query: str) SearchResponse
-        +async get_stock_master_status() StockMasterStatusResponse
+        +update_stock_master()
+        +get_stock_master_list()
+        +search_stocks()
+        +get_status()
     }
 
     class SystemMonitoringAPI {
         <<APIRouter>>
-        +APIRouter router
-        +async health_check() HealthCheckResponse
-        +async get_system_metrics() SystemMetricsResponse
+        +health_check()
+        +health_check_detailed()
+        +get_metrics()
     }
 
-    %% 共通ユーティリティ（DRY原則）
+    %% Pydanticスキーマ（主要なもののみ）
+    class BatchFetchRequest {
+        <<Request Schema>>
+        +symbols List~str~
+        +interval str
+        +period str
+    }
+
+    class BatchFetchResponse {
+        <<Response Schema>>
+        +job_id str
+        +status str
+        +batch_db_id Optional~int~
+    }
+
+    class PaginatedResponse {
+        <<Generic Response Schema>>
+        +data List~T~
+        +pagination PaginationMeta
+    }
+
+    class HealthCheckResponse {
+        <<Response Schema>>
+        +overall_status str
+        +services Dict
+    }
+
+    %% 関連（シンプル化）
+    BatchDataAPI ..> BatchFetchRequest : validates
+    BatchDataAPI ..> BatchFetchResponse : returns
+    StockMasterAPI ..> PaginatedResponse : returns
+    SystemMonitoringAPI ..> HealthCheckResponse : returns
+```
+
+**エンドポイント一覧**:
+
+| APIRouter             | パス                                    | メソッド | 説明                   |
+| --------------------- | --------------------------------------- | -------- | ---------------------- |
+| `BatchDataAPI`        | `/api/batch/jobs`                       | POST     | 一括取得ジョブ開始     |
+|                       | `/api/batch/jobs/{job_id}`              | GET      | ジョブステータス取得   |
+|                       | `/api/batch/jobs/{job_id}`              | DELETE   | ジョブ停止             |
+|                       | `/api/batch/jpx-sequential/jobs`        | POST     | JPX順次取得開始        |
+|                       | `/api/batch/jpx-sequential/get-symbols` | GET      | JPX銘柄一覧取得        |
+| `StockMasterAPI`      | `/api/stock-master/`                   | POST     | 銘柄マスタ更新         |
+|                       | `/api/stock-master/`                   | GET      | 銘柄マスタ一覧取得     |
+|                       | `/api/stock-master/stocks`             | GET      | 銘柄検索               |
+|                       | `/api/stock-master/status`             | GET      | 更新ステータス取得     |
+| `SystemMonitoringAPI` | `/api/system/health`                   | GET      | ヘルスチェック（簡易） |
+|                       | `/api/system/health-check`             | GET      | ヘルスチェック（詳細） |
+|                       | `/api/system/metrics`                  | GET      | システムメトリクス取得 |
+
+**エンドポイント設計の特徴**:
+- **RESTful**: HTTPメソッド（GET/POST/DELETE）の適切な使用
+- **型安全**: Pydanticによる自動バリデーションとOpenAPI生成
+- **一貫性**: すべてのレスポンスが標準化された形式（`APIResponse`パターン）
+- **非同期**: `async/await`による効率的なI/O処理
+
+### 4.3 共通ユーティリティ詳細
+
+DRY原則に基づく共通機能の構造と再利用パターンを示します。
+
+```mermaid
+classDiagram
+    %% 共通ユーティリティ
     class Decorators {
-        <<utility>>
-        +require_api_key(func) Callable
+        <<app/api/decorators/>>
+        +verify_api_key(x_api_key) bool
         +rate_limit(max_requests, window_seconds) Callable
     }
 
     class RateLimiter {
-        -Dict _buckets
-        -Dict _windows
-        +is_allowed(max_requests, window_seconds) bool
-        -_client_key() str
+        <<Singleton>>
+        -_buckets: Dict
+        -_windows: Dict
+        +is_allowed(request, max_requests, window_seconds) bool
     }
 
     class Validators {
-        <<utility>>
-        +validate_symbols(symbols, max_count) tuple
-        +validate_pagination(limit_str, offset_str, max_limit) tuple
-        +validate_interval(interval) tuple
-        +validate_period(period) tuple
+        <<app/utils/>>
+        +validate_symbols(symbols, max_count) Tuple
+        +validate_pagination(limit, offset, max_limit) Tuple
+        +validate_interval(interval) Tuple
     }
 
     class ErrorHandlers {
-        <<utility>>
+        <<app/api/>>
         +register_error_handlers(router) None
-        +handle_400(error) HTTPException
-        +handle_401(error) HTTPException
-        +handle_404(error) HTTPException
-        +handle_429(error) HTTPException
-        +handle_500(error) HTTPException
-        +handle_exception(error) HTTPException
     }
 
     class APIResponse {
-        <<utility>>
-        +success(data, message, meta, status_code) tuple
-        +error(error_code, message, details, status_code) tuple
-        +paginated(data, total, limit, offset, message) tuple
-    }
-
-    %% Pydanticスキーマ
-    class BulkFetchRequest {
-        <<Pydantic Schema>>
-        +symbols: List[str]
-        +interval: str
-        +period: str
-    }
-
-    class BulkFetchResponse {
-        <<Pydantic Schema>>
-        +status: str
-        +job_id: str
-        +batch_db_id: Optional[int]
-        +message: str
-    }
-
-    class JobStatusResponse {
-        <<Pydantic Schema>>
-        +job: JobStatus
-    }
-
-    class HealthCheckResponse {
-        <<Pydantic Schema>>
-        +status: str
-        +data: HealthCheckData
-        +meta: MetaData
-    }
-
-    class PaginatedResponse {
-        <<Pydantic Schema>>
-        +status: str
-        +data: List[Any]
-        +pagination: PaginationMeta
-        +meta: MetaData
-    }
-
-    %% サービス層（ジョブ管理の分離）
-    class JobManager {
-        <<service>>
-        -Dict~str,Dict~ _jobs
-        -Lock _lock
-        +create_job(total_items, create_batch) tuple
-        +get_job(job_id) Dict
-        +update_progress(job_id, processed, successful, failed) None
-        +mark_completed(job_id) None
-        +mark_failed(job_id, error_message) None
-        +mark_stopped(job_id) None
-    }
-
-    class JobExecutor {
-        <<service>>
-        -Flask app
-        -BulkDataService bulk_service
-        -JobManager job_manager
-        -NotificationService notification_service
-        +async execute_bulk_job(job_id, symbols, interval, period, batch_db_id) None
-        +async execute_jpx_sequential_job(job_id, symbols, batch_db_id) None
-    }
-
-    class NotificationService {
-        <<service>>
-        -SocketIO socketio
-        +async send_progress(job_id, progress) None
-        +async send_completion(job_id) None
-        +async send_error(job_id, error_message) None
-        +async send_interval_notification(job_id, interval, stats) None
-    }
-
-    class StockDataService {
-        <<service>>
-        +async fetch_and_save(symbol, interval, period) Dict
-        +async fetch_multiple_stocks(symbols, interval, period, progress_callback) Dict
-    }
-
-    class JPXStockService {
-        <<service>>
-        +async get_stock_list(limit, offset, is_active, market_category) tuple
-        +async update_stock_master(update_type) Dict
-    }
-
-    %% 依存性注入
-    class Dependencies {
-        <<dependency injection>>
-        +async get_db() AsyncSession
-        +async verify_api_key(x_api_key) bool
-        +async get_job_manager(db) JobManager
-        +async get_job_executor(db) JobExecutor
-        +async get_bulk_service(db) StockDataService
-        +async get_jpx_service(db) JPXStockService
-    }
-
-    class HTTPException {
-        <<FastAPI Exception>>
-        +status_code: int
-        +detail: str
-    }
-
-    class CustomException {
-        <<Custom Exception>>
-        +ExternalAPIError
-        +ValidationError
-        +JobNotFoundError
+        <<app/utils/>>
+        +success(data, message, meta) dict
+        +error(error_code, message, details) dict
+        +paginated(data, total, limit, offset) dict
     }
 
     %% 関連
-    BulkDataAPI --> Decorators : uses
-    BulkDataAPI --> Validators : uses
-    BulkDataAPI --> ErrorHandlers : uses
-    BulkDataAPI --> APIResponse : uses
-    BulkDataAPI --> BulkFetchRequest : validates
-    BulkDataAPI --> BulkFetchResponse : returns
-    BulkDataAPI --> Dependencies : uses Depends()
-    BulkDataAPI --> JobManager : await calls
-    BulkDataAPI --> JobExecutor : await calls
-    BulkDataAPI --> HTTPException : raises
-    BulkDataAPI --> CustomException : handles
-
-    StockMasterAPI --> Decorators : uses
-    StockMasterAPI --> Validators : uses
-    StockMasterAPI --> ErrorHandlers : uses
-    StockMasterAPI --> APIResponse : uses
-    StockMasterAPI --> Dependencies : uses Depends()
-    StockMasterAPI --> JPXStockService : await calls
-    StockMasterAPI --> PaginatedResponse : returns
-    StockMasterAPI --> HTTPException : raises
-
-    SystemMonitoringAPI --> Decorators : uses
-    SystemMonitoringAPI --> ErrorHandlers : uses
-    SystemMonitoringAPI --> APIResponse : uses
-    SystemMonitoringAPI --> HealthCheckResponse : returns
-    SystemMonitoringAPI --> Dependencies : uses Depends()
-    SystemMonitoringAPI --> HTTPException : raises
-
     Decorators --> RateLimiter : uses
-    Decorators --> APIResponse : uses
+    Decorators --> APIResponse : uses for errors
     ErrorHandlers --> APIResponse : uses
 
-    Dependencies --> JobManager : creates
-    Dependencies --> JobExecutor : creates
-    Dependencies --> StockDataService : creates
-    Dependencies --> JPXStockService : creates
-
-    JobExecutor --> JobManager : uses
-    JobExecutor --> NotificationService : uses
-    JobExecutor --> StockDataService : await calls
+    note for Decorators "全APIで再利用\n認証とレート制限を統一"
+    note for Validators "バリデーションロジックを集約\n一貫したエラーメッセージ"
+    note for ErrorHandlers "エラーハンドリングを統一\n自動ログ記録"
 ```
 
-### コンポーネント責務
+**共通ユーティリティの利点**:
+- **コード重複70%削減**: 同じロジックを各APIで再実装しない
+- **一貫性保証**: 全エンドポイントで統一された品質
+- **保守性向上**: 変更箇所が1箇所に集約
+- **テスタビリティ**: 独立してテスト可能
 
-| コンポーネント          | 責務                                                                                         | レイヤー           | 行数目安  |
-| ----------------------- | -------------------------------------------------------------------------------------------- | ------------------ | --------- |
-| **BulkDataAPI**         | バルクデータ取得非同期エンドポイント提供（ルーティング、バリデーション、レスポンス生成のみ） | API層              | 100-200行 |
-| **StockMasterAPI**      | 銘柄マスタ管理非同期エンドポイント提供（ルーティング、バリデーション、レスポンス生成のみ）   | API層              | 100-150行 |
-| **SystemMonitoringAPI** | システム監視非同期エンドポイント提供（ルーティング、バリデーション、レスポンス生成のみ）     | API層              | 50-100行  |
-| **Decorators**          | 認証・レート制限の共通化（DRY原則）、全APIで統一された品質保証                               | 共通ユーティリティ | 50-100行  |
-| **RateLimiter**         | レート制限ロジックの実装（スレッドセーフ）                                                   | 共通ユーティリティ | 50行      |
-| **Validators**          | バリデーションロジックの共通化（DRY原則）、一貫性保証                                        | 共通ユーティリティ | 100-150行 |
-| **ErrorHandlers**       | エラーハンドリングの統一（全エンドポイントで一貫したエラーレスポンス）                       | 共通ユーティリティ | 100行     |
-| **APIResponse**         | レスポンス形式の標準化（success/error/paginatedパターン）                                    | 共通ユーティリティ | 50行      |
-| **Pydantic Schemas**    | リクエスト/レスポンスの型定義・自動検証・OpenAPI生成                                         | 型定義             | -         |
+### 4.4 サービス層連携パターン
+
+API層がサービス層とどのように協調するかを示します。
+
+```mermaid
+sequenceDiagram
+    participant API as BatchDataAPI<br/>(薄い層)
+    participant Utils as 共通ユーティリティ
+    participant DI as Dependencies<br/>(依存性注入)
+    participant Service as サービス層
+
+    Note over API,Service: リクエスト処理の流れ
+
+    API->>Utils: @verify_api_key
+    Utils-->>API: 認証OK
+
+    API->>Utils: @rate_limit
+    Utils-->>API: OK
+
+    API->>Utils: validate_symbols()
+    Utils-->>API: OK
+
+    API->>DI: Depends(get_job_manager)
+    DI-->>API: JobManager instance
+
+    API->>Service: await job_manager.create_job()
+    Service-->>API: job_id
+
+    API->>DI: Depends(get_job_executor)
+    DI-->>API: JobExecutor instance
+
+    API->>Service: await job_executor.execute_batch_job()<br/>(バックグラウンド)
+
+    API-->>API: Response生成
+
+    Note over API: API層の責務はここまで<br/>ビジネスロジックはサービス層へ
+```
+
+**サービス層との連携の特徴**:
+- **依存性注入（DI）**: `Depends()`パターンでサービス層を注入
+- **責務の分離**: API層はルーティングのみ、ビジネスロジックはサービス層
+- **テスタビリティ**: DIによりモック可能
+- **非同期処理**: `async/await`で効率的なI/O処理
+
+### 4.5 コンポーネント責務まとめ
+
+各レイヤーのコンポーネントとその責務を一覧表にまとめます。
+
+| カテゴリ               | コンポーネント        | 主な責務                        | コード量目安     |
+| ---------------------- | --------------------- | ------------------------------- | ---------------- |
+| **API層**              | `BatchDataAPI`        | 一括データ取得エンドポイント    | 100-150行        |
+|                        | `StockMasterAPI`      | 銘柄マスタ管理エンドポイント    | 100-150行        |
+|                        | `SystemMonitoringAPI` | システム監視エンドポイント      | 50-100行         |
+| **共通ユーティリティ** | `Decorators`          | 認証・レート制限デコレータ      | 50-100行         |
+|                        | `RateLimiter`         | レート制限ロジック（Singleton） | 100-150行        |
+|                        | `Validators`          | 入力検証の統一                  | 100-150行        |
+|                        | `ErrorHandlers`       | エラーハンドリングの統一        | 100-150行        |
+|                        | `APIResponse`         | レスポンス標準化ユーティリティ  | 50-100行         |
+| **型定義**             | Pydanticスキーマ      | Request/Response型定義          | 10-30行/スキーマ |
+| **サービス層**         | `JobManager`          | ジョブライフサイクル管理        | 150-200行        |
+|                        | `JobExecutor`         | ジョブ実行オーケストレーション  | 200-300行        |
+|                        | `NotificationService` | WebSocket通知                   | 100-150行        |
+|                        | `StockDataService`    | 株価データ取得・保存            | 200-300行        |
+|                        | `JPXStockService`     | 銘柄マスタ更新                  | 150-200行        |
+| **依存性注入**         | `Dependencies`        | サービス・DB接続注入            | 100-150行        |
+
+**設計原則のまとめ**:
 | **JobManager**          | ジョブライフサイクル管理（作成、進捗更新、完了/失敗/停止）、スレッドセーフ実装               | サービス層         | 100-150行 |
 | **JobExecutor**         | バックグラウンドジョブ実行、並列処理オーケストレーション、エラーハンドリング                 | サービス層         | 200-300行 |
 | **NotificationService** | WebSocket通知管理（進捗、完了、エラー）、リアルタイム更新                                    | サービス層         | 50-100行  |
@@ -422,7 +442,7 @@ classDiagram
 
 | コンポーネント          | 責務                                                 |
 | ----------------------- | ---------------------------------------------------- |
-| **BulkDataAPI**         | バルクデータ取得非同期エンドポイント提供、ジョブ管理 |
+| **BatchDataAPI**        | 一括データ取得非同期エンドポイント提供、ジョブ管理   |
 | **StockMasterAPI**      | 銘柄マスタ管理非同期エンドポイント提供               |
 | **SystemMonitoringAPI** | システム監視非同期エンドポイント提供                 |
 | **Pydantic Schemas**    | リクエスト/レスポンスの型定義・自動検証・OpenAPI生成 |
@@ -434,7 +454,7 @@ classDiagram
 
 ## 5. シーケンス図
 
-### 5.1 バルクデータ取得フロー (リファクタリング後)
+### 5.1 一括データ取得フロー (リファクタリング後)
 
 **設計のポイント**:
 - API層は薄く、ルーティングとバリデーションのみ
@@ -446,60 +466,60 @@ classDiagram
 sequenceDiagram
     participant Client as クライアント
     participant FastAPI as FastAPI App
-    participant BulkAPI as Bulk Data API<br/>(薄い層)
+    participant BatchAPI as 一括データ取得API<br/>(薄い層)
     participant Auth as @require_api_key<br/>(共通デコレータ)
     participant RateLimit as @rate_limit<br/>(共通デコレータ)
     participant Validators as Validators<br/>(共通バリデーション)
     participant JobMgr as JobManager<br/>(ジョブ管理)
     participant JobExec as JobExecutor<br/>(ジョブ実行)
-    participant BulkSvc as StockDataService<br/>(ビジネスロジック)
+    participant BatchSvc as StockDataService<br/>(ビジネスロジック)
     participant NotifySvc as NotificationService<br/>(WebSocket通知)
-    participant BatchSvc as BatchService<br/>(DB管理)
+    participant BatchDBSvc as BatchService<br/>(DB管理)
     participant WebSocket as WebSocket<br/>(Starlette)
 
-    Client->>FastAPI: POST /api/bulk/jobs<br/>{symbols, interval, period}
-    FastAPI->>BulkAPI: route to endpoint
+    Client->>FastAPI: POST /api/batch/jobs<br/>{symbols, interval, period}
+    FastAPI->>BatchAPI: route to endpoint
 
-    Note over BulkAPI,RateLimit: 共通デコレータによる前処理
-    BulkAPI->>Auth: デコレータ実行
+    Note over BatchAPI,RateLimit: 共通デコレータによる前処理
+    BatchAPI->>Auth: デコレータ実行
     Auth->>Auth: APIキー検証
-    Auth-->>BulkAPI: 認証OK
+    Auth-->>BatchAPI: 認証OK
 
-    BulkAPI->>RateLimit: デコレータ実行
+    BatchAPI->>RateLimit: デコレータ実行
     RateLimit->>RateLimit: レート制限チェック
-    RateLimit-->>BulkAPI: OK
+    RateLimit-->>BatchAPI: OK
 
-    Note over BulkAPI,Validators: 共通バリデータによる検証
-    BulkAPI->>Validators: validate_symbols(symbols)
+    Note over BatchAPI,Validators: 共通バリデータによる検証
+    BatchAPI->>Validators: validate_symbols(symbols)
     Validators->>Validators: 型チェック、件数制限
-    Validators-->>BulkAPI: (is_valid, error_response)
+    Validators-->>BatchAPI: (is_valid, error_response)
 
     alt バリデーションエラー
-        BulkAPI-->>Client: 400 Bad Request<br/>{error: "VALIDATION_ERROR"}
+        BatchAPI-->>Client: 400 Bad Request<br/>{error: "VALIDATION_ERROR"}
     end
 
-    Note over BulkAPI,JobMgr: ジョブ管理の分離
-    BulkAPI->>JobMgr: create_job(total_items, create_batch=True)
+    Note over BatchAPI,JobMgr: ジョブ管理の分離
+    BatchAPI->>JobMgr: create_job(total_items, create_batch=True)
     JobMgr->>JobMgr: job_id生成<br/>スレッドセーフ実装
 
     alt Phase 2有効
-        JobMgr->>BatchSvc: create_batch(batch_type, total_stocks)
-        BatchSvc-->>JobMgr: batch_db_id
+        JobMgr->>BatchDBSvc: create_batch(batch_type, total_stocks)
+        BatchDBSvc-->>JobMgr: batch_db_id
     end
 
-    JobMgr-->>BulkAPI: (job_id, batch_db_id)
+    JobMgr-->>BatchAPI: (job_id, batch_db_id)
 
-    Note over BulkAPI,JobExec: ビジネスロジックの分離
-    BulkAPI->>JobExec: execute_bulk_job()<br/>(別スレッド起動)
-    BulkAPI-->>Client: 202 Accepted<br/>BulkFetchResponse<br/>{job_id, batch_db_id}
+    Note over BatchAPI,JobExec: ビジネスロジックの分離
+    BatchAPI->>JobExec: execute_batch_job()<br/>(別スレッド起動)
+    BatchAPI-->>Client: 202 Accepted<br/>BatchFetchResponse<br/>{job_id, batch_db_id}
 
     Note over JobExec,WebSocket: バックグラウンド実行（責務の分離）
 
-    JobExec->>BulkSvc: await fetch_multiple_stocks(symbols, interval, period, on_progress)
+    JobExec->>BatchSvc: await fetch_multiple_stocks(symbols, interval, period, on_progress)
 
     loop 各銘柄処理 (asyncio.gather)
-        BulkSvc->>BulkSvc: await fetch_and_save(symbol)<br/>(並列実行)
-        BulkSvc->>JobExec: progress_callback(processed, successful, failed)
+        BatchSvc->>BatchSvc: await fetch_and_save(symbol)<br/>(並列実行)
+        BatchSvc->>JobExec: progress_callback(processed, successful, failed)
 
         JobExec->>JobMgr: update_progress(job_id, ...)
         JobMgr->>JobMgr: スレッドセーフ更新
@@ -509,10 +529,10 @@ sequenceDiagram
         WebSocket-->>Client: リアルタイム進捗
     end
 
-    BulkSvc-->>JobExec: results
+    BatchSvc-->>JobExec: results
 
     alt Phase 2有効
-        JobExec->>BatchSvc: update_batch(batch_id, status, ...)
+        JobExec->>BatchDBSvc: update_batch(batch_id, status, ...)
     end
 
     JobExec->>JobMgr: mark_completed(job_id)
@@ -522,7 +542,7 @@ sequenceDiagram
 ```
 
 **リファクタリングの効果**:
-- **API層の薄層化**: bulk_data.py が650行 → 200行（70%削減）
+- **API層の薄層化**: batch_data.py が650行 → 200行（70%削減）
 - **責務の明確化**: 各コンポーネントが単一責任
 - **テスタビリティ**: 各コンポーネントを独立してテスト可能
 - **保守性**: 変更影響範囲が限定的
@@ -560,7 +580,7 @@ sequenceDiagram
 
     loop 各銘柄 (バッチ処理)
         JPXSvc->>Repo: await upsert_batch(stocks)
-        Repo->>DB: async UPSERT (bulk)
+        Repo->>DB: async UPSERT (一括)
         DB-->>Repo: 完了
         Repo-->>JPXSvc: 完了
     end
@@ -623,27 +643,27 @@ sequenceDiagram
 sequenceDiagram
     participant Client as クライアント
     participant FastAPI as FastAPI App
-    participant BulkAPI as Bulk Data API<br/>(APIRouter)
+    participant BatchAPI as 一括データ取得API<br/>(APIRouter)
     participant Auth as Depends(verify_api_key)
     participant JobStore as JobStatusStore<br/>(async cache/db)
     participant Pydantic as Pydantic Response
 
-    Client->>FastAPI: GET /api/bulk/jobs/{job_id}
-    FastAPI->>BulkAPI: route to endpoint
+    Client->>FastAPI: GET /api/batch/jobs/{job_id}
+    FastAPI->>BatchAPI: route to endpoint
 
-    BulkAPI->>Auth: await verify_api_key()
-    Auth-->>BulkAPI: 認証OK
+    BatchAPI->>Auth: await verify_api_key()
+    Auth-->>BatchAPI: 認証OK
 
-    BulkAPI->>JobStore: await get_job_status(job_id)
+    BatchAPI->>JobStore: await get_job_status(job_id)
 
     alt ジョブが存在
-        JobStore-->>BulkAPI: JobStatusData
-        BulkAPI->>Pydantic: JobStatusResponse生成
+        JobStore-->>BatchAPI: JobStatusData
+        BatchAPI->>Pydantic: JobStatusResponse生成
         Pydantic-->>Client: 200 OK<br/>JobStatusResponse<br/>{status, progress, ...}
     else ジョブが存在しない
-        JobStore-->>BulkAPI: None
-        BulkAPI->>BulkAPI: raise HTTPException(404)
-        BulkAPI-->>Client: 404 Not Found<br/>{"detail": "Job not found"}
+        JobStore-->>BatchAPI: None
+        BatchAPI->>BatchAPI: raise HTTPException(404)
+        BatchAPI-->>Client: 404 Not Found<br/>{"detail": "Job not found"}
     end
 ```
 
@@ -1082,25 +1102,25 @@ async def get_stocks(limit: int = 10, offset: int = 0):
 
 ## 7. エンドポイント詳細
 
-### 7.1 Bulk Data API
+### 7.1 一括データ取得API (Batch Data API)
 
-**APIRouter**: `bulk_router` (`/api/bulk`)
+**APIRouter**: `batch_router` (`/api/batch`)
 
 #### 一括データ取得
 
 | 項目                 | 内容                                 |
 | -------------------- | ------------------------------------ |
-| **エンドポイント**   | `POST /api/bulk/jobs`                |
+| **エンドポイント**   | `POST /api/batch/jobs`               |
 | **機能**             | 複数銘柄の株価データを非同期並列取得 |
 | **認証**             | 必須（`Depends(verify_api_key)`）    |
 | **レート制限**       | あり（SlowAPI: 10秒/5リクエスト）    |
 | **非同期**           | はい（BackgroundTasks使用）          |
-| **リクエストモデル** | `BulkFetchRequest`                   |
-| **レスポンスモデル** | `BulkFetchResponse`                  |
+| **リクエストモデル** | `BatchFetchRequest`                  |
+| **レスポンスモデル** | `BatchFetchResponse`                 |
 
 **Pydanticリクエストスキーマ:**
 ```python
-class BulkFetchRequest(BaseModel):
+class BatchFetchRequest(BaseModel):
     symbols: List[str] = Field(..., description="銘柄コードリスト", max_items=5000)
     interval: str = Field(default="1d", description="時間軸")
     period: str = Field(default="5d", description="取得期間")
@@ -1110,7 +1130,7 @@ class BulkFetchRequest(BaseModel):
 ```json
 {
   "status": "success",
-  "message": "バルクデータ取得ジョブを開始しました",
+  "message": "一括データ取得ジョブを開始しました",
   "data": {
     "job_id": "job-1704700800000",
     "batch_db_id": 123,
@@ -1122,10 +1142,10 @@ class BulkFetchRequest(BaseModel):
 
 **Pydanticレスポンススキーマ:**
 ```python
-class BulkFetchResponse(SuccessResponse[BulkFetchData]):
+class BatchFetchResponse(SuccessResponse[BatchFetchData]):
     pass
 
-class BulkFetchData(BaseModel):
+class BatchFetchData(BaseModel):
     job_id: str
     batch_db_id: Optional[int]
     status: str
@@ -1141,7 +1161,7 @@ class BulkFetchData(BaseModel):
 
 | 項目                 | 内容                                     |
 | -------------------- | ---------------------------------------- |
-| **エンドポイント**   | `POST /api/bulk/jpx-sequential/jobs`     |
+| **エンドポイント**   | `POST /api/batch/jpx-sequential/jobs`    |
 | **機能**             | JPX全銘柄を8種類の時間軸で非同期順次取得 |
 | **認証**             | 必須（`Depends(verify_api_key)`）        |
 | **レート制限**       | あり（SlowAPI）                          |
@@ -1179,7 +1199,7 @@ class JPXSequentialRequest(BaseModel):
 
 | 項目                 | 内容                                             |
 | -------------------- | ------------------------------------------------ |
-| **エンドポイント**   | `GET /api/bulk/jobs/{job_id}`                    |
+| **エンドポイント**   | `GET /api/batch/jobs/{job_id}`                   |
 | **機能**             | 実行中または完了したジョブの進捗状況を非同期取得 |
 | **認証**             | 必須（`Depends(verify_api_key)`）                |
 | **レート制限**       | あり                                             |
@@ -1236,7 +1256,7 @@ class JobStatusResponse(SuccessResponse[JobStatus]):
 
 | 項目                 | 内容                              |
 | -------------------- | --------------------------------- |
-| **エンドポイント**   | `DELETE /api/bulk/jobs/{job_id}`  |
+| **エンドポイント**   | `DELETE /api/batch/jobs/{job_id}` |
 | **機能**             | 実行中のジョブを非同期停止        |
 | **認証**             | 必須（`Depends(verify_api_key)`） |
 | **レート制限**       | あり                              |
@@ -1246,7 +1266,7 @@ class JobStatusResponse(SuccessResponse[JobStatus]):
 
 | 項目                 | 内容                                          |
 | -------------------- | --------------------------------------------- |
-| **エンドポイント**   | `GET /api/bulk/jpx-sequential/get-symbols`    |
+| **エンドポイント**   | `GET /api/batch/jpx-sequential/get-symbols`   |
 | **機能**             | データベースから有効なJPX銘柄一覧を非同期取得 |
 | **認証**             | 必須（`Depends(verify_api_key)`）             |
 | **レート制限**       | あり                                          |
