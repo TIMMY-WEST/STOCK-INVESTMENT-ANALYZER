@@ -155,6 +155,7 @@ graph TB
     style CommonModules fill:#e1f5ff
     style Exceptions fill:#ffe1f5
     style Schemas fill:#e1ffe1
+    style Core fill:#ffe1e1
     style Utils fill:#fff4e1
 ```
 
@@ -1117,6 +1118,14 @@ graph TB
         DomainSchemas[ドメイン別スキーマ<br/>市場データ/分析/ユーザー]
     end
 
+    subgraph Core[サービス層向け共通基盤モジュール]
+        BaseFetcher[BaseFetcher<br/>データ取得抽象化]
+        BaseSaver[BaseSaver<br/>データ保存抽象化]
+        BaseValidator[BaseValidator<br/>データ検証抽象化]
+        BaseConverter[BaseConverter<br/>データ変換抽象化]
+        Decorators[デコレータ<br/>error_handler/retry]
+    end
+
     subgraph Utils[ユーティリティモジュール]
         Logger[ロガー設定]
         TimeUtils[時間軸変換・日時処理]
@@ -1136,13 +1145,18 @@ graph TB
 
     Service --> DatabaseExceptions
     Service --> DomainSchemas
+    Service --> BaseFetcher
+    Service --> BaseSaver
+    Service --> Decorators
     Service --> TimeUtils
-    Service --> Retry
 
     DataAccess --> DatabaseExceptions
     DataAccess --> CommonSchemas
     DataAccess --> Database
 
+    Core -.->|uses| BaseException
+    Core -.->|uses| Logger
+    Core -.->|uses| Retry
     BaseException -.->|uses| Logger
     ResponseSchemas -.->|uses| CommonSchemas
     Validators -.->|uses| Constants
@@ -1151,10 +1165,11 @@ graph TB
     style ApplicationLayers fill:#e1f5ff
     style Exceptions fill:#ffe1f5
     style Schemas fill:#e1ffe1
+    style Core fill:#ffe1e1
     style Utils fill:#fff4e1
 ```
 
-### 6.2 エラーハンドリングフロー
+### 7.2 エラーハンドリングフロー
 
 ```mermaid
 sequenceDiagram
@@ -1200,7 +1215,7 @@ sequenceDiagram
     end
 ```
 
-### 6.3 Pydanticスキーマ連携フロー
+### 7.3 Pydanticスキーマ連携フロー
 
 ```mermaid
 sequenceDiagram
