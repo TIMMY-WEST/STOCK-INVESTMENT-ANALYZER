@@ -1,6 +1,6 @@
 category: architecture
 ai_context: high
-last_updated: 2025-01-08
+last_updated: 2025-11-16
 related_docs:
   - ../architecture_overview.md
   - ./service_layer.md
@@ -13,8 +13,8 @@ related_docs:
 
 - [1. 概要](#1-概要)
 - [2. 構成](#2-構成)
-- [3. Blueprint一覧](#3-blueprint一覧)
-- [4. クラス図](#4-クラス図)
+- [3. APIRouter一覧](#3-apirouter一覧)
+- [4. アーキテクチャ図](#4-アーキテクチャ図)
 - [5. シーケンス図](#5-シーケンス図)
 - [6. 共通仕様](#6-共通仕様)
 - [7. エンドポイント詳細](#7-エンドポイント詳細)
@@ -65,20 +65,33 @@ API層は、FastAPIのAPIRouterを使用して非同期HTTPリクエストを受
 ```
 app/api/
 ├── __init__.py              # APIRouter登録
+├── dependencies/            # 依存性注入モジュール
+│   ├── __init__.py
+│   ├── auth.py              # 認証依存性（JWT、APIキー）
+│   ├── database.py          # DB接続依存性
+│   └── services.py          # サービス層依存性
 ├── decorators/              # 共通デコレータ（DRY原則）
 │   ├── __init__.py
-│   ├── auth.py              # require_api_key（統一認証）
 │   └── rate_limit.py        # rate_limit + RateLimiterクラス
-├── error_handlers.py        # 統一エラーハンドラ（全Blueprintで共通）
-├── batch_data.py            # 一括データ取得API (非同期、薄い層)
-├── stock_master.py          # 銘柄マスタ管理API (非同期、薄い層)
-├── system_monitoring.py     # システム監視API (非同期、薄い層)
-├── screening.py             # スクリーニングAPI (※今後実装)
-├── backtest.py              # バックテストAPI (※今後実装)
-└── auth.py                  # 認証API (※今後実装)
+├── validators/              # 共通バリデータ
+│   ├── __init__.py
+│   └── common.py            # 共通バリデーション関数
+├── error_handlers.py        # 統一エラーハンドラ（全APIRouter共通）
+├── batch_data.py            # 一括データ取得API
+├── stock_master.py          # 銘柄マスタ管理API
+├── stock_data.py            # 株価データAPI
+├── fundamental.py           # ファンダメンタルデータAPI
+├── portfolio.py             # ポートフォリオ管理API
+├── market_indices.py        # 市場インデックスAPI
+├── screening.py             # スクリーニングAPI
+├── backtest.py              # バックテストAPI
+├── user.py                  # ユーザー管理API
+├── auth.py                  # 認証API（JWT）
+├── notification.py          # 通知API
+└── system_monitoring.py     # システム監視API
 ```
 
-**Note**:
+**設計の特徴**:
 - Swagger UI/ReDocはFastAPIにより自動生成されるため、個別のファイルは不要
 - 各APIファイルは100-200行を目標とし、ビジネスロジックはサービス層に委譲
 - 共通機能（認証、レート制限、エラーハンドリング）は再利用可能なモジュールとして分離
@@ -87,69 +100,101 @@ app/api/
 
 ```mermaid
 graph TB
-    FastAPI[FastAPI App] --> BatchAPI[一括データ取得API<br/>async endpoints]
-    FastAPI --> StockAPI[Stock Master API<br/>async endpoints]
-    FastAPI --> MonitorAPI[System Monitoring API<br/>async endpoints]
-    FastAPI -.-> ScreeningAPI[Screening API<br/>※今後実装]
-    FastAPI -.-> BacktestAPI[Backtest API<br/>※今後実装]
-    FastAPI -.-> AuthAPI[Auth API<br/>※今後実装]
+    FastAPI[FastAPI App] --> BatchAPI[一括データ取得API]
+    FastAPI --> StockMasterAPI[Stock Master API]
+    FastAPI --> StockDataAPI[Stock Data API]
+    FastAPI --> FundamentalAPI[Fundamental Data API]
+    FastAPI --> PortfolioAPI[Portfolio API]
+    FastAPI --> IndicesAPI[Market Indices API]
+    FastAPI --> ScreeningAPI[Screening API]
+    FastAPI --> BacktestAPI[Backtest API]
+    FastAPI --> UserAPI[User API]
+    FastAPI --> AuthAPI[Auth API]
+    FastAPI --> NotificationAPI[Notification API]
+    FastAPI --> MonitorAPI[System Monitoring API]
 
     subgraph "共通ユーティリティ（DRY原則）"
-        Decorators[Decorators<br/>auth + rate_limit]
+        Dependencies[Dependencies<br/>認証・DB・サービス注入]
+        Decorators[Decorators<br/>レート制限]
         Validators[Validators<br/>共通バリデーション]
         ErrorHandlers[Error Handlers<br/>統一エラー処理]
     end
 
+    BatchAPI --> Dependencies
     BatchAPI --> Decorators
     BatchAPI --> Validators
     BatchAPI --> ErrorHandlers
-    BatchAPI -->|await| JobManager[JobManager<br/>ジョブ管理]
-    BatchAPI -->|await| JobExecutor[JobExecutor<br/>ジョブ実行]
+    BatchAPI -->|await| StockService[StockDataService]
 
-    StockAPI --> Decorators
-    StockAPI --> Validators
-    StockAPI --> ErrorHandlers
-    StockAPI -->|await| JPXService[JPXStockService<br/>async]
+    StockMasterAPI --> Dependencies
+    StockMasterAPI --> Validators
+    StockMasterAPI --> ErrorHandlers
+    StockMasterAPI -->|await| JPXService[JPXStockService]
 
-    MonitorAPI --> Decorators
+    FundamentalAPI --> Dependencies
+    FundamentalAPI --> Validators
+    FundamentalAPI --> ErrorHandlers
+    FundamentalAPI -->|await| FundamentalService[FundamentalDataService]
+
+    PortfolioAPI --> Dependencies
+    PortfolioAPI --> Validators
+    PortfolioAPI --> ErrorHandlers
+    PortfolioAPI -->|await| PortfolioService[PortfolioService]
+
+    IndicesAPI --> Dependencies
+    IndicesAPI --> Validators
+    IndicesAPI --> ErrorHandlers
+    IndicesAPI -->|await| IndexService[IndexService]
+
+    ScreeningAPI --> Dependencies
+    ScreeningAPI --> Validators
+    ScreeningAPI --> ErrorHandlers
+    ScreeningAPI -->|await| ScreeningService[ScreeningService]
+
+    BacktestAPI --> Dependencies
+    BacktestAPI --> Decorators
+    BacktestAPI --> Validators
+    BacktestAPI --> ErrorHandlers
+    BacktestAPI -->|await| BacktestService[BacktestService]
+
+    UserAPI --> Dependencies
+    UserAPI --> Validators
+    UserAPI --> ErrorHandlers
+    UserAPI -->|await| UserService[UserService]
+
+    AuthAPI --> Dependencies
+    AuthAPI --> ErrorHandlers
+    AuthAPI -->|await| AuthService[AuthService]
+
+    NotificationAPI --> Dependencies
+    NotificationAPI --> ErrorHandlers
+    NotificationAPI -->|await| NotificationService[NotificationService]
+
+    MonitorAPI --> Dependencies
     MonitorAPI --> ErrorHandlers
-    MonitorAPI -->|await| HealthCheck[HealthCheckService<br/>async]
-
-    ScreeningAPI -.-> Decorators
-    ScreeningAPI -.-> Validators
-    ScreeningAPI -.-> ErrorHandlers
-    ScreeningAPI -.->|await| ScreeningService[ScreeningService<br/>※今後実装]
-
-    BacktestAPI -.-> Decorators
-    BacktestAPI -.-> Validators
-    BacktestAPI -.-> ErrorHandlers
-    BacktestAPI -.->|await| BacktestService[BacktestService<br/>※今後実装]
-
-    AuthAPI -.-> Decorators
-    AuthAPI -.-> ErrorHandlers
-    AuthAPI -.->|await| AuthService[AuthService<br/>※今後実装]
-
-    JobExecutor -->|await| JobManager
-    JobExecutor -->|await| StockService[StockDataService<br/>async]
-    JobExecutor -->|await| NotifyService[NotificationService<br/>WebSocket]
+    MonitorAPI -->|await| HealthCheck[HealthCheckService]
 
     style BatchAPI fill:#fff4e1
-    style StockAPI fill:#fff4e1
+    style StockMasterAPI fill:#fff4e1
+    style StockDataAPI fill:#fff4e1
+    style FundamentalAPI fill:#fff4e1
+    style PortfolioAPI fill:#fff4e1
+    style IndicesAPI fill:#fff4e1
+    style ScreeningAPI fill:#fff4e1
+    style BacktestAPI fill:#fff4e1
+    style UserAPI fill:#fff4e1
+    style AuthAPI fill:#fff4e1
+    style NotificationAPI fill:#fff4e1
     style MonitorAPI fill:#fff4e1
+    style Dependencies fill:#e1e5ff
     style Decorators fill:#e1e5ff
     style Validators fill:#e1e5ff
     style ErrorHandlers fill:#e1e5ff
-    style JobManager fill:#ffffcc
-    style JobExecutor fill:#ffffcc
-    style NotifyService fill:#ffffcc
-    style ScreeningAPI stroke-dasharray: 5 5
-    style BacktestAPI stroke-dasharray: 5 5
-    style AuthAPI stroke-dasharray: 5 5
 ```
 
 **設計の特徴**:
 - **API層の薄層化**: エンドポイント → 共通ユーティリティ → サービス層の明確な階層
-- **責務の分離**: ジョブ管理（JobManager）、実行（JobExecutor）、通知（NotificationService）を分離
+- **責務の分離**: 認証、DB接続、サービス層注入を依存性注入で分離
 - **再利用性**: 共通デコレータとバリデータで全APIが統一された品質を保証
 
 ---
@@ -158,14 +203,20 @@ graph TB
 
 ### 登録されているAPIRouter
 
-| Router名              | URLプレフィックス   | ファイル             | 主な機能                        | タグ             |
-| --------------------- | ------------------- | -------------------- | ------------------------------- | ---------------- |
-| `batch_router`        | `/api/batch`        | batch_data.py        | 一括データ取得、JPX全銘柄取得   | `batch-data`     |
-| `stock_master_router` | `/api/stock-master` | stock_master.py      | 銘柄マスタ管理                  | `stock-master`   |
-| `system_router`       | `/api/system`       | system_monitoring.py | システム監視、ヘルスチェック    | `system`         |
-| `screening_router`    | `/api/screening`    | screening.py         | スクリーニング機能 (※今後実装)  | `screening`      |
-| `backtest_router`     | `/api/backtest`     | backtest.py          | バックテスト機能 (※今後実装)    | `backtest`       |
-| `auth_router`         | `/api/auth`         | auth.py              | 認証・認可 (※今後実装)          | `authentication` |
+| Router名              | URLプレフィックス   | ファイル             | 主な機能                      | タグ             |
+| --------------------- | ------------------- | -------------------- | ----------------------------- | ---------------- |
+| `batch_router`        | `/api/batch`        | batch_data.py        | 一括データ取得、JPX全銘柄取得 | `batch-data`     |
+| `stock_master_router` | `/api/stock-master` | stock_master.py      | 銘柄マスタ管理                | `stock-master`   |
+| `stock_data_router`   | `/api/stocks`       | stock_data.py        | 株価データ取得、チャート表示  | `stock-data`     |
+| `fundamental_router`  | `/api/fundamental`  | fundamental.py       | ファンダメンタルデータ管理    | `fundamental`    |
+| `portfolio_router`    | `/api/portfolio`    | portfolio.py         | ポートフォリオ管理            | `portfolio`      |
+| `indices_router`      | `/api/indices`      | market_indices.py    | 市場インデックス管理          | `market-indices` |
+| `screening_router`    | `/api/screening`    | screening.py         | スクリーニング機能            | `screening`      |
+| `backtest_router`     | `/api/backtest`     | backtest.py          | バックテスト機能              | `backtest`       |
+| `user_router`         | `/api/user`         | user.py              | ユーザー管理                  | `user`           |
+| `auth_router`         | `/api/auth`         | auth.py              | 認証・認可（JWT）             | `authentication` |
+| `notification_router` | `/api/notifications`| notification.py      | 通知管理                      | `notifications`  |
+| `system_router`       | `/api/system`       | system_monitoring.py | システム監視、ヘルスチェック  | `system`         |
 
 **Note**: 各RouterはFastAPIの`APIRouter`を使用し、`app/main.py`の`app.include_router()`で登録されます
 
@@ -182,11 +233,11 @@ API層全体の構成と各レイヤーの責務を俯瞰します。
 ```mermaid
 graph TB
     subgraph "API層（薄い層）"
-        API[APIRouterエンドポイント<br/>- BatchDataAPI<br/>- StockMasterAPI<br/>- SystemMonitoringAPI]
+        API[APIRouterエンドポイント<br/>12種類のAPI]
     end
 
     subgraph "共通ユーティリティ（DRY原則）"
-        Utils[共通機能<br/>- Decorators（認証・レート制限）<br/>- Validators（バリデーション）<br/>- ErrorHandlers（エラー処理）<br/>- APIResponse（レスポンス標準化）]
+        Utils[共通機能<br/>- Dependencies（認証・DB・サービス注入）<br/>- Decorators（レート制限）<br/>- Validators（バリデーション）<br/>- ErrorHandlers（エラー処理）<br/>- APIResponse（レスポンス標準化）]
     end
 
     subgraph "型定義"
@@ -194,7 +245,7 @@ graph TB
     end
 
     subgraph "サービス層"
-        Services[ビジネスロジック<br/>- JobManager（ジョブ管理）<br/>- JobExecutor（実行オーケストレーション）<br/>- NotificationService（通知）<br/>- StockDataService（データ処理）]
+        Services[ビジネスロジック<br/>12種類のサービス]
     end
 
     API --> Utils
@@ -238,6 +289,80 @@ classDiagram
         +get_status()
     }
 
+    class StockDataAPI {
+        <<APIRouter>>
+        +get_stocks()
+        +get_stock_chart()
+        +compare_stocks()
+    }
+
+    class FundamentalAPI {
+        <<APIRouter>>
+        +fetch_fundamental_data()
+        +get_fundamental_data()
+        +get_fundamental_history()
+    }
+
+    class PortfolioAPI {
+        <<APIRouter>>
+        +get_summary()
+        +get_holdings()
+        +add_holding()
+        +update_holding()
+        +delete_holding()
+    }
+
+    class IndicesAPI {
+        <<APIRouter>>
+        +list_indices()
+        +get_index_history()
+    }
+
+    class ScreeningAPI {
+        <<APIRouter>>
+        +execute_screening()
+        +get_presets()
+        +save_screening()
+        +list_saved()
+        +export_results()
+    }
+
+    class BacktestAPI {
+        <<APIRouter>>
+        +start_backtest()
+        +get_status()
+        +get_result()
+        +get_trades()
+        +list_jobs()
+        +cancel_job()
+    }
+
+    class UserAPI {
+        <<APIRouter>>
+        +get_profile()
+        +update_profile()
+        +change_password()
+        +get_settings()
+        +update_settings()
+    }
+
+    class AuthAPI {
+        <<APIRouter>>
+        +login()
+        +logout()
+        +register()
+        +refresh_token()
+    }
+
+    class NotificationAPI {
+        <<APIRouter>>
+        +get_settings()
+        +update_settings()
+        +create_alert()
+        +list_alerts()
+        +delete_alert()
+    }
+
     class SystemMonitoringAPI {
         <<APIRouter>>
         +health_check()
@@ -276,31 +401,9 @@ classDiagram
     BatchDataAPI ..> BatchFetchRequest : validates
     BatchDataAPI ..> BatchFetchResponse : returns
     StockMasterAPI ..> PaginatedResponse : returns
+    StockDataAPI ..> PaginatedResponse : returns
     SystemMonitoringAPI ..> HealthCheckResponse : returns
 ```
-
-**エンドポイント一覧**:
-
-| APIRouter             | パス                                    | メソッド | 説明                   |
-| --------------------- | --------------------------------------- | -------- | ---------------------- |
-| `BatchDataAPI`        | `/api/batch/jobs`                       | POST     | 一括取得ジョブ開始     |
-|                       | `/api/batch/jobs/{job_id}`              | GET      | ジョブステータス取得   |
-|                       | `/api/batch/jobs/{job_id}`              | DELETE   | ジョブ停止             |
-|                       | `/api/batch/jpx-sequential/jobs`        | POST     | JPX順次取得開始        |
-|                       | `/api/batch/jpx-sequential/get-symbols` | GET      | JPX銘柄一覧取得        |
-| `StockMasterAPI`      | `/api/stock-master/`                   | POST     | 銘柄マスタ更新         |
-|                       | `/api/stock-master/`                   | GET      | 銘柄マスタ一覧取得     |
-|                       | `/api/stock-master/stocks`             | GET      | 銘柄検索               |
-|                       | `/api/stock-master/status`             | GET      | 更新ステータス取得     |
-| `SystemMonitoringAPI` | `/api/system/health`                   | GET      | ヘルスチェック（簡易） |
-|                       | `/api/system/health-check`             | GET      | ヘルスチェック（詳細） |
-|                       | `/api/system/metrics`                  | GET      | システムメトリクス取得 |
-
-**エンドポイント設計の特徴**:
-- **RESTful**: HTTPメソッド（GET/POST/DELETE）の適切な使用
-- **型安全**: Pydanticによる自動バリデーションとOpenAPI生成
-- **一貫性**: すべてのレスポンスが標準化された形式（`APIResponse`パターン）
-- **非同期**: `async/await`による効率的なI/O処理
 
 ### 4.3 共通ユーティリティ詳細
 
@@ -309,9 +412,16 @@ DRY原則に基づく共通機能の構造と再利用パターンを示しま�
 ```mermaid
 classDiagram
     %% 共通ユーティリティ
+    class Dependencies {
+        <<app/api/dependencies/>>
+        +verify_api_key(x_api_key) bool
+        +get_current_user(token) User
+        +get_db() AsyncSession
+        +get_stock_service(db) StockDataService
+    }
+
     class Decorators {
         <<app/api/decorators/>>
-        +verify_api_key(x_api_key) bool
         +rate_limit(max_requests, window_seconds) Callable
     }
 
@@ -323,7 +433,7 @@ classDiagram
     }
 
     class Validators {
-        <<app/utils/>>
+        <<app/api/validators/>>
         +validate_symbols(symbols, max_count) Tuple
         +validate_pagination(limit, offset, max_limit) Tuple
         +validate_interval(interval) Tuple
@@ -346,9 +456,10 @@ classDiagram
     Decorators --> APIResponse : uses for errors
     ErrorHandlers --> APIResponse : uses
 
-    note for Decorators "全APIで再利用\n認証とレート制限を統一"
-    note for Validators "バリデーションロジックを集約\n一貫したエラーメッセージ"
-    note for ErrorHandlers "エラーハンドリングを統一\n自動ログ記録"
+    note for Dependencies "依存性注入で<br/>認証・DB・サービス提供"
+    note for Decorators "全APIで再利用<br/>レート制限を統一"
+    note for Validators "バリデーションロジックを集約<br/>一貫したエラーメッセージ"
+    note for ErrorHandlers "エラーハンドリングを統一<br/>自動ログ記録"
 ```
 
 **共通ユーティリティの利点**:
@@ -364,33 +475,28 @@ API層がサービス層とどのように協調するかを示します。
 ```mermaid
 sequenceDiagram
     participant API as BatchDataAPI<br/>(薄い層)
-    participant Utils as 共通ユーティリティ
-    participant DI as Dependencies<br/>(依存性注入)
+    participant Deps as Dependencies<br/>(依存性注入)
+    participant Validators as Validators
     participant Service as サービス層
 
     Note over API,Service: リクエスト処理の流れ
 
-    API->>Utils: @verify_api_key
-    Utils-->>API: 認証OK
+    API->>Deps: Depends(verify_api_key)
+    Deps-->>API: 認証OK
 
-    API->>Utils: @rate_limit
-    Utils-->>API: OK
+    API->>Deps: Depends(rate_limit)
+    Deps-->>API: OK
 
-    API->>Utils: validate_symbols()
-    Utils-->>API: OK
+    API->>Validators: validate_symbols()
+    Validators-->>API: OK
 
-    API->>DI: Depends(get_job_manager)
-    DI-->>API: JobManager instance
+    API->>Deps: Depends(get_stock_service)
+    Deps-->>API: StockDataService instance
 
-    API->>Service: await job_manager.create_job()
-    Service-->>API: job_id
+    API->>Service: await service.fetch_and_save(symbol)
+    Service-->>API: result
 
-    API->>DI: Depends(get_job_executor)
-    DI-->>API: JobExecutor instance
-
-    API->>Service: await job_executor.execute_batch_job()<br/>(バックグラウンド)
-
-    API-->>API: Response生成
+    API-->>API: Pydanticレスポンス生成
 
     Note over API: API層の責務はここまで<br/>ビジネスロジックはサービス層へ
 ```
@@ -401,317 +507,269 @@ sequenceDiagram
 - **テスタビリティ**: DIによりモック可能
 - **非同期処理**: `async/await`で効率的なI/O処理
 
-### 4.5 コンポーネント責務まとめ
-
-各レイヤーのコンポーネントとその責務を一覧表にまとめます。
-
-| カテゴリ               | コンポーネント        | 主な責務                        | コード量目安     |
-| ---------------------- | --------------------- | ------------------------------- | ---------------- |
-| **API層**              | `BatchDataAPI`        | 一括データ取得エンドポイント    | 100-150行        |
-|                        | `StockMasterAPI`      | 銘柄マスタ管理エンドポイント    | 100-150行        |
-|                        | `SystemMonitoringAPI` | システム監視エンドポイント      | 50-100行         |
-| **共通ユーティリティ** | `Decorators`          | 認証・レート制限デコレータ      | 50-100行         |
-|                        | `RateLimiter`         | レート制限ロジック（Singleton） | 100-150行        |
-|                        | `Validators`          | 入力検証の統一                  | 100-150行        |
-|                        | `ErrorHandlers`       | エラーハンドリングの統一        | 100-150行        |
-|                        | `APIResponse`         | レスポンス標準化ユーティリティ  | 50-100行         |
-| **型定義**             | Pydanticスキーマ      | Request/Response型定義          | 10-30行/スキーマ |
-| **サービス層**         | `JobManager`          | ジョブライフサイクル管理        | 150-200行        |
-|                        | `JobExecutor`         | ジョブ実行オーケストレーション  | 200-300行        |
-|                        | `NotificationService` | WebSocket通知                   | 100-150行        |
-|                        | `StockDataService`    | 株価データ取得・保存            | 200-300行        |
-|                        | `JPXStockService`     | 銘柄マスタ更新                  | 150-200行        |
-| **依存性注入**         | `Dependencies`        | サービス・DB接続注入            | 100-150行        |
-
-**設計原則のまとめ**:
-| **JobManager**          | ジョブライフサイクル管理（作成、進捗更新、完了/失敗/停止）、スレッドセーフ実装               | サービス層         | 100-150行 |
-| **JobExecutor**         | バックグラウンドジョブ実行、並列処理オーケストレーション、エラーハンドリング                 | サービス層         | 200-300行 |
-| **NotificationService** | WebSocket通知管理（進捗、完了、エラー）、リアルタイム更新                                    | サービス層         | 50-100行  |
-| **StockDataService**    | 株価データ取得・保存、並列処理、外部API連携                                                  | サービス層         | -         |
-| **JPXStockService**     | JPX銘柄マスタ管理、スクレイピング、DB更新                                                    | サービス層         | -         |
-| **Dependencies**        | 依存性注入によるDB接続・認証・サービス層提供（テスタビリティ向上）                           | DI                 | 50行      |
-| **HTTPException**       | FastAPI標準の例外処理                                                                        | FastAPI            | -         |
-| **CustomException**     | カスタムビジネスロジック例外（ドメイン固有エラー）                                           | 例外定義           | 50行      |
-
-**設計の特徴**:
-1. **薄いAPI層**: エンドポイントは100-200行、ビジネスロジックは持たない
-2. **DRY原則**: 共通機能を再利用可能なモジュールとして分離（重複コード70%削減）
-3. **責務の分離**: ジョブ管理（JobManager）、実行（JobExecutor）、通知（NotificationService）を独立
-4. **テスタビリティ**: DIとモック可能な設計により、単体テストが容易（カバレッジ80%目標）
-5. **保守性**: 各モジュールの責務が明確で、変更影響範囲が限定的
-
-| コンポーネント          | 責務                                                 |
-| ----------------------- | ---------------------------------------------------- |
-| **BatchDataAPI**        | 一括データ取得非同期エンドポイント提供、ジョブ管理   |
-| **StockMasterAPI**      | 銘柄マスタ管理非同期エンドポイント提供               |
-| **SystemMonitoringAPI** | システム監視非同期エンドポイント提供                 |
-| **Pydantic Schemas**    | リクエスト/レスポンスの型定義・自動検証・OpenAPI生成 |
-| **Dependencies**        | 依存性注入によるDB接続・認証・サービス層提供         |
-| **HTTPException**       | FastAPI標準の例外処理                                |
-| **CustomException**     | カスタムビジネスロジック例外                         |
-
 ---
 
 ## 5. シーケンス図
 
-### 5.1 一括データ取得フロー (リファクタリング後)
-
-**設計のポイント**:
-- API層は薄く、ルーティングとバリデーションのみ
-- ジョブ管理はJobManagerに分離
-- ジョブ実行とビジネスロジックはJobExecutorに分離
-- WebSocket通知はNotificationServiceに分離
+### 5.1 一括データ取得フロー
 
 ```mermaid
 sequenceDiagram
     participant Client as クライアント
     participant FastAPI as FastAPI App
-    participant BatchAPI as 一括データ取得API<br/>(薄い層)
-    participant Auth as @require_api_key<br/>(共通デコレータ)
-    participant RateLimit as @rate_limit<br/>(共通デコレータ)
-    participant Validators as Validators<br/>(共通バリデーション)
-    participant JobMgr as JobManager<br/>(ジョブ管理)
-    participant JobExec as JobExecutor<br/>(ジョブ実行)
-    participant BatchSvc as StockDataService<br/>(ビジネスロジック)
-    participant NotifySvc as NotificationService<br/>(WebSocket通知)
-    participant BatchDBSvc as BatchService<br/>(DB管理)
-    participant WebSocket as WebSocket<br/>(Starlette)
+    participant BatchAPI as 一括データ取得API
+    participant Auth as Depends(verify_api_key)
+    participant RateLimit as Depends(rate_limit)
+    participant Validators as Validators
+    participant JobMgr as JobManager
+    participant JobExec as JobExecutor
+    participant StockSvc as StockDataService
+    participant NotifySvc as NotificationService
+    participant WebSocket as WebSocket
 
-    Client->>FastAPI: POST /api/batch/jobs<br/>{symbols, interval, period}
+    Client->>FastAPI: POST /api/batch/jobs
     FastAPI->>BatchAPI: route to endpoint
 
-    Note over BatchAPI,RateLimit: 共通デコレータによる前処理
-    BatchAPI->>Auth: デコレータ実行
-    Auth->>Auth: APIキー検証
+    BatchAPI->>Auth: 依存性注入実行
     Auth-->>BatchAPI: 認証OK
 
-    BatchAPI->>RateLimit: デコレータ実行
-    RateLimit->>RateLimit: レート制限チェック
+    BatchAPI->>RateLimit: 依存性注入実行
     RateLimit-->>BatchAPI: OK
 
-    Note over BatchAPI,Validators: 共通バリデータによる検証
-    BatchAPI->>Validators: validate_symbols(symbols)
-    Validators->>Validators: 型チェック、件数制限
-    Validators-->>BatchAPI: (is_valid, error_response)
+    BatchAPI->>Validators: validate_symbols()
+    Validators-->>BatchAPI: OK
 
-    alt バリデーションエラー
-        BatchAPI-->>Client: 400 Bad Request<br/>{error: "VALIDATION_ERROR"}
-    end
-
-    Note over BatchAPI,JobMgr: ジョブ管理の分離
-    BatchAPI->>JobMgr: create_job(total_items, create_batch=True)
-    JobMgr->>JobMgr: job_id生成<br/>スレッドセーフ実装
-
-    alt Phase 2有効
-        JobMgr->>BatchDBSvc: create_batch(batch_type, total_stocks)
-        BatchDBSvc-->>JobMgr: batch_db_id
-    end
-
+    BatchAPI->>JobMgr: create_job()
     JobMgr-->>BatchAPI: (job_id, batch_db_id)
 
-    Note over BatchAPI,JobExec: ビジネスロジックの分離
-    BatchAPI->>JobExec: execute_batch_job()<br/>(別スレッド起動)
-    BatchAPI-->>Client: 202 Accepted<br/>BatchFetchResponse<br/>{job_id, batch_db_id}
+    BatchAPI->>JobExec: execute_batch_job()<br/>(BackgroundTask)
+    BatchAPI-->>Client: 202 Accepted<br/>BatchFetchResponse
 
-    Note over JobExec,WebSocket: バックグラウンド実行（責務の分離）
+    Note over JobExec,WebSocket: バックグラウンド実行
 
-    JobExec->>BatchSvc: await fetch_multiple_stocks(symbols, interval, period, on_progress)
+    JobExec->>StockSvc: await fetch_multiple_stocks()
 
-    loop 各銘柄処理 (asyncio.gather)
-        BatchSvc->>BatchSvc: await fetch_and_save(symbol)<br/>(並列実行)
-        BatchSvc->>JobExec: progress_callback(processed, successful, failed)
-
-        JobExec->>JobMgr: update_progress(job_id, ...)
-        JobMgr->>JobMgr: スレッドセーフ更新
-
-        JobExec->>NotifySvc: send_progress(job_id, progress)
+    loop 各銘柄処理
+        StockSvc->>JobExec: progress_callback()
+        JobExec->>JobMgr: update_progress()
+        JobExec->>NotifySvc: send_progress()
         NotifySvc->>WebSocket: emit('job_progress')
         WebSocket-->>Client: リアルタイム進捗
     end
 
-    BatchSvc-->>JobExec: results
-
-    alt Phase 2有効
-        JobExec->>BatchDBSvc: update_batch(batch_id, status, ...)
-    end
-
-    JobExec->>JobMgr: mark_completed(job_id)
-    JobExec->>NotifySvc: send_completion(job_id)
+    StockSvc-->>JobExec: results
+    JobExec->>JobMgr: mark_completed()
+    JobExec->>NotifySvc: send_completion()
     NotifySvc->>WebSocket: emit('job_completed')
     WebSocket-->>Client: 完了通知
 ```
 
-**リファクタリングの効果**:
-- **API層の薄層化**: batch_data.py が650行 → 200行（70%削減）
-- **責務の明確化**: 各コンポーネントが単一責任
-- **テスタビリティ**: 各コンポーネントを独立してテスト可能
-- **保守性**: 変更影響範囲が限定的
-
-### 5.2 銘柄マスタ更新フロー (FastAPI非同期)
+### 5.2 認証フロー（JWT）
 
 ```mermaid
 sequenceDiagram
     participant Client as クライアント
     participant FastAPI as FastAPI App
-    participant StockAPI as Stock Master API<br/>(APIRouter)
-    participant Auth as Depends(verify_api_key)
+    participant AuthAPI as Auth API
     participant Pydantic as Pydantic Validation
-    participant JPXSvc as JPXStockService<br/>(async)
-    participant Scraper as WebScraper<br/>(async)
-    participant Repo as JPXRepository<br/>(async)
-    participant DB as PostgreSQL<br/>(asyncpg)
+    participant AuthSvc as AuthService
+    participant UserRepo as UserRepository
+    participant DB as PostgreSQL
 
-    Client->>FastAPI: POST /api/stock-master/<br/>{update_type: "manual"}
-    FastAPI->>StockAPI: route to endpoint
+    Client->>FastAPI: POST /api/auth/login
+    FastAPI->>AuthAPI: route to endpoint
 
-    StockAPI->>Auth: await verify_api_key()
-    Auth-->>StockAPI: 認証OK
+    AuthAPI->>Pydantic: LoginRequest検証
+    Pydantic-->>AuthAPI: 検証OK
 
-    StockAPI->>Pydantic: StockMasterUpdateRequest検証
-    Pydantic-->>StockAPI: 検証OK
+    AuthAPI->>AuthSvc: await authenticate_user()
+    AuthSvc->>UserRepo: await get_user_by_email()
+    UserRepo->>DB: async SELECT
+    DB-->>UserRepo: user
+    UserRepo-->>AuthSvc: user
 
-    StockAPI->>JPXSvc: await update_stock_master(update_type)
+    AuthSvc->>AuthSvc: verify_password()
+    AuthSvc->>AuthSvc: create_access_token()
+    AuthSvc->>AuthSvc: create_refresh_token()
 
-    JPXSvc->>Scraper: await download_jpx_excel()
-    Scraper->>Scraper: async HTTPリクエスト
-    Scraper-->>JPXSvc: 銘柄一覧データ
+    AuthSvc-->>AuthAPI: LoginResult
 
-    JPXSvc->>JPXSvc: データ正規化<br/>差分計算
-
-    loop 各銘柄 (バッチ処理)
-        JPXSvc->>Repo: await upsert_batch(stocks)
-        Repo->>DB: async UPSERT (一括)
-        DB-->>Repo: 完了
-        Repo-->>JPXSvc: 完了
-    end
-
-    JPXSvc-->>StockAPI: StockMasterUpdateResult
-
-    StockAPI->>Pydantic: StockMasterUpdateResponse生成
-    Pydantic-->>Client: 200 OK<br/>StockMasterUpdateResponse<br/>{total, added, updated, removed}
+    AuthAPI->>Pydantic: LoginResponse生成
+    Pydantic-->>Client: 200 OK<br/>LoginResponse<br/>{access_token, refresh_token}
 ```
 
-### 5.3 ヘルスチェックフロー (FastAPI非同期)
+### 5.3 スクリーニング実行フロー
 
 ```mermaid
 sequenceDiagram
     participant Client as クライアント
     participant FastAPI as FastAPI App
-    participant SysAPI as System Monitoring API<br/>(APIRouter)
-    participant HealthSvc as HealthCheckService<br/>(async)
-    participant DB as PostgreSQL<br/>(asyncpg)
-    participant StockSvc as StockDataService<br/>(async)
-    participant YFinance as Yahoo Finance API
+    participant ScreeningAPI as Screening API
+    participant Auth as Depends(get_current_user)
+    participant Pydantic as Pydantic Validation
+    participant ScreeningSvc as ScreeningService
+    participant ScreeningRepo as ScreeningRepository
+    participant FundamentalRepo as FundamentalRepository
+    participant DB as PostgreSQL
 
-    Client->>FastAPI: GET /api/system/health
-    FastAPI->>SysAPI: route to endpoint
+    Client->>FastAPI: POST /api/screening/execute
+    FastAPI->>ScreeningAPI: route to endpoint
 
-    Note over SysAPI,YFinance: 並列ヘルスチェック (asyncio.gather)
+    ScreeningAPI->>Auth: await get_current_user()
+    Auth-->>ScreeningAPI: user
 
-    par データベースチェック
-        SysAPI->>HealthSvc: await check_database()
-        HealthSvc->>DB: async SELECT 1
-        alt DB正常
-            DB-->>HealthSvc: OK
-            HealthSvc-->>SysAPI: {"status": "healthy"}
-        else DB異常
-            DB-->>HealthSvc: Error
-            HealthSvc-->>SysAPI: {"status": "error"}
-        end
-    and Yahoo Finance APIチェック
-        SysAPI->>HealthSvc: await check_yahoo_finance()
-        HealthSvc->>StockSvc: await fetch_stock_data("7203.T")
-        StockSvc->>YFinance: async データ取得
-        alt API正常
-            YFinance-->>StockSvc: データ返却
-            StockSvc-->>HealthSvc: データあり
-            HealthSvc-->>SysAPI: {"status": "healthy"}
-        else API異常
-            YFinance-->>StockSvc: Error
-            StockSvc-->>HealthSvc: エラー
-            HealthSvc-->>SysAPI: {"status": "warning"}
-        end
+    ScreeningAPI->>Pydantic: ScreeningRequest検証
+    Pydantic-->>ScreeningAPI: 検証OK
+
+    ScreeningAPI->>ScreeningSvc: await execute_screening()
+
+    par 並列データ取得
+        ScreeningSvc->>FundamentalRepo: await get_fundamental_data()
+        FundamentalRepo->>DB: async SELECT
+        DB-->>FundamentalRepo: data
+        FundamentalRepo-->>ScreeningSvc: fundamental_data
     end
 
-    SysAPI->>SysAPI: 総合ステータス判定
-    SysAPI-->>Client: 200 OK<br/>HealthCheckResponse<br/>{overall_status, services}
+    ScreeningSvc->>ScreeningSvc: apply_filters()
+    ScreeningSvc->>ScreeningSvc: sort_results()
+
+    ScreeningSvc->>ScreeningRepo: await save_result()
+    ScreeningRepo->>DB: async INSERT
+    DB-->>ScreeningRepo: result_id
+    ScreeningRepo-->>ScreeningSvc: result_id
+
+    ScreeningSvc-->>ScreeningAPI: ScreeningResult
+
+    ScreeningAPI->>Pydantic: ScreeningResponse生成
+    Pydantic-->>Client: 200 OK<br/>ScreeningResponse
 ```
 
-### 5.4 ジョブステータス取得フロー (FastAPI非同期)
+### 5.4 バックテスト実行フロー
 
 ```mermaid
 sequenceDiagram
     participant Client as クライアント
     participant FastAPI as FastAPI App
-    participant BatchAPI as 一括データ取得API<br/>(APIRouter)
-    participant Auth as Depends(verify_api_key)
-    participant JobStore as JobStatusStore<br/>(async cache/db)
-    participant Pydantic as Pydantic Response
+    participant BacktestAPI as Backtest API
+    participant Auth as Depends(get_current_user)
+    participant BacktestSvc as BacktestService
+    participant StockRepo as StockRepository
+    participant BacktestRepo as BacktestRepository
+    participant NotifySvc as NotificationService
+    participant WebSocket as WebSocket
 
-    Client->>FastAPI: GET /api/batch/jobs/{job_id}
-    FastAPI->>BatchAPI: route to endpoint
+    Client->>FastAPI: POST /api/backtest/start
+    FastAPI->>BacktestAPI: route to endpoint
 
-    BatchAPI->>Auth: await verify_api_key()
-    Auth-->>BatchAPI: 認証OK
+    BacktestAPI->>Auth: await get_current_user()
+    Auth-->>BacktestAPI: user
 
-    BatchAPI->>JobStore: await get_job_status(job_id)
+    BacktestAPI->>BacktestSvc: create_job()
+    BacktestSvc-->>BacktestAPI: job_id
 
-    alt ジョブが存在
-        JobStore-->>BatchAPI: JobStatusData
-        BatchAPI->>Pydantic: JobStatusResponse生成
-        Pydantic-->>Client: 200 OK<br/>JobStatusResponse<br/>{status, progress, ...}
-    else ジョブが存在しない
-        JobStore-->>BatchAPI: None
-        BatchAPI->>BatchAPI: raise HTTPException(404)
-        BatchAPI-->>Client: 404 Not Found<br/>{"detail": "Job not found"}
+    BacktestAPI->>BacktestSvc: execute_backtest()<br/>(BackgroundTask)
+    BacktestAPI-->>Client: 202 Accepted<br/>BacktestJobResponse
+
+    Note over BacktestSvc,WebSocket: バックグラウンド実行
+
+    BacktestSvc->>StockRepo: await get_historical_data()
+    StockRepo-->>BacktestSvc: stock_data
+
+    loop バックテスト計算
+        BacktestSvc->>BacktestSvc: execute_strategy()
+        BacktestSvc->>NotifySvc: send_progress()
+        NotifySvc->>WebSocket: emit('backtest_progress')
+        WebSocket-->>Client: 進捗更新
     end
+
+    BacktestSvc->>BacktestSvc: calculate_metrics()
+    BacktestSvc->>BacktestRepo: await save_result()
+    BacktestRepo-->>BacktestSvc: result_id
+
+    BacktestSvc->>NotifySvc: send_completion()
+    NotifySvc->>WebSocket: emit('backtest_completed')
+    WebSocket-->>Client: 完了通知
 ```
 
 ---
 
 ## 6. 共通仕様
 
-### 6.1 共通ユーティリティ（DRY原則）
+### 6.1 依存性注入（Dependencies）
 
-API層では、以下の共通ユーティリティを活用してコード重複を排除し、一貫性を保証します。
+FastAPIの依存性注入を活用して、認証、DB接続、サービス層を提供します。
 
-#### 6.1.1 認証デコレータ（app/api/decorators/auth.py）
+#### 6.1.1 認証依存性（app/api/dependencies/auth.py）
 
-全エンドポイント（ヘルスチェックを除く）で統一された認証を実施。
-
-**実装例:**
+**JWT認証:**
 ```python
 from fastapi import Depends, HTTPException, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Annotated
+from jose import JWTError, jwt
 import os
 
-async def verify_api_key(x_api_key: Annotated[str, Header()]) -> bool:
-    """APIキー検証 (依存性注入用)
+security = HTTPBearer()
 
-    環境変数API_KEYと照合し、一致しない場合は401エラーを返す。
+async def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]
+) -> dict:
+    """JWT認証による現在のユーザー取得
+
+    Args:
+        credentials: Bearer トークン
+
+    Returns:
+        ユーザー情報
+
+    Raises:
+        HTTPException: 認証失敗時
 
     Usage:
-        @router.post("/api/protected")
+        @router.get("/api/protected")
         async def protected_endpoint(
-            api_key: Annotated[bool, Depends(verify_api_key)]
+            user: Annotated[dict, Depends(get_current_user)]
         ):
-            return {"message": "success"}
+            return {"user_id": user["sub"]}
+    """
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(
+            token,
+            os.environ.get("JWT_SECRET_KEY"),
+            algorithms=["HS256"]
+        )
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="認証に失敗しました")
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="トークンが無効です")
+```
+
+**APIキー認証:**
+```python
+async def verify_api_key(x_api_key: Annotated[str, Header()]) -> bool:
+    """APIキー検証
+
+    Args:
+        x_api_key: リクエストヘッダーのAPIキー
+
+    Returns:
+        認証成功フラグ
+
+    Raises:
+        HTTPException: 認証失敗時
     """
     expected_key = os.environ.get("API_KEY")
 
     if not expected_key:
         raise HTTPException(
             status_code=500,
-            detail="APIキーが設定されていません（サーバー側エラー）"
+            detail="APIキーが設定されていません"
         )
 
-    if not x_api_key:
-        raise HTTPException(
-            status_code=401,
-            detail="APIキーが必要です"
-        )
-
-    if x_api_key != expected_key:
+    if not x_api_key or x_api_key != expected_key:
         raise HTTPException(
             status_code=401,
             detail="APIキーが無効です"
@@ -720,27 +778,112 @@ async def verify_api_key(x_api_key: Annotated[str, Header()]) -> bool:
     return True
 ```
 
-**使用方法:**
-- リクエストヘッダー: `X-API-Key: <api_key>`
-- 環境変数 `API_KEY` と照合
+#### 6.1.2 データベース依存性（app/api/dependencies/database.py）
 
-**エラーレスポンス（401）:**
-```json
-{
-  "detail": "APIキーが無効です"
-}
+```python
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import AsyncGenerator
+from app.database import async_session_maker
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """非同期DB接続を提供
+
+    Yields:
+        AsyncSession: 非同期DBセッション
+
+    Usage:
+        @router.get("/api/stocks")
+        async def get_stocks(
+            db: Annotated[AsyncSession, Depends(get_db)]
+        ):
+            # dbを使用してクエリ実行
+            pass
+    """
+    async with async_session_maker() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 ```
 
-**設計の特徴**:
-- **DRY原則**: 全APIで同じ認証ロジックを再利用
-- **一貫性**: すべてのエンドポイントで統一されたエラーメッセージ
-- **テスタビリティ**: モック可能な依存性注入パターン
+#### 6.1.3 サービス層依存性（app/api/dependencies/services.py）
 
-#### 6.1.2 レート制限デコレータ（app/api/decorators/rate_limit.py）
+```python
+from typing import Annotated
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.services import (
+    StockDataService,
+    JPXStockService,
+    FundamentalDataService,
+    PortfolioService,
+    ScreeningService,
+    BacktestService,
+    AuthService,
+    UserService,
+    NotificationService
+)
+from .database import get_db
 
-API呼び出し頻度を制限し、過負荷を防止。
+async def get_stock_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> StockDataService:
+    """StockDataServiceを提供"""
+    return StockDataService(db)
 
-**実装例:**
+async def get_jpx_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> JPXStockService:
+    """JPXStockServiceを提供"""
+    return JPXStockService(db)
+
+async def get_fundamental_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> FundamentalDataService:
+    """FundamentalDataServiceを提供"""
+    return FundamentalDataService(db)
+
+async def get_portfolio_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> PortfolioService:
+    """PortfolioServiceを提供"""
+    return PortfolioService(db)
+
+async def get_screening_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> ScreeningService:
+    """ScreeningServiceを提供"""
+    return ScreeningService(db)
+
+async def get_backtest_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> BacktestService:
+    """BacktestServiceを提供"""
+    return BacktestService(db)
+
+async def get_auth_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> AuthService:
+    """AuthServiceを提供"""
+    return AuthService(db)
+
+async def get_user_service(
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> UserService:
+    """UserServiceを提供"""
+    return UserService(db)
+
+async def get_notification_service() -> NotificationService:
+    """NotificationServiceを提供（DBセッション不要）"""
+    return NotificationService()
+```
+
+### 6.2 レート制限デコレータ（app/api/decorators/rate_limit.py）
+
 ```python
 from fastapi import Request, HTTPException
 from functools import wraps
@@ -752,7 +895,6 @@ class RateLimiter:
     """レート制限管理クラス（スレッドセーフ実装）"""
 
     def __init__(self):
-        self._buckets = defaultdict(deque)
         self._windows = defaultdict(deque)
 
     def _client_key(self, request: Request) -> str:
@@ -762,19 +904,10 @@ class RateLimiter:
     def is_allowed(
         self,
         request: Request,
-        max_requests: int = 5,
-        window_seconds: int = 10
+        max_requests: int = 10,
+        window_seconds: int = 60
     ) -> bool:
-        """レート制限チェック
-
-        Args:
-            request: FastAPI Request
-            max_requests: 許可する最大リクエスト数
-            window_seconds: ウィンドウ時間（秒）
-
-        Returns:
-            リクエストが許可されるか
-        """
+        """レート制限チェック"""
         client = self._client_key(request)
         now = time.time()
         window = self._windows[client]
@@ -793,18 +926,12 @@ class RateLimiter:
 # シングルトンインスタンス
 _rate_limiter = RateLimiter()
 
-def rate_limit(max_requests: int = 5, window_seconds: int = 10):
-    """レート制限デコレータ（FastAPI用）
+def rate_limit(max_requests: int = 10, window_seconds: int = 60):
+    """レート制限デコレータ
 
     Args:
-        max_requests: 許可する最大リクエスト数（デフォルト: 5）
-        window_seconds: ウィンドウ時間（デフォルト: 10秒）
-
-    Usage:
-        @router.post("/api/limited")
-        @rate_limit(max_requests=10, window_seconds=60)
-        async def limited_endpoint(request: Request):
-            return {"message": "success"}
+        max_requests: 許可する最大リクエスト数
+        window_seconds: ウィンドウ時間（秒）
     """
     def decorator(func: Callable):
         @wraps(func)
@@ -819,27 +946,8 @@ def rate_limit(max_requests: int = 5, window_seconds: int = 10):
     return decorator
 ```
 
-**制限内容:**
-- クライアントIPごとに10秒間で5リクエストまで（デフォルト）
-- 超過時は429エラーを返却
+### 6.3 共通バリデータ（app/api/validators/common.py）
 
-**エラーレスポンス（429）:**
-```json
-{
-  "detail": "リクエストが多すぎます。しばらくしてから再度お試しください"
-}
-```
-
-**設計の特徴**:
-- **スレッドセーフ**: 並行リクエストに対応
-- **柔軟性**: エンドポイントごとに異なる制限を設定可能
-- **効率性**: メモリ効率の良いdeque使用
-
-#### 6.1.3 バリデーション関数（app/utils/validators.py）
-
-リクエストパラメータの検証ロジックを共通化。
-
-**実装例:**
 ```python
 from typing import Any, List, Optional, Tuple
 from fastapi import HTTPException
@@ -848,20 +956,7 @@ def validate_symbols(
     symbols: Any,
     max_count: int = 5000
 ) -> Tuple[bool, Optional[HTTPException]]:
-    """銘柄リストのバリデーション
-
-    Args:
-        symbols: 検証対象の銘柄リスト
-        max_count: 最大件数
-
-    Returns:
-        (成功/失敗, HTTPException or None)
-
-    Usage:
-        is_valid, error = validate_symbols(symbols)
-        if not is_valid:
-            raise error
-    """
+    """銘柄リストのバリデーション"""
     if not symbols or not isinstance(symbols, list):
         return False, HTTPException(
             status_code=400,
@@ -877,7 +972,7 @@ def validate_symbols(
     if len(symbols) > max_count:
         return False, HTTPException(
             status_code=413,
-            detail=f"一度に処理できる銘柄数は{max_count}件までです。現在: {len(symbols)}件"
+            detail=f"一度に処理できる銘柄数は{max_count}件までです"
         )
 
     return True, None
@@ -887,16 +982,7 @@ def validate_pagination(
     offset: Optional[int] = None,
     max_limit: int = 1000
 ) -> Tuple[int, int, Optional[HTTPException]]:
-    """ページネーションパラメータのバリデーション
-
-    Args:
-        limit: 取得件数
-        offset: オフセット
-        max_limit: 最大取得件数
-
-    Returns:
-        (limit, offset, HTTPException or None)
-    """
+    """ページネーションパラメータのバリデーション"""
     limit = limit or 100
     offset = offset or 0
 
@@ -927,16 +1013,8 @@ def validate_interval(interval: str) -> Tuple[bool, Optional[HTTPException]]:
     return True, None
 ```
 
-**設計の特徴**:
-- **DRY原則**: 全APIで同じバリデーションロジックを再利用
-- **一貫性**: すべてのエンドポイントで統一されたエラーメッセージ
-- **拡張性**: 新しいバリデーションルールの追加が容易
+### 6.4 エラーハンドラ（app/api/error_handlers.py）
 
-#### 6.1.4 エラーハンドラ（app/api/error_handlers.py）
-
-すべてのエンドポイントで統一されたエラーハンドリング。
-
-**実装例:**
 ```python
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
@@ -945,19 +1023,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 def register_error_handlers(router: APIRouter):
-    """APIRouterにエラーハンドラを登録
-
-    Args:
-        router: 登録対象のAPIRouter
-
-    Usage:
-        router = APIRouter()
-        register_error_handlers(router)
-    """
+    """APIRouterにエラーハンドラを登録"""
 
     @router.exception_handler(400)
     async def bad_request_handler(request: Request, exc: HTTPException):
-        """400エラーハンドラ"""
         logger.warning(f"Bad Request: {exc.detail}")
         return JSONResponse(
             status_code=400,
@@ -970,7 +1039,6 @@ def register_error_handlers(router: APIRouter):
 
     @router.exception_handler(401)
     async def unauthorized_handler(request: Request, exc: HTTPException):
-        """401エラーハンドラ"""
         logger.warning(f"Unauthorized: {exc.detail}")
         return JSONResponse(
             status_code=401,
@@ -982,7 +1050,6 @@ def register_error_handlers(router: APIRouter):
 
     @router.exception_handler(404)
     async def not_found_handler(request: Request, exc: HTTPException):
-        """404エラーハンドラ"""
         logger.warning(f"Not Found: {exc.detail}")
         return JSONResponse(
             status_code=404,
@@ -994,19 +1061,17 @@ def register_error_handlers(router: APIRouter):
 
     @router.exception_handler(429)
     async def rate_limit_handler(request: Request, exc: HTTPException):
-        """429エラーハンドラ"""
         logger.warning(f"Rate Limit Exceeded: {exc.detail}")
         return JSONResponse(
             status_code=429,
             content={
                 "error": "RATE_LIMIT_EXCEEDED",
-                "message": "リクエストが多すぎます。しばらくしてから再度お試しください"
+                "message": "リクエストが多すぎます"
             }
         )
 
     @router.exception_handler(500)
     async def internal_error_handler(request: Request, exc: Exception):
-        """500エラーハンドラ"""
         logger.error(f"Internal Server Error: {exc}", exc_info=True)
         return JSONResponse(
             status_code=500,
@@ -1015,26 +1080,9 @@ def register_error_handlers(router: APIRouter):
                 "message": "内部サーバーエラーが発生しました"
             }
         )
-
-    @router.exception_handler(Exception)
-    async def general_exception_handler(request: Request, exc: Exception):
-        """すべての例外をキャッチ"""
-        logger.error(f"Unhandled Exception: {exc}", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": "INTERNAL_SERVER_ERROR",
-                "message": f"予期しないエラーが発生しました: {str(exc)}"
-            }
-        )
 ```
 
-**設計の特徴**:
-- **一貫性**: すべてのエンドポイントで統一されたエラーレスポンス
-- **ロギング**: すべてのエラーを自動ログ記録
-- **保守性**: エラーハンドリングロジックの一元管理
-
-### 6.2 レスポンス形式 (Pydanticスキーマ)
+### 6.5 レスポンス形式（Pydanticスキーマ）
 
 全レスポンスはPydanticモデルで型安全に定義し、OpenAPI自動生成に対応。
 
@@ -1043,87 +1091,69 @@ def register_error_handlers(router: APIRouter):
 ```python
 from pydantic import BaseModel, Field
 from typing import Generic, TypeVar, Optional, List
+from datetime import datetime
 
 T = TypeVar('T')
 
 class MetaData(BaseModel):
     """メタデータ"""
-    timestamp: str = Field(..., description="レスポンス生成時刻")
-    request_id: Optional[str] = Field(None, description="リクエストID")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    request_id: Optional[str] = None
 
 class PaginationMeta(BaseModel):
     """ページネーションメタデータ"""
-    total: int = Field(..., description="総件数")
-    limit: int = Field(..., description="取得件数")
-    offset: int = Field(..., description="オフセット")
-    has_next: bool = Field(..., description="次のページの有無")
+    total: int
+    limit: int
+    offset: int
+    has_next: bool
 
 class SuccessResponse(BaseModel, Generic[T]):
     """成功レスポンス"""
-    status: str = Field(default="success", description="ステータス")
-    message: str = Field(..., description="メッセージ")
-    data: T = Field(..., description="データ")
-    meta: Optional[MetaData] = Field(None, description="メタデータ")
+    status: str = "success"
+    message: str
+    data: T
+    meta: Optional[MetaData] = Field(default_factory=MetaData)
 
 class PaginatedResponse(BaseModel, Generic[T]):
     """ページネーション対応レスポンス"""
-    status: str = Field(default="success")
-    message: str = Field(..., description="メッセージ")
-    data: List[T] = Field(..., description="データリスト")
-    meta: dict = Field(..., description="ページネーション情報")
+    status: str = "success"
+    message: str
+    data: List[T]
+    meta: dict
+
+class ErrorResponse(BaseModel):
+    """エラーレスポンス"""
+    error: str
+    message: str
+    details: Optional[dict] = None
+    meta: MetaData = Field(default_factory=MetaData)
 ```
-
-**使用例:**
-
-```python
-@router.get("/stocks", response_model=PaginatedResponse[StockData])
-async def get_stocks(limit: int = 10, offset: int = 0):
-    stocks = await stock_service.get_stocks(limit, offset)
-    total = await stock_service.count_stocks()
-
-    return PaginatedResponse(
-        message="銘柄一覧を取得しました",
-        data=stocks,
-        meta={
-            "pagination": {
-                "total": total,
-                "limit": limit,
-                "offset": offset,
-                "has_next": offset + limit < total
-            }
-        }
-    )
-```
-
-**OpenAPI自動生成:**
-上記のPydanticスキーマから、FastAPIが自動的にSwagger UI/ReDocを生成
 
 ---
 
 ## 7. エンドポイント詳細
 
-### 7.1 一括データ取得API (Batch Data API)
+### 7.1 一括データ取得API（Batch Data API）
 
 **APIRouter**: `batch_router` (`/api/batch`)
 
 #### 一括データ取得
 
-| 項目                 | 内容                                 |
-| -------------------- | ------------------------------------ |
-| **エンドポイント**   | `POST /api/batch/jobs`               |
-| **機能**             | 複数銘柄の株価データを非同期並列取得 |
-| **認証**             | 必須（`Depends(verify_api_key)`）    |
-| **レート制限**       | あり（SlowAPI: 10秒/5リクエスト）    |
-| **非同期**           | はい（BackgroundTasks使用）          |
-| **リクエストモデル** | `BatchFetchRequest`                  |
-| **レスポンスモデル** | `BatchFetchResponse`                 |
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/batch/jobs`                |
+| 機能               | 複数銘柄の株価データを非同期並列取得  |
+| 認証               | 必須（`Depends(verify_api_key)`）     |
+| レート制限         | 10リクエスト/60秒                     |
+| リクエストモデル   | `BatchFetchRequest`                   |
+| レスポンスモデル   | `BatchFetchResponse`                  |
 
 **Pydanticリクエストスキーマ:**
 ```python
 class BatchFetchRequest(BaseModel):
-    symbols: List[str] = Field(..., description="銘柄コードリスト", max_items=5000)
-    interval: str = Field(default="1d", description="時間軸")
-    period: str = Field(default="5d", description="取得期間")
+    symbols: List[str] = Field(..., max_items=5000)
+    interval: str = Field(default="1d")
+    period: str = Field(default="5d")
 ```
 
 **レスポンス（202 Accepted）:**
@@ -1140,335 +1170,771 @@ class BatchFetchRequest(BaseModel):
 }
 ```
 
-**Pydanticレスポンススキーマ:**
-```python
-class BatchFetchResponse(SuccessResponse[BatchFetchData]):
-    pass
-
-class BatchFetchData(BaseModel):
-    job_id: str
-    batch_db_id: Optional[int]
-    status: str
-    total_symbols: int
-```
-
-**バリデーション（Pydantic自動）:**
-- `symbols`: 文字列リスト必須、最大5000件
-- `interval`: デフォルト `"1d"`
-- `period`: デフォルト `"5d"`
-
 #### JPX全銘柄順次取得
 
-| 項目                 | 内容                                     |
-| -------------------- | ---------------------------------------- |
-| **エンドポイント**   | `POST /api/batch/jpx-sequential/jobs`    |
-| **機能**             | JPX全銘柄を8種類の時間軸で非同期順次取得 |
-| **認証**             | 必須（`Depends(verify_api_key)`）        |
-| **レート制限**       | あり（SlowAPI）                          |
-| **非同期**           | はい（BackgroundTasks使用）              |
-| **リクエストモデル** | `JPXSequentialRequest`                   |
-| **レスポンスモデル** | `JPXSequentialResponse`                  |
+| 項目               | 内容                                     |
+| ------------------ | ---------------------------------------- |
+| エンドポイント     | `POST /api/batch/jpx-sequential/jobs`    |
+| 機能               | JPX全銘柄を8種類の時間軸で非同期順次取得 |
+| 認証               | 必須（`Depends(verify_api_key)`）        |
+| レート制限         | 10リクエスト/60秒                        |
+| リクエストモデル   | `JPXSequentialRequest`                   |
+| レスポンスモデル   | `JPXSequentialResponse`                  |
 
-**Pydanticリクエストスキーマ:**
-```python
-class JPXSequentialRequest(BaseModel):
-    symbols: Optional[List[str]] = Field(None, description="銘柄リスト（省略時は全銘柄）")
-```
+#### ジョブステータス取得
 
-**レスポンス（202 Accepted）:**
+| 項目               | 内容                               |
+| ------------------ | ---------------------------------- |
+| エンドポイント     | `GET /api/batch/jobs/{job_id}`     |
+| 機能               | ジョブの進捗状況を取得             |
+| 認証               | 必須（`Depends(verify_api_key)`）  |
+| レスポンスモデル   | `JobStatusResponse`                |
+
+#### ジョブ停止
+
+| 項目               | 内容                               |
+| ------------------ | ---------------------------------- |
+| エンドポイント     | `DELETE /api/batch/jobs/{job_id}`  |
+| 機能               | 実行中のジョブを停止               |
+| 認証               | 必須（`Depends(verify_api_key)`）  |
+| レスポンスモデル   | `JobStopResponse`                  |
+
+#### JPX銘柄一覧取得
+
+| 項目               | 内容                                        |
+| ------------------ | ------------------------------------------- |
+| エンドポイント     | `GET /api/batch/jpx-sequential/get-symbols` |
+| 機能               | JPX銘柄一覧を取得                           |
+| 認証               | 必須（`Depends(verify_api_key)`）           |
+| ページネーション   | あり                                        |
+| レスポンスモデル   | `PaginatedResponse[JPXSymbol]`              |
+
+---
+
+### 7.2 銘柄マスタAPI（Stock Master API）
+
+**APIRouter**: `stock_master_router` (`/api/stock-master`)
+
+#### 銘柄マスタ更新
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/stock-master/`             |
+| 機能               | JPXから最新の銘柄一覧を取得してDB更新 |
+| 認証               | 必須（`Depends(verify_api_key)`）     |
+| リクエストモデル   | `StockMasterUpdateRequest`            |
+| レスポンスモデル   | `StockMasterUpdateResponse`           |
+
+#### 銘柄マスタ一覧取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/stock-master/`              |
+| 機能               | 銘柄マスタ一覧を取得                  |
+| 認証               | 必須（`Depends(verify_api_key)`）     |
+| ページネーション   | あり                                  |
+| レスポンスモデル   | `PaginatedResponse[StockMasterData]`  |
+
+#### 銘柄検索
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/stock-master/stocks`        |
+| 機能               | 銘柄コード/名称で検索                 |
+| 認証               | 必須（`Depends(verify_api_key)`）     |
+| クエリパラメータ   | query, market_category, is_active     |
+| レスポンスモデル   | `PaginatedResponse[StockMasterData]`  |
+
+#### 銘柄マスタステータス取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/stock-master/status`        |
+| 機能               | 銘柄マスタの統計情報を取得            |
+| 認証               | 必須（`Depends(verify_api_key)`）     |
+| レスポンスモデル   | `StockMasterStatusResponse`           |
+
+---
+
+### 7.3 株価データAPI（Stock Data API）
+
+**APIRouter**: `stock_data_router` (`/api/stocks`)
+
+#### 株価データ一覧取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/stocks`                     |
+| 機能               | 株価データ一覧を取得                  |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| ページネーション   | あり                                  |
+| クエリパラメータ   | symbol, interval, limit, offset       |
+| レスポンスモデル   | `PaginatedResponse[StockData]`        |
+
+#### 株価チャート取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/stocks/{symbol}/chart`      |
+| 機能               | 指定銘柄のチャートデータを取得        |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| クエリパラメータ   | interval, period                      |
+| レスポンスモデル   | `ChartDataResponse`                   |
+
+**レスポンス:**
 ```json
 {
   "status": "success",
-  "message": "JPX全銘柄順次取得ジョブを開始しました",
+  "message": "チャートデータを取得しました",
   "data": {
-    "job_id": "jpx-seq-1704700800000",
-    "batch_db_id": 124,
-    "status": "accepted",
-    "total_symbols": 4000,
-    "intervals": ["1d", "1wk", "1mo", "1h", "30m", "15m", "5m", "1m"]
+    "symbol": "7203.T",
+    "interval": "1d",
+    "period": "1mo",
+    "candles": [
+      {
+        "timestamp": "2025-01-01T00:00:00Z",
+        "open": 1500.0,
+        "high": 1550.0,
+        "low": 1480.0,
+        "close": 1520.0,
+        "volume": 1000000
+      }
+    ],
+    "indicators": {
+      "sma_20": [1510.0, 1515.0],
+      "ema_20": [1512.0, 1517.0]
+    }
   }
 }
 ```
 
-**処理フロー:**
-1. 8種類の時間軸（`1d`, `1wk`, `1mo`, `1h`, `30m`, `15m`, `5m`, `1m`）を順次処理
-2. 各時間軸で全銘柄を非同期並列取得（`asyncio.gather()`）
-3. 進捗をStarlette WebSocketで配信
+#### 銘柄比較
 
-#### ジョブステータス取得
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/stocks/compare`            |
+| 機能               | 複数銘柄の比較データを取得            |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `CompareStocksRequest`                |
+| レスポンスモデル   | `CompareStocksResponse`               |
 
-| 項目                 | 内容                                             |
-| -------------------- | ------------------------------------------------ |
-| **エンドポイント**   | `GET /api/batch/jobs/{job_id}`                   |
-| **機能**             | 実行中または完了したジョブの進捗状況を非同期取得 |
-| **認証**             | 必須（`Depends(verify_api_key)`）                |
-| **レート制限**       | あり                                             |
-| **レスポンスモデル** | `JobStatusResponse`                              |
+**リクエスト:**
+```json
+{
+  "symbols": ["7203.T", "6758.T", "9984.T"],
+  "interval": "1d",
+  "period": "1mo"
+}
+```
 
-**Pydanticレスポンススキーマ:**
-```python
-class JobProgress(BaseModel):
-    total: int
-    processed: int
-    successful: int
-    failed: int
-    progress_percentage: float
+---
 
-class JobStatus(BaseModel):
-    id: str
-    status: Literal["running", "completed", "failed", "stopped"]
-    progress: JobProgress
-    created_at: datetime
-    updated_at: datetime
+### 7.4 ファンダメンタルデータAPI（Fundamental Data API）
 
-class JobStatusResponse(SuccessResponse[JobStatus]):
-    pass
+**APIRouter**: `fundamental_router` (`/api/fundamental`)
+
+#### ファンダメンタルデータ取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/fundamental/fetch`         |
+| 機能               | Yahoo FinanceからFデータを取得        |
+| 認証               | 必須（`Depends(verify_api_key)`）     |
+| リクエストモデル   | `FetchFundamentalRequest`             |
+| レスポンスモデル   | `FetchFundamentalResponse`            |
+
+#### ファンダメンタルデータ参照
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/fundamental/{symbol}`       |
+| 機能               | 指定銘柄のFデータを取得               |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `FundamentalDataResponse`             |
+
+**レスポンス:**
+```json
+{
+  "status": "success",
+  "message": "ファンダメンタルデータを取得しました",
+  "data": {
+    "symbol": "7203.T",
+    "fiscal_year": 2024,
+    "quarter": null,
+    "eps": 250.5,
+    "bps": 3500.0,
+    "per": 12.5,
+    "pbr": 0.9,
+    "roe": 8.5,
+    "dividend_yield": 2.5,
+    "market_cap": 15000000000000,
+    "revenue": 30000000000000,
+    "operating_profit": 2500000000000,
+    "net_profit": 2000000000000,
+    "equity_ratio": 45.0,
+    "updated_at": "2025-01-08T10:00:00Z"
+  }
+}
+```
+
+#### ファンダメンタルデータ履歴取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/fundamental/{symbol}/history` |
+| 機能               | 指定銘柄のFデータ履歴を取得           |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| クエリパラメータ   | years                                 |
+| レスポンスモデル   | `FundamentalHistoryResponse`          |
+
+---
+
+### 7.5 ポートフォリオAPI（Portfolio API）
+
+**APIRouter**: `portfolio_router` (`/api/portfolio`)
+
+#### ポートフォリオサマリ取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/portfolio/summary`          |
+| 機能               | ポートフォリオの概況を取得            |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `PortfolioSummaryResponse`            |
+
+**レスポンス:**
+```json
+{
+  "status": "success",
+  "message": "ポートフォリオ概況を取得しました",
+  "data": {
+    "total_value": 5000000,
+    "total_cost": 4500000,
+    "total_profit": 500000,
+    "profit_rate": 11.11,
+    "holdings_count": 10,
+    "updated_at": "2025-01-08T10:00:00Z"
+  }
+}
+```
+
+#### 保有銘柄一覧取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/portfolio/holdings`         |
+| 機能               | 保有銘柄一覧を取得                    |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `PaginatedResponse[HoldingData]`      |
+
+#### 保有銘柄追加
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/portfolio/holdings`        |
+| 機能               | 保有銘柄を追加                        |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `AddHoldingRequest`                   |
+| レスポンスモデル   | `HoldingResponse`                     |
+
+#### 保有銘柄更新
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `PUT /api/portfolio/holdings/{id}`    |
+| 機能               | 保有銘柄を更新                        |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `UpdateHoldingRequest`                |
+| レスポンスモデル   | `HoldingResponse`                     |
+
+#### 保有銘柄削除
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `DELETE /api/portfolio/holdings/{id}` |
+| 機能               | 保有銘柄を削除                        |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `SuccessResponse`                     |
+
+---
+
+### 7.6 市場インデックスAPI（Market Indices API）
+
+**APIRouter**: `indices_router` (`/api/indices`)
+
+#### インデックス一覧取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/indices/list`               |
+| 機能               | 主要インデックス一覧を取得            |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `IndicesListResponse`                 |
+
+**レスポンス:**
+```json
+{
+  "status": "success",
+  "message": "インデックス一覧を取得しました",
+  "data": [
+    {
+      "index_code": "NK225",
+      "index_name": "日経平均株価",
+      "current_value": 33000.0,
+      "change": 150.0,
+      "change_percent": 0.45,
+      "updated_at": "2025-01-08T10:00:00Z"
+    },
+    {
+      "index_code": "TOPIX",
+      "index_name": "東証株価指数",
+      "current_value": 2300.0,
+      "change": 10.0,
+      "change_percent": 0.43,
+      "updated_at": "2025-01-08T10:00:00Z"
+    }
+  ]
+}
+```
+
+#### インデックス履歴取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/indices/{index_code}/history` |
+| 機能               | 指定インデックスの履歴を取得          |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| クエリパラメータ   | interval, period                      |
+| レスポンスモデル   | `IndexHistoryResponse`                |
+
+---
+
+### 7.7 スクリーニングAPI（Screening API）
+
+**APIRouter**: `screening_router` (`/api/screening`)
+
+#### スクリーニング実行
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/screening/execute`         |
+| 機能               | スクリーニング条件に基づき銘柄絞込    |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `ScreeningRequest`                    |
+| レスポンスモデル   | `ScreeningResponse`                   |
+
+**リクエスト:**
+```json
+{
+  "conditions": [
+    {
+      "field": "per",
+      "operator": "lt",
+      "value": 15
+    },
+    {
+      "field": "roe",
+      "operator": "gte",
+      "value": 10
+    },
+    {
+      "field": "dividend_yield",
+      "operator": "gte",
+      "value": 3.0
+    }
+  ],
+  "logic": "AND",
+  "sort_by": "per",
+  "sort_order": "asc",
+  "limit": 100
+}
 ```
 
 **レスポンス:**
 ```json
 {
   "status": "success",
-  "message": "ジョブステータスを取得しました",
+  "message": "スクリーニングが完了しました",
   "data": {
-    "id": "job-1704700800000",
-    "status": "running",
-    "progress": {
-      "total": 100,
-      "processed": 50,
-      "successful": 48,
-      "failed": 2,
-      "progress_percentage": 50.0
-    },
-    "created_at": "2025-01-08T10:00:00Z",
-    "updated_at": "2025-01-08T10:00:50Z"
+    "result_id": 123,
+    "matched_count": 45,
+    "stocks": [
+      {
+        "symbol": "7203.T",
+        "name": "トヨタ自動車",
+        "per": 12.5,
+        "roe": 12.0,
+        "dividend_yield": 3.5
+      }
+    ]
   }
 }
 ```
 
-**ステータス値（Literal型で型安全）:**
-- `running`: 実行中
-- `completed`: 完了
-- `failed`: 失敗
-- `stopped`: 停止
+#### プリセット条件一覧取得
 
-#### ジョブ停止
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/screening/presets`          |
+| 機能               | プリセット条件一覧を取得              |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `PresetsResponse`                     |
 
-| 項目                 | 内容                              |
-| -------------------- | --------------------------------- |
-| **エンドポイント**   | `DELETE /api/batch/jobs/{job_id}` |
-| **機能**             | 実行中のジョブを非同期停止        |
-| **認証**             | 必須（`Depends(verify_api_key)`） |
-| **レート制限**       | あり                              |
-| **レスポンスモデル** | `JobStopResponse`                 |
+#### スクリーニング結果保存
 
-#### JPX銘柄一覧取得
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/screening/save`            |
+| 機能               | スクリーニング条件を保存              |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `SaveScreeningRequest`                |
+| レスポンスモデル   | `SaveScreeningResponse`               |
 
-| 項目                 | 内容                                          |
-| -------------------- | --------------------------------------------- |
-| **エンドポイント**   | `GET /api/batch/jpx-sequential/get-symbols`   |
-| **機能**             | データベースから有効なJPX銘柄一覧を非同期取得 |
-| **認証**             | 必須（`Depends(verify_api_key)`）             |
-| **レート制限**       | あり                                          |
-| **レスポンスモデル** | `PaginatedResponse[JPXSymbol]`                |
+#### 保存済み条件一覧取得
 
-**クエリパラメータ（Pydantic自動バリデーション）:**
-```python
-async def get_jpx_symbols(
-    limit: int = Query(default=100, ge=1, le=1000),
-    offset: int = Query(default=0, ge=0)
-):
-    ...
-```
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/screening/list`             |
+| 機能               | 保存済み条件一覧を取得                |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `PaginatedResponse[ScreeningCondition]` |
+
+#### 結果エクスポート
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/screening/{id}/export`      |
+| 機能               | スクリーニング結果をCSV/Excelで出力   |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| クエリパラメータ   | format (csv/excel)                    |
+| レスポンス         | ファイルダウンロード                  |
 
 ---
 
-### 7.2 Stock Master API
+### 7.8 バックテストAPI（Backtest API）
 
-**APIRouter**: `stock_master_router` (`/api/stock-master`)
+**APIRouter**: `backtest_router` (`/api/backtest`)
 
-#### 銘柄マスタ更新
+#### バックテスト開始
 
-| 項目                 | 内容                                          |
-| -------------------- | --------------------------------------------- |
-| **エンドポイント**   | `POST /api/stock-master/`                     |
-| **機能**             | JPXから最新の銘柄一覧を非同期取得してDBを更新 |
-| **認証**             | 必須（`Depends(verify_api_key)`）             |
-| **処理時間**         | 長時間（数分程度、非同期処理）                |
-| **リクエストモデル** | `StockMasterUpdateRequest`                    |
-| **レスポンスモデル** | `StockMasterUpdateResponse`                   |
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/backtest/start`            |
+| 機能               | バックテストを開始                    |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `BacktestRequest`                     |
+| レスポンスモデル   | `BacktestJobResponse`                 |
 
-**Pydanticリクエストスキーマ:**
-```python
-class StockMasterUpdateRequest(BaseModel):
-    update_type: Literal["manual", "scheduled"] = Field(
-        default="manual",
-        description="更新タイプ"
-    )
+**リクエスト:**
+```json
+{
+  "symbol": "7203.T",
+  "strategy": "sma_cross",
+  "parameters": {
+    "short_window": 20,
+    "long_window": 50
+  },
+  "start_date": "2023-01-01",
+  "end_date": "2024-12-31",
+  "initial_capital": 1000000,
+  "commission": 0.001
+}
 ```
 
-**レスポンス（200 OK）:**
+**レスポンス（202 Accepted）:**
 ```json
 {
   "status": "success",
-  "message": "銘柄マスタの更新が完了しました",
+  "message": "バックテストを開始しました",
   "data": {
-    "update_type": "manual",
-    "total_stocks": 3800,
-    "added_stocks": 50,
-    "updated_stocks": 3700,
-    "removed_stocks": 10,
-    "status": "success"
+    "job_id": "bt-1704700800000",
+    "status": "running"
   }
 }
 ```
 
-**Pydanticレスポンススキーマ:**
-```python
-class StockMasterUpdateData(BaseModel):
-    update_type: str
-    total_stocks: int
-    added_stocks: int
-    updated_stocks: int
-    removed_stocks: int
-    status: str
+#### バックテストステータス取得
 
-class StockMasterUpdateResponse(SuccessResponse[StockMasterUpdateData]):
-    pass
-```
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/backtest/{id}/status`       |
+| 機能               | バックテストの進捗を取得              |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `BacktestStatusResponse`              |
 
-**エラーハンドリング（HTTPException）:**
-- `500`: JPXサイトからのダウンロード失敗
-- `500`: データパース失敗
-- `500`: データベース更新失敗
+#### バックテスト結果取得
 
-#### 銘柄マスタ一覧取得
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/backtest/{id}/result`       |
+| 機能               | バックテスト結果を取得                |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `BacktestResultResponse`              |
 
-| 項目                 | 内容                                                         |
-| -------------------- | ------------------------------------------------------------ |
-| **エンドポイント**   | `GET /api/stock-master/` <br> `GET /api/stock-master/stocks` |
-| **機能**             | データベースに保存されている銘柄マスタ一覧を非同期取得       |
-| **認証**             | 必須（`Depends(verify_api_key)`）                            |
-| **ページネーション** | あり（Pydantic自動バリデーション）                           |
-| **レスポンスモデル** | `PaginatedResponse[StockMasterData]`                         |
-
-**Pydanticクエリパラメータスキーマ:**
-```python
-class StockMasterListParams(BaseModel):
-    is_active: Optional[Literal["true", "false", "all"]] = Field(
-        default="true",
-        description="有効/無効フィルタ"
-    )
-    market_category: Optional[str] = Field(
-        None,
-        description="市場区分で部分一致フィルタ"
-    )
-    limit: int = Query(default=100, ge=1, le=1000)
-    offset: int = Query(default=0, ge=0)
-```
-
-**レスポンス（200 OK）:**
+**レスポンス:**
 ```json
 {
   "status": "success",
-  "message": "銘柄一覧を取得しました",
-  "data": [
-    {
-      "id": 1,
-      "stock_code": "1301",
-      "stock_name": "極洋",
-      "market_category": "プライム",
-      "sector_33": "水産・農林業",
-      "sector_17": "食品",
-      "is_active": true,
-      "created_at": "2025-01-01T00:00:00Z",
-      "updated_at": "2025-01-08T00:00:00Z"
-    }
-  ],
-  "meta": {
-    "pagination": {
-      "total": 3800,
-      "limit": 100,
-      "offset": 0,
-      "has_next": true
-    }
-  }
-}
-```
-
-**Pydanticレスポンススキーマ:**
-```python
-class StockMasterData(BaseModel):
-    id: int
-    stock_code: str
-    stock_name: str
-    market_category: str
-    sector_33: Optional[str]
-    sector_17: Optional[str]
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-```
-
-#### 銘柄マスタステータス取得
-
-| 項目                 | 内容                              |
-| -------------------- | --------------------------------- |
-| **エンドポイント**   | `GET /api/stock-master/status`    |
-| **機能**             | 銘柄マスタの統計情報を非同期取得  |
-| **認証**             | 必須（`Depends(verify_api_key)`） |
-| **レスポンスモデル** | `StockMasterStatusResponse`       |
-
-**レスポンス（200 OK）:**
-```json
-{
-  "status": "success",
-  "message": "銘柄マスタステータスを取得しました",
+  "message": "バックテスト結果を取得しました",
   "data": {
-    "total_stocks": 3800,
-    "active_stocks": 3750,
-    "inactive_stocks": 50,
-    "market_categories": {
-      "プライム": 1800,
-      "スタンダード": 1500,
-      "グロース": 500
+    "job_id": "bt-1704700800000",
+    "symbol": "7203.T",
+    "strategy": "sma_cross",
+    "metrics": {
+      "total_return": 15.5,
+      "sharpe_ratio": 1.25,
+      "max_drawdown": -8.5,
+      "win_rate": 55.0,
+      "total_trades": 120,
+      "winning_trades": 66,
+      "losing_trades": 54,
+      "average_profit": 5000,
+      "average_loss": -3000
     },
-    "last_updated": "2025-01-08T10:00:00Z"
+    "equity_curve": [
+      {"date": "2023-01-01", "value": 1000000},
+      {"date": "2023-01-02", "value": 1005000}
+    ]
   }
 }
 ```
+
+#### 取引履歴取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/backtest/{id}/trades`       |
+| 機能               | バックテストの取引履歴を取得          |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `PaginatedResponse[Trade]`            |
+
+#### ジョブ一覧取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/backtest/jobs`              |
+| 機能               | バックテストジョブ一覧を取得          |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `PaginatedResponse[BacktestJob]`      |
+
+#### ジョブキャンセル
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `DELETE /api/backtest/{id}/cancel`    |
+| 機能               | 実行中のバックテストをキャンセル      |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `SuccessResponse`                     |
 
 ---
 
-### 7.3 System Monitoring API
+### 7.9 ユーザー管理API（User API）
+
+**APIRouter**: `user_router` (`/api/user`)
+
+#### プロフィール取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/user/profile`               |
+| 機能               | ユーザープロフィールを取得            |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `UserProfileResponse`                 |
+
+#### プロフィール更新
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `PUT /api/user/profile`               |
+| 機能               | ユーザープロフィールを更新            |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `UpdateProfileRequest`                |
+| レスポンスモデル   | `UserProfileResponse`                 |
+
+#### パスワード変更
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `PUT /api/user/password`              |
+| 機能               | パスワードを変更                      |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `ChangePasswordRequest`               |
+| レスポンスモデル   | `SuccessResponse`                     |
+
+#### ユーザー設定取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/user/settings`              |
+| 機能               | ユーザー設定を取得                    |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `UserSettingsResponse`                |
+
+#### ユーザー設定更新
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `PUT /api/user/settings`              |
+| 機能               | ユーザー設定を更新                    |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `UpdateSettingsRequest`               |
+| レスポンスモデル   | `UserSettingsResponse`                |
+
+---
+
+### 7.10 認証API（Auth API）
+
+**APIRouter**: `auth_router` (`/api/auth`)
+
+#### ログイン
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/auth/login`                |
+| 機能               | JWT認証によるログイン                 |
+| 認証               | 不要                                  |
+| リクエストモデル   | `LoginRequest`                        |
+| レスポンスモデル   | `LoginResponse`                       |
+
+**リクエスト:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**レスポンス:**
+```json
+{
+  "status": "success",
+  "message": "ログインに成功しました",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_in": 3600
+  }
+}
+```
+
+#### ログアウト
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/auth/logout`               |
+| 機能               | ログアウト                            |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `SuccessResponse`                     |
+
+#### ユーザー登録
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/auth/register`             |
+| 機能               | 新規ユーザー登録                      |
+| 認証               | 不要                                  |
+| リクエストモデル   | `RegisterRequest`                     |
+| レスポンスモデル   | `RegisterResponse`                    |
+
+#### トークンリフレッシュ
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/auth/refresh`              |
+| 機能               | アクセストークンをリフレッシュ        |
+| 認証               | リフレッシュトークン必須              |
+| リクエストモデル   | `RefreshTokenRequest`                 |
+| レスポンスモデル   | `TokenResponse`                       |
+
+---
+
+### 7.11 通知API（Notification API）
+
+**APIRouter**: `notification_router` (`/api/notifications`)
+
+#### 通知設定取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/user/notification-settings` |
+| 機能               | 通知設定を取得                        |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `NotificationSettingsResponse`        |
+
+#### 通知設定更新
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `PUT /api/user/notification-settings` |
+| 機能               | 通知設定を更新                        |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `UpdateNotificationSettingsRequest`   |
+| レスポンスモデル   | `NotificationSettingsResponse`        |
+
+#### アラート作成
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `POST /api/user/alerts`               |
+| 機能               | 株価アラートを作成                    |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| リクエストモデル   | `CreateAlertRequest`                  |
+| レスポンスモデル   | `AlertResponse`                       |
+
+**リクエスト:**
+```json
+{
+  "symbol": "7203.T",
+  "condition": "price_above",
+  "threshold": 2000.0,
+  "notification_method": "email"
+}
+```
+
+#### アラート一覧取得
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/user/alerts`                |
+| 機能               | 設定済みアラート一覧を取得            |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `PaginatedResponse[Alert]`            |
+
+#### アラート削除
+
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `DELETE /api/user/alerts/{id}`        |
+| 機能               | アラートを削除                        |
+| 認証               | 必須（`Depends(get_current_user)`）   |
+| レスポンスモデル   | `SuccessResponse`                     |
+
+---
+
+### 7.12 システム監視API（System Monitoring API）
 
 **APIRouter**: `system_router` (`/api/system`)
 
-#### ヘルスチェック
+#### ヘルスチェック（簡易）
 
-| 項目                 | 内容                                                             |
-| -------------------- | ---------------------------------------------------------------- |
-| **エンドポイント**   | `GET /api/system/health` <br> `GET /api/system/health-check`     |
-| **機能**             | システム全体の稼働状態を非同期並列チェック（`asyncio.gather()`） |
-| **認証**             | 不要                                                             |
-| **チェック項目**     | データベース接続（asyncpg）、Yahoo Finance API接続               |
-| **レスポンスモデル** | `HealthCheckResponse`                                            |
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/system/health`              |
+| 機能               | システムの稼働状態を確認              |
+| 認証               | 不要                                  |
+| レスポンスモデル   | `HealthCheckResponse`                 |
 
-**Pydanticレスポンススキーマ:**
-```python
-class ServiceStatus(BaseModel):
-    status: Literal["healthy", "warning", "error"]
-    message: str
+#### ヘルスチェック（詳細）
 
-class HealthCheckData(BaseModel):
-    overall_status: Literal["healthy", "degraded", "error"]
-    services: Dict[str, ServiceStatus]
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/system/health-check`        |
+| 機能               | システムの詳細な稼働状態を確認        |
+| 認証               | 不要                                  |
+| レスポンスモデル   | `DetailedHealthCheckResponse`         |
 
-class HealthCheckResponse(SuccessResponse[HealthCheckData]):
-    pass
-```
-
-**レスポンス（200 OK - 正常時）:**
+**レスポンス:**
 ```json
 {
   "status": "success",
@@ -1478,92 +1944,47 @@ class HealthCheckResponse(SuccessResponse[HealthCheckData]):
     "services": {
       "database": {
         "status": "healthy",
-        "message": "接続正常"
+        "message": "接続正常",
+        "response_time_ms": 5
       },
       "yahoo_finance_api": {
         "status": "healthy",
-        "message": "API接続正常"
+        "message": "API接続正常",
+        "response_time_ms": 150
+      },
+      "cache": {
+        "status": "healthy",
+        "message": "キャッシュ動作中",
+        "hit_rate": 85.5
       }
     }
-  },
-  "meta": {
-    "timestamp": "2025-01-08T10:00:00Z"
   }
 }
 ```
 
-**ステータス値（Literal型で型安全）:**
-- `healthy`: 正常
-- `degraded`: 一部サービスに問題あり
-- `error`: 重大な問題あり
+#### システムメトリクス取得
 
-**個別サービスステータス:**
-- `healthy`: 正常
-- `warning`: 警告（データ取得できず等）
-- `error`: エラー（接続失敗等）
+| 項目               | 内容                                  |
+| ------------------ | ------------------------------------- |
+| エンドポイント     | `GET /api/system/metrics`             |
+| 機能               | システムメトリクスを取得              |
+| 認証               | 必須（`Depends(verify_api_key)`）     |
+| レスポンスモデル   | `SystemMetricsResponse`               |
 
-**レスポンス（200 OK - 異常時）:**
+**レスポンス:**
 ```json
 {
   "status": "success",
-  "message": "システムヘルスチェックが完了しました",
+  "message": "システムメトリクスを取得しました",
   "data": {
-    "overall_status": "error",
-    "services": {
-      "database": {
-        "status": "error",
-        "message": "接続エラー: connection refused"
-      },
-      "yahoo_finance_api": {
-        "status": "healthy",
-        "message": "API接続正常"
-      }
-    }
-  },
-  "meta": {
-    "timestamp": "2025-01-08T10:00:00Z"
+    "cpu_usage": 45.5,
+    "memory_usage": 60.2,
+    "disk_usage": 55.0,
+    "active_connections": 25,
+    "requests_per_minute": 150,
+    "average_response_time_ms": 120
   }
 }
-```
-
----
-
-## FastAPI特有の機能
-
-### OpenAPI/Swagger UI自動生成
-
-FastAPIは以下のURLで自動的にAPIドキュメントを提供します:
-
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPIスキーマ**: `http://localhost:8000/openapi.json`
-
-すべてのPydanticスキーマから自動生成され、手動メンテナンス不要です。
-
-### 依存性注入パターン
-
-```python
-# app/dependencies.py
-from fastapi import Depends, Header, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Annotated
-
-async def get_db() -> AsyncSession:
-    """非同期DB接続を提供"""
-    async with async_session_maker() as session:
-        yield session
-
-async def verify_api_key(x_api_key: Annotated[str, Header()]) -> bool:
-    """APIキー検証"""
-    if x_api_key != settings.API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API Key")
-    return True
-
-async def get_stock_service(
-    db: Annotated[AsyncSession, Depends(get_db)]
-) -> StockDataService:
-    """StockDataServiceを提供"""
-    return StockDataService(db)
 ```
 
 ---
@@ -1574,8 +1995,7 @@ async def get_stock_service(
 - [サービス層仕様書](./service_layer.md)
 - [データアクセス層仕様書](./data_access_layer.md)
 - [APIリファレンス](../../api/api_reference.md)
-- [API層リファクタリング計画](../../tasks/refactoring/api_layer_plan.md)
 
 ---
 
-**最終更新**: 2025-01-15
+**最終更新**: 2025-11-16

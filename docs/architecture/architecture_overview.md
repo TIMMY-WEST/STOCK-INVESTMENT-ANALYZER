@@ -1,6 +1,6 @@
 category: architecture
 ai_context: high
-last_updated: 2025-11-15
+last_updated: 2025-11-16
 related_docs:
   - ./component_dependency.md
   - ./service_responsibilities.md
@@ -62,61 +62,61 @@ frontend_spec.mdに定義された6つの主要機能を実現するためのシ
 
 | 機能                           | できること                                                                                                                    | エンドポイント/技術                            | 実装レイヤー                            |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------- |
-| **JPX全銘柄取得**              | 4,000銘柄以上を自動取得<br>バッチ実行履歴の記録                                                                               | 既存: `POST /api/batch/jpx-sequential/start`    | API層<br>サービス層                     |
-| **マルチタイムフレーム管理**   | 8種類の時間軸データを自動振り分け<br>(1分足、5分足、15分足、30分足、1時間足、1日足、1週足、1月足)<br>重複チェックとUPSERT操作 | 既存: サービス層(StockDataSaver)               | サービス層<br>データアクセス層          |
-| **ファンダメンタルデータ取得** | EPS、BPS、売上、営業利益、純利益、ROE、自己資本比率等の財務指標取得                                                           | `POST /api/fetch-fundamental`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層 |
+| **JPX全銘柄取得**              | 4,000銘柄以上を自動取得<br>バッチ実行履歴の記録                                                                               | `POST /api/batch/jpx-sequential/start`    | API層<br>サービス層                     |
+| **マルチタイムフレーム管理**   | 8種類の時間軸データを自動振り分け<br>(1分足、5分足、15分足、30分足、1時間足、1日足、1週足、1月足)<br>重複チェックとUPSERT操作 | サービス層(StockDataSaver)               | サービス層<br>データアクセス層          |
+| **ファンダメンタルデータ取得** | EPS、BPS、売上、営業利益、純利益、ROE、自己資本比率等の財務指標取得<br>Yahoo Finance APIから財務データを取得し、fundamental_dataテーブルに格納<br>年次・四半期データの両方をサポート | `POST /api/fundamental/fetch`<br>`GET /api/fundamental/{symbol}` | API層<br>サービス層<br>データアクセス層 |
 
 ### 2. ダッシュボード
 
 | 機能                         | できること                               | エンドポイント/画面                                 | 実装レイヤー                                                    |
 | ---------------------------- | ---------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------- |
-| **ポートフォリオ概況表示**   | ポートフォリオ評価額、保有銘柄一覧の確認 | `GET /api/portfolio/summary`<br>※今後実装予定       | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層 |
-| **主要インデックス表示**     | 時系列インデックスデータの表示           | `GET /api/indices`<br>※今後実装予定                 | API層<br>サービス層<br>データアクセス層                         |
-| **データ取得ジョブ管理**     | 手動トリガボタン、ジョブステータス表示   | 既存: `POST /api/batch/start`<br>WebSocket           | API層<br>プレゼンテーション層<br>フロントエンド                 |
-| **ウィジェットカスタマイズ** | ダッシュボードの表示項目カスタマイズ     | `PUT /api/user/dashboard-settings`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層                         |
+| **ポートフォリオ概況表示**   | ポートフォリオ評価額、保有銘柄一覧、損益情報の確認<br>リアルタイム株価との連動で現在評価額を計算<br>銘柄別保有数量・平均取得単価・現在価格・損益率を表示 | `GET /api/portfolio/summary`<br>`GET /api/portfolio/holdings` | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層 |
+| **主要インデックス表示**     | 日経平均、TOPIX、マザーズ指数等の時系列データ表示<br>日次・週次・月次の推移チャート<br>前日比・騰落率の表示 | `GET /api/indices/list`<br>`GET /api/indices/{index_code}/history` | API層<br>サービス層<br>データアクセス層                         |
+| **データ取得ジョブ管理**     | 手動トリガボタン、ジョブステータス表示<br>実行履歴の確認、進捗状況のリアルタイム表示   | `POST /api/batch/start`<br>`GET /api/batch/status/{job_id}`<br>WebSocket: 進捗配信 | API層<br>プレゼンテーション層<br>フロントエンド                 |
+| **ウィジェットカスタマイズ** | ダッシュボードの表示項目カスタマイズ<br>ウィジェットの表示/非表示、配置順序の変更<br>ユーザー設定の永続化 | `GET /api/user/dashboard-settings`<br>`PUT /api/user/dashboard-settings` | API層<br>サービス層<br>データアクセス層                         |
 
 ### 3. 銘柄検索と詳細表示
 
 | 機能                     | できること                                                | エンドポイント                                                       | 実装レイヤー                                                                              |
 | ------------------------ | --------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **銘柄マスタ検索**       | 銘柄コード/名称で検索<br>JPX全上場銘柄の基本情報管理      | 既存: `GET /api/stock-master/list`<br>`GET /api/stock-master/search` | API層<br>サービス層<br>データアクセス層                                                   |
-| **株価データ参照**       | 時系列ごとの価格情報(OHLCV)の取得<br>ページネーション対応 | 既存: `GET /api/stocks`                                              | API層<br>データアクセス層                                                                 |
-| **チャート表示**         | 複数期間の株価チャート表示                                | `GET /api/stocks/{symbol}/chart`<br>※今後実装予定                    | API層<br>サービス層<br>プレゼンテーション層<br>フロントエンド: チャートライブラリ(検討中) |
-| **ファンダメンタル表示** | 財務指標の表示                                            | `GET /api/stocks/{symbol}/fundamental`<br>※今後実装予定              | API層<br>サービス層<br>データアクセス層                                                   |
-| **銘柄比較機能**         | 複数銘柄の比較                                            | `POST /api/stocks/compare`<br>※今後実装予定                          | API層<br>サービス層<br>プレゼンテーション層                                               |
+| **銘柄マスタ検索**       | 銘柄コード/名称で検索<br>JPX全上場銘柄の基本情報管理      | `GET /api/stock-master/list`<br>`GET /api/stock-master/search` | API層<br>サービス層<br>データアクセス層                                                   |
+| **株価データ参照**       | 時系列ごとの価格情報(OHLCV)の取得<br>ページネーション対応 | `GET /api/stocks`                                              | API層<br>データアクセス層                                                                 |
+| **チャート表示**         | 複数期間の株価チャート表示<br>ローソク足、移動平均線(SMA/EMA)、出来高の表示<br>期間選択(1日、5日、1ヶ月、3ヶ月、1年、5年、全期間)<br>時間軸切り替え(1分足〜月足) | `GET /api/stocks/{symbol}/chart` | API層<br>サービス層<br>プレゼンテーション層<br>フロントエンド: Lightweight Charts |
+| **ファンダメンタル表示** | 財務指標の表示<br>EPS、PER、PBR、ROE、配当利回り等<br>年次・四半期推移グラフ<br>業界平均との比較 | `GET /api/stocks/{symbol}/fundamental`              | API層<br>サービス層<br>データアクセス層                                                   |
+| **銘柄比較機能**         | 複数銘柄(最大5銘柄)の並列比較<br>株価推移の重ね合わせチャート<br>財務指標の並列表示<br>騰落率の比較 | `POST /api/stocks/compare`                          | API層<br>サービス層<br>プレゼンテーション層                                               |
 
 ### 4. 分析ツール(スクリーニング)
 
 | 機能                       | できること                                                    | エンドポイント                                                           | 実装レイヤー                                                    |
 | -------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| **スクリーニング**         | PER、PBR、ROE等の指標で銘柄絞り込み<br>期間指定、複合条件設定 | `POST /api/screening/execute`<br>※今後実装予定                           | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層 |
-| **スクリーニング結果保存** | 絞込結果の保存                                                | `POST /api/screening/save`<br>`GET /api/screening/list`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層                         |
-| **データエクスポート**     | CSV形式でのエクスポート                                       | `GET /api/screening/{id}/export`<br>※今後実装予定                        | API層<br>サービス層                                             |
+| **スクリーニング**         | PER、PBR、ROE、配当利回り等の財務指標で銘柄絞り込み<br>株価、出来高、時価総額での条件設定<br>複数条件のAND/OR組み合わせ<br>ソート機能(昇順/降順)<br>プリセット条件の提供(割安株、高配当株、成長株等) | `POST /api/screening/execute`<br>`GET /api/screening/presets` | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層 |
+| **スクリーニング結果保存** | 絞込結果の保存と再利用<br>条件セットの名前付け保存<br>保存済み条件の一覧表示・削除<br>お気に入り条件の管理 | `POST /api/screening/save`<br>`GET /api/screening/list`<br>`DELETE /api/screening/{id}` | API層<br>サービス層<br>データアクセス層                         |
+| **データエクスポート**     | CSV/Excel形式でのエクスポート<br>選択列のカスタマイズ<br>エンコーディング選択(UTF-8/Shift-JIS) | `GET /api/screening/{id}/export`                        | API層<br>サービス層                                             |
 
 ### 5. バックテスト(簡易)
 
 | 機能                 | できること                                             | エンドポイント                                         | 実装レイヤー                                                                              |
 | -------------------- | ------------------------------------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| **バックテスト実行** | 期間、初期資金、売買ルールを設定し過去データで戦略検証 | `POST /api/backtest/start`<br>※今後実装予定            | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層                           |
-| **結果可視化**       | 資産曲線、取引ログ、パフォーマンス指標の表示           | `GET /api/backtest/{id}/result`<br>※今後実装予定       | API層<br>サービス層<br>プレゼンテーション層<br>フロントエンド: チャートライブラリ(検討中) |
-| **ジョブ管理**       | バックテスト実行状況の監視                             | `GET /api/backtest/jobs`<br>WebSocket<br>※今後実装予定 | API層<br>サービス層<br>WebSocket: Flask-SocketIO                                          |
+| **バックテスト実行** | 期間、初期資金、売買ルールを設定し過去データで戦略検証<br>シンプル移動平均クロス戦略の実装<br>買いエントリー/エグジット条件の設定<br>手数料・スリッページの考慮<br>複数銘柄での並列実行対応 | `POST /api/backtest/start`<br>`GET /api/backtest/{id}/status` | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層                           |
+| **結果可視化**       | 資産曲線、取引ログ、パフォーマンス指標の表示<br>総収益率、シャープレシオ、最大ドローダウンの算出<br>売買タイミングの表示(チャート上)<br>勝率、平均利益/損失の集計 | `GET /api/backtest/{id}/result`<br>`GET /api/backtest/{id}/trades` | API層<br>サービス層<br>プレゼンテーション層<br>フロントエンド: Lightweight Charts |
+| **ジョブ管理**       | バックテスト実行状況の監視<br>実行中ジョブの一覧表示<br>進捗率のリアルタイム更新<br>ジョブのキャンセル機能<br>実行履歴の保存と再確認 | `GET /api/backtest/jobs`<br>`DELETE /api/backtest/{id}/cancel`<br>WebSocket: 進捗配信 | API層<br>サービス層<br>WebSocket: Starlette WebSocket |
 
 ### 6. ユーザー設定と認証
 
 | 機能                 | できること                        | エンドポイント                                                                                  | 実装レイヤー                                                                                      |
 | -------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **認証**             | ログイン/ログアウト(OAuth/メール) | `POST /api/auth/login`<br>`POST /api/auth/logout`<br>`POST /api/auth/register`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層                                   |
-| **プロフィール管理** | ユーザープロフィール編集          | `GET /api/user/profile`<br>`PUT /api/user/profile`<br>※今後実装予定                             | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層                                   |
-| **通知設定**         | 通知のオン/オフ設定               | `GET /api/user/notification-settings`<br>`PUT /api/user/notification-settings`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層                                   |
-| **表示設定**         | テーマ・言語切替                  | `GET /api/user/display-settings`<br>`PUT /api/user/display-settings`<br>※今後実装予定           | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層<br>フロントエンド: CSS/JavaScript |
+| **認証**             | JWT認証方式を採用<br>ログイン/ログアウト機能<br>新規ユーザー登録<br>パスワードハッシュ化(bcrypt)<br>トークンリフレッシュ機能<br>セッション管理 | `POST /api/auth/login`<br>`POST /api/auth/logout`<br>`POST /api/auth/register`<br>`POST /api/auth/refresh` | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層<br>ライブラリ: PyJWT, passlib |
+| **プロフィール管理** | ユーザープロフィール編集<br>メールアドレス、表示名の変更<br>パスワード変更<br>アバター画像のアップロード(オプション) | `GET /api/user/profile`<br>`PUT /api/user/profile`<br>`PUT /api/user/password` | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層                                   |
+| **通知設定**         | 通知のオン/オフ設定<br>株価アラート(目標価格到達時)<br>バッチ処理完了通知<br>バックテスト完了通知<br>メール通知/ブラウザ通知の切り替え | `GET /api/user/notification-settings`<br>`PUT /api/user/notification-settings`<br>`POST /api/user/alerts` | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層                                   |
+| **表示設定**         | テーマ切替(ライト/ダーク)<br>言語切替(日本語/英語)<br>チャート表示設定<br>タイムゾーン設定<br>ブラウザローカルストレージと同期 | `GET /api/user/display-settings`<br>`PUT /api/user/display-settings` | API層<br>サービス層<br>データアクセス層<br>プレゼンテーション層<br>フロントエンド: CSS Variables/LocalStorage |
 
 ### 共通機能(監視・管理)
 
 | 機能                 | できること                                  | エンドポイント                            | 実装レイヤー                                                                                      |
 | -------------------- | ------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **ヘルスチェック**   | システム稼働状態、DB接続、外部API接続の確認 | 既存: `GET /api/system/health-check`      | API層<br>サービス層                                                                               |
-| **バッチ履歴管理**   | バッチ処理の実行履歴、成功/失敗の記録       | `GET /api/batch/history`<br>※今後実装予定 | API層<br>サービス層<br>データアクセス層                                                           |
-| **リアルタイム進捗** | WebSocketによる進捗配信、ETA表示            | 既存: WebSocket                           | プレゼンテーション層: Flask-SocketIO<br>フロントエンド: `app/static/script.js` (Socket.IO Client) |
+| **ヘルスチェック**   | システム稼働状態、DB接続、外部API接続の確認 | `GET /api/system/health-check`      | API層<br>サービス層                                                                               |
+| **バッチ履歴管理**   | バッチ処理の実行履歴、成功/失敗の記録<br>実行日時、対象銘柄数、取得件数、エラー詳細<br>履歴のフィルタリング・ソート機能<br>ページネーション対応 | `GET /api/batch/history` | API層<br>サービス層<br>データアクセス層                                                           |
+| **リアルタイム進捗** | WebSocketによる進捗配信、ETA表示            | WebSocket                           | プレゼンテーション層: Starlette WebSocket<br>フロントエンド: `app/static/script.js` (WebSocket API) |
 
 ---
 
@@ -139,23 +139,33 @@ graph TB
         BatchAPI[一括データ取得API<br/>非同期エンドポイント]
         StockAPI[Stock Master API<br/>非同期エンドポイント]
         MonitorAPI[System Monitoring API<br/>非同期エンドポイント]
-        ScreeningAPI[Screening API<br/>※今後実装]
-        BacktestAPI[Backtest API<br/>※今後実装]
-        AuthAPI[Auth API<br/>※今後実装]
+        ScreeningAPI[Screening API<br/>非同期エンドポイント]
+        BacktestAPI[Backtest API<br/>非同期エンドポイント]
+        AuthAPI[Auth API<br/>JWT認証]
+        FundamentalAPI[Fundamental Data API<br/>非同期エンドポイント]
     end
 
     subgraph "サービス層"
-        StockService[StockDataService<br/>非同期統合サービス]
-        JPXService[JPXStockService<br/>非同期処理]
-        ScreeningService[ScreeningService<br/>※今後実装]
-        BacktestService[BacktestService<br/>※今後実装]
-        AuthService[AuthService<br/>※今後実装]
+        StockService[StockDataService<br/>株価データ管理]
+        JPXService[JPXStockService<br/>JPX銘柄管理]
+        FundamentalService[FundamentalDataService<br/>財務データ管理]
+        PortfolioService[PortfolioService<br/>ポートフォリオ管理]
+        IndexService[IndexService<br/>市場インデックス管理]
+        ScreeningService[ScreeningService<br/>スクリーニング実行]
+        BacktestService[BacktestService<br/>バックテスト実行]
+        AuthService[AuthService<br/>JWT認証]
     end
 
     subgraph "データアクセス層"
-        StockRepo[StockRepository<br/>非同期対応]
-        JPXRepo[JPXRepository<br/>非同期対応]
-        Models[SQLAlchemy Models<br/>11テーブル]
+        StockRepo[StockRepository<br/>株価データ操作]
+        MasterRepo[MasterRepository<br/>銘柄マスタ操作]
+        FundamentalRepo[FundamentalRepository<br/>財務データ操作]
+        UserRepo[UserRepository<br/>ユーザー情報操作]
+        PortfolioRepo[PortfolioRepository<br/>ポートフォリオ操作]
+        IndexRepo[IndexRepository<br/>インデックス操作]
+        ScreeningRepo[ScreeningRepository<br/>スクリーニング操作]
+        BacktestRepo[BacktestRepository<br/>バックテスト操作]
+        Models[SQLAlchemy Models<br/>23テーブル]
     end
 
     subgraph "外部API"
@@ -168,34 +178,34 @@ graph TB
 
     Browser -->|HTTP/WebSocket| FastAPI
     FastAPI --> Swagger
-    FastAPI --> BatchAPI & StockAPI & MonitorAPI
-    FastAPI -.-> ScreeningAPI & BacktestAPI & AuthAPI
+    FastAPI --> BatchAPI & StockAPI & MonitorAPI & ScreeningAPI & BacktestAPI & AuthAPI & FundamentalAPI
 
-    BatchAPI --> StockService
-    StockAPI --> JPXService
+    BatchAPI --> StockService & JPXService
+    StockAPI --> StockService & MasterRepo
     MonitorAPI --> StockService
-    ScreeningAPI -.-> ScreeningService
-    BacktestAPI -.-> BacktestService
-    AuthAPI -.-> AuthService
+    ScreeningAPI --> ScreeningService
+    BacktestAPI --> BacktestService
+    AuthAPI --> AuthService
+    FundamentalAPI --> FundamentalService
 
     StockService -->|await| StockRepo
-    JPXService -->|await| JPXRepo
-    StockService -->|async| YFinance
+    JPXService -->|await| MasterRepo
+    FundamentalService -->|await| FundamentalRepo
+    PortfolioService -->|await| PortfolioRepo
+    IndexService -->|await| IndexRepo
+    ScreeningService -->|await| ScreeningRepo & FundamentalRepo
+    BacktestService -->|await| BacktestRepo & StockRepo
+    AuthService -->|await| UserRepo
 
-    StockRepo -->|async| Models
-    JPXRepo -->|async| Models
+    StockService & FundamentalService -->|async| YFinance
+
+    StockRepo & MasterRepo & FundamentalRepo & UserRepo & PortfolioRepo & IndexRepo & ScreeningRepo & BacktestRepo -->|async| Models
     Models -->|asyncpg| PostgreSQL
 
     style FastAPI fill:#e1f5ff
     style Swagger fill:#fffae1
     style PostgreSQL fill:#ffebe1
     style YFinance fill:#fff4e1
-    style ScreeningAPI stroke-dasharray: 5 5
-    style BacktestAPI stroke-dasharray: 5 5
-    style AuthAPI stroke-dasharray: 5 5
-    style ScreeningService stroke-dasharray: 5 5
-    style BacktestService stroke-dasharray: 5 5
-    style AuthService stroke-dasharray: 5 5
 ```
 
 ### データフロー(非同期処理)
@@ -355,23 +365,84 @@ graph TB
 | データ取得        | yfinance        | 0.2.66     | Yahoo Finance API                  |
 | データ処理        | pandas          | 2.2.0+     | データ操作                         |
 | スケジューラ      | APScheduler     | 3.10.4     | 定期実行                           |
+| 認証              | PyJWT           | 2.8.0+     | JWT トークン発行・検証             |
+| パスワード        | passlib         | 1.7.4+     | パスワードハッシュ化(bcrypt)       |
+| データ検証        | email-validator | 2.1.0+     | メールアドレス検証                 |
 
 ### フロントエンド
 
-| カテゴリ     | 技術                           | 用途                                       |
-| ------------ | ------------------------------ | ------------------------------------------ |
-| テンプレート | Jinja2                         | サーバーサイドレンダリング(FastAPI互換)    |
-| WebSocket    | JavaScript WebSocket API       | リアルタイム通信(Starlette WebSocket対応)  |
-| スクリプト   | Vanilla JavaScript             | UI制御                                     |
-| チャート     | ※検討中                        | 株価チャート描画                           |
-| APIクライアント | Fetch API / Axios (検討中) | FastAPI自動生成OpenAPIスキーマとの連携     |
+| カテゴリ     | 技術                           | バージョン | 用途                                       |
+| ------------ | ------------------------------ | ---------- | ------------------------------------------ |
+| テンプレート | Jinja2                         | 3.1.0+     | サーバーサイドレンダリング(FastAPI互換)    |
+| WebSocket    | JavaScript WebSocket API       | -          | リアルタイム通信(Starlette WebSocket対応)  |
+| スクリプト   | Vanilla JavaScript (ES6+)      | -          | UI制御                                     |
+| チャート     | Lightweight Charts             | 4.1.0+     | 株価チャート描画(TradingView製、軽量・高速)|
+| APIクライアント | Fetch API                   | -          | FastAPI自動生成OpenAPIスキーマとの連携     |
+| UI補助       | Bootstrap                      | 5.3.0+     | レスポンシブデザイン、コンポーネント       |
+
+#### チャートライブラリ選定理由: Lightweight Charts
+- **軽量**: バンドルサイズが小さく、ページ読み込みが高速
+- **高パフォーマンス**: Canvas描画により大量データでも滑らか
+- **金融特化**: ローソク足、出来高、移動平均線等を標準サポート
+- **カスタマイズ性**: テーマ、スタイル、インジケーターの追加が容易
+- **TradingView製**: 金融チャートの標準ツールとして信頼性が高い
+- **無料**: Apache 2.0ライセンスで商用利用可能
+
+#### APIクライアント選定理由: Fetch API
+- **ネイティブ**: ブラウザ標準APIで追加ライブラリ不要
+- **モダン**: Promise/async-awaitで読みやすいコード
+- **軽量**: バンドルサイズゼロ
+- **十分な機能**: JSON自動パース、ヘッダー管理、エラーハンドリング対応
 
 ### データベース
 
-| 項目       | 内容                            |
-| ---------- | ------------------------------- |
-| RDBMS      | PostgreSQL 12+                  |
-| テーブル数 | 11(株価8 + 管理3) ※今後拡張予定 |
+| 項目       | 内容                                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------------------- |
+| RDBMS      | PostgreSQL 12+                                                                                            |
+| テーブル数 | 全23テーブル |
+
+#### データベーステーブル設計
+
+**株価データ(8テーブル)**
+- `stock_1m` - 1分足株価データ
+- `stock_5m` - 5分足株価データ
+- `stock_15m` - 15分足株価データ
+- `stock_30m` - 30分足株価データ
+- `stock_1h` - 1時間足株価データ
+- `stock_1d` - 日足株価データ
+- `stock_1wk` - 週足株価データ
+- `stock_1mo` - 月足株価データ
+
+**マスタデータ(3テーブル)**
+- `stock_master` - 銘柄マスタ(全銘柄の基本情報)
+- `jpx_stock_master` - JPX銘柄マスタ(JPX上場銘柄情報)
+- `batch_execution_log` - バッチ実行履歴
+
+**財務データ(1テーブル)**
+- `fundamental_data` - ファンダメンタルデータ(EPS、PER、PBR、ROE等の財務指標)
+
+**ユーザー管理(3テーブル)**
+- `users` - ユーザー情報(認証情報、プロフィール)
+- `user_sessions` - ユーザーセッション(JWT トークン管理)
+- `user_settings` - ユーザー設定(表示設定、通知設定等)
+
+**ポートフォリオ管理(2テーブル)**
+- `portfolios` - ポートフォリオ情報(ユーザー別ポートフォリオ定義)
+- `portfolio_holdings` - 保有銘柄(銘柄別保有数量・取得単価)
+
+**市場データ(1テーブル)**
+- `market_indices` - 市場インデックス(日経平均、TOPIX等の時系列データ)
+
+**スクリーニング(2テーブル)**
+- `screening_conditions` - スクリーニング条件(保存された条件セット)
+- `screening_results` - スクリーニング結果(実行結果の保存)
+
+**バックテスト(2テーブル)**
+- `backtest_jobs` - バックテストジョブ(実行履歴、パラメータ、結果サマリ)
+- `backtest_trades` - バックテスト取引履歴(売買タイミング、損益詳細)
+
+**通知管理(1テーブル)**
+- `user_alerts` - ユーザーアラート(株価アラート設定、通知履歴)
 
 ### 開発・テスト
 
@@ -396,25 +467,54 @@ STOCK-INVESTMENT-ANALYZER/
 │   ├── schemas/        # 共通: Pydanticスキーマ定義
 │   ├── templates/      # プレゼンテーション層: HTMLテンプレート
 │   ├── static/         # プレゼンテーション層: 静的ファイル
+│   │   ├── css/        # スタイルシート
+│   │   ├── js/         # JavaScript
+│   │   └── images/     # 画像ファイル
 │   ├── exceptions/     # 共通: カスタムException
 │   ├── utils/          # 共通: ユーティリティ
 │   └── main.py         # プレゼンテーション層: FastAPIアプリメイン
 ├── docs/               # ドキュメント
+│   ├── architecture/   # アーキテクチャドキュメント
+│   ├── api/            # APIリファレンス
+│   └── frontend/       # フロントエンド仕様
 ├── tests/              # テストコード
 │   ├── unit/           # ユニットテスト(非同期対応)
 │   ├── integration/    # 統合テスト(非同期対応)
 │   └── e2e/            # E2Eテスト
-└── requirements.txt    # 依存パッケージ
+├── requirements.txt    # 依存パッケージ
+├── .env.example        # 環境変数サンプル
+└── README.md           # プロジェクト概要
 ```
 
 
-### 開発者別の担当範囲
+### 実装優先順位
 
-| 開発者 | 担当レイヤー | 主な作業 |
-|--------|-------------|----------|
-| **開発者A** | プレゼンテーション層<br/>API層 | - UI/UX設計・実装<br/>- APIRouterエンドポイント実装<br/>- Pydanticスキーマ定義<br/>- Swagger UI/ReDoc設定 |
-| **開発者B** | サービス層<br/>データアクセス層 | - 非同期ビジネスロジック実装<br/>- 非同期Repository実装<br/>- SQLAlchemy Models設計<br/>- 並列処理実装 |
-| **共通** | スキーマ/例外/ユーティリティ | - Pydanticスキーマ設計<br/>- エラーハンドリング戦略<br/>- 依存性注入設計 |
+システムの段階的な構築を実現するため、以下の優先順位で実装を進めます。
+
+#### フェーズ1: コア機能(データプラットフォーム)
+1. データベーススキーマ作成(23テーブル)
+2. 基盤ユーティリティ(DB接続、ロガー、時間軸変換)
+3. 株価データ取得・保存機能
+4. JPX銘柄マスタ管理
+5. バッチ処理機能
+
+#### フェーズ2: 基本UI
+1. 認証機能(JWT)
+2. ダッシュボード
+3. 銘柄検索・一覧表示
+4. チャート表示(Lightweight Charts)
+
+#### フェーズ3: 財務・分析機能
+1. ファンダメンタルデータ取得
+2. ポートフォリオ管理
+3. 市場インデックス表示
+4. スクリーニング機能
+
+#### フェーズ4: 高度な機能
+1. バックテスト機能
+2. アラート・通知機能
+3. データエクスポート
+4. パフォーマンス最適化
 
 ### FastAPI固有の設計要素
 
@@ -448,4 +548,4 @@ STOCK-INVESTMENT-ANALYZER/
 
 ---
 
-**最終更新**: 2025-11-15
+**最終更新**: 2025-11-16
