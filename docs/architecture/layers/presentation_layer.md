@@ -1,568 +1,568 @@
 category: architecture
 ai_context: high
-last_updated: 2025-01-08
+last_updated: 2025-11-16
 related_docs:
   - ../architecture_overview.md
-  - ../api/api_reference.md
+  - ./api_layer.md
+  - ./service_layer.md
+  - ../frontend/frontend_spec.md
 
-# プレゼンテーション層仕様書
+# プレゼンテーション層 仕様書
 
-## 概要
+## 目次
 
-プレゼンテーション層は、ユーザーとシステム間のインターフェースを提供し、HTTPリクエスト/レスポンスの処理、WebSocket通信、HTMLレンダリングを担当します。
-
-## 責務
-
-- HTTPリクエストの受付とルーティング
-- HTMLテンプレートのレンダリング
-- WebSocketによるリアルタイム通信
-- API Blueprintの統合管理
-- 静的ファイル（CSS/JavaScript）の配信
+- [1. 概要](#1-概要)
+- [2. 構成](#2-構成)
+- [3. FastAPI Application Factory](#3-fastapi-application-factory)
+- [4. テンプレートエンジン](#4-テンプレートエンジン)
+- [5. 静的ファイル管理](#5-静的ファイル管理)
+- [6. WebSocket通信](#6-websocket通信)
+- [7. APIドキュメント自動生成](#7-apiドキュメント自動生成)
+- [8. アーキテクチャ図](#8-アーキテクチャ図)
+- [9. セキュリティ](#9-セキュリティ)
+- [10. パフォーマンス最適化](#10-パフォーマンス最適化)
 
 ---
 
-## コンポーネント構成
+## 1. 概要
+
+### 役割
+
+プレゼンテーション層は、**FastAPIを使用してHTTPリクエスト/レスポンスの処理、HTMLレンダリング、WebSocket通信を担当**します。ユーザーとシステム間のインターフェースを提供し、API層とフロントエンドを統合します。
+
+### 責務
+
+| 責務                    | 説明                                                           |
+| ----------------------- | -------------------------------------------------------------- |
+| **非同期HTTPサーバー**  | FastAPI/Uvicornによる高速な非同期リクエスト処理                |
+| **HTMLレンダリング**    | Jinja2テンプレートエンジンによるサーバーサイドレンダリング     |
+| **WebSocket通信**       | Starlette WebSocketによるリアルタイム双方向通信                |
+| **静的ファイル配信**    | CSS/JavaScript/画像ファイルの効率的な配信                      |
+| **APIルーティング管理** | APIRouterによるエンドポイントの統合管理                        |
+| **OpenAPI自動生成**     | Pydanticスキーマからの自動ドキュメント生成（Swagger UI/ReDoc） |
+| **セキュリティ管理**    | CORS設定、認証・認可の統合                                     |
+| **エラーハンドリング**  | 統一されたエラーレスポンスとログ記録                           |
+
+### 設計原則
+
+| 原則                     | 説明                                                 | 実装例                                     |
+| ------------------------ | ---------------------------------------------------- | ------------------------------------------ |
+| **Application Factory**  | 環境ごとに異なる設定でアプリを生成                   | `create_app(config_name)`パターン          |
+| **責任の分離**           | ルーティング、ビジネスロジック、データ層を明確に分離 | API層を通じたサービス層呼び出し            |
+| **型安全性**             | Pydantic統合による実行時型検証                       | 全エンドポイントでPydanticモデル使用       |
+| **非同期ファースト**     | 全HTTPハンドラで async/await 使用                    | FastAPI の非同期機能をフル活用             |
+| **テスタビリティ**       | 依存性注入による疎結合設計                           | `Depends()`パターンで認証・DB接続を注入    |
+| **ドキュメント駆動開発** | OpenAPI自動生成でフロント/バック並行開発             | Pydanticスキーマ定義 → Swagger UI 自動生成 |
+
+---
+
+## 2. 構成
+
+### ディレクトリ構造
 
 ```
 app/
-├── app.py              # Flaskアプリケーション本体
-├── templates/          # HTMLテンプレート
-│   ├── base.html
-│   ├── index.html
-│   └── partials/       # 再利用可能コンポーネント
-└── static/             # 静的ファイル
-    ├── app.js          # メインJavaScript
-    ├── script.js       # ユーティリティ
-    ├── state-manager.js
-    ├── jpx_sequential.js
-    └── style.css
+├── main.py                    # FastAPI Application Factory（エントリーポイント）
+├── config.py                  # 環境別設定クラス
+├── extensions.py              # 拡張機能初期化（WebSocket等）
+│
+├── api/                       # API層（12種類のAPIRouter）
+│   ├── __init__.py
+│   ├── dependencies/          # 依存性注入モジュール
+│   ├── decorators/            # 共通デコレータ
+│   ├── validators/            # 共通バリデータ
+│   ├── error_handlers.py      # エラーハンドラ
+│   ├── batch_data.py          # 一括データ取得API
+│   ├── stock_master.py        # 銘柄マスタAPI
+│   ├── stock_data.py          # 株価データAPI
+│   ├── fundamental.py         # ファンダメンタルデータAPI
+│   ├── portfolio.py           # ポートフォリオAPI
+│   ├── market_indices.py      # 市場インデックスAPI
+│   ├── screening.py           # スクリーニングAPI
+│   ├── backtest.py            # バックテストAPI
+│   ├── user.py                # ユーザー管理API
+│   ├── auth.py                # 認証API
+│   ├── notification.py        # 通知API
+│   └── system_monitoring.py   # システム監視API
+│
+├── templates/                 # Jinja2テンプレート
+│   ├── base.html              # 基本レイアウト
+│   ├── index.html             # メインダッシュボード
+│   ├── auth/                  # 認証関連ページ
+│   │   ├── login.html
+│   │   └── register.html
+│   ├── portfolio/             # ポートフォリオページ
+│   │   ├── summary.html
+│   │   └── detail.html
+│   ├── screening/             # スクリーニングページ
+│   │   └── index.html
+│   ├── backtest/              # バックテストページ
+│   │   └── index.html
+│   └── partials/              # 再利用可能コンポーネント
+│       ├── navbar.html
+│       ├── footer.html
+│       ├── alerts.html
+│       └── pagination.html
+│
+└── static/                    # 静的ファイル
+    ├── css/                   # スタイルシート
+    │   ├── main.css           # メインスタイル
+    │   ├── dashboard.css      # ダッシュボード専用
+    │   └── components.css     # 共通コンポーネント
+    ├── js/                    # JavaScript
+    │   ├── app.js             # メインロジック
+    │   ├── state-manager.js   # 状態管理
+    │   ├── api-client.js      # APIクライアント
+    │   ├── websocket-client.js # WebSocketクライアント
+    │   ├── chart-manager.js   # チャート管理（Lightweight Charts）
+    │   └── utils.js           # ユーティリティ
+    └── images/                # 画像ファイル
+        ├── logo.svg
+        └── icons/
+```
+
+### レイヤー間の通信
+
+```mermaid
+graph TB
+    Browser[Webブラウザ<br/>HTML/CSS/JavaScript]
+    FastAPI[FastAPI App<br/>main.py]
+    Templates[Jinja2 Templates<br/>HTML Rendering]
+    StaticFiles[静的ファイル<br/>CSS/JS/Images]
+    WebSocket[Starlette WebSocket<br/>リアルタイム通信]
+    APILayer[API層<br/>12種類のAPIRouter]
+    ServiceLayer[サービス層<br/>ビジネスロジック]
+
+    Browser -->|HTTP GET /| FastAPI
+    FastAPI -->|render_template| Templates
+    Templates -->|HTML| Browser
+
+    Browser -->|GET /static/*| StaticFiles
+    StaticFiles -->|CSS/JS| Browser
+
+    Browser -->|WebSocket| WebSocket
+    WebSocket -->|emit/on| Browser
+
+    Browser -->|HTTP POST /api/*| FastAPI
+    FastAPI -->|route to| APILayer
+    APILayer -->|await| ServiceLayer
+    ServiceLayer -->|JSON| APILayer
+    APILayer -->|JSON| Browser
+
+    style FastAPI fill:#e1f5ff
+    style APILayer fill:#fff4e1
+    style ServiceLayer fill:#e1ffe1
+    style Templates fill:#ffe1f5
 ```
 
 ---
 
-## 1. Flaskアプリケーション本体
+## 3. FastAPI Application Factory
 
-**ファイル**: [app/app.py](../../app/app.py)
+### 3.1 Application Factory パターン
 
-### 主要機能
+**目的**: 環境ごとに異なる設定でアプリケーションインスタンスを生成し、テスタビリティと柔軟性を向上させる。
 
-| 機能 | 実装内容 |
-|------|---------|
-| **アプリケーション初期化** | Flaskインスタンス生成、設定読み込み |
-| **Blueprint登録** | API層の3つのBlueprintを統合 |
-| **WebSocket初期化** | Flask-SocketIOの設定 |
-| **ルートページ** | メインダッシュボードの表示 |
-| **CRUD APIエンドポイント** | 株価データの作成・参照・更新・削除 |
+### 3.2 ファクトリ関数（app/main.py）
 
-### アーキテクチャクラス図
+**主要機能**:
 
-```mermaid
-classDiagram
-    class FlaskApp {
-        +Flask app
-        +SocketIO socketio
-        +APIVersioningMiddleware versioning_middleware
-        +register_blueprints()
-        +init_websocket()
-        +create_tables()
-    }
+- `create_app(config_name: Environment) -> FastAPI`: 環境設定に基づいたアプリケーションインスタンス生成
+- FastAPIインスタンス生成（title, description, version, OpenAPI URL設定）
+- ミドルウェア追加（CORS, セキュリティヘッダー等）
+- 拡張機能初期化（WebSocket Manager等）
+- APIRouter一括登録
+- エラーハンドラ登録
+- 静的ファイルマウント（`/static`）
+- Jinja2テンプレート設定
 
-    class Blueprint {
-        <<interface>>
-        +name: str
-        +url_prefix: str
-        +register_routes()
-    }
-
-    class BulkDataBlueprint {
-        +url_prefix: /api/bulk-data
-        +start_bulk_fetch()
-        +get_job_status()
-        +stop_job()
-    }
-
-    class StockMasterBlueprint {
-        +url_prefix: /api/stock-master
-        +update_stock_master()
-        +get_stock_master_list()
-    }
-
-    class SystemBlueprint {
-        +url_prefix: /api/system
-        +test_database_connection()
-        +test_api_connection()
-        +health_check()
-    }
-
-    class APIVersioningMiddleware {
-        +default_version: str
-        +supported_versions: list
-        +process_request()
-        +create_versioned_url()
-    }
-
-    class SocketIOHandler {
-        +handle_connect()
-        +handle_disconnect()
-        +emit_progress()
-        +emit_complete()
-    }
-
-    class RouteHandler {
-        +index()
-        +websocket_test()
-        +fetch_data()
-        +get_stocks()
-        +create_stock()
-        +update_stock()
-        +delete_stock()
-    }
-
-    FlaskApp --> Blueprint : registers
-    FlaskApp --> APIVersioningMiddleware : uses
-    FlaskApp --> SocketIOHandler : initializes
-    FlaskApp --> RouteHandler : defines
-    Blueprint <|-- BulkDataBlueprint : implements
-    Blueprint <|-- StockMasterBlueprint : implements
-    Blueprint <|-- SystemBlueprint : implements
-```
-
-### アプリケーション初期化シーケンス
-
-```mermaid
-sequenceDiagram
-    participant Main as __main__
-    participant App as Flask App
-    participant Env as Environment
-    participant DB as Database
-    participant BP as Blueprints
-    participant WS as WebSocket
-    participant MW as Middleware
-
-    Main->>Env: load_dotenv()
-    Env-->>Main: 環境変数読み込み完了
-
-    Main->>App: Flask(__name__)
-    App-->>Main: Flaskインスタンス生成
-
-    Main->>WS: SocketIO(app)
-    WS-->>Main: WebSocket初期化完了
-    App->>App: config["SOCKETIO"] = socketio
-
-    Main->>App: config["API_DEFAULT_VERSION"] = "v1"
-    Main->>App: config["API_SUPPORTED_VERSIONS"] = ["v1"]
-
-    Main->>MW: APIVersioningMiddleware(app)
-    MW-->>Main: ミドルウェア初期化完了
-
-    Main->>DB: Base.metadata.create_all(bind=engine)
-    DB-->>Main: テーブル作成完了
-
-    Main->>BP: register_blueprint(bulk_api)
-    Main->>BP: register_blueprint(stock_master_api)
-    Main->>BP: register_blueprint(system_api)
-    BP-->>Main: 既存Blueprint登録完了
-
-    Main->>BP: register_blueprint(bulk_api_v1)
-    Main->>BP: register_blueprint(stock_master_api_v1)
-    Main->>BP: register_blueprint(system_api_v1)
-    BP-->>Main: バージョン付きBlueprint登録完了
-
-    Main->>BP: register_blueprint(swagger_bp)
-    BP-->>Main: Swagger UI登録完了
-
-    Main->>WS: @socketio.on("connect")
-    Main->>WS: @socketio.on("disconnect")
-    WS-->>Main: WebSocketイベント登録完了
-
-    Main->>App: socketio.run(app, host, port)
-    App-->>Main: アプリケーション起動
-```
-
-### リクエスト処理フロー（HTTPリクエスト）
-
-```mermaid
-sequenceDiagram
-    participant Client as クライアント
-    participant MW as Middleware
-    participant Flask as Flask App
-    participant Route as RouteHandler
-    participant Orch as Orchestrator
-    participant Resp as APIResponse
-
-    Client->>Flask: HTTP Request
-    Flask->>MW: process_request()
-    MW->>MW: バージョン検証
-    MW-->>Flask: リクエスト許可
-
-    Flask->>Route: ルート関数呼び出し
-    Route->>Route: リクエスト検証
-
-    alt データ取得エンドポイント
-        Route->>Orch: fetch_and_save()
-        Orch-->>Route: 処理結果
-        Route->>Resp: APIResponse.success()
-    else CRUD エンドポイント
-        Route->>Route: DB操作
-        Route->>Resp: APIResponse.paginated()
-    end
-
-    Resp-->>Route: JSON レスポンス
-    Route-->>Flask: HTTPレスポンス
-    Flask-->>Client: HTTP Response
-```
-
-### WebSocket通信フロー
-
-```mermaid
-sequenceDiagram
-    participant Client as クライアント
-    participant WS as WebSocket Handler
-    participant Service as BulkDataService
-    participant DB as Database
-
-    Client->>WS: connect イベント
-    WS->>WS: handle_connect()
-    WS-->>Client: 接続確立
-
-    Client->>Service: バッチ処理開始リクエスト
-    Service->>Service: 処理開始
-
-    loop データ取得中
-        Service->>DB: データ保存
-        DB-->>Service: 保存完了
-        Service->>WS: emit("progress_update")
-        WS-->>Client: 進捗通知
-    end
-
-    Service->>WS: emit("bulk_complete")
-    WS-->>Client: 完了通知
-
-    Client->>WS: disconnect イベント
-    WS->>WS: handle_disconnect()
-    WS-->>Client: 切断完了
-```
-
-### 登録Blueprint
+**エントリーポイント**:
 
 ```python
-# 既存Blueprint（後方互換性）
-app.register_blueprint(bulk_api)
-app.register_blueprint(stock_master_api)
-app.register_blueprint(system_api)
-
-# API v1エンドポイント（バージョニング）
-app.register_blueprint(bulk_api_v1, url_prefix='/api/v1/bulk-data')
-app.register_blueprint(stock_master_api_v1, url_prefix='/api/v1/stock-master')
-app.register_blueprint(system_api_v1, url_prefix='/api/v1/system')
-
-# Swagger UI
-app.register_blueprint(swagger_bp)
+# アプリケーションインスタンス生成
+app = create_app(config_name=Environment.DEVELOPMENT)
 ```
 
-### WebSocketイベント
+### 3.3 設定クラス（app/config.py）
 
-| イベント | 方向 | 用途 | 実装箇所 |
-|---------|------|------|---------|
-| `connect` | Client → Server | クライアント接続 | [app.py:145-148](../../app/app.py#L145-L148) |
-| `disconnect` | Client → Server | クライアント切断 | [app.py:151-154](../../app/app.py#L151-L154) |
-| `progress_update` | Server → Client | 進捗状況配信 | BulkDataService |
-| `bulk_complete` | Server → Client | バッチ処理完了通知 | BulkDataService |
+**環境別設定**:
 
-### ルートエンドポイント
+| 環境                | DEBUG | DATABASE_URL        | CORS設定                             |
+| ------------------- | ----- | ------------------- | ------------------------------------ |
+| `DevelopmentConfig` | True  | PostgreSQL (開発用) | localhost:3000, localhost:8000       |
+| `TestingConfig`     | False | SQLite (インメモリ) | localhost:3000, localhost:8000       |
+| `ProductionConfig`  | False | PostgreSQL (本番用) | 環境変数 `FRONTEND_URL` から読み込み |
 
-| パス | メソッド | 処理 | 実装箇所 |
-|------|---------|------|---------|
-| `/` | GET | メインダッシュボード | [app.py:157-164](../../app/app.py#L157-L164) |
-| `/websocket-test` | GET | WebSocketテストページ | [app.py:167-170](../../app/app.py#L167-L170) |
-| `/api/stocks/data` | POST | 株価データ取得・保存 | [app.py:173-280](../../app/app.py#L173-L280) |
-| `/api/stocks` | GET | 株価データ一覧取得 | [app.py:521-632](../../app/app.py#L521-L632) |
-| `/api/stocks` | POST | 株価データ作成 | [app.py:286-378](../../app/app.py#L286-L378) |
-| `/api/stocks/<id>` | GET | ID指定データ取得 | [app.py:381-422](../../app/app.py#L381-L422) |
-| `/api/stocks/<id>` | PUT | データ更新 | [app.py:635-713](../../app/app.py#L635-L713) |
-| `/api/stocks/<id>` | DELETE | データ削除 | [app.py:716-761](../../app/app.py#L716-L761) |
-| `/api/stocks/test` | POST | テストデータ作成 | [app.py:764-843](../../app/app.py#L764-L843) |
+**共通設定項目**:
 
----
+- SECRET_KEY: アプリケーション秘密鍵
+- JWT_SECRET_KEY / JWT_ALGORITHM / JWT_EXPIRATION: JWT認証設定
+- WEBSOCKET_PING_INTERVAL / WEBSOCKET_PING_TIMEOUT: WebSocket接続維持設定
+- API_TIMEOUT / API_RETRY_COUNT: 外部API呼び出し設定
 
-## 2. HTMLテンプレート
+### 3.4 拡張機能初期化（app/extensions.py）
 
-**ディレクトリ**: [app/templates/](../../app/templates/)
+**WebSocketManager**:
 
-### テンプレート構成
+- シングルトンパターンによる接続管理
+- アクティブ接続の辞書管理（`Dict[str, WebSocket]`）
+- 主要メソッド:
+  - `connect(client_id, websocket)`: クライアント接続受け入れ
+  - `disconnect(client_id)`: クライアント切断処理
+  - `broadcast(message)`: 全クライアントへメッセージ配信
+  - `send_to_client(client_id, message)`: 特定クライアントへメッセージ送信
 
-| ファイル | 役割 | 継承元 |
-|---------|------|--------|
-| `base.html` | 基本レイアウト | - |
-| `index.html` | メインダッシュボード | base.html |
-| `partials/form_components.html` | フォーム部品 | - |
-| `partials/alerts.html` | 通知コンポーネント | - |
-| `partials/data_table.html` | データテーブル | - |
+**初期化処理**:
 
-### 主要UI要素（index.html）
-
-```html
-<!-- 株価データ取得フォーム -->
-<form id="fetch-form">
-  - 銘柄コード入力
-  - 期間選択（5d～max）
-  - 時間軸選択（1m～1mo）
-</form>
-
-<!-- バルクデータ取得 -->
-<form id="bulk-fetch-form">
-  - 複数銘柄入力
-  - 並列処理設定
-</form>
-
-<!-- JPX全銘柄取得 -->
-<button id="jpx-sequential-start">
-  - ワンクリック全銘柄取得
-  - リアルタイム進捗表示
-</button>
+```python
+def init_extensions(app):
+    app.state.websocket_manager = websocket_manager
 ```
 
 ---
 
-## 3. 静的ファイル（JavaScript）
+## 4. テンプレートエンジン
 
-**ディレクトリ**: [app/static/](../../app/static/)
+### 4.1 Jinja2テンプレート構成
 
-### JavaScriptモジュール
+**基本レイアウト（templates/base.html）**:
 
-| ファイル | 責務 | 主要機能 |
-|---------|------|---------|
-| **app.js** | メインロジック | フォーム送信、API呼び出し |
-| **state-manager.js** | 状態管理 | UI状態の一元管理 |
-| **jpx_sequential.js** | JPX全銘柄処理 | WebSocket進捗受信、ETA表示 |
-| **script.js** | ユーティリティ | 共通関数 |
+- ヘッダー: ナビゲーションバー、ユーザー情報
+- コンテンツエリア: ページ固有のコンテンツ
+- フッター: コピーライト、リンク
 
-### WebSocketクライアント実装
+**テンプレート継承パターン**:
 
-```javascript
-// Socket.IO接続
-const socket = io();
+- **base.html**: 基本レイアウト
+  - `{% block title %}`: ページタイトル
+  - `{% block extra_css %}`: ページ固有CSS
+  - `{% block content %}`: メインコンテンツ領域
+  - `{% block extra_js %}`: ページ固有JavaScript
+  - `{% include 'partials/navbar.html' %}`: ナビゲーションバー
+  - `{% include 'partials/footer.html' %}`: フッター
 
-// 進捗受信
-socket.on('progress_update', (data) => {
-  updateProgressBar(data.current, data.total);
-  displayETA(data.eta);
-});
+- **子テンプレート（例: index.html）**:
+  - `{% extends "base.html" %}`: 基本レイアウト継承
+  - 各ブロックをオーバーライドしてページ固有の内容を定義
 
-// 完了通知
-socket.on('bulk_complete', (data) => {
-  showCompletionMessage(data.stats);
-});
-```
+### 4.2 ページルート定義
 
-### APIリクエスト例
+**主要ページエンドポイント**:
 
-```javascript
-// 単一銘柄取得
-fetch('/api/v1/bulk-data/fetch', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    symbol: '7203.T',
-    period: '1mo',
-    interval: '1d'
-  })
-});
-```
+| エンドポイント       | テンプレート             | 認証要否 | 説明                 |
+| -------------------- | ------------------------ | -------- | -------------------- |
+| `GET /`              | `index.html`             | 任意     | メインダッシュボード |
+| `GET /auth/login`    | `auth/login.html`        | 不要     | ログインページ       |
+| `GET /auth/register` | `auth/register.html`     | 不要     | ユーザー登録ページ   |
+| `GET /portfolio`     | `portfolio/summary.html` | 必須     | ポートフォリオサマリ |
+| `GET /screening`     | `screening/index.html`   | 必須     | スクリーニングページ |
+| `GET /backtest`      | `backtest/index.html`    | 必須     | バックテストページ   |
+
+**実装パターン**:
+
+- `response_class=HTMLResponse`: HTML応答指定
+- `Depends(get_current_user)`: 認証必須エンドポイント
+- `Depends(get_current_user_optional)`: 認証任意エンドポイント
+- `TemplateResponse`: Jinja2テンプレートレンダリング
 
 ---
 
-## 4. 静的ファイル（CSS）
+## 5. 静的ファイル管理
 
-**ファイル**: [app/static/style.css](../../app/static/style.css)
+### 5.1 CSS構成
 
-### スタイル構成
+**メインスタイルシート（static/css/main.css）**:
 
+- グローバルスタイル
 - レスポンシブデザイン
-- カード型レイアウト
-- フォームスタイル
-- プログレスバー
-- アラート表示
+- CSS変数によるテーマ管理
+
+**CSS設計方針**:
+
+| 方針             | 説明                                  |
+| ---------------- | ------------------------------------- |
+| **BEM命名規則**  | Block-Element-Modifier による構造化   |
+| **モジュール化** | コンポーネントごとにCSSファイルを分離 |
+| **CSS変数**      | テーマ切替（ライト/ダーク）対応       |
+| **レスポンシブ** | モバイル/タブレット/デスクトップ対応  |
+
+### 5.2 JavaScript構成
+
+**主要モジュール**:
+
+| ファイル              | 責務                                   |
+| --------------------- | -------------------------------------- |
+| `app.js`              | メインエントリーポイント、初期化処理   |
+| `state-manager.js`    | グローバル状態管理（シングルトン）     |
+| `api-client.js`       | Fetch API ラッパー、エラーハンドリング |
+| `websocket-client.js` | WebSocket通信の抽象化                  |
+| `chart-manager.js`    | Lightweight Charts 管理                |
+| `utils.js`            | ユーティリティ関数                     |
+
+**APIクライアント（static/js/api-client.js）**:
+
+- **主要機能**:
+  - Fetch API のラッパー
+  - GET/POST/PUT/DELETE メソッド統一インターフェース
+  - 統一エラーハンドリング（`APIError` クラス）
+  - 自動JSON変換
+  - credentials: 'include' でCookie送信
+
+**チャート管理（static/js/chart-manager.js）**:
+
+- **主要機能**:
+  - Lightweight Charts ライブラリのラッパー
+  - ローソク足シリーズ + 出来高シリーズの統合管理
+  - `loadStock(symbol, interval)`: API経由でチャートデータ取得・描画
+  - レスポンシブ対応（コンテナサイズに追従）
 
 ---
 
-## ルーティング
+## 6. WebSocket通信
 
-### ページルート
+### 6.1 WebSocketエンドポイント
 
-| パス | メソッド | 処理 | 実装箇所 |
-|------|---------|------|---------|
-| `/` | GET | メインダッシュボード表示 | [app.py:156-163](../../app/app.py#L156-L163) |
+**エンドポイント**: `/ws/{client_id}`
 
-### APIルート
+**処理フロー**:
 
-API層の詳細は各Blueprintの仕様書を参照:
+1. `websocket_manager.connect(client_id, websocket)`: 接続受け入れ
+2. `while True`: メッセージ受信ループ
+3. `websocket.receive_json()`: JSONメッセージ受信
+4. メッセージタイプに応じた処理実行
+5. `websocket_manager.send_to_client()`: レスポンス送信
+6. `WebSocketDisconnect` 例外時: 切断処理
 
-- [Bulk Data API](./api_layer.md#bulk-data-api) - `/api/v1/bulk-data/*`
-- [Stock Master API](./api_layer.md#stock-master-api) - `/api/v1/stock-master/*`
-- [System Monitoring API](./api_layer.md#system-monitoring-api) - `/api/v1/system/*`
+### 6.2 進捗配信パターン
 
----
+**メッセージタイプ**:
 
-## データフロー
+| タイプ     | 用途                 | ペイロード例                                                           |
+| ---------- | -------------------- | ---------------------------------------------------------------------- |
+| `progress` | バッチ処理進捗通知   | `{current: 10, total: 100, symbol: "7203.T", progress_percentage: 10}` |
+| `complete` | バッチ処理完了通知   | `{total: 100, elapsed_time: 120.5}`                                    |
+| `error`    | エラー通知           | `{message: "データ取得失敗", symbol: "7203.T"}`                        |
+| `realtime` | リアルタイム株価更新 | `{symbol: "7203.T", price: 1500, change: +0.5%}`                       |
 
-### 単一銘柄取得フロー
+**実装パターン**:
 
-```mermaid
-sequenceDiagram
-    participant User as ユーザー
-    participant HTML as index.html
-    participant JS as app.js
-    participant Flask as Flask App
-    participant API as API層
+- サービス層から `websocket_manager.send_to_client(client_id, message)` を呼び出し
+- フロントエンドでメッセージタイプに応じたハンドラを登録
 
-    User->>HTML: フォーム入力
-    User->>HTML: 送信ボタンクリック
-    HTML->>JS: submit イベント
-    JS->>Flask: POST /api/v1/bulk-data/fetch
-    Flask->>API: Blueprint経由で処理
-    API-->>Flask: JSONレスポンス
-    Flask-->>JS: HTTPレスポンス
-    JS->>HTML: 結果表示更新
-    HTML-->>User: 成功/エラー表示
-```
+### 6.3 フロントエンドWebSocketクライアント
 
-### JPX全銘柄取得フロー（WebSocket）
+**WebSocketClient クラス**:
 
-```mermaid
-sequenceDiagram
-    participant User as ユーザー
-    participant JS as jpx_sequential.js
-    participant Flask as Flask App
-    participant WS as WebSocket
+- **主要機能**:
+  - 自動再接続機能（最大5回、指数バックオフ）
+  - メッセージタイプ別ハンドラ登録（`on(type, handler)`）
+  - JSON自動変換（送受信）
+  - WebSocket URL自動生成（HTTP/HTTPS に応じて ws/wss 切替）
 
-    User->>JS: 開始ボタンクリック
-    JS->>Flask: POST /api/v1/bulk-data/jpx-sequential/start
-    Flask->>WS: 処理開始
-
-    loop 進捗更新
-        WS->>JS: progress_update イベント
-        JS->>User: プログレスバー更新
-        JS->>User: ETA表示
-    end
-
-    WS->>JS: bulk_complete イベント
-    JS->>User: 完了通知表示
-```
-
----
-
-## エラーハンドリング
-
-### クライアントサイド
+**使用例**:
 
 ```javascript
-try {
-  const response = await fetch('/api/v1/...');
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  const data = await response.json();
-  displaySuccess(data);
-} catch (error) {
-  displayError(error.message);
-}
-```
+const wsClient = new WebSocketClient('user-123');
+wsClient.connect();
 
-### UIフィードバック
-
-- **成功**: 緑色のアラート表示
-- **エラー**: 赤色のアラート、詳細メッセージ
-- **警告**: 黄色のアラート
-- **情報**: 青色のアラート
-
----
-
-## セキュリティ
-
-### 実装済み
-
-- CSRFトークン（Flask標準）
-- Content-Type検証
-- エスケープ処理（Jinja2自動）
-
-### API認証
-
-API_KEY環境変数による認証（オプション）:
-
-```bash
-# 開発環境: 認証なし
-# 本番環境: X-API-Keyヘッダーで認証
-export API_KEY="your-secret-key"
+wsClient.on('progress', (msg) => updateProgressBar(msg.current, msg.total));
+wsClient.on('complete', (msg) => alert('完了'));
 ```
 
 ---
 
-## パフォーマンス考慮事項
+## 7. APIドキュメント自動生成
 
-### 最適化
+### 7.1 Swagger UI
 
-- 静的ファイルのキャッシュ活用
-- WebSocketによる双方向通信で効率化
-- 非同期fetch APIの使用
-- ページネーション対応（データテーブル）
+**アクセスURL**: `http://localhost:8000/docs`
 
-### 推奨事項
+**特徴**:
 
-- 本番環境ではCDNの使用を検討
-- Gzip圧縮の有効化
-- 静的ファイルのminify化
+- Pydanticスキーマから自動生成
+- インタラクティブなAPI試行
+- 認証ヘッダーの設定が可能
+- cURLコマンド自動生成
+
+### 7.2 ReDoc
+
+**アクセスURL**: `http://localhost:8000/redoc`
+
+**特徴**:
+
+- 読みやすいドキュメント形式
+- サイドバーナビゲーション
+- サンプルコード表示
+
+### 7.3 OpenAPI仕様書
+
+**アクセスURL**: `http://localhost:8000/openapi.json`
+
+**用途**:
+
+- クライアントSDK自動生成
+- API仕様の共有
+- バージョン管理
 
 ---
 
-## 依存関係
+## 8. アーキテクチャ図
 
-### Pythonパッケージ
+### 8.1 プレゼンテーション層全体構成
 
-```python
-Flask==3.0.0              # Webフレームワーク
-Flask-SocketIO==5.3.5     # WebSocket
-Jinja2                    # テンプレートエンジン（Flask同梱）
+```mermaid
+graph TB
+    Browser[Webブラウザ]
+
+    subgraph Presentation[プレゼンテーション層]
+        FastAPI[FastAPI App<br/>Application Factory]
+        Templates[Jinja2 Templates<br/>HTML Rendering]
+        StaticFiles[静的ファイル<br/>CSS/JS/Images]
+        WebSocket[WebSocket Manager<br/>リアルタイム通信]
+    end
+
+    subgraph APILayer[API層]
+        Router1[Batch Data API]
+        Router2[Stock Master API]
+        Router3[Stock Data API]
+        Router4[Fundamental API]
+        Router5[Portfolio API]
+        Router6[Screening API]
+        Router7[Backtest API]
+        Router8[User API]
+        Router9[Auth API]
+        Router10[Notification API]
+        Router11[System API]
+    end
+
+    subgraph ServiceLayer[サービス層]
+        Services[ビジネスロジック<br/>12種類のサービス]
+    end
+
+    Browser -->|HTTP GET /| FastAPI
+    FastAPI -->|render| Templates
+    Templates -->|HTML| Browser
+
+    Browser -->|GET /static/*| StaticFiles
+    StaticFiles -->|CSS/JS| Browser
+
+    Browser <-->|WebSocket| WebSocket
+
+    Browser -->|HTTP /api/*| FastAPI
+    FastAPI -->|route| Router1 & Router2 & Router3 & Router4 & Router5 & Router6 & Router7 & Router8 & Router9 & Router10 & Router11
+    Router1 & Router2 & Router3 & Router4 & Router5 & Router6 & Router7 & Router8 & Router9 & Router10 & Router11 -->|await| Services
+
+    style FastAPI fill:#e1f5ff
+    style APILayer fill:#fff4e1
+    style ServiceLayer fill:#e1ffe1
 ```
 
-### フロントエンド
+### 8.2 リクエスト処理フロー
 
-```html
-<!-- CDN経由 -->
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+```mermaid
+sequenceDiagram
+    participant Browser as Webブラウザ
+    participant FastAPI as FastAPI App
+    participant Router as APIRouter
+    participant Auth as 認証ミドルウェア
+    participant Service as サービス層
+    participant Template as Jinja2
+
+    Browser->>FastAPI: GET /
+    FastAPI->>Template: render_template("index.html")
+    Template-->>Browser: HTML
+
+    Browser->>FastAPI: GET /static/css/main.css
+    FastAPI-->>Browser: CSS
+
+    Browser->>FastAPI: POST /api/stocks/fetch
+    FastAPI->>Router: route to endpoint
+    Router->>Auth: Depends(verify_api_key)
+    Auth-->>Router: 認証OK
+
+    Router->>Service: await fetch_and_save()
+    Service-->>Router: FetchResponse (Pydantic)
+    Router-->>Browser: 200 OK JSON
+
+    Browser->>FastAPI: WebSocket /ws/client-123
+    FastAPI-->>Browser: WebSocket接続確立
 ```
 
 ---
 
-## 設定
+## 9. セキュリティ
 
-### 環境変数
+### 9.1 CORS設定
 
-| 変数名 | 必須 | デフォルト | 説明 |
-|--------|------|-----------|------|
-| `HOST` | No | 127.0.0.1 | バインドホスト |
-| `PORT` | No | 8000 | バインドポート |
-| `API_KEY` | No | - | API認証キー（未設定時は認証なし） |
+**本番環境**: 環境変数 `FRONTEND_URL` から許可オリジンを読み込み
+**開発環境**: `localhost:3000`, `localhost:8000` を許可
 
-### 起動コマンド
+### 9.2 HTTPS強制（本番環境）
 
-```bash
-# 開発環境
-python app/app.py
+- `HTTPSRedirectMiddleware` により HTTP → HTTPS リダイレクト強制
+- 本番環境のみ有効化
 
-# 本番環境（Waitress使用）
-waitress-serve --host=0.0.0.0 --port=8000 app.app:app
-```
+### 9.3 セキュリティヘッダー
+
+**カスタムミドルウェア `SecurityHeadersMiddleware`**:
+
+| ヘッダー                    | 値                                    | 効果                     |
+| --------------------------- | ------------------------------------- | ------------------------ |
+| `X-Content-Type-Options`    | `nosniff`                             | MIME スニッフィング防止  |
+| `X-Frame-Options`           | `DENY`                                | クリックジャッキング防止 |
+| `X-XSS-Protection`          | `1; mode=block`                       | XSS 攻撃検出・ブロック   |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | HTTPS 強制（1年間）      |
+
+### 9.4 レート制限
+
+- **ライブラリ**: `slowapi`（Flask-Limiter の FastAPI版）
+- **実装例**: `@limiter.limit("10/minute")` デコレータでエンドポイント単位で制限
+- **キー関数**: `get_remote_address` でクライアントIPベース制限
+
+---
+
+## 10. パフォーマンス最適化
+
+### 10.1 静的ファイルキャッシュ
+
+**Cache-Control ヘッダー設定**:
+
+- `/static/*`: `public, max-age=31536000, immutable`（1年キャッシュ）
+- API レスポンス: `no-store, no-cache`（キャッシュ無効）
+
+**実装**: カスタムミドルウェア `CacheControlMiddleware`
+
+### 10.2 圧縮（Gzip）
+
+- **ミドルウェア**: `GZipMiddleware`
+- **最小サイズ**: 1000バイト以上で圧縮有効化
+- 効果: テキストベースのレスポンス（JSON/HTML/CSS/JS）を自動圧縮
+
+### 10.3 CDN活用（本番環境）
+
+**外部ライブラリのCDN利用**:
+
+- Lightweight Charts: `cdn.jsdelivr.net`
+- フォント・アイコン: Google Fonts CDN
+
+### 10.4 非同期処理の活用
+
+**バックグラウンドタスク**:
+
+- `BackgroundTasks.add_task()` で長時間処理をバックグラウンド実行
+- 即座にレスポンス返却（202 Accepted）
+- WebSocket経由で進捗通知
 
 ---
 
 ## 関連ドキュメント
 
-- [アーキテクチャ概要](../architecture_overview.md) - システム全体像
-- [APIリファレンス](../../api/api_reference.md) - エンドポイント詳細
-- [API層仕様書](./api_layer.md) - Blueprint実装詳細（作成予定）
-- [サービス層仕様書](./service_layer.md) - ビジネスロジック（作成予定）
+- [アーキテクチャ概要](../architecture_overview.md)
+- [API層仕様書](./api_layer.md)
+- [サービス層仕様書](./service_layer.md)
+- [フロントエンド機能仕様](../../frontend/frontend_spec.md)
 
 ---
 
-**最終更新**: 2025-01-08
+**最終更新**: 2025-11-16
+**設計方針**: Application Factory Pattern + FastAPI + Jinja2 + WebSocket
