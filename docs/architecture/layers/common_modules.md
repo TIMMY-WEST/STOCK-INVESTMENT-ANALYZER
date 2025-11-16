@@ -48,6 +48,26 @@ related_docs:
 | **疎結合**             | モジュール間の依存を最小限に               | 各モジュールが独立して機能                                 |
 | **拡張性**             | 新機能追加が容易な構成                     | ベースクラスの継承による拡張                               |
 | **一貫性**             | 全レイヤーで統一された規約                 | 統一されたレスポンス形式、エラーメッセージフォーマット     |
+| **層を超えた再利用**   | 横断的関心事は共通モジュールで提供         | 認証、レート制限、バリデーションをAPI層以外でも利用可能    |
+
+### 共通モジュールの配置基準
+
+各機能を共通モジュールに配置するか、各層に配置するかは以下の基準で判断します:
+
+| 配置先           | 判断基準                                                 | 例                                                   |
+| ---------------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| **共通モジュール** | 複数の層で使用される横断的関心事                         | 認証、DB接続、レート制限、バリデーション、例外       |
+| **各層**         | 特定の層でのみ使用される機能                             | API層のサービス依存性注入、サービス層のビジネスロジック |
+
+**共通モジュールに配置される機能**:
+- **認証・認可** (`app/utils/security.py`): API層、WebSocket、CLI、バックグラウンドジョブで使用
+- **データベース接続** (`app/utils/database.py`): 全層でDB接続が必要
+- **レート制限** (`app/utils/rate_limiter.py`): API層、WebSocketハンドラで使用
+- **バリデーション** (`app/utils/validators.py`): API層、サービス層で使用
+- **エラーハンドリング** (`app/exceptions/`): 全層で統一されたエラー処理
+
+**各層に配置される機能**:
+- **サービス依存性注入** (`app/api/dependencies/services.py`): API層でのみ使用（FastAPI固有）
 
 ---
 
@@ -95,10 +115,11 @@ app/
     ├── time_utils.py            # 時間軸変換・日時処理
     ├── api_response.py          # API レスポンス生成ヘルパー
     ├── validators.py            # 共通バリデータ
-    ├── database.py              # データベース接続管理
+    ├── database.py              # データベース接続管理 + 依存性注入
     ├── config.py                # 設定管理
-    ├── security.py              # セキュリティユーティリティ
+    ├── security.py              # セキュリティユーティリティ + 認証依存性
     ├── retry.py                 # リトライロジック
+    ├── rate_limiter.py          # レート制限デコレータ + RateLimiterクラス
     └── constants.py             # システム定数
 ```
 
@@ -513,11 +534,14 @@ return api_response.paginated(
 | 関数名                     | 引数                       | 戻り値                     | 説明                               |
 | -------------------------- | -------------------------- | -------------------------- | ---------------------------------- |
 | `validate_symbol()`        | symbol: str                | Tuple[bool, Optional[str]] | 銘柄コード検証（形式チェック）     |
+| `validate_symbols()`       | symbols: List[str], max_count: int | Tuple[bool, Optional[HTTPException]] | 銘柄リスト検証（型・件数制限） |
 | `validate_date_range()`    | start_date, end_date       | Tuple[bool, Optional[str]] | 日付範囲検証                       |
-| `validate_interval()`      | interval: str              | Tuple[bool, Optional[str]] | 時間軸検証                         |
-| `validate_pagination()`    | limit, offset, max_limit   | Tuple[int, int, Optional[str]]| ページネーションパラメータ検証  |
+| `validate_interval()`      | interval: str              | Tuple[bool, Optional[HTTPException]] | 時間軸検証（妥当性チェック）       |
+| `validate_pagination()`    | limit, offset, max_limit   | Tuple[int, int, Optional[HTTPException]]| ページネーションパラメータ検証  |
 | `validate_email()`         | email: str                 | Tuple[bool, Optional[str]] | メールアドレス検証                 |
 | `validate_password_strength()` | password: str          | Tuple[bool, Optional[str]] | パスワード強度検証                 |
+
+**Note**: `validate_symbols()`, `validate_interval()`, `validate_pagination()` は、API層の `app/api/validators/common.py` から共通モジュールへ移動すべき関数です。これにより、API層以外（CLI、バックグラウンドジョブ等）でも再利用可能になります。
 
 **検証ルール**:
 
@@ -605,7 +629,87 @@ JWT:
 - アクセストークン有効期限: 1時間（デフォルト）
 - リフレッシュトークン有効期限: 30日（デフォルト）
 
-### 5.8 リトライロジック（`app/utils/retry.py`）
+**FastAPI依存性注入関数**:
+
+| 関数名               | 引数                       | 戻り値 | 説明                               |
+| -------------------- | -------------------------- | ------ | ---------------------------------- |
+| `verify_api_key()`   | x_api_key: str (Header)    | bool   | APIキー認証（システム間連携用）    |
+| `get_current_user()` | token: str (Bearer)        | User   | JWT認証（ユーザー認証用）          |
+
+**使用例**:
+
+APIキー認証:
+```python
+from fastapi import Depends, Header
+from app.utils.security import verify_api_key
+
+@router.post("/api/batch/jobs")
+async def start_batch(api_key: str = Depends(verify_api_key)):
+    """APIキーで認証されたエンドポイント."""
+    ...
+```
+
+JWT認証:
+```python
+from fastapi import Depends
+from app.utils.security import get_current_user
+from app.models import User
+
+@router.get("/api/user/profile")
+async def get_profile(current_user: User = Depends(get_current_user)):
+    """JWTで認証されたエンドポイント."""
+    ...
+```
+
+**Note**: これらの依存性注入関数は、API層の `app/api/dependencies/auth.py` から共通モジュールへ移動すべきです。これにより、API層以外でも認証ロジックを再利用可能になります。
+
+### 5.8 レート制限（`app/utils/rate_limiter.py`）
+
+**主要コンポーネント**:
+
+| コンポーネント名 | 型                  | 説明                               |
+| ---------------- | ------------------- | ---------------------------------- |
+| `RateLimiter`    | Singleton クラス    | スレッドセーフなレート制限管理     |
+| `rate_limit()`   | デコレータ関数      | FastAPIエンドポイント用レート制限  |
+
+**RateLimiterクラス**:
+
+| メソッド名       | 引数                                      | 戻り値 | 説明                               |
+| ---------------- | ----------------------------------------- | ------ | ---------------------------------- |
+| `is_allowed()`   | request, max_requests, window_seconds     | bool   | リクエスト許可判定                 |
+| `_get_client_ip()` | request                                 | str    | クライアントIP取得                 |
+| `_cleanup_old_entries()` | -                                 | None   | 古いエントリのクリーンアップ       |
+
+**rate_limitデコレータ**:
+
+| パラメータ       | デフォルト値 | 説明                               |
+| ---------------- | ------------ | ---------------------------------- |
+| `max_requests`   | 10           | ウィンドウ内の最大リクエスト数     |
+| `window_seconds` | 60           | レート制限ウィンドウ（秒）         |
+
+**使用例**:
+
+```python
+from app.utils.rate_limiter import rate_limit
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.post("/api/batch/jobs")
+@rate_limit(max_requests=10, window_seconds=60)
+async def start_batch_fetch(...):
+    """一括データ取得開始（10リクエスト/60秒）."""
+    ...
+```
+
+**レート制限超過時の動作**:
+- HTTPステータスコード: 429 Too Many Requests
+- エラーレスポンス: `{"error": "RATE_LIMIT_EXCEEDED", "message": "リクエスト制限を超過しました"}`
+- Retry-Afterヘッダー: 待機すべき秒数を返却
+
+**Note**: このモジュールは、API層の `app/api/decorators/rate_limit.py` から共通モジュールへ移動すべきです。これにより、API層以外（WebSocketハンドラ、バックグラウンドジョブ等）でも再利用可能になります。
+
+### 5.9 リトライロジック（`app/utils/retry.py`）
 
 **主要デコレータ**:
 
@@ -1041,5 +1145,138 @@ def is_trading_day(target_date: date) -> bool:
 
 ---
 
+## 8. 利用ガイドライン
+
+### 8.1 共通モジュールの利用原則
+
+共通モジュールは以下の原則に従って利用してください:
+
+| 原則                       | 説明                                                     | 例                                                   |
+| -------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| **横断的関心事の集約**     | 複数の層で使用する機能は共通モジュールに配置             | 認証、バリデーション、エラーハンドリング             |
+| **明示的なインポート**     | 使用する機能を明示的にインポート                         | `from app.utils.security import verify_api_key`      |
+| **型安全性の活用**         | Pydanticスキーマ、TypedDictを積極的に使用                | リクエスト/レスポンススキーマの定義                  |
+| **例外階層の活用**         | カスタム例外クラスを使用し、適切なエラーハンドリング     | `raise RecordNotFoundError(...)`                     |
+| **依存性注入の活用**       | FastAPIの`Depends()`パターンで疎結合を実現               | `db: AsyncSession = Depends(get_db)`                 |
+
+### 8.2 レイヤー別利用パターン
+
+#### API層での利用
+
+```python
+# 認証・認可
+from app.utils.security import verify_api_key, get_current_user
+
+# データベース接続
+from app.utils.database import get_db
+
+# レート制限
+from app.utils.rate_limiter import rate_limit
+
+# バリデーション
+from app.utils.validators import validate_symbols, validate_pagination
+
+# レスポンス生成
+from app.utils.api_response import success, error, paginated
+
+# スキーマ
+from app.schemas.responses import SuccessResponse, ErrorResponse
+from app.schemas.market_data.stock_price import FetchRequest, FetchResponse
+
+# 例外
+from app.exceptions.validation import ValidationError
+from app.exceptions.database import RecordNotFoundError
+```
+
+#### サービス層での利用
+
+```python
+# 例外
+from app.exceptions.external_api import YahooFinanceError
+from app.exceptions.business import InsufficientDataError
+
+# ユーティリティ
+from app.utils.time_utils import convert_interval_to_model
+from app.utils.retry import retry_async
+from app.utils.logger import get_logger
+
+# スキーマ
+from app.schemas.market_data.stock_price import StockData
+```
+
+#### データアクセス層での利用
+
+```python
+# 例外
+from app.exceptions.database import DuplicateRecordError, RecordNotFoundError
+
+# ユーティリティ
+from app.utils.logger import get_logger
+from app.utils.time_utils import get_table_name_for_interval
+
+# スキーマ
+from app.schemas.common import PaginationMeta
+```
+
+### 8.3 実装時の注意点
+
+#### 避けるべきパターン
+
+❌ **循環参照**:
+```python
+# app/schemas/stock.py
+from app.services.stock_service import StockService  # NG: 循環参照
+```
+
+✅ **正しいパターン**:
+```python
+# app/schemas/stock.py
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.stock_service import StockService
+```
+
+❌ **層を超えた依存**:
+```python
+# app/utils/validators.py
+from app.services.stock_service import StockService  # NG: utilsはサービス層に依存しない
+```
+
+✅ **正しいパターン**:
+```python
+# app/api/stock_data.py
+from app.utils.validators import validate_symbols
+from app.api.dependencies.services import get_stock_service
+
+@router.post("/api/stocks")
+async def create_stock(
+    request: StockRequest,
+    stock_service: StockService = Depends(get_stock_service)
+):
+    is_valid, error = validate_symbols(request.symbols)
+    if not is_valid:
+        raise error
+
+    result = await stock_service.process(request.symbols)
+    return result
+```
+
+### 8.4 期待される効果
+
+共通モジュールを正しく活用することで、以下の効果が得られます:
+
+| 効果                     | 説明                                                     | 指標                                   |
+| ------------------------ | -------------------------------------------------------- | -------------------------------------- |
+| **コード重複削減**       | 同一ロジックを複数箇所で実装する必要がなくなる           | 重複コード率: 目標 < 5%                |
+| **保守性向上**           | 変更箇所が1箇所に集約され、バグ修正が容易になる          | バグ修正時間: 従来比 -50%              |
+| **再利用性向上**         | API層以外（WebSocket、CLI、ジョブ）でも使用可能         | 共通コード再利用率: 目標 > 80%         |
+| **一貫性保証**           | 全レイヤーで統一された動作を保証                         | エラーメッセージ形式の統一率: 100%     |
+| **テスタビリティ向上**   | 独立したモジュールとして単体テストが容易                 | テストカバレッジ: 目標 > 90%           |
+| **開発速度向上**         | 既存の共通モジュールを活用し、新機能開発を加速           | 新機能開発時間: 従来比 -30%            |
+
+---
+
 **最終更新**: 2025-11-16
 **設計方針**: DRY原則 + 型安全性 + 一貫性による保守性の向上
+**アーキテクチャ**: 横断的関心事の共通化により、薄いAPI層とクリーンなサービス層を実現
