@@ -152,150 +152,47 @@ app/services/
     └── service.py                   # SystemMonitoringService
 ```
 
-### 依存関係（4層構造）
+### 依存関係（目的別図：設計者向け・開発者向け）
+
+以下では大きな単一図を廃し、目的（設計者／開発者）に応じて抽象度を切り替えた図を並べます。
+
+#### 設計者向け（高レベル図）
+
+設計者はシステムの境界・責務分離・主要依存を素早く把握する必要があるため、レイヤ（API / サービス / データ / 外部）だけを示します。
 
 ```mermaid
 graph TB
-    subgraph "API層"
-        BatchAPI[BatchDataRouter<br/>非同期エンドポイント]
-        StockAPI[StockMasterRouter<br/>非同期エンドポイント]
-        MonitorAPI[SystemRouter<br/>非同期エンドポイント]
-        FundamentalAPI[FundamentalRouter<br/>非同期エンドポイント]
-        ScreeningAPI[ScreeningRouter<br/>非同期エンドポイント]
-        BacktestAPI[BacktestRouter<br/>非同期エンドポイント]
-        AuthAPI[AuthRouter<br/>非同期エンドポイント]
-        PortfolioAPI[PortfolioRouter<br/>非同期エンドポイント]
-        IndicesAPI[IndicesRouter<br/>非同期エンドポイント]
-        NotificationAPI[NotificationRouter<br/>非同期エンドポイント]
-    end
+    API["API層"]
+    Service["サービス層<br/>(ドメイン代表ノード：market_data, analysis, user, notification, monitoring)"]
+    Data["データアクセス層<br/>(Repository, Models)"]
+    External["外部API<br/>(Yahoo/JPX 等)"]
+    Schemas["Pydantic / スキーマ"]
 
-    subgraph "サービス層（ドメイン別）"
-        subgraph "共通基盤 (core)"
-            BaseFetcher[BaseFetcher<br/>抽象基底]
-            BaseSaver[BaseSaver<br/>抽象基底]
-            BaseValidator[BaseValidator<br/>抽象基底]
-        end
-
-        subgraph "市場データドメイン (market_data)"
-            StockPriceService[StockPriceService<br/>株価データ管理]
-            StockMasterService[StockMasterService<br/>銘柄マスタ管理]
-            FundamentalService[FundamentalService<br/>財務データ管理]
-            IndexService[IndexService<br/>市場インデックス]
-        end
-
-        subgraph "バッチ処理基盤 (batch)"
-            BatchCoordinator[BatchCoordinator<br/>汎用バッチ調整]
-            BatchExecutor[BatchExecutor<br/>並列実行エンジン]
-        end
-
-        subgraph "分析ドメイン (analysis)"
-            ScreeningService[ScreeningService<br/>スクリーニング]
-            BacktestService[BacktestService<br/>バックテスト]
-        end
-
-        subgraph "ユーザードメイン (user)"
-            AuthService[AuthService<br/>認証・認可]
-            ProfileService[ProfileService<br/>プロフィール]
-            PortfolioService[PortfolioService<br/>ポートフォリオ]
-        end
-
-        subgraph "通知ドメイン (notification)"
-            NotificationService[NotificationService<br/>通知管理]
-        end
-
-        subgraph "監視ドメイン (monitoring)"
-            MonitorService[MonitoringService<br/>システム監視]
-        end
-    end
-
-    subgraph "データアクセス層"
-        StockRepo[StockRepository<br/>株価データ永続化]
-        MasterRepo[MasterRepository<br/>銘柄マスタ永続化]
-        FundRepo[FundamentalRepository<br/>財務データ永続化]
-        UserRepo[UserRepository<br/>ユーザー永続化]
-        Models[SQLAlchemy Models<br/>非同期対応]
-    end
-
-    subgraph "外部API"
-        YFinance[Yahoo Finance API<br/>株価・財務データ]
-        JPXAPI[JPX API/CSV<br/>銘柄マスタ]
-    end
-
-    subgraph "共通モジュール"
-        Schemas[Pydanticスキーマ<br/>app/schemas/]
-    end
-
-    %% API層 → サービス層
-    BatchAPI -->|await| BatchCoordinator
-    StockAPI -->|await| StockMasterService
-    MonitorAPI -->|await| MonitorService
-    FundamentalAPI -->|await| FundamentalService
-    ScreeningAPI -->|await| ScreeningService
-    BacktestAPI -->|await| BacktestService
-    AuthAPI -->|await| AuthService
-    PortfolioAPI -->|await| PortfolioService
-    IndicesAPI -->|await| IndexService
-    NotificationAPI -->|await| NotificationService
-
-    %% サービス層 → 共通基盤（継承関係）
-    StockPriceService -.->|extends| BaseFetcher
-    StockPriceService -.->|extends| BaseSaver
-    StockMasterService -.->|extends| BaseFetcher
-    StockMasterService -.->|extends| BaseSaver
-    FundamentalService -.->|extends| BaseFetcher
-
-    %% サービス層 → データアクセス層
-    StockPriceService -->|await| StockRepo
-    StockMasterService -->|await| MasterRepo
-    FundamentalService -->|await| FundRepo
-    AuthService -->|await| UserRepo
-    ProfileService -->|await| UserRepo
-    PortfolioService -->|await| StockRepo
-    ScreeningService -->|await| FundRepo
-    BacktestService -->|await| StockRepo
-    IndexService -->|await| StockRepo
-
-    %% サービス層 → 外部API
-    StockPriceService -->|async| YFinance
-    FundamentalService -->|async| YFinance
-    StockMasterService -->|async| JPXAPI
-    IndexService -->|async| YFinance
-
-    %% バッチ処理基盤の汎用性
-    BatchCoordinator -->|uses any| BaseFetcher
-    BatchCoordinator -->|uses any| BaseSaver
-    BatchCoordinator -->|orchestrates| BatchExecutor
-
-    %% データアクセス層 → モデル
-    StockRepo -->|async| Models
-    MasterRepo -->|async| Models
-    FundRepo -->|async| Models
-    UserRepo -->|async| Models
-
-    %% Pydantic統合
-    StockPriceService -.->|uses| Schemas
-    StockMasterService -.->|uses| Schemas
-    BatchCoordinator -.->|uses| Schemas
-
-    %% スタイル（ドメイン別に色分け）
-    style BaseFetcher fill:#ffd4d4
-    style BaseSaver fill:#ffd4d4
-    style BaseValidator fill:#ffd4d4
-    style StockPriceService fill:#d4f4dd
-    style StockMasterService fill:#d4f4dd
-    style FundamentalService fill:#d4f4dd
-    style IndexService fill:#d4f4dd
-    style BatchCoordinator fill:#fff4d4
-    style BatchExecutor fill:#fff4d4
-    style ScreeningService fill:#d4e4ff
-    style BacktestService fill:#d4e4ff
-    style AuthService fill:#f4d4ff
-    style ProfileService fill:#f4d4ff
-    style PortfolioService fill:#f4d4ff
-    style NotificationService fill:#ffe4d4
-    style MonitorService fill:#e4e4e4
-    style Schemas fill:#fff4e1
+    API -->|await| Service
+    Service -->|await| Data
+    Service -->|async| External
+    Service -.->|uses| Schemas
 ```
+
+注：この図は「誰がどこに依存しているか」の概観のみを示します。実装詳細（クラスや継承、細かな矢印）は開発者向け図で扱います。
+
+
+#### 開発者向け（実装詳細の参照）
+
+開発者向けの詳細なクラス／継承関係は本ドキュメントのセクション4（クラス図）に集約しています。
+実装上の依存追跡や詳細設計を確認する際は、まずセクション4の以下を参照してください：
+
+- セクション4.1: 共通基盤（Core）のクラス図（BaseFetcher, BaseSaver 等）
+- セクション4.2: 市場データドメイン（market_data）のクラス図
+- セクション4.3: バッチ処理基盤（batch）のクラス図
+
+ここに別途図を追加するのは、クラス図で表現しきれない実行フロー（シーケンス図）やドメイン横断の依存を可視化したい場合に限定してください。重複を避けるため、クラス図と同等の情報はここで繰り返さない運用ルールを推奨します。
+
+#### 図の読み方の補足（凡例）
+- 実線矢印（-->）：非同期/同期の直接呼び出し（図中で適宜注記）
+- 破線矢印（-.->）：継承や "extends / uses" の関係
+- 各図は目的に応じた抽象度で作成されています。レビュー時は設計者向け図で境界確認、実装時は開発者向け図で依存追跡を行ってください。
+
 
 ### レイヤー間の通信（非同期パターン）
 
