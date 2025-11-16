@@ -61,22 +61,22 @@ related_docs:
 app/services/
 ├── stock_data/                      # 株価データ処理
 │   ├── stock_data_service.py        # データ取得・保存統括 (非同期)
-│   ├── fetcher.py                   # データ取得 (非同期)
-│   ├── saver.py                     # データ保存 (非同期)
-│   ├── converter.py                 # データ変換
-│   └── validator.py                 # データ検証
+│   ├── stock_data_fetcher.py        # データ取得 (非同期)
+│   ├── stock_data_saver.py          # データ保存 (非同期)
+│   ├── stock_data_converter.py      # データ変換
+│   └── stock_data_validator.py      # データ検証
 ├── batch/                           # 一括データ処理
 │   ├── batch_coordinator.py         # 全体調整 (非同期)
-│   ├── fetch_service.py             # データ取得専門 (非同期)
-│   ├── progress_tracker.py          # 進捗管理
-│   └── result_processor.py          # 結果処理
+│   ├── batch_fetch_service.py       # データ取得専門 (非同期)
+│   ├── batch_progress_tracker.py    # 進捗管理
+│   └── batch_result_processor.py    # 結果処理
 ├── jpx/                             # JPX銘柄管理
-│   └── jpx_stock_service.py         # JPX銘柄マスタ管理 (非同期)
+│   └── jpx_service.py               # JPX銘柄マスタ管理 (非同期)
 ├── batch_execution/                 # バッチ実行管理
-│   └── batch_service.py             # バッチ履歴管理 (非同期)
+│   └── batch_execution_service.py   # バッチ履歴管理 (非同期)
 ├── fundamental/                     # ファンダメンタルデータ処理
 │   ├── fundamental_data_service.py  # ファンダメンタルデータ統合管理 (非同期)
-│   ├── fundamental_fetcher.py       # 財務データ取得 (非同期)
+│   ├── fundamental_data_fetcher.py  # 財務データ取得 (非同期)
 │   └── fundamental_calculator.py    # 財務指標計算
 ├── screening/                       # スクリーニングサービス
 │   ├── screening_service.py         # スクリーニング実行 (非同期)
@@ -95,7 +95,7 @@ app/services/
 │   └── portfolio_calculator.py      # 評価額・損益計算
 ├── market_indices/                  # 市場インデックスサービス
 │   ├── index_service.py             # インデックス管理 (非同期)
-│   └── index_fetcher.py             # インデックスデータ取得 (非同期)
+│   └── index_data_fetcher.py        # インデックスデータ取得 (非同期)
 ├── notification/                    # 通知サービス
 │   ├── notification_service.py      # 通知管理 (非同期)
 │   ├── alert_service.py             # アラート管理 (非同期)
@@ -225,24 +225,24 @@ graph TB
 
 ### 3.1 株価データ処理
 
-| モジュール                | クラス             | 責務                            | 非同期対応     | 型定義                              |
-| ------------------------- | ------------------ | ------------------------------- | -------------- | ----------------------------------- |
-| **stock_data_service.py** | StockDataService   | データ取得・保存の統括管理      | ✅ async/await | Pydantic FetchRequest/FetchResponse |
-| **fetcher.py**            | StockDataFetcher   | Yahoo Finance APIからデータ取得 | ✅ aiohttp     | Pydantic StockData                  |
-| **saver.py**              | StockDataSaver     | データベースへのデータ保存      | ✅ asyncpg     | Pydantic SaveResult                 |
-| **converter.py**          | StockDataConverter | データ形式の変換                | -              | Pydantic型変換                      |
-| **validator.py**          | StockDataValidator | データ検証                      | -              | Pydantic Field validation           |
+| モジュール                  | クラス             | 責務                            | 非同期対応    | 型定義                              |
+| --------------------------- | ------------------ | ------------------------------- | ------------- | ----------------------------------- |
+| **stock_data_service.py**   | StockDataService   | データ取得・保存の統括管理      | ✅ async/await | Pydantic FetchRequest/FetchResponse |
+| **stock_data_fetcher.py**   | StockDataFetcher   | Yahoo Finance APIからデータ取得 | ✅ aiohttp     | Pydantic StockData                  |
+| **stock_data_saver.py**     | StockDataSaver     | データベースへのデータ保存      | ✅ asyncpg     | Pydantic SaveResult                 |
+| **stock_data_converter.py** | StockDataConverter | データ形式の変換                | -             | Pydantic型変換                      |
+| **stock_data_validator.py** | StockDataValidator | データ検証                      | -             | Pydantic Field validation           |
 
 ### 3.2 一括データ処理
 
 大量銘柄(JPX全銘柄4,000+)の並列データ取得を実現する一括処理サービス群。
 
-| モジュール               | クラス               | 責務                   | 非同期対応          | 型定義                             |
-| ------------------------ | -------------------- | ---------------------- | ------------------- | ---------------------------------- |
-| **batch_coordinator.py** | BatchDataCoordinator | 全体調整・並列処理制御 | ✅ asyncio.gather() | Pydantic BatchRequest/BatchSummary |
-| **fetch_service.py**     | BatchFetchService    | データ取得専門         | ✅ async/await      | Pydantic FetchResult               |
-| **progress_tracker.py**  | BatchProgressTracker | 進捗管理               | ✅ WebSocket配信    | Pydantic ProgressInfo              |
-| **result_processor.py**  | BatchResultProcessor | 結果処理・集計         | ✅ async/await      | Pydantic ProcessSummary            |
+| モジュール                    | クラス               | 責務                   | 非同期対応         | 型定義                             |
+| ----------------------------- | -------------------- | ---------------------- | ------------------ | ---------------------------------- |
+| **batch_coordinator.py**      | BatchDataCoordinator | 全体調整・並列処理制御 | ✅ asyncio.gather() | Pydantic BatchRequest/BatchSummary |
+| **batch_fetch_service.py**    | BatchFetchService    | データ取得専門         | ✅ async/await      | Pydantic FetchResult               |
+| **batch_progress_tracker.py** | BatchProgressTracker | 進捗管理               | ✅ WebSocket配信    | Pydantic ProgressInfo              |
+| **batch_result_processor.py** | BatchResultProcessor | 結果処理・集計         | ✅ async/await      | Pydantic ProcessSummary            |
 
 **一括処理の特徴**:
 - **並列処理**: 最大10並列でのデータ取得
@@ -252,25 +252,25 @@ graph TB
 
 ### 3.3 JPX銘柄管理
 
-| モジュール               | クラス          | 責務                | 非同期対応  | 型定義               |
-| ------------------------ | --------------- | ------------------- | ----------- | -------------------- |
-| **jpx_stock_service.py** | JPXStockService | JPX銘柄マスタの管理 | ✅ aiohttp  | Pydantic StockMaster |
+| モジュール         | クラス          | 責務                | 非同期対応 | 型定義               |
+| ------------------ | --------------- | ------------------- | ---------- | -------------------- |
+| **jpx_service.py** | JPXStockService | JPX銘柄マスタの管理 | ✅ aiohttp  | Pydantic StockMaster |
 
 ### 3.4 バッチ管理
 
-| モジュール           | クラス       | 責務                 | 非同期対応     | 型定義                  |
-| -------------------- | ------------ | -------------------- | -------------- | ----------------------- |
-| **batch_service.py** | BatchService | バッチ実行履歴の管理 | ✅ async/await | Pydantic BatchExecution |
+| モジュール                     | クラス       | 責務                 | 非同期対応    | 型定義                  |
+| ------------------------------ | ------------ | -------------------- | ------------- | ----------------------- |
+| **batch_execution_service.py** | BatchService | バッチ実行履歴の管理 | ✅ async/await | Pydantic BatchExecution |
 
 ### 3.5 ファンダメンタルデータ処理
 
 財務指標(EPS、BPS、ROE等)の取得・管理を担当するサービス群。
 
-| モジュール                      | クラス                 | 責務                           | 非同期対応     | 型定義                               |
-| ------------------------------- | ---------------------- | ------------------------------ | -------------- | ------------------------------------ |
+| モジュール                      | クラス                 | 責務                           | 非同期対応    | 型定義                               |
+| ------------------------------- | ---------------------- | ------------------------------ | ------------- | ------------------------------------ |
 | **fundamental_data_service.py** | FundamentalDataService | ファンダメンタルデータ統合管理 | ✅ async/await | Pydantic FundamentalRequest/Response |
-| **fundamental_fetcher.py**      | FundamentalDataFetcher | 財務データ取得                 | ✅ async/await | Pydantic FundamentalData             |
-| **fundamental_calculator.py**   | FundamentalCalculator  | 財務指標計算                   | -              | Pydantic CalculatedMetrics           |
+| **fundamental_data_fetcher.py** | FundamentalDataFetcher | 財務データ取得                 | ✅ async/await | Pydantic FundamentalData             |
+| **fundamental_calculator.py**   | FundamentalCalculator  | 財務指標計算                   | -             | Pydantic CalculatedMetrics           |
 
 **主要機能**:
 - EPS、BPS、PER、PBR、ROE、配当利回り等の取得
@@ -281,8 +281,8 @@ graph TB
 
 PER、PBR、ROE等の指標による銘柄絞り込みを提供するサービス群。
 
-| モジュール                | クラス            | 責務                   | 非同期対応     | 型定義                           |
-| ------------------------- | ----------------- | ---------------------- | -------------- | -------------------------------- |
+| モジュール                | クラス            | 責務                   | 非同期対応    | 型定義                           |
+| ------------------------- | ----------------- | ---------------------- | ------------- | -------------------------------- |
 | **screening_service.py**  | ScreeningService  | スクリーニング実行     | ✅ async/await | Pydantic ScreeningRequest/Result |
 | **screening_executor.py** | ScreeningExecutor | 条件フィルタ実行       | ✅ async/await | Pydantic FilterCondition         |
 | **screening_storage.py**  | ScreeningStorage  | スクリーニング結果保存 | ✅ async/await | Pydantic SavedScreening          |
@@ -297,11 +297,11 @@ PER、PBR、ROE等の指標による銘柄絞り込みを提供するサービ�
 
 簡易的な売買戦略のバックテストを提供するサービス群。
 
-| モジュール              | クラス          | 責務                         | 非同期対応     | 型定義                          |
-| ----------------------- | --------------- | ---------------------------- | -------------- | ------------------------------- |
-| **backtest_service.py** | BacktestService | バックテスト実行管理         | ✅ async/await | Pydantic BacktestRequest/Result |
-| **backtest_engine.py**  | BacktestEngine  | バックテスト実行エンジン     | ✅ async/await | Pydantic BacktestConfig         |
-| **backtest_analyzer.py** | BacktestAnalyzer | 結果分析・可視化            | -              | Pydantic PerformanceMetrics     |
+| モジュール               | クラス           | 責務                     | 非同期対応    | 型定義                          |
+| ------------------------ | ---------------- | ------------------------ | ------------- | ------------------------------- |
+| **backtest_service.py**  | BacktestService  | バックテスト実行管理     | ✅ async/await | Pydantic BacktestRequest/Result |
+| **backtest_engine.py**   | BacktestEngine   | バックテスト実行エンジン | ✅ async/await | Pydantic BacktestConfig         |
+| **backtest_analyzer.py** | BacktestAnalyzer | 結果分析・可視化         | -             | Pydantic PerformanceMetrics     |
 
 **主要機能**:
 - シンプル移動平均クロス戦略の実装
@@ -313,8 +313,8 @@ PER、PBR、ROE等の指標による銘柄絞り込みを提供するサービ�
 
 ユーザー認証、プロフィール管理、設定管理を担当するサービス群。
 
-| モジュール                   | クラス              | 責務                     | 非同期対応     | 型定義                      |
-| ---------------------------- | ------------------- | ------------------------ | -------------- | --------------------------- |
+| モジュール                   | クラス              | 責務                     | 非同期対応    | 型定義                      |
+| ---------------------------- | ------------------- | ------------------------ | ------------- | --------------------------- |
 | **auth_service.py**          | AuthService         | 認証・認可管理           | ✅ async/await | Pydantic LoginRequest/Token |
 | **user_service.py**          | UserService         | ユーザープロフィール管理 | ✅ async/await | Pydantic UserProfile        |
 | **user_settings_service.py** | UserSettingsService | ユーザー設定管理         | ✅ async/await | Pydantic UserSettings       |
@@ -329,10 +329,10 @@ PER、PBR、ROE等の指標による銘柄絞り込みを提供するサービ�
 
 ポートフォリオの評価額、保有銘柄管理を担当するサービス群。
 
-| モジュール                  | クラス              | 責務                 | 非同期対応     | 型定義                    |
-| --------------------------- | ------------------- | -------------------- | -------------- | ------------------------- |
-| **portfolio_service.py**    | PortfolioService    | ポートフォリオ管理   | ✅ async/await | Pydantic PortfolioSummary |
-| **portfolio_calculator.py** | PortfolioCalculator | 評価額・損益計算     | -              | Pydantic PortfolioMetrics |
+| モジュール                  | クラス              | 責務               | 非同期対応    | 型定義                    |
+| --------------------------- | ------------------- | ------------------ | ------------- | ------------------------- |
+| **portfolio_service.py**    | PortfolioService    | ポートフォリオ管理 | ✅ async/await | Pydantic PortfolioSummary |
+| **portfolio_calculator.py** | PortfolioCalculator | 評価額・損益計算   | -             | Pydantic PortfolioMetrics |
 
 **主要機能**:
 - ポートフォリオ評価額、保有銘柄一覧、損益情報の計算
@@ -343,10 +343,10 @@ PER、PBR、ROE等の指標による銘柄絞り込みを提供するサービ�
 
 市場インデックス(日経平均、TOPIX等)の管理を担当するサービス群。
 
-| モジュール          | クラス       | 責務                 | 非同期対応     | 型定義                  |
-| ------------------- | ------------ | -------------------- | -------------- | ----------------------- |
-| **index_service.py** | IndexService | インデックス管理     | ✅ async/await | Pydantic IndexData      |
-| **index_fetcher.py** | IndexFetcher | インデックスデータ取得 | ✅ async/await | Pydantic IndexResponse  |
+| モジュール                | クラス       | 責務                   | 非同期対応    | 型定義                 |
+| ------------------------- | ------------ | ---------------------- | ------------- | ---------------------- |
+| **index_service.py**      | IndexService | インデックス管理       | ✅ async/await | Pydantic IndexData     |
+| **index_data_fetcher.py** | IndexFetcher | インデックスデータ取得 | ✅ async/await | Pydantic IndexResponse |
 
 **主要機能**:
 - 日経平均、TOPIX、マザーズ指数等の時系列データ管理
@@ -357,11 +357,11 @@ PER、PBR、ROE等の指標による銘柄絞り込みを提供するサービ�
 
 通知管理とアラート機能を提供するサービス群。
 
-| モジュール                   | クラス              | 責務         | 非同期対応     | 型定義                        |
-| ---------------------------- | ------------------- | ------------ | -------------- | ----------------------------- |
-| **notification_service.py**  | NotificationService | 通知管理     | ✅ async/await | Pydantic NotificationSettings |
-| **alert_service.py**         | AlertService        | アラート管理 | ✅ async/await | Pydantic Alert                |
-| **notification_sender.py**   | NotificationSender  | 通知送信     | ✅ async/await | Pydantic SendResult           |
+| モジュール                  | クラス              | 責務         | 非同期対応    | 型定義                        |
+| --------------------------- | ------------------- | ------------ | ------------- | ----------------------------- |
+| **notification_service.py** | NotificationService | 通知管理     | ✅ async/await | Pydantic NotificationSettings |
+| **alert_service.py**        | AlertService        | アラート管理 | ✅ async/await | Pydantic Alert                |
+| **notification_sender.py**  | NotificationSender  | 通知送信     | ✅ async/await | Pydantic SendResult           |
 
 **主要機能**:
 - 株価アラート(目標価格到達時)
@@ -371,8 +371,8 @@ PER、PBR、ROE等の指標による銘柄絞り込みを提供するサービ�
 
 ### 3.12 システム監視サービス
 
-| モジュール                       | クラス                  | 責務                   | 非同期対応     | 型定義                     |
-| -------------------------------- | ----------------------- | ---------------------- | -------------- | -------------------------- |
+| モジュール                       | クラス                  | 責務                   | 非同期対応    | 型定義                     |
+| -------------------------------- | ----------------------- | ---------------------- | ------------- | -------------------------- |
 | **system_monitoring_service.py** | SystemMonitoringService | システムヘルスチェック | ✅ async/await | Pydantic HealthCheckResult |
 
 **主要機能**:
@@ -1067,8 +1067,8 @@ sequenceDiagram
 
 **主要メソッド**:
 
-| メソッド                      | 説明                                   | パラメータ              | 戻り値                   | 非同期   |
-| ----------------------------- | -------------------------------------- | ----------------------- | ------------------------ | -------- |
+| メソッド                      | 説明                                   | パラメータ              | 戻り値                   | 非同期  |
+| ----------------------------- | -------------------------------------- | ----------------------- | ------------------------ | ------- |
 | `fetch_and_save()`            | 単一銘柄・単一時間軸のデータ取得・保存 | FetchRequest (Pydantic) | FetchResponse (Pydantic) | ✅ async |
 | `fetch_multiple_timeframes()` | 単一銘柄・複数時間軸のデータ取得・保存 | symbol, intervals       | dict[str, FetchResponse] | ✅ async |
 | `check_data_integrity()`      | データ整合性チェック                   | symbol, interval        | IntegrityCheckResult     | ✅ async |
@@ -1080,12 +1080,12 @@ sequenceDiagram
 
 **主要メソッド**:
 
-| メソッド                     | 説明                       | パラメータ                | 戻り値                       | 非同期   |
-| ---------------------------- | -------------------------- | ------------------------- | ---------------------------- | -------- |
-| `fetch_and_save()`           | 財務データ取得・保存       | FundamentalRequest        | FundamentalResponse          | ✅ async |
-| `get_fundamental_data()`     | 財務データ参照（DB）       | symbol                    | FundamentalData              | ✅ async |
-| `get_fundamental_history()`  | 財務データ履歴取得         | symbol, period            | list[FundamentalData]        | ✅ async |
-| `compare_with_industry()`    | 業界平均との比較           | symbol                    | ComparisonResult             | ✅ async |
+| メソッド                    | 説明                 | パラメータ         | 戻り値                | 非同期  |
+| --------------------------- | -------------------- | ------------------ | --------------------- | ------- |
+| `fetch_and_save()`          | 財務データ取得・保存 | FundamentalRequest | FundamentalResponse   | ✅ async |
+| `get_fundamental_data()`    | 財務データ参照（DB） | symbol             | FundamentalData       | ✅ async |
+| `get_fundamental_history()` | 財務データ履歴取得   | symbol, period     | list[FundamentalData] | ✅ async |
+| `compare_with_industry()`   | 業界平均との比較     | symbol             | ComparisonResult      | ✅ async |
 
 **取得データ**:
 - EPS、BPS、PER、PBR、ROE、配当利回り
@@ -1098,13 +1098,13 @@ sequenceDiagram
 
 **主要メソッド**:
 
-| メソッド                   | 説明                           | パラメータ       | 戻り値                    | 非同期   |
-| -------------------------- | ------------------------------ | ---------------- | ------------------------- | -------- |
-| `execute_screening()`      | スクリーニング実行             | ScreeningRequest | ScreeningResult           | ✅ async |
-| `get_presets()`            | プリセット条件一覧取得         | なし             | list[PresetCondition]     | ✅ async |
-| `save_screening()`         | スクリーニング条件保存         | conditions, name | int (condition_id)        | ✅ async |
-| `list_saved_screenings()`  | 保存済み条件一覧取得           | user_id          | list[SavedScreening]      | ✅ async |
-| `export_results()`         | 結果エクスポート（CSV/Excel）  | result_id, format| bytes                     | ✅ async |
+| メソッド                  | 説明                          | パラメータ        | 戻り値                | 非同期  |
+| ------------------------- | ----------------------------- | ----------------- | --------------------- | ------- |
+| `execute_screening()`     | スクリーニング実行            | ScreeningRequest  | ScreeningResult       | ✅ async |
+| `get_presets()`           | プリセット条件一覧取得        | なし              | list[PresetCondition] | ✅ async |
+| `save_screening()`        | スクリーニング条件保存        | conditions, name  | int (condition_id)    | ✅ async |
+| `list_saved_screenings()` | 保存済み条件一覧取得          | user_id           | list[SavedScreening]  | ✅ async |
+| `export_results()`        | 結果エクスポート（CSV/Excel） | result_id, format | bytes                 | ✅ async |
 
 **対応フィールド**: PER, PBR, ROE, 配当利回り, 株価, 出来高, 時価総額
 
@@ -1116,14 +1116,14 @@ sequenceDiagram
 
 **主要メソッド**:
 
-| メソッド             | 説明                 | パラメータ      | 戻り値         | 非同期   |
-| -------------------- | -------------------- | --------------- | -------------- | -------- |
+| メソッド             | 説明                   | パラメータ     | 戻り値         | 非同期  |
+| -------------------- | ---------------------- | -------------- | -------------- | ------- |
 | `create_job()`       | バックテストジョブ作成 | BacktestConfig | int (job_id)   | ✅ async |
-| `execute_backtest()` | バックテスト実行     | job_id          | BacktestResult | ✅ async |
-| `get_status()`       | 進捗状態取得         | job_id          | JobStatus      | ✅ async |
-| `get_result()`       | 結果取得             | job_id          | BacktestResult | ✅ async |
-| `get_trades()`       | 取引履歴取得         | job_id          | list[Trade]    | ✅ async |
-| `cancel_job()`       | ジョブキャンセル     | job_id          | bool           | ✅ async |
+| `execute_backtest()` | バックテスト実行       | job_id         | BacktestResult | ✅ async |
+| `get_status()`       | 進捗状態取得           | job_id         | JobStatus      | ✅ async |
+| `get_result()`       | 結果取得               | job_id         | BacktestResult | ✅ async |
+| `get_trades()`       | 取引履歴取得           | job_id         | list[Trade]    | ✅ async |
+| `cancel_job()`       | ジョブキャンセル       | job_id         | bool           | ✅ async |
 
 **対応戦略**:
 - シンプル移動平均クロス（SMA Cross）
@@ -1142,13 +1142,13 @@ sequenceDiagram
 
 **主要メソッド**:
 
-| メソッド               | 説明                     | パラメータ             | 戻り値      | 非同期   |
-| ---------------------- | ------------------------ | ---------------------- | ----------- | -------- |
-| `authenticate_user()`  | ユーザー認証             | email, password        | LoginResult | ✅ async |
-| `register_user()`      | ユーザー登録             | UserRegister           | User        | ✅ async |
-| `logout()`             | ログアウト               | user_id                | bool        | ✅ async |
-| `refresh_token()`      | トークンリフレッシュ     | refresh_token          | TokenPair   | ✅ async |
-| `verify_token()`       | トークン検証             | access_token           | User        | ✅ async |
+| メソッド              | 説明                 | パラメータ      | 戻り値      | 非同期  |
+| --------------------- | -------------------- | --------------- | ----------- | ------- |
+| `authenticate_user()` | ユーザー認証         | email, password | LoginResult | ✅ async |
+| `register_user()`     | ユーザー登録         | UserRegister    | User        | ✅ async |
+| `logout()`            | ログアウト           | user_id         | bool        | ✅ async |
+| `refresh_token()`     | トークンリフレッシュ | refresh_token   | TokenPair   | ✅ async |
+| `verify_token()`      | トークン検証         | access_token    | User        | ✅ async |
 
 **JWT仕様**:
 - アクセストークン有効期限: 1時間
@@ -1162,13 +1162,13 @@ sequenceDiagram
 
 **主要メソッド**:
 
-| メソッド           | 説明                     | パラメータ         | 戻り値           | 非同期   |
-| ------------------ | ------------------------ | ------------------ | ---------------- | -------- |
-| `get_summary()`    | ポートフォリオ概況取得   | user_id            | PortfolioSummary | ✅ async |
-| `get_holdings()`   | 保有銘柄一覧取得         | user_id            | list[Holding]    | ✅ async |
-| `add_holding()`    | 保有銘柄追加             | user_id, data      | Holding          | ✅ async |
-| `update_holding()` | 保有銘柄更新             | holding_id, data   | Holding          | ✅ async |
-| `delete_holding()` | 保有銘柄削除             | holding_id         | bool             | ✅ async |
+| メソッド           | 説明                   | パラメータ       | 戻り値           | 非同期  |
+| ------------------ | ---------------------- | ---------------- | ---------------- | ------- |
+| `get_summary()`    | ポートフォリオ概況取得 | user_id          | PortfolioSummary | ✅ async |
+| `get_holdings()`   | 保有銘柄一覧取得       | user_id          | list[Holding]    | ✅ async |
+| `add_holding()`    | 保有銘柄追加           | user_id, data    | Holding          | ✅ async |
+| `update_holding()` | 保有銘柄更新           | holding_id, data | Holding          | ✅ async |
+| `delete_holding()` | 保有銘柄削除           | holding_id       | bool             | ✅ async |
 
 **ポートフォリオサマリ**:
 - 総評価額、総取得コスト、総損益、損益率
@@ -1181,14 +1181,14 @@ sequenceDiagram
 
 **主要メソッド**:
 
-| メソッド                         | 説明                 | パラメータ              | 戻り値                 | 非同期   |
-| -------------------------------- | -------------------- | ----------------------- | ---------------------- | -------- |
-| `get_notification_settings()`    | 通知設定取得         | user_id                 | NotificationSettings   | ✅ async |
-| `update_notification_settings()` | 通知設定更新         | user_id, settings       | NotificationSettings   | ✅ async |
-| `create_alert()`                 | アラート作成         | user_id, alert_data     | Alert                  | ✅ async |
-| `list_alerts()`                  | アラート一覧取得     | user_id                 | list[Alert]            | ✅ async |
-| `delete_alert()`                 | アラート削除         | alert_id                | bool                   | ✅ async |
-| `send_notification()`            | 通知送信             | user_id, message, method| SendResult             | ✅ async |
+| メソッド                         | 説明             | パラメータ               | 戻り値               | 非同期  |
+| -------------------------------- | ---------------- | ------------------------ | -------------------- | ------- |
+| `get_notification_settings()`    | 通知設定取得     | user_id                  | NotificationSettings | ✅ async |
+| `update_notification_settings()` | 通知設定更新     | user_id, settings        | NotificationSettings | ✅ async |
+| `create_alert()`                 | アラート作成     | user_id, alert_data      | Alert                | ✅ async |
+| `list_alerts()`                  | アラート一覧取得 | user_id                  | list[Alert]          | ✅ async |
+| `delete_alert()`                 | アラート削除     | alert_id                 | bool                 | ✅ async |
+| `send_notification()`            | 通知送信         | user_id, message, method | SendResult           | ✅ async |
 
 **アラート種類**:
 - 株価アラート（目標価格到達）
@@ -1208,19 +1208,19 @@ sequenceDiagram
 
 サービス層では、**階層的な型定義構造**を採用し、型安全性とOpenAPI自動生成を実現します:
 
-| ファイル                   | 配置基準                       | 例                                              | 用途                    |
-| -------------------------- | ------------------------------ | ----------------------------------------------- | ----------------------- |
-| `app/schemas/common.py`    | 複数レイヤーで使用される共通型 | `Interval`, `ProcessStatus`, `BaseResponse`     | 全レイヤー共通          |
-| `app/schemas/stock.py`     | 株価データ関連                 | `FetchRequest`, `FetchResponse`, `StockData`    | StockDataService        |
-| `app/schemas/batch.py`     | 一括データ関連                 | `BatchRequest`, `BatchSummary`, `ProgressInfo`  | BatchDataCoordinator    |
-| `app/schemas/jpx.py`       | JPX銘柄関連                    | `StockMaster`, `UpdateResult`, `StockListQuery` | JPXStockService         |
-| `app/schemas/fundamental.py` | ファンダメンタルデータ関連   | `FundamentalRequest`, `FundamentalData`         | FundamentalDataService  |
-| `app/schemas/screening.py` | スクリーニング関連             | `ScreeningRequest`, `ScreeningResult`           | ScreeningService        |
-| `app/schemas/backtest.py`  | バックテスト関連               | `BacktestConfig`, `BacktestResult`              | BacktestService         |
-| `app/schemas/auth.py`      | 認証関連                       | `LoginRequest`, `LoginResult`, `TokenPair`      | AuthService             |
-| `app/schemas/user.py`      | ユーザー関連                   | `UserProfile`, `UserSettings`                   | UserService             |
-| `app/schemas/portfolio.py` | ポートフォリオ関連             | `PortfolioSummary`, `Holding`                   | PortfolioService        |
-| `app/schemas/notification.py` | 通知関連                    | `NotificationSettings`, `Alert`                 | NotificationService     |
+| ファイル                      | 配置基準                       | 例                                              | 用途                   |
+| ----------------------------- | ------------------------------ | ----------------------------------------------- | ---------------------- |
+| `app/schemas/common.py`       | 複数レイヤーで使用される共通型 | `Interval`, `ProcessStatus`, `BaseResponse`     | 全レイヤー共通         |
+| `app/schemas/stock.py`        | 株価データ関連                 | `FetchRequest`, `FetchResponse`, `StockData`    | StockDataService       |
+| `app/schemas/batch.py`        | 一括データ関連                 | `BatchRequest`, `BatchSummary`, `ProgressInfo`  | BatchDataCoordinator   |
+| `app/schemas/jpx.py`          | JPX銘柄関連                    | `StockMaster`, `UpdateResult`, `StockListQuery` | JPXStockService        |
+| `app/schemas/fundamental.py`  | ファンダメンタルデータ関連     | `FundamentalRequest`, `FundamentalData`         | FundamentalDataService |
+| `app/schemas/screening.py`    | スクリーニング関連             | `ScreeningRequest`, `ScreeningResult`           | ScreeningService       |
+| `app/schemas/backtest.py`     | バックテスト関連               | `BacktestConfig`, `BacktestResult`              | BacktestService        |
+| `app/schemas/auth.py`         | 認証関連                       | `LoginRequest`, `LoginResult`, `TokenPair`      | AuthService            |
+| `app/schemas/user.py`         | ユーザー関連                   | `UserProfile`, `UserSettings`                   | UserService            |
+| `app/schemas/portfolio.py`    | ポートフォリオ関連             | `PortfolioSummary`, `Holding`                   | PortfolioService       |
+| `app/schemas/notification.py` | 通知関連                       | `NotificationSettings`, `Alert`                 | NotificationService    |
 
 ### 7.2 主要Pydanticモデル定義
 
