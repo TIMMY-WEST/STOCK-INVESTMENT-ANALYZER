@@ -578,10 +578,12 @@ return api_response.paginated(
 | パラメータ       | 値   | 説明                               |
 | ---------------- | ---- | ---------------------------------- |
 | `pool_size`      | 10   | 通常時に保持する接続数             |
-| `max_overflow`   | 20   | 追加接続数                         |
+| `max_overflow`   | 20   | 追加接続数（最大30接続）           |
 | `pool_pre_ping`  | True | 接続使用前の有効性確認             |
 | `pool_recycle`   | 3600 | 接続再利用最大秒数（1時間）        |
 | `pool_timeout`   | 30   | 接続取得時の最大待機秒数           |
+
+**最大同時接続数**: 30（pool_size + max_overflow）
 
 **非同期エンジン設定**:
 

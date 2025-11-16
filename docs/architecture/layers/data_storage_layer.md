@@ -28,13 +28,15 @@ related_docs:
 
 ### 責務
 
-| 責務 | 説明 |
-|------|------|
-| **データ永続化** | 株価データ、銘柄マスタ、バッチ履歴の物理保存 |
-| **データ整合性** | トランザクション、制約による一貫性保証 |
-| **クエリ実行** | SQL実行とインデックスによる高速検索 |
-| **コネクション管理** | 接続プール、タイムアウト、リトライ制御 |
-| **ストレージ管理** | ディスク容量、テーブルパーティション管理 |
+| 責務 | 説明 | 実装箇所 |
+|------|------|---------|
+| **データ永続化** | 株価データ、銘柄マスタ、バッチ履歴の物理保存 | PostgreSQL Server |
+| **データ整合性** | トランザクション、制約による一貫性保証 | PostgreSQL（ACID特性） |
+| **クエリ実行** | SQL実行とインデックスによる高速検索 | PostgreSQL Query Engine |
+| **コネクション管理** | 接続プール、タイムアウト、リトライ制御 | [共通モジュール](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
+| **ストレージ管理** | ディスク容量、テーブルパーティション管理 | PostgreSQL Server |
+
+> **Note**: コネクション管理は共通モジュール(`app/utils/database.py`)で実装されています。データストレージ層はPostgreSQL自体の設定と運用に責任を持ちます。
 
 ### 設計原則
 
@@ -81,8 +83,20 @@ PostgreSQL Server
 
 ```mermaid
 graph TB
-    DAL[データアクセス層<br/>SQLAlchemy Models] --> Engine[SQLAlchemy Engine]
-    Engine --> Pool[Connection Pool]
+    subgraph CommonModules[共通モジュール]
+        DatabaseUtil[app/utils/database.py<br/>接続管理・依存性注入]
+        ConfigUtil[app/utils/config.py<br/>環境変数管理]
+    end
+
+    subgraph DataAccessLayer[データアクセス層]
+        DAL[SQLAlchemy Models<br/>ORM定義]
+    end
+
+    ConfigUtil --> DatabaseUtil
+    DatabaseUtil --> Engine[SQLAlchemy AsyncEngine<br/>非同期エンジン]
+    DAL --> DatabaseUtil
+
+    Engine --> Pool[Connection Pool<br/>pool_size=10, max_overflow=20]
     Pool --> PG[PostgreSQL Server]
 
     PG --> DB[(stock_investment_db)]
@@ -93,6 +107,8 @@ graph TB
     StockTables --> Disk1[ディスクストレージ<br/>株価データ]
     MgmtTables --> Disk2[ディスクストレージ<br/>管理データ]
 
+    style CommonModules fill:#fff4e1
+    style DataAccessLayer fill:#e1f5ff
     style PG fill:#ffebe1
     style DB fill:#ffe1f5
     style Pool fill:#e1f5ff
@@ -260,9 +276,22 @@ CREATE INDEX idx_batch_execution_details_batch_stock
 
 ## 4. 接続管理
 
-### 4.1 接続設定
+### 4.1 データベース接続
 
-**環境変数:**
+**PostgreSQLへの接続は共通モジュール(`app/utils/database.py`)で管理されます。**
+
+詳細は [共通モジュール仕様書 - 5.5 データベース接続管理](./common_modules.md#55-データベース接続管理apputilsdatabasepy) を参照してください。
+
+**主要な接続設定:**
+
+| 項目 | 説明 | 参照先 |
+|------|------|--------|
+| **環境変数管理** | `.env`ファイルによる設定管理 | [共通モジュール - 5.6 設定管理](./common_modules.md#56-設定管理apputilsconfigpy) |
+| **非同期エンジン** | SQLAlchemy AsyncEngine による非同期接続 | [共通モジュール - 5.5 データベース接続管理](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
+| **コネクションプール** | pool_size=10, max_overflow=20 (最大30接続) | [共通モジュール - 5.5 データベース接続管理](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
+| **依存性注入** | FastAPIの`get_db()`による自動トランザクション管理 | [共通モジュール - 5.5 データベース接続管理](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
+
+**環境変数 (`.env`):**
 
 ```bash
 DB_USER=postgres                    # データベースユーザー
@@ -272,50 +301,12 @@ DB_PORT=5432                        # ポート番号
 DB_NAME=stock_investment_db         # データベース名
 ```
 
-**接続URL構成:**
+### 4.2 トランザクション管理
 
-```python
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-```
+**PostgreSQLのACID特性:**
 
-### 4.2 コネクションプール設定
-
-PostgreSQLへの接続は、SQLAlchemyのコネクションプールで管理されます。
-
-**プール設定パラメータ:**
-
-| パラメータ | 値 | 説明 |
-|-----------|-----|------|
-| `pool_size` | 10 | 通常時に保持する接続数 |
-| `max_overflow` | 20 | pool_sizeを超えて作成可能な追加接続数 |
-| `pool_pre_ping` | True | 接続使用前にpingして有効性を確認 |
-| `pool_recycle` | 3600 | 接続を再利用する最大秒数（1時間） |
-| `pool_timeout` | 30 | 接続取得時の最大待機秒数 |
-
-**最大同時接続数**: 30（pool_size + max_overflow）
-
-**実装例:**
-
-```python
-from sqlalchemy import create_engine
-
-engine = create_engine(
-    DATABASE_URL,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    pool_timeout=30,
-    echo=False  # SQLログ出力（開発時はTrue推奨）
-)
-```
-
-### 4.3 トランザクション管理
-
-**ACID特性:**
-
-| 特性 | 実装 | 説明 |
-|------|------|------|
+| 特性 | PostgreSQL実装 | 説明 |
+|------|---------------|------|
 | **Atomicity（原子性）** | BEGIN/COMMIT/ROLLBACK | トランザクション内の処理は全て成功または全て失敗 |
 | **Consistency（一貫性）** | 制約、チェック制約 | データベースは常に整合性のある状態を維持 |
 | **Isolation（独立性）** | デフォルト分離レベル: READ COMMITTED | トランザクション間の干渉を防止 |
@@ -332,6 +323,20 @@ SHOW default_transaction_isolation;
 -- トランザクション分離レベル変更（必要に応じて）
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 ```
+
+**アプリケーション層でのトランザクション管理:**
+
+トランザクションの開始、コミット、ロールバックは**共通モジュールの`get_db()`関数**で自動管理されます。
+
+詳細は [共通モジュール仕様書 - 5.5 データベース接続管理](./common_modules.md#55-データベース接続管理apputilsdatabasepy) を参照してください。
+
+**トランザクション分離レベル一覧:**
+
+| 分離レベル           | 用途                   | 参照先 |
+| -------------------- | ---------------------- | ------ |
+| **READ COMMITTED**   | 通常のCRUD操作         | [共通モジュール - 5.5 トランザクション分離レベル](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
+| **REPEATABLE READ**  | レポート生成、集計処理 | [共通モジュール - 5.5 トランザクション分離レベル](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
+| **SERIALIZABLE**     | 高度な整合性が必要な場合| [共通モジュール - 5.5 トランザクション分離レベル](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
 
 ---
 
@@ -474,10 +479,12 @@ ORDER BY last_autovacuum DESC;
 ## 関連ドキュメント
 
 - [アーキテクチャ概要](../architecture_overview.md) - システム全体像
+- [共通モジュール仕様書](./common_modules.md) - データベース接続管理、環境変数管理
 - [データアクセス層仕様書](./data_access_layer.md) - SQLAlchemyモデル定義
 - [データベース設計書](../database_design.md) - 詳細なスキーマ定義
 - [データベースセットアップガイド](../../guides/DATABASE_SETUP.md) - 構築手順
 
 ---
 
-**最終更新**: 2025-01-09
+**最終更新**: 2025-11-16
+**更新内容**: 共通モジュールとの役割分担を明確化し、接続管理・トランザクション管理を共通モジュール参照に変更
