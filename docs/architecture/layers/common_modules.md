@@ -583,6 +583,135 @@ return api_response.paginated(
 | `pool_recycle`   | 3600 | 接続再利用最大秒数（1時間）        |
 | `pool_timeout`   | 30   | 接続取得時の最大待機秒数           |
 
+**非同期エンジン設定**:
+
+環境変数:
+```bash
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=stock_investment_db
+```
+
+接続URL:
+```python
+DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+```
+
+**実装例**:
+
+```python
+# app/utils/database.py
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from typing import AsyncGenerator
+
+from app.utils.config import settings
+
+# 非同期エンジン作成
+async_engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_timeout=30,
+)
+
+# 非同期セッションメーカー
+async_session_maker = async_sessionmaker(
+    async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+)
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """非同期DBセッションを提供（トランザクション自動管理）.
+
+    Yields:
+        AsyncSession: 非同期DBセッション
+
+    使用例（FastAPI依存性注入）:
+        ```python
+        from fastapi import Depends
+        from app.utils.database import get_db
+
+        @router.get("/stocks")
+        async def get_stocks(db: AsyncSession = Depends(get_db)):
+            # dbセッションを使用したデータベース操作
+            ...
+        ```
+    """
+    async with async_session_maker() as session:
+        try:
+            yield session
+            await session.commit()  # 正常終了時: 自動コミット
+        except Exception:
+            await session.rollback()  # 例外発生時: 自動ロールバック
+            raise
+        finally:
+            await session.close()  # 完了時: 自動クローズ
+```
+
+**トランザクション管理パターン**:
+
+パターン1: FastAPI Dependencies経由（推奨）:
+```python
+# FastAPIエンドポイントでの使用（自動トランザクション管理）
+from fastapi import Depends
+from app.utils.database import get_db
+
+@router.post("/stocks")
+async def create_stock(
+    request: StockRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """株価データ作成（トランザクション自動管理）."""
+    # get_db()により、自動的にコミット/ロールバックが実行される
+    repo = StockRepository(session=db)
+    result = await repo.create(**request.dict())
+    return result
+```
+
+パターン2: サービス層での明示的トランザクション:
+```python
+# サービス層での複数操作のトランザクション制御
+from app.utils.database import async_session_maker
+
+async def fetch_and_save_multiple(self, symbols: List[str]) -> dict:
+    """複数銘柄のデータ取得・保存（明示的トランザクション制御）."""
+    async with async_session_maker() as session:
+        try:
+            results = []
+            for symbol in symbols:
+                # データ取得
+                data = await self._fetch_from_yahoo(symbol)
+
+                # Repository経由でDB保存
+                repo = StockRepository(session=session)
+                saved_data = await repo.bulk_upsert(data)
+                results.append(saved_data)
+
+            await session.commit()  # 全件成功時のみコミット
+            return {"success": True, "results": results}
+
+        except Exception as e:
+            await session.rollback()  # 1件でも失敗したらロールバック
+            raise
+```
+
+**トランザクション分離レベル**:
+
+| 分離レベル           | 設定                                | 用途                   |
+| -------------------- | ----------------------------------- | ---------------------- |
+| **READ COMMITTED**   | PostgreSQLデフォルト                | 通常のCRUD操作         |
+| **REPEATABLE READ**  | 明示的に設定                        | レポート生成、集計処理 |
+| **SERIALIZABLE**     | 明示的に設定                        | 高度な整合性が必要な場合|
+
 ### 5.6 設定管理（`app/utils/config.py`）
 
 **環境変数管理**:

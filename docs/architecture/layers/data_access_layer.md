@@ -303,34 +303,11 @@ class StockRepository(BaseRepository[Stocks1d]):
         return result.rowcount
 ```
 
-### 3.3 依存性注入パターン
+### 3.3 依存性注入パターン（共通モジュール利用）
 
 **FastAPIのDependsパターンでRepositoryを注入**:
 
-```python
-# app/api/dependencies/database.py
-from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.database import async_session_maker
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """非同期DBセッションを提供.
-
-    Yields:
-        AsyncSession: 非同期DBセッション
-    """
-    async with async_session_maker() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
-```
+データベースセッションの提供は、**共通モジュール（`app/utils/database.py`）の`get_db()`関数**を使用します。
 
 ```python
 # app/api/dependencies/repositories.py
@@ -338,16 +315,16 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.stock import StockRepository
-from app.api.dependencies.database import get_db
+from app.utils.database import get_db  # 共通モジュールから提供
 
 
 def get_stock_repository(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db)  # 共通モジュールのget_db()を使用
 ) -> StockRepository:
     """StockRepositoryを提供.
 
     Args:
-        db: 非同期DBセッション
+        db: 非同期DBセッション（共通モジュールから提供）
 
     Returns:
         StockRepository: 株価データRepository
@@ -356,6 +333,8 @@ def get_stock_repository(
 ```
 
 **APIエンドポイントでの使用例**:
+
+**パターン1: Repositoryを直接注入**
 
 ```python
 # app/api/stock_data.py
@@ -384,6 +363,40 @@ async def get_stock_data(
     data = await repo.get_by_symbol_range(symbol, limit=100)
     return {"data": [item.to_dict() for item in data]}
 ```
+
+**パターン2: DBセッションを注入してRepository作成**
+
+```python
+# app/api/stock_data.py
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.repositories.stock import StockRepository
+from app.utils.database import get_db  # 共通モジュールから提供
+
+router = APIRouter()
+
+
+@router.get("/stocks/{symbol}")
+async def get_stock_data(
+    symbol: str,
+    db: AsyncSession = Depends(get_db)  # 共通モジュールのget_db()を使用
+):
+    """株価データ取得エンドポイント.
+
+    Args:
+        symbol: 銘柄コード
+        db: 非同期DBセッション（共通モジュールから自動注入）
+
+    Returns:
+        株価データ
+    """
+    repo = StockRepository(session=db)
+    data = await repo.get_by_symbol_range(symbol, limit=100)
+    return {"data": [item.to_dict() for item in data]}
+```
+
+**Note**: `get_db()`関数の詳細な実装とトランザクション管理については、[共通モジュール仕様書](./common_modules.md#55-データベース接続管理apputilsdatabasepy)を参照してください。
 
 ---
 
@@ -539,27 +552,69 @@ class Stocks1d(Base):
 
 ---
 
-## 5. データベース接続管理
+## 5. データベース接続管理（共通モジュール利用）
 
-### 5.1 非同期エンジン設定
+### 5.1 共通モジュールの活用
 
-**環境変数**:
+データベース接続管理は、**共通モジュール（`app/utils/database.py`）で提供される機能**を利用します。詳細な設定やトランザクション管理パターンについては、[共通モジュール仕様書](./common_modules.md#55-データベース接続管理apputilsdatabasepy)を参照してください。
 
-```bash
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=stock_investment_db
-```
+### 5.2 Repository層での使用方法
 
-**接続URL**:
+**非同期セッション取得**:
+
+Repositoryクラスは、FastAPIの依存性注入またはサービス層から受け取った`AsyncSession`を使用します。
 
 ```python
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# app/repositories/stock.py
+from sqlalchemy.ext.asyncio import AsyncSession
+
+class StockRepository(BaseRepository[Stocks1d]):
+    """株価データRepository."""
+
+    def __init__(self, session: AsyncSession):
+        """初期化.
+
+        Args:
+            session: 共通モジュールから提供される非同期DBセッション
+        """
+        super().__init__(model=Stocks1d, session=session)
 ```
 
-### 5.2 コネクションプール設定
+**FastAPI依存性注入での使用**:
+
+```python
+# app/api/stock_data.py
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.repositories.stock import StockRepository
+from app.utils.database import get_db  # 共通モジュールから提供
+
+router = APIRouter()
+
+
+@router.get("/stocks/{symbol}")
+async def get_stock_data(
+    symbol: str,
+    db: AsyncSession = Depends(get_db)  # 共通モジュールのget_db()を利用
+):
+    """株価データ取得エンドポイント.
+
+    Args:
+        symbol: 銘柄コード
+        db: 非同期DBセッション（共通モジュールから自動注入）
+
+    Returns:
+        株価データ
+    """
+    repo = StockRepository(session=db)
+    data = await repo.get_by_symbol_range(symbol, limit=100)
+    return {"data": [item.to_dict() for item in data]}
+```
+
+### 5.3 接続プール設定（共通モジュール管理）
+
+接続プールは共通モジュールで一元管理されています:
 
 | パラメータ        | 値   | 説明                                   |
 | ----------------- | ---- | -------------------------------------- |
@@ -571,34 +626,7 @@ DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT
 
 **最大接続数**: 30（pool_size + max_overflow）
 
-### 5.3 非同期セッション設定
-
-```python
-# app/database.py
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-
-from app.config import settings
-
-# 非同期エンジン作成
-async_engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    pool_timeout=30,
-)
-
-# 非同期セッションメーカー
-async_session_maker = async_sessionmaker(
-    async_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
-)
-```
+**Note**: 接続プール設定の変更は、共通モジュール（`app/utils/database.py`）で行います。
 
 ---
 
@@ -677,54 +705,77 @@ classDiagram
 
 ---
 
-## 7. トランザクション管理
+## 7. トランザクション管理（共通モジュール利用）
 
-### 7.1 非同期トランザクションパターン
+### 7.1 共通モジュールのトランザクション管理機能
+
+トランザクション管理は、**共通モジュール（`app/utils/database.py`）で提供される機能**を利用します。詳細なトランザクション管理パターンについては、[共通モジュール仕様書](./common_modules.md#55-データベース接続管理apputilsdatabasepy)を参照してください。
+
+### 7.2 Repository層でのトランザクション利用
 
 **パターン1: FastAPI Dependencies経由（推奨）**
 
-```python
-# app/api/dependencies/database.py
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """非同期DBセッションを提供（トランザクション自動管理）."""
-    async with async_session_maker() as session:
-        try:
-            yield session
-            await session.commit()  # 正常終了時: 自動コミット
-        except Exception:
-            await session.rollback()  # 例外発生時: 自動ロールバック
-            raise
-        finally:
-            await session.close()  # 完了時: 自動クローズ
-```
-
-**パターン2: サービス層での明示的トランザクション**
+FastAPIの依存性注入を使用する場合、トランザクションは自動的に管理されます:
 
 ```python
-# app/services/stock_data_service.py
-async def fetch_and_save_multiple(self, symbols: List[str]) -> dict:
-    """複数銘柄のデータ取得・保存（トランザクション制御）."""
-    async with async_session_maker() as session:
-        try:
-            results = []
-            for symbol in symbols:
-                # データ取得
-                data = await self._fetch_from_yahoo(symbol)
+# app/api/stock_data.py
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-                # Repository経由でDB保存
-                repo = StockRepository(session=session)
-                saved_data = await repo.bulk_upsert(data)
-                results.append(saved_data)
+from app.repositories.stock import StockRepository
+from app.utils.database import get_db  # 共通モジュールから提供
 
-            await session.commit()  # 全件成功時のみコミット
-            return {"success": True, "results": results}
+router = APIRouter()
 
-        except Exception as e:
-            await session.rollback()  # 1件でも失敗したらロールバック
-            raise
+
+@router.post("/stocks")
+async def create_stock(
+    request: StockRequest,
+    db: AsyncSession = Depends(get_db)  # トランザクション自動管理
+):
+    """株価データ作成.
+
+    共通モジュールのget_db()により、自動的にコミット/ロールバックが実行される
+    """
+    repo = StockRepository(session=db)
+    result = await repo.create(**request.dict())
+    return result
 ```
 
-### 7.2 トランザクション分離レベル
+**パターン2: Repository内での複数操作**
+
+Repository内で複数の操作を実行する場合も、同じセッションを使用することでトランザクションが保証されます:
+
+```python
+# app/repositories/stock.py
+class StockRepository(BaseRepository[Stocks1d]):
+    """株価データRepository."""
+
+    async def bulk_upsert(self, records: List[dict]) -> int:
+        """一括UPSERT（トランザクション保証）.
+
+        同一セッション内で実行されるため、全件成功または全件失敗が保証される
+        """
+        stmt = insert(self.model).values(records)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=['symbol', 'date'],
+            set_={
+                'open': stmt.excluded.open,
+                'high': stmt.excluded.high,
+                'low': stmt.excluded.low,
+                'close': stmt.excluded.close,
+                'volume': stmt.excluded.volume,
+                'updated_at': func.now()
+            }
+        )
+        result = await self.session.execute(stmt)
+        # コミットは共通モジュールのget_db()により自動実行
+        return result.rowcount
+```
+
+### 7.3 トランザクション分離レベル（共通モジュール管理）
+
+トランザクション分離レベルは共通モジュールで管理されています:
 
 | 分離レベル           | 設定                                | 用途                   |
 | -------------------- | ----------------------------------- | ---------------------- |
@@ -732,55 +783,37 @@ async def fetch_and_save_multiple(self, symbols: List[str]) -> dict:
 | **REPEATABLE READ**  | 明示的に設定                        | レポート生成、集計処理 |
 | **SERIALIZABLE**     | 明示的に設定                        | 高度な整合性が必要な場合|
 
+**Note**: トランザクション分離レベルの変更は、共通モジュール（`app/utils/database.py`）で行います。
+
 ---
 
-## 8. エラーハンドリング
+## 8. エラーハンドリング（共通モジュール利用）
 
-### 8.1 例外階層
+### 8.1 共通モジュールの例外クラス活用
 
-```mermaid
-graph TB
-    Exception[Exception]
-    DatabaseError[DatabaseError]
-    StockDataError[StockDataError]
-    MasterDataError[MasterDataError]
-    ValidationError[ValidationError]
-    ConstraintViolationError[ConstraintViolationError]
-    DuplicateRecordError[DuplicateRecordError]
-    RecordNotFoundError[RecordNotFoundError]
+エラーハンドリングは、**共通モジュール（`app/exceptions/`）で定義された例外クラス**を利用します。詳細な例外階層と使用方法については、[共通モジュール仕様書](./common_modules.md#3-例外定義モジュール)を参照してください。
 
-    Exception --> DatabaseError
-    DatabaseError --> StockDataError
-    DatabaseError --> MasterDataError
-    DatabaseError --> ValidationError
-    DatabaseError --> ConstraintViolationError
-    ConstraintViolationError --> DuplicateRecordError
-    DatabaseError --> RecordNotFoundError
+### 8.2 データアクセス層で使用する例外クラス
 
-    style Exception fill:#ffebe1
-    style DatabaseError fill:#ffe1f5
-    style StockDataError fill:#e1ffe1
-    style ConstraintViolationError fill:#fff4e1
-```
+データアクセス層では、以下の例外クラスを使用します:
 
-### 8.2 例外クラス定義
+| 例外クラス                 | 用途                                   | 発生箇所             | インポート元                   |
+| -------------------------- | -------------------------------------- | -------------------- | ------------------------------ |
+| `DatabaseError`            | データベース操作の基底エラー           | 全Repository         | `app.exceptions.database`      |
+| `StockDataError`           | 株価データ操作エラー                   | StockRepository      | `app.exceptions.database`      |
+| `MasterDataError`          | 銘柄マスタ操作エラー                   | MasterRepository     | `app.exceptions.database`      |
+| `ConstraintViolationError` | 制約違反エラー                         | Repository           | `app.exceptions.database`      |
+| `DuplicateRecordError`     | UNIQUE制約違反                         | Repository           | `app.exceptions.database`      |
+| `RecordNotFoundError`      | レコード未検出エラー                   | Repository           | `app.exceptions.database`      |
 
-| 例外クラス                 | 用途                                   | 発生箇所             |
-| -------------------------- | -------------------------------------- | -------------------- |
-| `DatabaseError`            | データベース操作の基底エラー           | 全Repository         |
-| `StockDataError`           | 株価データ操作エラー                   | StockRepository      |
-| `MasterDataError`          | 銘柄マスタ操作エラー                   | MasterRepository     |
-| `ValidationError`          | データ検証エラー                       | Repository、Model    |
-| `ConstraintViolationError` | 制約違反エラー                         | Repository           |
-| `DuplicateRecordError`     | UNIQUE制約違反                         | Repository           |
-| `RecordNotFoundError`      | レコード未検出エラー                   | Repository           |
+### 8.3 Repository層でのエラーハンドリング実装例
 
-### 8.3 エラーハンドリング実装例
+**例1: UNIQUE制約違反のハンドリング**
 
 ```python
 # app/repositories/stock.py
 from sqlalchemy.exc import IntegrityError
-from app.exceptions import DuplicateRecordError
+from app.exceptions.database import DuplicateRecordError, DatabaseError  # 共通モジュールから提供
 
 
 class StockRepository(BaseRepository[Stocks1d]):
@@ -799,17 +832,86 @@ class StockRepository(BaseRepository[Stocks1d]):
             error_message = str(e.orig)
 
             if "unique constraint" in error_message.lower():
+                # 共通モジュールの例外クラスを使用
                 raise DuplicateRecordError(
-                    f"Duplicate record: symbol={kwargs.get('symbol')}, date={kwargs.get('date')}",
-                    model=self.model.__name__,
-                    duplicate_fields=kwargs,
+                    message=f"Duplicate record: symbol={kwargs.get('symbol')}, date={kwargs.get('date')}",
+                    details={
+                        "model": self.model.__name__,
+                        "duplicate_fields": kwargs
+                    },
                     original_error=e,
                 )
             else:
+                # 共通モジュールの例外クラスを使用
                 raise DatabaseError(
-                    f"Database error: {error_message}",
+                    message=f"Database error: {error_message}",
                     original_error=e,
                 )
+```
+
+**例2: レコード未検出のハンドリング**
+
+```python
+# app/repositories/stock.py
+from app.exceptions.database import RecordNotFoundError  # 共通モジュールから提供
+
+
+class StockRepository(BaseRepository[Stocks1d]):
+    """株価データRepository."""
+
+    async def get_by_id(self, record_id: int) -> Stocks1d:
+        """ID検索（レコード未検出時は例外発生）."""
+        result = await self.session.execute(
+            select(self.model).where(self.model.id == record_id)
+        )
+        instance = result.scalar_one_or_none()
+
+        if instance is None:
+            # 共通モジュールの例外クラスを使用
+            raise RecordNotFoundError(
+                message=f"Record not found: id={record_id}",
+                details={
+                    "model": self.model.__name__,
+                    "record_id": record_id
+                }
+            )
+
+        return instance
+```
+
+### 8.4 ログ記録の統一
+
+エラー発生時は、共通モジュールのロガーを使用してログを記録します:
+
+```python
+# app/repositories/stock.py
+from app.utils.logger import get_logger  # 共通モジュールから提供
+
+logger = get_logger(__name__)
+
+
+class StockRepository(BaseRepository[Stocks1d]):
+    """株価データRepository."""
+
+    async def create(self, **kwargs) -> Stocks1d:
+        """新規レコード作成."""
+        try:
+            instance = self.model(**kwargs)
+            self.session.add(instance)
+            await self.session.flush()
+            logger.info(f"Record created: {self.model.__name__} id={instance.id}")
+            return instance
+
+        except IntegrityError as e:
+            await self.session.rollback()
+            logger.error(
+                f"Database error: {str(e)}",
+                extra={"model": self.model.__name__, "data": kwargs}
+            )
+            raise DuplicateRecordError(
+                message=f"Duplicate record: {kwargs}",
+                original_error=e
+            )
 ```
 
 ---
