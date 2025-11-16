@@ -1,0 +1,1045 @@
+category: architecture
+ai_context: high
+last_updated: 2025-11-16
+related_docs:
+  - ../architecture_overview.md
+  - ./api_layer.md
+  - ./service_layer.md
+  - ./data_access_layer.md
+
+# 共通モジュール 仕様書
+
+## 目次
+
+- [1. 概要](#1-概要)
+- [2. 構成](#2-構成)
+- [3. 例外定義モジュール](#3-例外定義モジュール)
+- [4. Pydanticスキーマモジュール](#4-pydanticスキーマモジュール)
+- [5. ユーティリティモジュール](#5-ユーティリティモジュール)
+- [6. アーキテクチャ図](#6-アーキテクチャ図)
+- [7. 設計原則と利用ガイドライン](#7-設計原則と利用ガイドライン)
+
+---
+
+## 1. 概要
+
+### 役割
+
+共通モジュールは、**全レイヤーで共有される型定義、例外クラス、ユーティリティ関数**を提供します。DRY原則に基づき、重複コードを排除し、一貫性のある実装を支援します。
+
+### 責務
+
+| 責務                       | 説明                                                                   |
+| -------------------------- | ---------------------------------------------------------------------- |
+| **型定義の統一**           | Pydanticモデルによるリクエスト/レスポンススキーマの標準化               |
+| **例外階層の提供**         | カスタム例外クラスによる統一されたエラーハンドリング                   |
+| **共通処理の抽象化**       | ロガー、バリデータ、時間軸変換などの横断的機能の提供                   |
+| **API応答の標準化**        | 成功/エラーレスポンスの一貫した形式の保証                             |
+| **OpenAPI自動生成の支援**  | Pydanticスキーマからのドキュメント自動生成                             |
+| **型安全性の保証**         | 実行時型検証によるバグの早期発見                                       |
+
+### 設計原則
+
+| 原則                   | 説明                                       | 実装例                                                     |
+| ---------------------- | ------------------------------------------ | ---------------------------------------------------------- |
+| **DRY原則**            | 重複コードを排除し、共通化を徹底           | 共通バリデータ、エラーハンドラの再利用                     |
+| **型安全性**           | Pydanticによる実行時型検証                 | 全データモデルにPydantic BaseModel使用                     |
+| **単一責任の原則**     | 各モジュールは明確な責務を持つ             | 例外定義、型定義、ユーティリティを明確に分離               |
+| **疎結合**             | モジュール間の依存を最小限に               | 各モジュールが独立して機能                                 |
+| **拡張性**             | 新機能追加が容易な構成                     | ベースクラスの継承による拡張                               |
+| **一貫性**             | 全レイヤーで統一された規約                 | 統一されたレスポンス形式、エラーメッセージフォーマット     |
+
+---
+
+## 2. 構成
+
+### ディレクトリ構造
+
+```
+app/
+├── exceptions/                  # 例外定義モジュール
+│   ├── __init__.py
+│   ├── base.py                  # 基底例外クラス
+│   ├── database.py              # データベース関連例外
+│   ├── external_api.py          # 外部API関連例外
+│   ├── validation.py            # バリデーション関連例外
+│   ├── business.py              # ビジネスロジック関連例外
+│   └── handlers.py              # FastAPI例外ハンドラ
+│
+├── schemas/                     # Pydanticスキーマモジュール
+│   ├── __init__.py
+│   ├── common.py                # 共通スキーマ（メタデータ、ページネーション等）
+│   ├── responses.py             # 共通レスポンススキーマ
+│   ├── market_data/             # 市場データドメインスキーマ
+│   │   ├── __init__.py
+│   │   ├── stock_price.py       # 株価データスキーマ
+│   │   ├── stock_master.py      # 銘柄マスタスキーマ
+│   │   ├── fundamentals.py      # ファンダメンタルデータスキーマ
+│   │   └── indices.py           # インデックススキーマ
+│   ├── batch.py                 # バッチ処理スキーマ
+│   ├── analysis/                # 分析ドメインスキーマ
+│   │   ├── __init__.py
+│   │   ├── screening.py
+│   │   └── backtest.py
+│   ├── user/                    # ユーザードメインスキーマ
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── profile.py
+│   │   ├── settings.py
+│   │   └── portfolio.py
+│   └── notification.py          # 通知スキーマ
+│
+└── utils/                       # ユーティリティモジュール
+    ├── __init__.py
+    ├── logger.py                # ロガー設定
+    ├── time_utils.py            # 時間軸変換・日時処理
+    ├── api_response.py          # API レスポンス生成ヘルパー
+    ├── validators.py            # 共通バリデータ
+    ├── database.py              # データベース接続管理
+    ├── config.py                # 設定管理
+    ├── security.py              # セキュリティユーティリティ
+    ├── retry.py                 # リトライロジック
+    └── constants.py             # システム定数
+```
+
+### モジュール間依存関係
+
+```mermaid
+graph TB
+    API[API層]
+    Service[サービス層]
+    DataAccess[データアクセス層]
+
+    subgraph CommonModules[共通モジュール]
+        Exceptions[exceptions/]
+        Schemas[schemas/]
+        Utils[utils/]
+    end
+
+    API --> Exceptions
+    API --> Schemas
+    API --> Utils
+    Service --> Exceptions
+    Service --> Schemas
+    Service --> Utils
+    DataAccess --> Exceptions
+    DataAccess --> Schemas
+    DataAccess --> Utils
+
+    Schemas -.->|uses| Utils
+    Exceptions -.->|uses| Utils
+
+    style CommonModules fill:#e1f5ff
+    style Exceptions fill:#ffe1f5
+    style Schemas fill:#e1ffe1
+    style Utils fill:#fff4e1
+```
+
+---
+
+## 3. 例外定義モジュール
+
+### 3.1 例外階層
+
+```mermaid
+graph TB
+    Exception[Exception<br/>Python標準]
+
+    AppException[AppException<br/>アプリケーション基底例外]
+
+    DatabaseError[DatabaseError<br/>データベース基底例外]
+    ExternalAPIError[ExternalAPIError<br/>外部API基底例外]
+    ValidationError[ValidationError<br/>バリデーション基底例外]
+    BusinessError[BusinessError<br/>ビジネスロジック基底例外]
+
+    StockDataError[StockDataError]
+    MasterDataError[MasterDataError]
+    ConstraintViolationError[ConstraintViolationError]
+    DuplicateRecordError[DuplicateRecordError]
+    RecordNotFoundError[RecordNotFoundError]
+
+    YahooFinanceError[YahooFinanceError]
+    JPXAPIError[JPXAPIError]
+    APITimeoutError[APITimeoutError]
+    APIRateLimitError[APIRateLimitError]
+
+    SchemaValidationError[SchemaValidationError]
+    FieldValidationError[FieldValidationError]
+
+    InsufficientDataError[InsufficientDataError]
+    CalculationError[CalculationError]
+
+    Exception --> AppException
+
+    AppException --> DatabaseError
+    AppException --> ExternalAPIError
+    AppException --> ValidationError
+    AppException --> BusinessError
+
+    DatabaseError --> StockDataError
+    DatabaseError --> MasterDataError
+    DatabaseError --> ConstraintViolationError
+    DatabaseError --> RecordNotFoundError
+    ConstraintViolationError --> DuplicateRecordError
+
+    ExternalAPIError --> YahooFinanceError
+    ExternalAPIError --> JPXAPIError
+    ExternalAPIError --> APITimeoutError
+    ExternalAPIError --> APIRateLimitError
+
+    ValidationError --> SchemaValidationError
+    ValidationError --> FieldValidationError
+
+    BusinessError --> InsufficientDataError
+    BusinessError --> CalculationError
+
+    style AppException fill:#ffebe1
+    style DatabaseError fill:#ffe1f5
+    style ExternalAPIError fill:#e1ffe1
+    style ValidationError fill:#fff4e1
+    style BusinessError fill:#e1f5ff
+```
+
+### 3.2 基底例外クラス
+
+**AppException（全例外の基底クラス）**:
+
+| 属性             | 型                  | 説明                               |
+| ---------------- | ------------------- | ---------------------------------- |
+| `message`        | str                 | エラーメッセージ                   |
+| `error_code`     | str                 | エラーコード（例: "DB_001"）       |
+| `status_code`    | int                 | HTTPステータスコード（デフォルト: 500）|
+| `details`        | Optional[dict]      | エラー詳細情報                     |
+| `original_error` | Optional[Exception] | 元の例外オブジェクト               |
+
+**主要メソッド**:
+
+| メソッド                | 説明                                       |
+| ----------------------- | ------------------------------------------ |
+| `to_dict()`             | 例外を辞書形式に変換（API レスポンス用）   |
+| `to_http_exception()`   | FastAPI HTTPException に変換               |
+
+### 3.3 例外カテゴリ別詳細
+
+#### データベース関連例外（`app/exceptions/database.py`）
+
+| 例外クラス                 | HTTPステータス | エラーコード         | 用途                       |
+| -------------------------- | -------------- | -------------------- | -------------------------- |
+| `DatabaseError`            | 500            | `DB_ERROR`           | データベース基底エラー     |
+| `StockDataError`           | 500            | `STOCK_DATA_ERROR`   | 株価データ操作エラー       |
+| `MasterDataError`          | 500            | `MASTER_DATA_ERROR`  | 銘柄マスタ操作エラー       |
+| `ConstraintViolationError` | 400            | `CONSTRAINT_VIOLATION` | 制約違反エラー           |
+| `DuplicateRecordError`     | 409            | `DUPLICATE_RECORD`   | UNIQUE制約違反             |
+| `RecordNotFoundError`      | 404            | `RECORD_NOT_FOUND`   | レコード未検出             |
+
+#### 外部API関連例外（`app/exceptions/external_api.py`）
+
+| 例外クラス          | HTTPステータス | エラーコード          | 用途                       |
+| ------------------- | -------------- | --------------------- | -------------------------- |
+| `ExternalAPIError`  | 502            | `EXTERNAL_API_ERROR`  | 外部API基底エラー          |
+| `YahooFinanceError` | 502            | `YAHOO_FINANCE_ERROR` | Yahoo Finance API エラー   |
+| `JPXAPIError`       | 502            | `JPX_API_ERROR`       | JPX API エラー             |
+| `APITimeoutError`   | 504            | `API_TIMEOUT`         | APIタイムアウト            |
+| `APIRateLimitError` | 429            | `API_RATE_LIMIT`      | APIレート制限超過          |
+
+#### バリデーション関連例外（`app/exceptions/validation.py`）
+
+| 例外クラス              | HTTPステータス | エラーコード             | 用途                       |
+| ----------------------- | -------------- | ------------------------ | -------------------------- |
+| `ValidationError`       | 400            | `VALIDATION_ERROR`       | バリデーション基底エラー   |
+| `SchemaValidationError` | 400            | `SCHEMA_VALIDATION_ERROR`| Pydanticスキーマ検証エラー |
+| `FieldValidationError`  | 400            | `FIELD_VALIDATION_ERROR` | 特定フィールド検証エラー   |
+
+#### ビジネスロジック関連例外（`app/exceptions/business.py`）
+
+| 例外クラス             | HTTPステータス | エラーコード            | 用途                       |
+| ---------------------- | -------------- | ----------------------- | -------------------------- |
+| `BusinessError`        | 400            | `BUSINESS_ERROR`        | ビジネスロジック基底エラー |
+| `InsufficientDataError`| 422            | `INSUFFICIENT_DATA`     | データ不足エラー           |
+| `CalculationError`     | 500            | `CALCULATION_ERROR`     | 計算処理エラー             |
+
+### 3.4 FastAPI例外ハンドラ（`app/exceptions/handlers.py`）
+
+**登録される例外ハンドラ**:
+
+| 例外タイプ         | ハンドラ関数                    | 処理内容                                       |
+| ------------------ | ------------------------------- | ---------------------------------------------- |
+| `AppException`     | `app_exception_handler`         | カスタム例外を統一フォーマットでレスポンス     |
+| `HTTPException`    | `http_exception_handler`        | FastAPI標準例外をカスタムフォーマットで返却    |
+| `RequestValidationError` | `validation_exception_handler` | Pydantic検証エラーを詳細情報付きで返却        |
+| `Exception`        | `general_exception_handler`     | 予期しないエラーをログ記録しエラーレスポンス   |
+
+**統一エラーレスポンス形式**:
+
+```json
+{
+  "error": "ERROR_CODE",
+  "message": "エラーメッセージ",
+  "details": {
+    "field": "symbol",
+    "value": "invalid_value",
+    "constraint": "銘柄コードは4桁の数字.Tの形式である必要があります"
+  },
+  "meta": {
+    "timestamp": "2025-11-16T10:00:00Z",
+    "request_id": "req-123456"
+  }
+}
+```
+
+---
+
+## 4. Pydanticスキーマモジュール
+
+### 4.1 共通スキーマ（`app/schemas/common.py`）
+
+**メタデータスキーマ**:
+
+| フィールド   | 型   | 説明                           |
+| ------------ | ---- | ------------------------------ |
+| `timestamp`  | str  | レスポンス生成日時（ISO 8601） |
+| `request_id` | str  | リクエストID（トレーサビリティ）|
+
+**ページネーション情報スキーマ**:
+
+| フィールド | 型   | 説明                               |
+| ---------- | ---- | ---------------------------------- |
+| `total`    | int  | 総件数                             |
+| `limit`    | int  | 1ページあたりの件数                |
+| `offset`   | int  | オフセット                         |
+| `has_next` | bool | 次ページの有無                     |
+
+**時間軸Enum**:
+
+| 値   | 説明     |
+| ---- | -------- |
+| `1m` | 1分足    |
+| `5m` | 5分足    |
+| `15m`| 15分足   |
+| `30m`| 30分足   |
+| `1h` | 1時間足  |
+| `1d` | 日足     |
+| `1wk`| 週足     |
+| `1mo`| 月足     |
+
+### 4.2 共通レスポンススキーマ（`app/schemas/responses.py`）
+
+**成功レスポンス（汎用）**:
+
+| フィールド | 型                  | 説明                   |
+| ---------- | ------------------- | ---------------------- |
+| `status`   | str                 | "success"固定          |
+| `message`  | str                 | 処理結果メッセージ     |
+| `data`     | T (Generic)         | レスポンスデータ       |
+| `meta`     | Optional[MetaData]  | メタ情報               |
+
+**ページネーション対応レスポンス**:
+
+| フィールド   | 型                       | 説明               |
+| ------------ | ------------------------ | ------------------ |
+| `status`     | str                      | "success"固定      |
+| `message`    | str                      | 処理結果メッセージ |
+| `data`       | List[T] (Generic)        | データリスト       |
+| `meta`       | PaginatedMetaData        | ページネーション情報|
+
+**エラーレスポンス**:
+
+| フィールド | 型             | 説明               |
+| ---------- | -------------- | ------------------ |
+| `error`    | str            | エラーコード       |
+| `message`  | str            | エラーメッセージ   |
+| `details`  | Optional[dict] | エラー詳細情報     |
+| `meta`     | MetaData       | メタ情報           |
+
+### 4.3 ドメイン別スキーマ構成
+
+#### 市場データドメイン（`app/schemas/market_data/`）
+
+**株価データスキーマ（`stock_price.py`）**:
+
+| スキーマ名          | 用途                       | 主要フィールド                                 |
+| ------------------- | -------------------------- | ---------------------------------------------- |
+| `FetchRequest`      | 株価データ取得リクエスト   | symbol, interval, period                       |
+| `StockData`         | 株価データ単体             | symbol, date/datetime, open, high, low, close, volume |
+| `FetchResponse`     | 株価データ取得レスポンス   | symbol, interval, records_count, data          |
+| `ChartDataRequest`  | チャートデータリクエスト   | symbol, interval, start_date, end_date         |
+| `ChartDataResponse` | チャートデータレスポンス   | symbol, interval, chart_data                   |
+
+**銘柄マスタスキーマ（`stock_master.py`）**:
+
+| スキーマ名           | 用途                       | 主要フィールド                                 |
+| -------------------- | -------------------------- | ---------------------------------------------- |
+| `StockMaster`        | 銘柄マスタデータ           | symbol, company_name, market, sector, is_active|
+| `StockMasterList`    | 銘柄マスタリスト           | stocks (List[StockMaster])                     |
+| `UpdateResult`       | 更新結果                   | added_count, updated_count, deleted_count      |
+| `StockSearchRequest` | 銘柄検索リクエスト         | query, market_category, is_active              |
+
+#### バッチ処理スキーマ（`app/schemas/batch.py`）
+
+| スキーマ名         | 用途                       | 主要フィールド                                 |
+| ------------------ | -------------------------- | ---------------------------------------------- |
+| `BatchRequest`     | バッチリクエスト           | symbols, interval, period, max_workers         |
+| `BatchResponse`    | バッチレスポンス           | job_id, batch_db_id, status, total_symbols     |
+| `BatchSummary`     | バッチサマリ               | total, successful, failed, duration_seconds    |
+| `ProgressInfo`     | 進捗情報                   | total, processed, successful, failed, eta_seconds |
+
+#### 分析ドメイン（`app/schemas/analysis/`）
+
+**スクリーニングスキーマ（`screening.py`）**:
+
+| スキーマ名             | 用途                       | 主要フィールド                                 |
+| ---------------------- | -------------------------- | ---------------------------------------------- |
+| `FilterCondition`      | フィルタ条件               | field, operator, value                         |
+| `ScreeningRequest`     | スクリーニングリクエスト   | conditions, logic (AND/OR), sort_by, order     |
+| `ScreeningResult`      | スクリーニング結果         | result_id, matched_count, results              |
+
+**バックテストスキーマ（`backtest.py`）**:
+
+| スキーマ名            | 用途                       | 主要フィールド                                 |
+| --------------------- | -------------------------- | ---------------------------------------------- |
+| `BacktestRequest`     | バックテストリクエスト     | symbol, strategy, start_date, end_date, initial_capital |
+| `BacktestResult`      | バックテスト結果           | job_id, total_return, sharpe_ratio, max_drawdown |
+| `PerformanceMetrics`  | パフォーマンス指標         | win_rate, avg_profit, avg_loss                 |
+
+#### ユーザードメイン（`app/schemas/user/`）
+
+**認証スキーマ（`auth.py`）**:
+
+| スキーマ名        | 用途                       | 主要フィールド                                 |
+| ----------------- | -------------------------- | ---------------------------------------------- |
+| `LoginRequest`    | ログインリクエスト         | email, password                                |
+| `LoginResponse`   | ログインレスポンス         | access_token, refresh_token, token_type, user  |
+| `RegisterRequest` | 登録リクエスト             | email, password, display_name                  |
+| `TokenPayload`    | JWTペイロード              | user_id, email, role, exp                      |
+
+---
+
+## 5. ユーティリティモジュール
+
+### 5.1 ロガー設定（`app/utils/logger.py`）
+
+**機能**:
+- 統一されたログフォーマット設定
+- ログレベルの環境変数による制御
+- ファイル出力とコンソール出力の両対応
+- リクエストIDによるトレーサビリティ確保
+
+**ログレベル**:
+
+| レベル   | 用途                           |
+| -------- | ------------------------------ |
+| DEBUG    | 開発環境でのデバッグ情報       |
+| INFO     | 通常の処理フロー情報           |
+| WARNING  | 警告（処理は継続）             |
+| ERROR    | エラー（処理失敗）             |
+| CRITICAL | クリティカルエラー（システム停止）|
+
+**ログフォーマット**:
+```
+[2025-11-16 10:00:00] [INFO] [req-123456] [app.services.stock_price] 株価データ取得開始: symbol=7203.T
+```
+
+### 5.2 時間軸変換・日時処理（`app/utils/time_utils.py`）
+
+**主要関数**:
+
+| 関数名                        | 引数                       | 戻り値         | 説明                               |
+| ----------------------------- | -------------------------- | -------------- | ---------------------------------- |
+| `convert_interval_to_model()` | interval: str              | Type[Model]    | 時間軸文字列からモデルクラスを取得 |
+| `convert_model_to_interval()` | model: Type[Model]         | str            | モデルクラスから時間軸文字列を取得 |
+| `get_table_name_for_interval()`| interval: str             | str            | 時間軸文字列からテーブル名を取得   |
+| `parse_datetime()`            | datetime_str: str          | datetime       | ISO 8601文字列をdatetimeに変換     |
+| `format_datetime()`           | dt: datetime               | str            | datetimeをISO 8601文字列に変換     |
+| `get_market_open_hours()`     | -                          | Tuple[time, time]| 市場開場時間を取得（9:00-15:00）  |
+| `is_trading_day()`            | date: date                 | bool           | 取引日判定（土日祝日除外）         |
+
+**時間軸マッピング**:
+
+| interval | モデルクラス | テーブル名  |
+| -------- | ------------ | ----------- |
+| `1m`     | Stocks1m     | stocks_1m   |
+| `5m`     | Stocks5m     | stocks_5m   |
+| `15m`    | Stocks15m    | stocks_15m  |
+| `30m`    | Stocks30m    | stocks_30m  |
+| `1h`     | Stocks1h     | stocks_1h   |
+| `1d`     | Stocks1d     | stocks_1d   |
+| `1wk`    | Stocks1wk    | stocks_1wk  |
+| `1mo`    | Stocks1mo    | stocks_1mo  |
+
+### 5.3 APIレスポンス生成ヘルパー（`app/utils/api_response.py`）
+
+**主要関数**:
+
+| 関数名       | 引数                                       | 戻り値 | 説明                               |
+| ------------ | ------------------------------------------ | ------ | ---------------------------------- |
+| `success()`  | data, message, meta                        | dict   | 成功レスポンス生成                 |
+| `error()`    | error_code, message, details, status_code  | dict   | エラーレスポンス生成               |
+| `paginated()`| data, total, limit, offset                 | dict   | ページネーション対応レスポンス生成 |
+
+**使用例**:
+
+成功レスポンス:
+```python
+return api_response.success(
+    data={"stocks": stock_data},
+    message="株価データを取得しました"
+)
+```
+
+エラーレスポンス:
+```python
+return api_response.error(
+    error_code="VALIDATION_ERROR",
+    message="銘柄コードが不正です",
+    details={"field": "symbol", "value": "invalid"},
+    status_code=400
+)
+```
+
+ページネーションレスポンス:
+```python
+return api_response.paginated(
+    data=stock_list,
+    total=1000,
+    limit=100,
+    offset=0
+)
+```
+
+### 5.4 共通バリデータ（`app/utils/validators.py`）
+
+**主要バリデータ関数**:
+
+| 関数名                     | 引数                       | 戻り値                     | 説明                               |
+| -------------------------- | -------------------------- | -------------------------- | ---------------------------------- |
+| `validate_symbol()`        | symbol: str                | Tuple[bool, Optional[str]] | 銘柄コード検証（形式チェック）     |
+| `validate_date_range()`    | start_date, end_date       | Tuple[bool, Optional[str]] | 日付範囲検証                       |
+| `validate_interval()`      | interval: str              | Tuple[bool, Optional[str]] | 時間軸検証                         |
+| `validate_pagination()`    | limit, offset, max_limit   | Tuple[int, int, Optional[str]]| ページネーションパラメータ検証  |
+| `validate_email()`         | email: str                 | Tuple[bool, Optional[str]] | メールアドレス検証                 |
+| `validate_password_strength()` | password: str          | Tuple[bool, Optional[str]] | パスワード強度検証                 |
+
+**検証ルール**:
+
+銘柄コード:
+- 形式: `{4桁数字}.T` または `{4桁数字}.JP`
+- 例: `7203.T`, `9984.T`
+
+日付範囲:
+- start_date <= end_date
+- 未来日付の禁止
+- 最大範囲: 5年
+
+時間軸:
+- 許可値: `1m`, `5m`, `15m`, `30m`, `1h`, `1d`, `1wk`, `1mo`
+
+ページネーション:
+- limit: 1〜100（デフォルト: 100）
+- offset: 0以上
+- max_limit: システム全体の最大制限（デフォルト: 100）
+
+### 5.5 データベース接続管理（`app/utils/database.py`）
+
+**主要関数**:
+
+| 関数名                      | 戻り値                  | 説明                               |
+| --------------------------- | ----------------------- | ---------------------------------- |
+| `get_database_url()`        | str                     | 環境変数からデータベースURL取得    |
+| `create_async_engine()`     | AsyncEngine             | 非同期エンジン作成                 |
+| `create_async_session_maker()` | async_sessionmaker   | 非同期セッションメーカー作成       |
+| `get_db()`                  | AsyncGenerator[AsyncSession] | 非同期DBセッション提供（FastAPI依存性注入用）|
+
+**接続プール設定**:
+
+| パラメータ       | 値   | 説明                               |
+| ---------------- | ---- | ---------------------------------- |
+| `pool_size`      | 10   | 通常時に保持する接続数             |
+| `max_overflow`   | 20   | 追加接続数                         |
+| `pool_pre_ping`  | True | 接続使用前の有効性確認             |
+| `pool_recycle`   | 3600 | 接続再利用最大秒数（1時間）        |
+| `pool_timeout`   | 30   | 接続取得時の最大待機秒数           |
+
+### 5.6 設定管理（`app/utils/config.py`）
+
+**環境変数管理**:
+
+| 設定項目             | 環境変数名          | デフォルト値       | 説明                       |
+| -------------------- | ------------------- | ------------------ | -------------------------- |
+| **データベース**     |                     |                    |                            |
+| DB接続URL            | `DATABASE_URL`      | -                  | PostgreSQL接続URL          |
+| DBユーザー           | `DB_USER`           | postgres           | データベースユーザー名     |
+| DBパスワード         | `DB_PASSWORD`       | -                  | データベースパスワード     |
+| **アプリケーション** |                     |                    |                            |
+| 環境                 | `ENVIRONMENT`       | development        | 実行環境（dev/staging/prod）|
+| デバッグモード       | `DEBUG`             | False              | デバッグモード有効化       |
+| ログレベル           | `LOG_LEVEL`         | INFO               | ログ出力レベル             |
+| **セキュリティ**     |                     |                    |                            |
+| JWT秘密鍵            | `JWT_SECRET_KEY`    | -                  | JWT署名用秘密鍵            |
+| JWT有効期限          | `JWT_EXPIRATION`    | 3600               | アクセストークン有効期限（秒）|
+| APIキー              | `API_KEY`           | -                  | システム間連携用APIキー    |
+| **外部API**          |                     |                    |                            |
+| Yahoo Finance タイムアウト | `YAHOO_TIMEOUT` | 30                | Yahoo Finance API タイムアウト（秒）|
+| リトライ回数         | `API_RETRY_COUNT`   | 3                  | 外部API呼び出しリトライ回数|
+
+### 5.7 セキュリティユーティリティ（`app/utils/security.py`）
+
+**主要関数**:
+
+| 関数名                  | 引数                       | 戻り値 | 説明                               |
+| ----------------------- | -------------------------- | ------ | ---------------------------------- |
+| `hash_password()`       | password: str              | str    | パスワードハッシュ化（bcrypt）     |
+| `verify_password()`     | plain_password, hashed     | bool   | パスワード検証                     |
+| `create_access_token()` | data: dict, expires_delta  | str    | JWTアクセストークン生成            |
+| `create_refresh_token()`| data: dict, expires_delta  | str    | JWTリフレッシュトークン生成        |
+| `decode_token()`        | token: str                 | dict   | JWTトークンデコード                |
+| `generate_request_id()` | -                          | str    | リクエストID生成（UUID4）          |
+
+**セキュリティ設定**:
+
+パスワードハッシュ:
+- アルゴリズム: bcrypt
+- コスト係数: 12
+
+JWT:
+- アルゴリズム: HS256
+- アクセストークン有効期限: 1時間（デフォルト）
+- リフレッシュトークン有効期限: 30日（デフォルト）
+
+### 5.8 リトライロジック（`app/utils/retry.py`）
+
+**主要デコレータ**:
+
+| デコレータ名          | 引数                                   | 説明                               |
+| --------------------- | -------------------------------------- | ---------------------------------- |
+| `@retry_on_error`     | max_retries, delay, backoff_factor     | 例外発生時の自動リトライ           |
+| `@retry_async`        | max_retries, delay, backoff_factor     | 非同期関数用リトライ               |
+
+**リトライ設定**:
+
+| パラメータ       | デフォルト値 | 説明                               |
+| ---------------- | ------------ | ---------------------------------- |
+| `max_retries`    | 3            | 最大リトライ回数                   |
+| `delay`          | 1.0          | 初回リトライ待機秒数               |
+| `backoff_factor` | 2.0          | 指数バックオフ係数                 |
+
+**リトライ対象例外**:
+- `APITimeoutError`
+- `ExternalAPIError`
+- `DatabaseError`（接続エラーのみ）
+
+### 5.9 システム定数（`app/utils/constants.py`）
+
+**株価データ関連定数**:
+
+| 定数名                     | 値       | 説明                               |
+| -------------------------- | -------- | ---------------------------------- |
+| `SUPPORTED_INTERVALS`      | List[str]| サポートされる時間軸               |
+| `DEFAULT_PERIOD`           | "1mo"    | デフォルト取得期間                 |
+| `MAX_BATCH_SYMBOLS`        | 5000     | 一括処理最大銘柄数                 |
+| `MAX_WORKERS`              | 10       | 並列処理最大ワーカー数             |
+
+**API関連定数**:
+
+| 定数名                     | 値       | 説明                               |
+| -------------------------- | -------- | ---------------------------------- |
+| `DEFAULT_PAGINATION_LIMIT` | 100      | デフォルトページサイズ             |
+| `MAX_PAGINATION_LIMIT`     | 100      | 最大ページサイズ                   |
+| `RATE_LIMIT_REQUESTS`      | 10       | レート制限リクエスト数             |
+| `RATE_LIMIT_WINDOW`        | 60       | レート制限ウィンドウ（秒）         |
+
+**ビジネスロジック定数**:
+
+| 定数名                     | 値       | 説明                               |
+| -------------------------- | -------- | ---------------------------------- |
+| `MARKET_OPEN_TIME`         | "09:00"  | 市場開始時刻                       |
+| `MARKET_CLOSE_TIME`        | "15:00"  | 市場終了時刻                       |
+| `TRADING_DAYS`             | List[int]| 取引曜日（月〜金: 0-4）            |
+
+---
+
+## 6. アーキテクチャ図
+
+### 6.1 共通モジュール全体構成
+
+```mermaid
+graph TB
+    subgraph ApplicationLayers[アプリケーション層]
+        API[API層]
+        Service[サービス層]
+        DataAccess[データアクセス層]
+    end
+
+    subgraph Exceptions[例外定義モジュール]
+        BaseException[基底例外<br/>AppException]
+        DatabaseExceptions[データベース例外群]
+        APIExceptions[外部API例外群]
+        ValidationExceptions[バリデーション例外群]
+        BusinessExceptions[ビジネスロジック例外群]
+    end
+
+    subgraph Schemas[Pydanticスキーマモジュール]
+        CommonSchemas[共通スキーマ<br/>メタデータ/ページネーション]
+        ResponseSchemas[レスポンススキーマ<br/>成功/エラー/ページネーション]
+        DomainSchemas[ドメイン別スキーマ<br/>市場データ/分析/ユーザー]
+    end
+
+    subgraph Utils[ユーティリティモジュール]
+        Logger[ロガー設定]
+        TimeUtils[時間軸変換・日時処理]
+        APIResponse[APIレスポンス生成]
+        Validators[共通バリデータ]
+        Database[データベース接続管理]
+        Config[設定管理]
+        Security[セキュリティ]
+        Retry[リトライロジック]
+        Constants[システム定数]
+    end
+
+    API --> BaseException
+    API --> ResponseSchemas
+    API --> APIResponse
+    API --> Validators
+
+    Service --> DatabaseExceptions
+    Service --> DomainSchemas
+    Service --> TimeUtils
+    Service --> Retry
+
+    DataAccess --> DatabaseExceptions
+    DataAccess --> CommonSchemas
+    DataAccess --> Database
+
+    BaseException -.->|uses| Logger
+    ResponseSchemas -.->|uses| CommonSchemas
+    Validators -.->|uses| Constants
+    Security -.->|uses| Config
+
+    style ApplicationLayers fill:#e1f5ff
+    style Exceptions fill:#ffe1f5
+    style Schemas fill:#e1ffe1
+    style Utils fill:#fff4e1
+```
+
+### 6.2 エラーハンドリングフロー
+
+```mermaid
+sequenceDiagram
+    participant Client as クライアント
+    participant API as API層
+    participant Service as サービス層
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant ExHandler as Exception Handler
+    participant Logger as ロガー
+
+    Client->>API: HTTPリクエスト
+    API->>Service: await service.method()
+
+    alt データベースエラー
+        Service->>Repo: await repo.method()
+        Repo->>DB: async query
+        DB-->>Repo: IntegrityError
+        Repo->>Repo: catch IntegrityError
+        Repo->>Logger: エラーログ記録
+        Repo-->>Service: DuplicateRecordError
+        Service-->>API: DuplicateRecordError
+        API->>ExHandler: AppException発生
+        ExHandler->>Logger: エラー詳細ログ
+        ExHandler->>ExHandler: to_http_exception()
+        ExHandler-->>Client: 409 Conflict<br/>{"error":"DUPLICATE_RECORD"}
+    else 外部APIエラー
+        Service->>Service: await fetch_from_yahoo()
+        Service->>Logger: エラーログ記録
+        Service-->>API: YahooFinanceError
+        API->>ExHandler: AppException発生
+        ExHandler->>Logger: エラー詳細ログ
+        ExHandler-->>Client: 502 Bad Gateway<br/>{"error":"YAHOO_FINANCE_ERROR"}
+    else バリデーションエラー
+        API->>API: Pydantic検証
+        API->>ExHandler: ValidationError発生
+        ExHandler->>Logger: エラー詳細ログ
+        ExHandler-->>Client: 400 Bad Request<br/>{"error":"VALIDATION_ERROR"}
+    else 正常処理
+        Service-->>API: 処理結果
+        API->>API: api_response.success()
+        API-->>Client: 200 OK<br/>{"status":"success","data":{}}
+    end
+```
+
+### 6.3 Pydanticスキーマ連携フロー
+
+```mermaid
+sequenceDiagram
+    participant Client as クライアント
+    participant API as API層<br/>FastAPI Endpoint
+    participant Pydantic as Pydantic Validation
+    participant Service as サービス層
+    participant Schemas as スキーマモジュール
+
+    Client->>API: POST /api/stocks/fetch
+    API->>Pydantic: リクエストボディ検証<br/>FetchRequest
+
+    alt バリデーション成功
+        Pydantic-->>API: FetchRequest (validated)
+        API->>Service: await fetch_and_save(request)
+        Service->>Service: ビジネスロジック実行
+        Service-->>API: FetchResponse (Pydantic)
+        API->>Pydantic: レスポンス生成
+        Pydantic->>Pydantic: OpenAPI スキーマ準拠
+        Pydantic-->>Client: 200 OK<br/>FetchResponse JSON
+    else バリデーション失敗
+        Pydantic->>Pydantic: Field検証エラー
+        Pydantic-->>API: ValidationError
+        API->>Schemas: ErrorResponse生成
+        Schemas-->>Client: 400 Bad Request<br/>ErrorResponse JSON
+    end
+
+    Note over Pydantic,Schemas: Pydanticスキーマは<br/>OpenAPI自動生成の基盤
+```
+
+---
+
+## 7. 設計原則と利用ガイドライン
+
+### 7.1 例外処理のベストプラクティス
+
+**原則1: 適切な例外クラスを選択**
+
+```python
+# ❌ 悪い例: 汎用的すぎる
+raise Exception("データが見つかりません")
+
+# ✅ 良い例: 具体的な例外クラス
+raise RecordNotFoundError(
+    message=f"銘柄データが見つかりません: {symbol}",
+    details={"symbol": symbol, "date": target_date}
+)
+```
+
+**原則2: 元の例外を保持**
+
+```python
+# ✅ 良い例: 元の例外を記録
+try:
+    result = await repo.create(symbol="7203.T", ...)
+except IntegrityError as e:
+    raise DuplicateRecordError(
+        message="銘柄データが既に存在します",
+        original_error=e,  # 元の例外を保持
+        details={"symbol": "7203.T"}
+    )
+```
+
+**原則3: ログ記録を徹底**
+
+```python
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+try:
+    data = await fetch_stock_data(symbol)
+except YahooFinanceError as e:
+    logger.error(
+        f"Yahoo Finance API エラー: {e.message}",
+        extra={"symbol": symbol, "error_code": e.error_code}
+    )
+    raise
+```
+
+### 7.2 Pydanticスキーマのベストプラクティス
+
+**原則1: 型ヒントを明示**
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import date
+
+class FetchRequest(BaseModel):
+    """株価データ取得リクエスト."""
+
+    symbol: str = Field(..., description="銘柄コード", example="7203.T")
+    interval: str = Field(..., description="時間軸", example="1d")
+    start_date: Optional[date] = Field(None, description="開始日")
+    end_date: Optional[date] = Field(None, description="終了日")
+```
+
+**原則2: バリデータを活用**
+
+```python
+from pydantic import BaseModel, validator
+
+class FetchRequest(BaseModel):
+    symbol: str
+    interval: str
+
+    @validator("symbol")
+    def validate_symbol(cls, v):
+        """銘柄コード検証."""
+        if not re.match(r"^\d{4}\.(T|JP)$", v):
+            raise ValueError("銘柄コードは4桁の数字.Tの形式である必要があります")
+        return v
+
+    @validator("interval")
+    def validate_interval(cls, v):
+        """時間軸検証."""
+        if v not in SUPPORTED_INTERVALS:
+            raise ValueError(f"サポートされていない時間軸です: {v}")
+        return v
+```
+
+**原則3: OpenAPI ドキュメント対応**
+
+```python
+from pydantic import BaseModel, Field
+
+class StockData(BaseModel):
+    """株価データ."""
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "symbol": "7203.T",
+                "date": "2025-11-16",
+                "open": 1500.0,
+                "high": 1520.0,
+                "low": 1495.0,
+                "close": 1510.0,
+                "volume": 1000000
+            }
+        }
+
+    symbol: str = Field(..., description="銘柄コード")
+    date: date = Field(..., description="データ日付")
+    open: float = Field(..., ge=0, description="始値")
+    high: float = Field(..., ge=0, description="高値")
+    low: float = Field(..., ge=0, description="安値")
+    close: float = Field(..., ge=0, description="終値")
+    volume: int = Field(..., ge=0, description="出来高")
+```
+
+### 7.3 ユーティリティ関数のベストプラクティス
+
+**原則1: 単一責任の原則を守る**
+
+```python
+# ✅ 良い例: 1つの関数が1つの責務
+def validate_symbol(symbol: str) -> Tuple[bool, Optional[str]]:
+    """銘柄コード検証のみ."""
+    if not re.match(r"^\d{4}\.(T|JP)$", symbol):
+        return False, "銘柄コードの形式が不正です"
+    return True, None
+
+def validate_interval(interval: str) -> Tuple[bool, Optional[str]]:
+    """時間軸検証のみ."""
+    if interval not in SUPPORTED_INTERVALS:
+        return False, f"サポートされていない時間軸です: {interval}"
+    return True, None
+```
+
+**原則2: 型ヒントを必ず付与**
+
+```python
+from typing import Optional, Tuple
+from datetime import datetime
+
+def parse_datetime(datetime_str: str) -> datetime:
+    """ISO 8601文字列をdatetimeに変換.
+
+    Args:
+        datetime_str: ISO 8601形式の日時文字列
+
+    Returns:
+        datetime: パース済みdatetimeオブジェクト
+
+    Raises:
+        ValueError: 不正な日時文字列
+    """
+    try:
+        return datetime.fromisoformat(datetime_str)
+    except ValueError as e:
+        raise ValueError(f"不正な日時形式です: {datetime_str}") from e
+```
+
+**原則3: テスタビリティを確保**
+
+```python
+# ✅ 良い例: 純粋関数（副作用なし）
+def convert_interval_to_table_name(interval: str) -> str:
+    """時間軸文字列からテーブル名を取得.
+
+    Args:
+        interval: 時間軸（例: "1d"）
+
+    Returns:
+        str: テーブル名（例: "stocks_1d"）
+    """
+    return INTERVAL_TABLE_MAPPING.get(interval, "stocks_1d")
+```
+
+### 7.4 共通モジュール利用時の注意点
+
+**1. 循環参照の回避**
+
+```python
+# ❌ 悪い例: 循環参照が発生
+# app/schemas/stock.py
+from app.services.stock_service import StockService  # 循環参照
+
+# ✅ 良い例: 型ヒントはTYPE_CHECKINGで分離
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.stock_service import StockService
+```
+
+**2. 例外の過度なネスト回避**
+
+```python
+# ❌ 悪い例: 例外の再ラップが多すぎる
+try:
+    data = await fetch_data()
+except YahooFinanceError as e:
+    raise ExternalAPIError(...) from e  # 必要以上の変換
+
+# ✅ 良い例: 適切なレベルで例外を処理
+try:
+    data = await fetch_data()
+except YahooFinanceError:
+    # Yahoo Finance固有のエラーなので、そのまま伝播
+    raise
+```
+
+**3. ユーティリティ関数の適切な配置**
+
+- ドメイン固有のロジック → サービス層
+- 汎用的な処理 → ユーティリティモジュール
+
+```python
+# ❌ 悪い例: ビジネスロジックをユーティリティに配置
+# app/utils/stock_utils.py
+def calculate_portfolio_value(holdings, current_prices):
+    """ポートフォリオ評価額計算（ビジネスロジック）"""
+    # これはユーティリティではなくサービス層に配置すべき
+
+# ✅ 良い例: 汎用的な処理のみユーティリティに配置
+# app/utils/time_utils.py
+def is_trading_day(target_date: date) -> bool:
+    """取引日判定（汎用的な処理）"""
+    return target_date.weekday() < 5 and not is_holiday(target_date)
+```
+
+---
+
+## 関連ドキュメント
+
+- [アーキテクチャ概要](../architecture_overview.md)
+- [API層仕様書](./api_layer.md)
+- [サービス層仕様書](./service_layer.md)
+- [データアクセス層仕様書](./data_access_layer.md)
+
+---
+
+**最終更新**: 2025-11-16
+**設計方針**: DRY原則 + 型安全性 + 一貫性による保守性の向上
