@@ -211,17 +211,17 @@ graph TB
 
 **役割**: 全ドメインで共有される抽象基底クラスと共通処理
 
-| モジュール               | クラス/関数         | 責務                                 | 実装方式         | 型定義                 |
-| ------------------------ | ------------------- | ------------------------------------ | ---------------- | ---------------------- |
-| **base_fetcher.py**      | BaseFetcher         | データ取得の抽象基底クラス           | ABC, Generic[T]  | TypeVar T              |
-| **http_fetcher.py**      | HttpFetcher         | HTTP通信共通処理(aiohttp)            | BaseFetcherの実装 | aiohttp ClientSession  |
-| **retry_mixin.py**       | RetryMixin          | リトライロジック                     | Mixin            | -                      |
-| **base_saver.py**        | BaseSaver           | データ保存の抽象基底クラス           | ABC, Generic[T]  | TypeVar T              |
-| **bulk_saver_mixin.py**  | BulkSaverMixin      | 一括保存共通ロジック                 | Mixin            | -                      |
-| **base_validator.py**    | BaseValidator       | データ検証の抽象基底クラス           | ABC              | -                      |
-| **base_converter.py**    | BaseConverter       | データ変換の抽象基底クラス           | ABC, Generic[T]  | TypeVar T              |
-| **error_handler.py**     | @handle_error       | エラーハンドリング統一デコレータ     | デコレータ       | -                      |
-| **retry.py**             | @retry_on_error     | リトライ制御デコレータ               | デコレータ       | -                      |
+| モジュール              | クラス/関数     | 責務                             | 実装方式          | 型定義                |
+| ----------------------- | --------------- | -------------------------------- | ----------------- | --------------------- |
+| **base_fetcher.py**     | BaseFetcher     | データ取得の抽象基底クラス       | ABC, Generic[T]   | TypeVar T             |
+| **http_fetcher.py**     | HttpFetcher     | HTTP通信共通処理(aiohttp)        | BaseFetcherの実装 | aiohttp ClientSession |
+| **retry_mixin.py**      | RetryMixin      | リトライロジック                 | Mixin             | -                     |
+| **base_saver.py**       | BaseSaver       | データ保存の抽象基底クラス       | ABC, Generic[T]   | TypeVar T             |
+| **bulk_saver_mixin.py** | BulkSaverMixin  | 一括保存共通ロジック             | Mixin             | -                     |
+| **base_validator.py**   | BaseValidator   | データ検証の抽象基底クラス       | ABC               | -                     |
+| **base_converter.py**   | BaseConverter   | データ変換の抽象基底クラス       | ABC, Generic[T]   | TypeVar T             |
+| **error_handler.py**    | @handle_error   | エラーハンドリング統一デコレータ | デコレータ        | -                     |
+| **retry.py**            | @retry_on_error | リトライ制御デコレータ           | デコレータ        | -                     |
 
 **設計ポイント**:
 - ✅ **抽象基底クラス(ABC)による型安全性**
@@ -237,23 +237,23 @@ graph TB
 
 #### 3.2.1 株価データサブドメイン (Stock Price)
 
-| モジュール         | クラス              | 責務                            | 非同期対応    | 継承元      | 型定義                              |
-| ------------------ | ------------------- | ------------------------------- | ------------- | ----------- | ----------------------------------- |
-| **service.py**     | StockPriceService   | 株価データ取得・保存統括        | ✅ async/await | -           | Pydantic FetchRequest/FetchResponse |
-| **fetcher.py**     | StockPriceFetcher   | Yahoo Finance APIからデータ取得 | ✅ aiohttp     | BaseFetcher | Pydantic StockData                  |
-| **saver.py**       | StockPriceSaver     | データベースへの株価保存        | ✅ asyncpg     | BaseSaver   | Pydantic SaveResult                 |
-| **validator.py**   | StockPriceValidator | 株価データ検証                  | -             | BaseValidator | Pydantic Field validation           |
-| **converter.py**   | StockPriceConverter | DataFrame⇔Pydantic変換          | -             | BaseConverter | Pydantic型変換                      |
+| モジュール       | クラス              | 責務                            | 非同期対応    | 継承元        | 型定義                              |
+| ---------------- | ------------------- | ------------------------------- | ------------- | ------------- | ----------------------------------- |
+| **service.py**   | StockPriceService   | 株価データ取得・保存統括        | ✅ async/await | -             | Pydantic FetchRequest/FetchResponse |
+| **fetcher.py**   | StockPriceFetcher   | Yahoo Finance APIからデータ取得 | ✅ aiohttp     | BaseFetcher   | Pydantic StockData                  |
+| **saver.py**     | StockPriceSaver     | データベースへの株価保存        | ✅ asyncpg     | BaseSaver     | Pydantic SaveResult                 |
+| **validator.py** | StockPriceValidator | 株価データ検証                  | -             | BaseValidator | Pydantic Field validation           |
+| **converter.py** | StockPriceConverter | DataFrame⇔Pydantic変換          | -             | BaseConverter | Pydantic型変換                      |
 
 #### 3.2.2 銘柄マスタサブドメイン (Stock Master / JPX)
 
-| モジュール       | クラス             | 責務                            | 非同期対応    | 継承元      | 型定義                         |
-| ---------------- | ------------------ | ------------------------------- | ------------- | ----------- | ------------------------------ |
-| **service.py**   | StockMasterService | JPX銘柄マスタ統括管理           | ✅ async/await | -           | Pydantic StockMaster           |
-| **fetcher.py**   | StockMasterFetcher | JPX API/CSVから銘柄マスタ取得   | ✅ aiohttp/csv | BaseFetcher | Pydantic StockMasterList       |
-| **saver.py**     | StockMasterSaver   | 銘柄マスタDB保存                | ✅ asyncpg     | BaseSaver   | Pydantic SaveResult            |
-| **updater.py**   | StockMasterUpdater | 定期更新ロジック(新規・廃止検出) | ✅ async/await | -           | Pydantic UpdateResult          |
-| **validator.py** | StockMasterValidator | 銘柄マスタ検証                  | -             | BaseValidator | Pydantic Field validation      |
+| モジュール       | クラス               | 責務                             | 非同期対応    | 継承元        | 型定義                    |
+| ---------------- | -------------------- | -------------------------------- | ------------- | ------------- | ------------------------- |
+| **service.py**   | StockMasterService   | JPX銘柄マスタ統括管理            | ✅ async/await | -             | Pydantic StockMaster      |
+| **fetcher.py**   | StockMasterFetcher   | JPX API/CSVから銘柄マスタ取得    | ✅ aiohttp/csv | BaseFetcher   | Pydantic StockMasterList  |
+| **saver.py**     | StockMasterSaver     | 銘柄マスタDB保存                 | ✅ asyncpg     | BaseSaver     | Pydantic SaveResult       |
+| **updater.py**   | StockMasterUpdater   | 定期更新ロジック(新規・廃止検出) | ✅ async/await | -             | Pydantic UpdateResult     |
+| **validator.py** | StockMasterValidator | 銘柄マスタ検証                   | -             | BaseValidator | Pydantic Field validation |
 
 **主要機能**:
 - ✅ **JPX上場銘柄の自動取得・更新**
@@ -263,20 +263,20 @@ graph TB
 
 #### 3.2.3 ファンダメンタルデータサブドメイン (Fundamentals)
 
-| モジュール         | クラス                 | 責務                           | 非同期対応    | 継承元      | 型定義                               |
-| ------------------ | ---------------------- | ------------------------------ | ------------- | ----------- | ------------------------------------ |
-| **service.py**     | FundamentalService     | ファンダメンタルデータ統合管理 | ✅ async/await | -           | Pydantic FundamentalRequest/Response |
-| **fetcher.py**     | FundamentalFetcher     | 財務データ取得                 | ✅ async/await | BaseFetcher | Pydantic FundamentalData             |
-| **saver.py**       | FundamentalSaver       | 財務データ保存                 | ✅ asyncpg     | BaseSaver   | Pydantic SaveResult                  |
-| **calculator.py**  | FundamentalCalculator  | 財務指標計算                   | -             | -           | Pydantic CalculatedMetrics           |
+| モジュール        | クラス                | 責務                           | 非同期対応    | 継承元      | 型定義                               |
+| ----------------- | --------------------- | ------------------------------ | ------------- | ----------- | ------------------------------------ |
+| **service.py**    | FundamentalService    | ファンダメンタルデータ統合管理 | ✅ async/await | -           | Pydantic FundamentalRequest/Response |
+| **fetcher.py**    | FundamentalFetcher    | 財務データ取得                 | ✅ async/await | BaseFetcher | Pydantic FundamentalData             |
+| **saver.py**      | FundamentalSaver      | 財務データ保存                 | ✅ asyncpg     | BaseSaver   | Pydantic SaveResult                  |
+| **calculator.py** | FundamentalCalculator | 財務指標計算                   | -             | -           | Pydantic CalculatedMetrics           |
 
 #### 3.2.4 市場インデックスサブドメイン (Market Indices)
 
-| モジュール       | クラス         | 責務                   | 非同期対応    | 継承元      | 型定義                 |
-| ---------------- | -------------- | ---------------------- | ------------- | ----------- | ---------------------- |
-| **service.py**   | IndexService   | インデックス管理       | ✅ async/await | -           | Pydantic IndexData     |
-| **fetcher.py**   | IndexFetcher   | インデックスデータ取得 | ✅ async/await | BaseFetcher | Pydantic IndexResponse |
-| **saver.py**     | IndexSaver     | インデックスデータ保存 | ✅ asyncpg     | BaseSaver   | Pydantic SaveResult    |
+| モジュール     | クラス       | 責務                   | 非同期対応    | 継承元      | 型定義                 |
+| -------------- | ------------ | ---------------------- | ------------- | ----------- | ---------------------- |
+| **service.py** | IndexService | インデックス管理       | ✅ async/await | -           | Pydantic IndexData     |
+| **fetcher.py** | IndexFetcher | インデックスデータ取得 | ✅ async/await | BaseFetcher | Pydantic IndexResponse |
+| **saver.py**   | IndexSaver   | インデックスデータ保存 | ✅ asyncpg     | BaseSaver   | Pydantic SaveResult    |
 
 ---
 
@@ -284,13 +284,13 @@ graph TB
 
 **役割**: ドメイン横断の汎用バッチ処理（株価・銘柄マスタ・ファンダメンタル全てに対応）
 
-| モジュール                 | クラス               | 責務                                 | 非同期対応         | 型定義                             |
-| -------------------------- | -------------------- | ------------------------------------ | ------------------ | ---------------------------------- |
-| **coordinator.py**         | BatchCoordinator     | 汎用バッチ調整・並列処理制御         | ✅ asyncio.gather() | Pydantic BatchRequest/BatchSummary |
-| **executor.py**            | BatchExecutor        | 並列実行エンジン                     | ✅ async/await      | Pydantic ExecutionResult           |
-| **progress_tracker.py**    | BatchProgressTracker | 進捗管理                             | ✅ WebSocket配信    | Pydantic ProgressInfo              |
-| **result_processor.py**    | BatchResultProcessor | 結果処理・集計                       | ✅ async/await      | Pydantic ProcessSummary            |
-| **execution_history.py**   | ExecutionHistory     | バッチ実行履歴管理                   | ✅ async/await      | Pydantic BatchExecution            |
+| モジュール               | クラス               | 責務                         | 非同期対応         | 型定義                             |
+| ------------------------ | -------------------- | ---------------------------- | ------------------ | ---------------------------------- |
+| **coordinator.py**       | BatchCoordinator     | 汎用バッチ調整・並列処理制御 | ✅ asyncio.gather() | Pydantic BatchRequest/BatchSummary |
+| **executor.py**          | BatchExecutor        | 並列実行エンジン             | ✅ async/await      | Pydantic ExecutionResult           |
+| **progress_tracker.py**  | BatchProgressTracker | 進捗管理                     | ✅ WebSocket配信    | Pydantic ProgressInfo              |
+| **result_processor.py**  | BatchResultProcessor | 結果処理・集計               | ✅ async/await      | Pydantic ProcessSummary            |
+| **execution_history.py** | ExecutionHistory     | バッチ実行履歴管理           | ✅ async/await      | Pydantic BatchExecution            |
 
 **設計ポイント（汎用性の実現）**:
 - ✅ **BaseFetcher/BaseSaverを受け取る設計** → あらゆるデータソースに対応
@@ -323,11 +323,11 @@ batch_coordinator.execute(
 
 #### 3.4.1 スクリーニングサブドメイン (Screening)
 
-| モジュール       | クラス            | 責務                   | 非同期対応    | 型定義                           |
-| ---------------- | ----------------- | ---------------------- | ------------- | -------------------------------- |
-| **service.py**   | ScreeningService  | スクリーニング実行     | ✅ async/await | Pydantic ScreeningRequest/Result |
-| **executor.py**  | ScreeningExecutor | 条件フィルタ実行       | ✅ async/await | Pydantic FilterCondition         |
-| **storage.py**   | ScreeningStorage  | スクリーニング結果保存 | ✅ async/await | Pydantic SavedScreening          |
+| モジュール      | クラス            | 責務                   | 非同期対応    | 型定義                           |
+| --------------- | ----------------- | ---------------------- | ------------- | -------------------------------- |
+| **service.py**  | ScreeningService  | スクリーニング実行     | ✅ async/await | Pydantic ScreeningRequest/Result |
+| **executor.py** | ScreeningExecutor | 条件フィルタ実行       | ✅ async/await | Pydantic FilterCondition         |
+| **storage.py**  | ScreeningStorage  | スクリーニング結果保存 | ✅ async/await | Pydantic SavedScreening          |
 
 **主要機能**:
 - ✅ **複数条件のAND/OR組み合わせ**
@@ -337,11 +337,11 @@ batch_coordinator.execute(
 
 #### 3.4.2 バックテストサブドメイン (Backtest)
 
-| モジュール       | クラス           | 責務                     | 非同期対応    | 型定義                          |
-| ---------------- | ---------------- | ------------------------ | ------------- | ------------------------------- |
-| **service.py**   | BacktestService  | バックテスト実行管理     | ✅ async/await | Pydantic BacktestRequest/Result |
-| **engine.py**    | BacktestEngine   | バックテスト実行エンジン | ✅ async/await | Pydantic BacktestConfig         |
-| **analyzer.py**  | BacktestAnalyzer | 結果分析・可視化         | -             | Pydantic PerformanceMetrics     |
+| モジュール      | クラス           | 責務                     | 非同期対応    | 型定義                          |
+| --------------- | ---------------- | ------------------------ | ------------- | ------------------------------- |
+| **service.py**  | BacktestService  | バックテスト実行管理     | ✅ async/await | Pydantic BacktestRequest/Result |
+| **engine.py**   | BacktestEngine   | バックテスト実行エンジン | ✅ async/await | Pydantic BacktestConfig         |
+| **analyzer.py** | BacktestAnalyzer | 結果分析・可視化         | -             | Pydantic PerformanceMetrics     |
 
 **主要機能**:
 - ✅ **シンプル移動平均クロス戦略の実装**
@@ -357,11 +357,11 @@ batch_coordinator.execute(
 
 #### 3.5.1 認証サブドメイン (Auth)
 
-| モジュール             | クラス           | 責務                 | 非同期対応    | 型定義                      |
-| ---------------------- | ---------------- | -------------------- | ------------- | --------------------------- |
-| **service.py**         | AuthService      | 認証・認可管理       | ✅ async/await | Pydantic LoginRequest/Token |
-| **password_hasher.py** | PasswordHasher   | パスワードハッシュ化 | -             | bcrypt                      |
-| **token_manager.py**   | TokenManager     | JWTトークン管理      | -             | jose.jwt                    |
+| モジュール             | クラス         | 責務                 | 非同期対応    | 型定義                      |
+| ---------------------- | -------------- | -------------------- | ------------- | --------------------------- |
+| **service.py**         | AuthService    | 認証・認可管理       | ✅ async/await | Pydantic LoginRequest/Token |
+| **password_hasher.py** | PasswordHasher | パスワードハッシュ化 | -             | bcrypt                      |
+| **token_manager.py**   | TokenManager   | JWTトークン管理      | -             | jose.jwt                    |
 
 **主要機能**:
 - ✅ **JWT認証方式（アクセストークン・リフレッシュトークン）**
@@ -391,10 +391,10 @@ batch_coordinator.execute(
 
 #### 3.5.4 ポートフォリオサブドメイン (Portfolio)
 
-| モジュール         | クラス              | 責務               | 非同期対応    | 型定義                    |
-| ------------------ | ------------------- | ------------------ | ------------- | ------------------------- |
-| **service.py**     | PortfolioService    | ポートフォリオ管理 | ✅ async/await | Pydantic PortfolioSummary |
-| **calculator.py**  | PortfolioCalculator | 評価額・損益計算   | -             | Pydantic PortfolioMetrics |
+| モジュール        | クラス              | 責務               | 非同期対応    | 型定義                    |
+| ----------------- | ------------------- | ------------------ | ------------- | ------------------------- |
+| **service.py**    | PortfolioService    | ポートフォリオ管理 | ✅ async/await | Pydantic PortfolioSummary |
+| **calculator.py** | PortfolioCalculator | 評価額・損益計算   | -             | Pydantic PortfolioMetrics |
 
 **主要機能**:
 - ✅ **ポートフォリオ評価額、保有銘柄一覧、損益情報の計算**
@@ -1040,15 +1040,15 @@ app/schemas/
 
 ### 8.1 従来設計との比較
 
-| 観点                     | 従来設計(機能別)                                 | ドメイン駆動設計                                          |
-| ------------------------ | ------------------------------------------------ | --------------------------------------------------------- |
-| **ディレクトリ構造**     | stock_data/, jpx/, batch/が別々                  | market_data/{stock_price, stock_master}として統合         |
-| **コード重複**           | 株価とJPXで類似処理が重複                        | BaseFetcher/BaseSaverで共通化                             |
-| **バッチ処理**           | stock_data専用のbatch_coordinator                | 汎用BatchCoordinatorであらゆるデータソースに対応          |
-| **拡張性**               | 新データソース追加時に個別実装が必要             | BaseFetcher/Saverを継承するだけ                           |
-| **ビジネス的理解**       | 技術的な分類(fetch/save)が中心                   | ビジネスドメイン(市場データ/分析/ユーザー)が明確          |
-| **テスタビリティ**       | モック作成が煩雑                                 | 抽象基底クラスでインターフェース統一、モック注入が容易    |
-| **保守性**               | 関連機能が散在                                   | ドメインごとにまとまり、変更の影響範囲が明確              |
+| 観点                 | 従来設計(機能別)                     | ドメイン駆動設計                                       |
+| -------------------- | ------------------------------------ | ------------------------------------------------------ |
+| **ディレクトリ構造** | stock_data/, jpx/, batch/が別々      | market_data/{stock_price, stock_master}として統合      |
+| **コード重複**       | 株価とJPXで類似処理が重複            | BaseFetcher/BaseSaverで共通化                          |
+| **バッチ処理**       | stock_data専用のbatch_coordinator    | 汎用BatchCoordinatorであらゆるデータソースに対応       |
+| **拡張性**           | 新データソース追加時に個別実装が必要 | BaseFetcher/Saverを継承するだけ                        |
+| **ビジネス的理解**   | 技術的な分類(fetch/save)が中心       | ビジネスドメイン(市場データ/分析/ユーザー)が明確       |
+| **テスタビリティ**   | モック作成が煩雑                     | 抽象基底クラスでインターフェース統一、モック注入が容易 |
+| **保守性**           | 関連機能が散在                       | ドメインごとにまとまり、変更の影響範囲が明確           |
 
 ### 8.2 実装時の注意点
 
