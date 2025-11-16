@@ -117,9 +117,11 @@ app/
     ├── validators.py            # 共通バリデータ
     ├── database.py              # データベース接続管理 + 依存性注入
     ├── config.py                # 設定管理
-    ├── security.py              # セキュリティユーティリティ + 認証依存性
+    ├── security.py              # セキュリティユーティリティ + 認証依存性 + セキュリティミドルウェア
     ├── retry.py                 # リトライロジック
     ├── rate_limiter.py          # レート制限デコレータ + RateLimiterクラス
+    ├── websocket_manager.py     # WebSocket接続管理（シングルトン）
+    ├── cache.py                 # キャッシュ制御ミドルウェア
     └── constants.py             # システム定数
 ```
 
@@ -862,7 +864,204 @@ async def start_batch_fetch(...):
 - `ExternalAPIError`
 - `DatabaseError`（接続エラーのみ）
 
-### 5.9 システム定数（`app/utils/constants.py`）
+### 5.9 WebSocket接続管理（`app/utils/websocket_manager.py`）
+
+**WebSocketManagerクラス**:
+
+WebSocket接続の一元管理を提供するシングルトンクラスです。複数のクライアントとの接続を管理し、メッセージ配信を行います。
+
+| 属性                | 型                        | 説明                               |
+| ------------------- | ------------------------- | ---------------------------------- |
+| `active_connections`| Dict[str, WebSocket]      | アクティブな接続の辞書管理         |
+
+**主要メソッド**:
+
+| メソッド名          | 引数                       | 戻り値 | 説明                               |
+| ------------------- | -------------------------- | ------ | ---------------------------------- |
+| `connect()`         | client_id: str, websocket: WebSocket | None | クライアント接続受け入れ |
+| `disconnect()`      | client_id: str             | None   | クライアント切断処理               |
+| `send_to_client()`  | client_id: str, message: dict | None | 特定クライアントへメッセージ送信   |
+| `broadcast()`       | message: dict              | None   | 全クライアントへメッセージ配信     |
+
+**使用例（FastAPIエンドポイント）**:
+
+```python
+from fastapi import WebSocket, WebSocketDisconnect
+from app.utils.websocket_manager import websocket_manager
+
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    """WebSocketエンドポイント."""
+    await websocket_manager.connect(client_id, websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            # メッセージ処理
+            await websocket_manager.send_to_client(
+                client_id,
+                {"type": "response", "data": "処理完了"}
+            )
+    except WebSocketDisconnect:
+        await websocket_manager.disconnect(client_id)
+```
+
+**使用例（サービス層からの進捗通知）**:
+
+```python
+from app.utils.websocket_manager import websocket_manager
+
+class BatchService:
+    async def process_batch(self, client_id: str, symbols: List[str]):
+        """バッチ処理と進捗通知."""
+        total = len(symbols)
+        for i, symbol in enumerate(symbols):
+            # データ処理
+            result = await self._process_symbol(symbol)
+
+            # WebSocket経由で進捗通知
+            await websocket_manager.send_to_client(
+                client_id,
+                {
+                    "type": "progress",
+                    "current": i + 1,
+                    "total": total,
+                    "symbol": symbol,
+                    "progress_percentage": ((i + 1) / total) * 100
+                }
+            )
+```
+
+**メッセージタイプ**:
+
+| タイプ     | 用途                 | ペイロード例                                                           |
+| ---------- | -------------------- | ---------------------------------------------------------------------- |
+| `progress` | バッチ処理進捗通知   | `{current: 10, total: 100, symbol: "7203.T", progress_percentage: 10}` |
+| `complete` | バッチ処理完了通知   | `{total: 100, elapsed_time: 120.5}`                                    |
+| `error`    | エラー通知           | `{message: "データ取得失敗", symbol: "7203.T"}`                        |
+| `realtime` | リアルタイム株価更新 | `{symbol: "7203.T", price: 1500, change: +0.5%}`                       |
+
+### 5.10 キャッシュ制御ミドルウェア（`app/utils/cache.py`）
+
+**CacheControlMiddlewareクラス**:
+
+HTTPレスポンスにCache-Controlヘッダーを自動設定するミドルウェアです。静的ファイルとAPIレスポンスで異なるキャッシュポリシーを適用します。
+
+**キャッシュポリシー**:
+
+| パス              | Cache-Controlヘッダー値                  | 説明                           |
+| ----------------- | ---------------------------------------- | ------------------------------ |
+| `/static/*`       | `public, max-age=31536000, immutable`    | 静的ファイル: 1年間キャッシュ  |
+| `/api/*`          | `no-store, no-cache`                     | APIレスポンス: キャッシュ無効  |
+| その他            | `no-cache`                               | デフォルト: 毎回検証           |
+
+**使用例（FastAPI Application Factoryでの登録）**:
+
+```python
+from fastapi import FastAPI
+from app.utils.cache import CacheControlMiddleware
+
+def create_app():
+    """FastAPIアプリケーション生成."""
+    app = FastAPI()
+
+    # キャッシュ制御ミドルウェアを追加
+    app.add_middleware(CacheControlMiddleware)
+
+    return app
+```
+
+**実装パターン**:
+
+```python
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    """Cache-Control ヘッダー自動設定ミドルウェア."""
+
+    async def dispatch(self, request: Request, call_next):
+        """リクエスト処理とCache-Controlヘッダー設定."""
+        response: Response = await call_next(request)
+
+        # パスに応じてCache-Controlヘッダーを設定
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store, no-cache"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
+
+        return response
+```
+
+### 5.11 セキュリティミドルウェア（`app/utils/security.py` へ追加）
+
+**SecurityHeadersMiddlewareクラス**:
+
+セキュリティ関連のHTTPヘッダーを自動設定するミドルウェアです。XSS、クリックジャッキング、MIME スニッフィング攻撃を防止します。
+
+**設定されるセキュリティヘッダー**:
+
+| ヘッダー                    | 値                                    | 効果                     |
+| --------------------------- | ------------------------------------- | ------------------------ |
+| `X-Content-Type-Options`    | `nosniff`                             | MIME スニッフィング防止  |
+| `X-Frame-Options`           | `DENY`                                | クリックジャッキング防止 |
+| `X-XSS-Protection`          | `1; mode=block`                       | XSS 攻撃検出・ブロック   |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | HTTPS 強制（1年間）      |
+
+**使用例（FastAPI Application Factoryでの登録）**:
+
+```python
+from fastapi import FastAPI
+from app.utils.security import SecurityHeadersMiddleware
+
+def create_app():
+    """FastAPIアプリケーション生成."""
+    app = FastAPI()
+
+    # セキュリティヘッダーミドルウェアを追加
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    return app
+```
+
+**実装パターン**:
+
+```python
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """セキュリティヘッダー自動設定ミドルウェア."""
+
+    async def dispatch(self, request: Request, call_next):
+        """リクエスト処理とセキュリティヘッダー設定."""
+        response: Response = await call_next(request)
+
+        # セキュリティヘッダーを設定
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
+        return response
+```
+
+**本番環境での追加設定**:
+
+本番環境では、以下の追加設定を推奨します:
+
+| ミドルウェア                | 説明                               |
+| --------------------------- | ---------------------------------- |
+| `HTTPSRedirectMiddleware`   | HTTP → HTTPS リダイレクト強制      |
+| `TrustedHostMiddleware`     | 許可されたホスト名のみ受け入れ     |
+| `GZipMiddleware`            | レスポンス圧縮（1000バイト以上）   |
+
+### 5.12 システム定数（`app/utils/constants.py`）
 
 **株価データ関連定数**:
 
@@ -1291,6 +1490,52 @@ def is_trading_day(target_date: date) -> bool:
 | **依存性注入の活用**       | FastAPIの`Depends()`パターンで疎結合を実現               | `db: AsyncSession = Depends(get_db)`                 |
 
 ### 8.2 レイヤー別利用パターン
+
+#### プレゼンテーション層での利用
+
+```python
+# WebSocket接続管理
+from app.utils.websocket_manager import websocket_manager
+
+# セキュリティミドルウェア
+from app.utils.security import SecurityHeadersMiddleware
+
+# キャッシュ制御ミドルウェア
+from app.utils.cache import CacheControlMiddleware
+
+# 設定管理
+from app.utils.config import settings
+
+# FastAPI Application Factory での利用例
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZIPMiddleware
+
+def create_app():
+    """FastAPIアプリケーション生成（共通モジュール活用）."""
+    app = FastAPI(
+        title=settings.APP_NAME,
+        version=settings.VERSION,
+        debug=settings.DEBUG
+    )
+
+    # 共通モジュールのミドルウェアを追加
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(CacheControlMiddleware)
+    app.add_middleware(GZIPMiddleware, minimum_size=1000)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # WebSocketManagerを app.state に登録
+    app.state.websocket_manager = websocket_manager
+
+    return app
+```
 
 #### API層での利用
 

@@ -3,6 +3,7 @@ ai_context: high
 last_updated: 2025-11-16
 related_docs:
   - ../architecture_overview.md
+  - ./common_modules.md
   - ./api_layer.md
   - ./service_layer.md
   - ../frontend/frontend_spec.md
@@ -200,24 +201,57 @@ app = create_app(config_name=Environment.DEVELOPMENT)
 - WEBSOCKET_PING_INTERVAL / WEBSOCKET_PING_TIMEOUT: WebSocket接続維持設定
 - API_TIMEOUT / API_RETRY_COUNT: 外部API呼び出し設定
 
-### 3.4 拡張機能初期化（app/extensions.py）
+### 3.4 拡張機能初期化（app/main.py）
 
-**WebSocketManager**:
+**共通モジュールの活用**:
 
-- シングルトンパターンによる接続管理
-- アクティブ接続の辞書管理（`Dict[str, WebSocket]`）
-- 主要メソッド:
-  - `connect(client_id, websocket)`: クライアント接続受け入れ
-  - `disconnect(client_id)`: クライアント切断処理
-  - `broadcast(message)`: 全クライアントへメッセージ配信
-  - `send_to_client(client_id, message)`: 特定クライアントへメッセージ送信
+プレゼンテーション層では、以下の共通モジュールを利用します:
+
+| 共通モジュール              | 用途                               | インポート元                           |
+| --------------------------- | ---------------------------------- | -------------------------------------- |
+| `websocket_manager`         | WebSocket接続管理（シングルトン）  | `app.utils.websocket_manager`          |
+| `SecurityHeadersMiddleware` | セキュリティヘッダー自動設定       | `app.utils.security`                   |
+| `CacheControlMiddleware`    | キャッシュ制御ヘッダー自動設定     | `app.utils.cache`                      |
+| `settings`                  | 環境別設定                         | `app.utils.config`                     |
 
 **初期化処理**:
 
 ```python
-def init_extensions(app):
+from fastapi import FastAPI
+from app.utils.websocket_manager import websocket_manager
+from app.utils.security import SecurityHeadersMiddleware
+from app.utils.cache import CacheControlMiddleware
+from app.utils.config import settings
+
+def create_app(config_name: Environment) -> FastAPI:
+    """FastAPIアプリケーション生成（共通モジュール活用）."""
+    app = FastAPI(
+        title=settings.APP_NAME,
+        version=settings.VERSION,
+        debug=settings.DEBUG
+    )
+
+    # 共通モジュールのミドルウェアを登録
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(CacheControlMiddleware)
+
+    # WebSocketManagerをアプリケーション状態に登録
     app.state.websocket_manager = websocket_manager
+
+    return app
 ```
+
+**WebSocketManager の利用**:
+
+WebSocketManager は共通モジュール (`app.utils.websocket_manager`) で定義されています。プレゼンテーション層では、WebSocketエンドポイントでこれを利用します。
+
+主要メソッド:
+- `connect(client_id, websocket)`: クライアント接続受け入れ
+- `disconnect(client_id)`: クライアント切断処理
+- `send_to_client(client_id, message)`: 特定クライアントへメッセージ送信
+- `broadcast(message)`: 全クライアントへメッセージ配信
+
+詳細は [共通モジュール仕様書 - 5.9 WebSocket接続管理](./common_modules.md#59-websocket接続管理apputilswebsocket_managerpy) を参照してください。
 
 ---
 
@@ -324,18 +358,44 @@ def init_extensions(app):
 
 **エンドポイント**: `/ws/{client_id}`
 
+**共通モジュールの利用**:
+
+WebSocket接続管理には、共通モジュールの `websocket_manager` を使用します。
+
+```python
+from fastapi import WebSocket, WebSocketDisconnect
+from app.utils.websocket_manager import websocket_manager
+
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    """WebSocketエンドポイント（共通モジュール利用）."""
+    await websocket_manager.connect(client_id, websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            # メッセージ処理
+            await websocket_manager.send_to_client(
+                client_id,
+                {"type": "response", "data": "処理完了"}
+            )
+    except WebSocketDisconnect:
+        await websocket_manager.disconnect(client_id)
+```
+
 **処理フロー**:
 
-1. `websocket_manager.connect(client_id, websocket)`: 接続受け入れ
+1. `websocket_manager.connect(client_id, websocket)`: 接続受け入れ（共通モジュール）
 2. `while True`: メッセージ受信ループ
 3. `websocket.receive_json()`: JSONメッセージ受信
 4. メッセージタイプに応じた処理実行
-5. `websocket_manager.send_to_client()`: レスポンス送信
-6. `WebSocketDisconnect` 例外時: 切断処理
+5. `websocket_manager.send_to_client()`: レスポンス送信（共通モジュール）
+6. `WebSocketDisconnect` 例外時: 切断処理（共通モジュール）
 
 ### 6.2 進捗配信パターン
 
 **メッセージタイプ**:
+
+WebSocketManagerでサポートされるメッセージタイプは、共通モジュールで定義されています。
 
 | タイプ     | 用途                 | ペイロード例                                                           |
 | ---------- | -------------------- | ---------------------------------------------------------------------- |
@@ -346,8 +406,9 @@ def init_extensions(app):
 
 **実装パターン**:
 
-- サービス層から `websocket_manager.send_to_client(client_id, message)` を呼び出し
-- フロントエンドでメッセージタイプに応じたハンドラを登録
+サービス層から共通モジュールの `websocket_manager.send_to_client()` を呼び出し、進捗をリアルタイム配信します。
+
+詳細は [共通モジュール仕様書 - 5.9 WebSocket接続管理](./common_modules.md#59-websocket接続管理apputilswebsocket_managerpy) を参照してください。
 
 ### 6.3 フロントエンドWebSocketクライアント
 
@@ -492,19 +553,56 @@ sequenceDiagram
 
 ## 9. セキュリティ
 
+プレゼンテーション層では、共通モジュールのセキュリティ機能を活用してアプリケーションを保護します。
+
 ### 9.1 CORS設定
 
-**本番環境**: 環境変数 `FRONTEND_URL` から許可オリジンを読み込み
-**開発環境**: `localhost:3000`, `localhost:8000` を許可
+**共通モジュールの設定利用**:
+
+CORS設定は `app.utils.config` (共通モジュール) の `settings` で管理されます。
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+from app.utils.config import settings
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,  # 共通モジュールから取得
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+**環境別設定**:
+- **本番環境**: 環境変数 `FRONTEND_URL` から許可オリジンを読み込み
+- **開発環境**: `localhost:3000`, `localhost:8000` を許可
 
 ### 9.2 HTTPS強制（本番環境）
 
-- `HTTPSRedirectMiddleware` により HTTP → HTTPS リダイレクト強制
-- 本番環境のみ有効化
+**共通モジュールの設定に基づく条件付き有効化**:
+
+```python
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from app.utils.config import settings
+
+if settings.ENVIRONMENT == "production":
+    app.add_middleware(HTTPSRedirectMiddleware)
+```
 
 ### 9.3 セキュリティヘッダー
 
-**カスタムミドルウェア `SecurityHeadersMiddleware`**:
+**共通モジュールのミドルウェア利用**:
+
+セキュリティヘッダーの設定には、`app.utils.security` (共通モジュール) の `SecurityHeadersMiddleware` を使用します。
+
+```python
+from app.utils.security import SecurityHeadersMiddleware
+
+app.add_middleware(SecurityHeadersMiddleware)
+```
+
+**設定されるセキュリティヘッダー**:
 
 | ヘッダー                    | 値                                    | 効果                     |
 | --------------------------- | ------------------------------------- | ------------------------ |
@@ -513,11 +611,25 @@ sequenceDiagram
 | `X-XSS-Protection`          | `1; mode=block`                       | XSS 攻撃検出・ブロック   |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | HTTPS 強制（1年間）      |
 
+詳細は [共通モジュール仕様書 - 5.11 セキュリティミドルウェア](./common_modules.md#511-セキュリティミドルウェアapputilssecuritypy-へ追加) を参照してください。
+
 ### 9.4 レート制限
 
-- **ライブラリ**: `slowapi`（Flask-Limiter の FastAPI版）
-- **実装例**: `@limiter.limit("10/minute")` デコレータでエンドポイント単位で制限
-- **キー関数**: `get_remote_address` でクライアントIPベース制限
+**共通モジュールのレート制限機能利用**:
+
+レート制限には、`app.utils.rate_limiter` (共通モジュール) の `rate_limit` デコレータを使用します。
+
+```python
+from app.utils.rate_limiter import rate_limit
+
+@router.post("/api/batch/jobs")
+@rate_limit(max_requests=10, window_seconds=60)
+async def start_batch_fetch(...):
+    """一括データ取得開始（10リクエスト/60秒）."""
+    ...
+```
+
+詳細は [共通モジュール仕様書 - 5.8 レート制限](./common_modules.md#58-レート制限apputilsrate_limiterpy) を参照してください。
 
 ---
 
@@ -525,12 +637,25 @@ sequenceDiagram
 
 ### 10.1 静的ファイルキャッシュ
 
+**共通モジュールのキャッシュ制御ミドルウェア利用**:
+
+キャッシュ制御には、`app.utils.cache` (共通モジュール) の `CacheControlMiddleware` を使用します。
+
+```python
+from app.utils.cache import CacheControlMiddleware
+
+app.add_middleware(CacheControlMiddleware)
+```
+
 **Cache-Control ヘッダー設定**:
 
-- `/static/*`: `public, max-age=31536000, immutable`（1年キャッシュ）
-- API レスポンス: `no-store, no-cache`（キャッシュ無効）
+| パス              | Cache-Controlヘッダー値                  | 説明                           |
+| ----------------- | ---------------------------------------- | ------------------------------ |
+| `/static/*`       | `public, max-age=31536000, immutable`    | 静的ファイル: 1年間キャッシュ  |
+| `/api/*`          | `no-store, no-cache`                     | APIレスポンス: キャッシュ無効  |
+| その他            | `no-cache`                               | デフォルト: 毎回検証           |
 
-**実装**: カスタムミドルウェア `CacheControlMiddleware`
+詳細は [共通モジュール仕様書 - 5.10 キャッシュ制御ミドルウェア](./common_modules.md#510-キャッシュ制御ミドルウェアapputilscachepy) を参照してください。
 
 ### 10.2 圧縮（Gzip）
 
@@ -558,6 +683,7 @@ sequenceDiagram
 ## 関連ドキュメント
 
 - [アーキテクチャ概要](../architecture_overview.md)
+- [共通モジュール仕様書](./common_modules.md) ⭐ **重要**: WebSocket、セキュリティ、キャッシュ制御の詳細
 - [API層仕様書](./api_layer.md)
 - [サービス層仕様書](./service_layer.md)
 - [フロントエンド機能仕様](../../frontend/frontend_spec.md)
