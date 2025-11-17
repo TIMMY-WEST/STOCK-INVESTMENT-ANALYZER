@@ -951,18 +951,132 @@ class BaseFetcher(ABC, Generic[T]):
 
 ```python
 # app/services/market_data/stock_price/fetcher.py
+import yfinance as yf
+from typing import List
+from app.schemas.stock_data import StockData
+from app.services.core.fetchers.base_fetcher import BaseFetcher
+
 class StockPriceFetcher(BaseFetcher[StockData]):
-    """BaseFetcherを継承して具体的な取得処理を実装"""
+    """Yahoo Finance APIから株価データを取得する具体実装"""
+
+    def __init__(self):
+        self.api_client = yf
 
     async def fetch(self, symbol: str, **kwargs) -> StockData:
-        # 1. バリデーション（共通処理）
-        await self._validate_identifier(symbol)
+        """単一銘柄の株価データ取得"""
+        # 1. バリデーション
+        if not symbol or not isinstance(symbol, str):
+            raise ValueError(f"Invalid symbol: {symbol}")
 
-        # 2. データ取得（サブクラス固有）
-        raw_data = await self._download_from_yahoo(symbol, **kwargs)
+        # 2. パラメータ取得
+        period = kwargs.get("period", "1mo")
+        interval = kwargs.get("interval", "1d")
 
-        # 3. 変換（サブクラス固有）
-        return self._convert_to_pydantic(raw_data)
+        # 3. Yahoo Finance APIから取得
+        ticker = self.api_client.Ticker(symbol)
+        hist = ticker.history(period=period, interval=interval)
+
+        if hist.empty:
+            raise ValueError(f"No data found for symbol: {symbol}")
+
+        # 4. Pydanticモデルに変換
+        stock_data_list = []
+        for idx, row in hist.iterrows():
+            stock_data_list.append(
+                StockData(
+                    symbol=symbol,
+                    datetime=idx,
+                    open=row['Open'],
+                    high=row['High'],
+                    low=row['Low'],
+                    close=row['Close'],
+                    volume=int(row['Volume'])
+                )
+            )
+
+        return stock_data_list
+
+    async def fetch_batch(self, symbols: List[str], **kwargs) -> List[StockData]:
+        """複数銘柄の株価データ一括取得"""
+        results = []
+        for symbol in symbols:
+            try:
+                data = await self.fetch(symbol, **kwargs)
+                results.extend(data)
+            except Exception as e:
+                # エラーログを記録して続行
+                print(f"Failed to fetch {symbol}: {e}")
+                continue
+        return results
+```
+
+**BaseSaverの具体実装例:**
+
+```python
+# app/services/market_data/stock_price/saver.py
+from typing import List
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models import StockModel
+from app.schemas.stock_data import StockData
+from app.services.core.savers.base_saver import BaseSaver
+from app.repositories.stock_repository import StockRepository
+
+class StockPriceSaver(BaseSaver[StockData]):
+    """株価データをPostgreSQLに保存する具体実装"""
+
+    def __init__(self, repository: StockRepository):
+        self.repository = repository
+
+    async def save(self, data: StockData, **kwargs) -> bool:
+        """単一の株価データ保存"""
+        try:
+            # Pydantic -> SQLAlchemyモデル変換
+            model = StockModel(
+                symbol=data.symbol,
+                datetime=data.datetime,
+                open=data.open,
+                high=data.high,
+                low=data.low,
+                close=data.close,
+                volume=data.volume
+            )
+
+            # リポジトリ経由でDB保存
+            await self.repository.add(model)
+            await self.repository.commit()
+            return True
+
+        except Exception as e:
+            await self.repository.rollback()
+            raise RuntimeError(f"Failed to save stock data: {e}")
+
+    async def save_batch(self, data_list: List[StockData], **kwargs) -> int:
+        """複数の株価データを一括保存"""
+        saved_count = 0
+        models = []
+
+        for data in data_list:
+            model = StockModel(
+                symbol=data.symbol,
+                datetime=data.datetime,
+                open=data.open,
+                high=data.high,
+                low=data.low,
+                close=data.close,
+                volume=data.volume
+            )
+            models.append(model)
+
+        try:
+            # バルクインサート
+            await self.repository.bulk_add(models)
+            await self.repository.commit()
+            saved_count = len(models)
+        except Exception as e:
+            await self.repository.rollback()
+            raise RuntimeError(f"Failed to save batch data: {e}")
+
+        return saved_count
 ```
 
 ### 6.2 依存性注入パターン（ドメイン別）

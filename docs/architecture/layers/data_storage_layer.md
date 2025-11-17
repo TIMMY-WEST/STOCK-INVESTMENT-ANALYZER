@@ -33,10 +33,9 @@ related_docs:
 | **データ永続化** | 株価データ、銘柄マスタ、バッチ履歴の物理保存 | PostgreSQL Server |
 | **データ整合性** | トランザクション、制約による一貫性保証 | PostgreSQL（ACID特性） |
 | **クエリ実行** | SQL実行とインデックスによる高速検索 | PostgreSQL Query Engine |
-| **コネクション管理** | 接続プール、タイムアウト、リトライ制御 | [共通モジュール](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
 | **ストレージ管理** | ディスク容量、テーブルパーティション管理 | PostgreSQL Server |
 
-> **Note**: コネクション管理は共通モジュール(`app/utils/database.py`)で実装されています。データストレージ層はPostgreSQL自体の設定と運用に責任を持ちます。
+> **Note**: アプリケーション層のコネクション管理（接続プール、タイムアウト、リトライ制御）は共通モジュール(`app/utils/database.py`)で実装されています。データストレージ層はPostgreSQL自体のサーバー設定と運用に責任を持ちます。
 
 ### 設計原則
 
@@ -330,13 +329,51 @@ SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 
 詳細は [共通モジュール仕様書 - 5.5 データベース接続管理](./common_modules.md#55-データベース接続管理apputilsdatabasepy) を参照してください。
 
+**トランザクション分離レベルの設定方法:**
+
+SQLAlchemyを使用したアプリケーション層での分離レベル設定の具体例:
+
+```python
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# 方法1: エンジン作成時にデフォルト分離レベルを設定
+engine = create_engine(
+    DATABASE_URL,
+    isolation_level="READ COMMITTED"  # デフォルト分離レベル
+)
+
+# 方法2: セッション単位で分離レベルを変更
+async with get_db() as session:
+    # トランザクション開始時に分離レベルを指定
+    await session.execute(
+        text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+    )
+    # レポート生成処理など
+    result = await session.execute(select(StockMaster))
+    await session.commit()
+
+# 方法3: connection.execution_optionsを使用（推奨）
+async with engine.connect() as conn:
+    await conn.execution_options(
+        isolation_level="SERIALIZABLE"
+    )
+    # 高度な整合性が必要な処理
+```
+
 **トランザクション分離レベル一覧:**
 
-| 分離レベル           | 用途                   | 参照先 |
-| -------------------- | ---------------------- | ------ |
-| **READ COMMITTED**   | 通常のCRUD操作         | [共通モジュール - 5.5 トランザクション分離レベル](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
-| **REPEATABLE READ**  | レポート生成、集計処理 | [共通モジュール - 5.5 トランザクション分離レベル](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
-| **SERIALIZABLE**     | 高度な整合性が必要な場合| [共通モジュール - 5.5 トランザクション分離レベル](./common_modules.md#55-データベース接続管理apputilsdatabasepy) |
+| 分離レベル           | 用途                   | 設定方法 | 特徴 |
+| -------------------- | ---------------------- | ------ | ------ |
+| **READ COMMITTED**   | 通常のCRUD操作         | デフォルト（PostgreSQL） | コミット済みデータのみ読取、ファントムリード発生可能 |
+| **REPEATABLE READ**  | レポート生成、集計処理 | `isolation_level="REPEATABLE READ"` | 同一トランザクション内で一貫した読取保証 |
+| **SERIALIZABLE**     | 高度な整合性が必要な場合| `isolation_level="SERIALIZABLE"` | 最高レベルの整合性、シリアライゼーション異常を防止 |
+
+**推奨される使い分け:**
+
+- **READ COMMITTED**: 通常の株価データ取得、銘柄マスタCRUD（デフォルト）
+- **REPEATABLE READ**: バッチ処理での集計、レポート生成
+- **SERIALIZABLE**: 銘柄マスタの一括更新、クリティカルなデータ整合性が必要な処理
 
 ---
 

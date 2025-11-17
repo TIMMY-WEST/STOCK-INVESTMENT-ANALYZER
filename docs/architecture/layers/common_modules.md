@@ -1296,6 +1296,299 @@ except YahooFinanceError as e:
     raise
 ```
 
+---
+
+### 7.0 レイヤー別例外ハンドリング統一パターン
+
+本システムでは、各レイヤーで統一された例外ハンドリングパターンを使用します。
+
+#### API層（Presentation Layer）
+
+**役割**: HTTPリクエストを受け取り、適切なHTTPレスポンスを返却
+
+```python
+# app/api/stock_data.py
+from fastapi import APIRouter, Depends, HTTPException
+from app.schemas.stock_data import StockDataRequest, StockDataResponse
+from app.services.market_data.stock_price_service import StockPriceService
+from app.utils.api_response import success, error
+from app.exceptions.validation import ValidationError
+from app.exceptions.external_api import YahooFinanceError
+from app.utils.logger import get_logger
+
+router = APIRouter()
+logger = get_logger(__name__)
+
+@router.post("/stocks", response_model=StockDataResponse)
+async def get_stock_data(
+    request: StockDataRequest,
+    service: StockPriceService = Depends(get_stock_price_service)
+):
+    """株価データ取得エンドポイント"""
+    try:
+        # サービス層を呼び出し
+        data = await service.fetch_and_save(
+            symbol=request.symbol,
+            period=request.period,
+            interval=request.interval
+        )
+
+        # 成功レスポンス
+        return success(data=data, message="株価データを取得しました")
+
+    except ValidationError as e:
+        # バリデーションエラー: 400 Bad Request
+        logger.warning(f"Validation error: {e.message}", extra={"symbol": request.symbol})
+        return error(
+            error_code=e.error_code,
+            message=e.message,
+            details=e.details,
+            status_code=400
+        )
+
+    except YahooFinanceError as e:
+        # 外部APIエラー: 502 Bad Gateway
+        logger.error(f"Yahoo Finance API error: {e.message}", extra={"symbol": request.symbol})
+        return error(
+            error_code=e.error_code,
+            message=e.message,
+            details=e.details,
+            status_code=502
+        )
+
+    except Exception as e:
+        # 予期しないエラー: 500 Internal Server Error
+        logger.exception(f"Unexpected error: {str(e)}")
+        return error(
+            error_code="INTERNAL_SERVER_ERROR",
+            message="内部サーバーエラーが発生しました",
+            status_code=500
+        )
+```
+
+#### サービス層（Service Layer）
+
+**役割**: ビジネスロジックを実行し、カスタム例外を発生
+
+```python
+# app/services/market_data/stock_price_service.py
+from typing import List
+from app.schemas.stock_data import StockData
+from app.services.core.fetchers.base_fetcher import BaseFetcher
+from app.services.core.savers.base_saver import BaseSaver
+from app.exceptions.external_api import YahooFinanceError
+from app.exceptions.validation import ValidationError
+from app.exceptions.business import InsufficientDataError
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+class StockPriceService:
+    """株価データサービス"""
+
+    def __init__(self, fetcher: BaseFetcher, saver: BaseSaver):
+        self.fetcher = fetcher
+        self.saver = saver
+
+    async def fetch_and_save(
+        self,
+        symbol: str,
+        period: str = "1mo",
+        interval: str = "1d"
+    ) -> List[StockData]:
+        """株価データ取得と保存"""
+
+        # 1. バリデーション
+        if not symbol:
+            raise ValidationError(
+                message="銘柄コードが指定されていません",
+                error_code="VALIDATION_ERROR",
+                details={"field": "symbol"}
+            )
+
+        # 2. データ取得（外部API）
+        try:
+            data = await self.fetcher.fetch(
+                symbol=symbol,
+                period=period,
+                interval=interval
+            )
+        except Exception as e:
+            # 外部APIエラーをラップ
+            logger.error(f"Failed to fetch data for {symbol}: {str(e)}")
+            raise YahooFinanceError(
+                message=f"Yahoo Finance APIからデータを取得できませんでした: {symbol}",
+                error_code="YAHOO_FINANCE_ERROR",
+                details={"symbol": symbol, "period": period, "interval": interval},
+                original_error=e
+            )
+
+        # 3. データ検証
+        if not data or len(data) == 0:
+            raise InsufficientDataError(
+                message=f"取得データが空です: {symbol}",
+                error_code="INSUFFICIENT_DATA",
+                details={"symbol": symbol, "period": period}
+            )
+
+        # 4. データ保存
+        try:
+            saved_count = await self.saver.save_batch(data)
+            logger.info(f"Saved {saved_count} records for {symbol}")
+        except Exception as e:
+            logger.error(f"Failed to save data for {symbol}: {str(e)}")
+            # データベースエラーはそのまま伝播
+            raise
+
+        return data
+```
+
+#### リポジトリ層（Data Access Layer）
+
+**役割**: データベース操作を実行し、データベース関連例外を発生
+
+```python
+# app/repositories/stock_repository.py
+from typing import List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import select
+from app.models import StockModel
+from app.exceptions.database import (
+    DatabaseError,
+    DuplicateRecordError,
+    RecordNotFoundError
+)
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+class StockRepository:
+    """株価データリポジトリ"""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def add(self, model: StockModel) -> StockModel:
+        """単一レコード追加"""
+        try:
+            self.session.add(model)
+            await self.session.flush()
+            return model
+
+        except IntegrityError as e:
+            await self.session.rollback()
+            logger.warning(f"Duplicate record: {model.symbol} at {model.datetime}")
+            raise DuplicateRecordError(
+                message=f"重複レコード: {model.symbol}",
+                error_code="DUPLICATE_RECORD",
+                details={"symbol": model.symbol, "datetime": str(model.datetime)},
+                original_error=e
+            )
+
+        except SQLAlchemyError as e:
+            await self.session.rollback()
+            logger.error(f"Database error: {str(e)}")
+            raise DatabaseError(
+                message="データベースエラーが発生しました",
+                error_code="DB_ERROR",
+                details={"operation": "add", "symbol": model.symbol},
+                original_error=e
+            )
+
+    async def bulk_add(self, models: List[StockModel]) -> None:
+        """複数レコード一括追加"""
+        try:
+            self.session.add_all(models)
+            await self.session.flush()
+
+        except IntegrityError as e:
+            await self.session.rollback()
+            logger.warning(f"Duplicate records in bulk insert: {len(models)} records")
+            raise DuplicateRecordError(
+                message="一括登録中に重複レコードが見つかりました",
+                error_code="DUPLICATE_RECORD",
+                details={"count": len(models)},
+                original_error=e
+            )
+
+        except SQLAlchemyError as e:
+            await self.session.rollback()
+            logger.error(f"Database error in bulk insert: {str(e)}")
+            raise DatabaseError(
+                message="一括登録中にデータベースエラーが発生しました",
+                error_code="DB_ERROR",
+                details={"operation": "bulk_add", "count": len(models)},
+                original_error=e
+            )
+
+    async def get_by_symbol(self, symbol: str) -> Optional[StockModel]:
+        """銘柄コードで検索"""
+        try:
+            stmt = select(StockModel).where(StockModel.symbol == symbol)
+            result = await self.session.execute(stmt)
+            record = result.scalar_one_or_none()
+
+            if record is None:
+                raise RecordNotFoundError(
+                    message=f"銘柄データが見つかりません: {symbol}",
+                    error_code="RECORD_NOT_FOUND",
+                    details={"symbol": symbol}
+                )
+
+            return record
+
+        except SQLAlchemyError as e:
+            logger.error(f"Database query error: {str(e)}")
+            raise DatabaseError(
+                message="データ取得中にエラーが発生しました",
+                error_code="DB_ERROR",
+                details={"operation": "get_by_symbol", "symbol": symbol},
+                original_error=e
+            )
+
+    async def commit(self) -> None:
+        """トランザクションコミット"""
+        try:
+            await self.session.commit()
+        except SQLAlchemyError as e:
+            await self.session.rollback()
+            logger.error(f"Commit failed: {str(e)}")
+            raise DatabaseError(
+                message="トランザクションのコミットに失敗しました",
+                error_code="DB_COMMIT_ERROR",
+                original_error=e
+            )
+
+    async def rollback(self) -> None:
+        """トランザクションロールバック"""
+        try:
+            await self.session.rollback()
+        except SQLAlchemyError as e:
+            logger.error(f"Rollback failed: {str(e)}")
+            raise DatabaseError(
+                message="トランザクションのロールバックに失敗しました",
+                error_code="DB_ROLLBACK_ERROR",
+                original_error=e
+            )
+```
+
+#### 統一パターンのまとめ
+
+| レイヤー | 責務 | 例外処理パターン | 発生させる例外 |
+|---------|------|-----------------|---------------|
+| **API層** | HTTPリクエスト/レスポンス処理 | try-exceptで全例外をキャッチし、適切なHTTPステータスコードとレスポンスを返却 | なし（例外をHTTPレスポンスに変換） |
+| **サービス層** | ビジネスロジック実行 | ビジネスルール違反や外部APIエラーを検出し、カスタム例外を発生 | `ValidationError`, `YahooFinanceError`, `InsufficientDataError` |
+| **リポジトリ層** | データベース操作 | SQLAlchemyの例外をキャッチし、カスタムデータベース例外に変換 | `DatabaseError`, `DuplicateRecordError`, `RecordNotFoundError` |
+
+**例外伝播の流れ:**
+
+```
+Repository Layer → Service Layer → API Layer → HTTP Response
+    ↓                 ↓               ↓
+DatabaseError → YahooFinanceError → 502 Bad Gateway
+```
+
 ### 7.2 Pydanticスキーマのベストプラクティス
 
 **原則1: 型ヒントを明示**
